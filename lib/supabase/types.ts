@@ -235,6 +235,7 @@ export type Database = {
           score_a: number
           score_b: number
           screenshot_url: string | null
+          status: string
           submitted_by: string
           verified: boolean
           verified_at: string | null
@@ -248,6 +249,7 @@ export type Database = {
           score_a: number
           score_b: number
           screenshot_url?: string | null
+          status?: string
           submitted_by: string
           verified?: boolean
           verified_at?: string | null
@@ -261,6 +263,7 @@ export type Database = {
           score_a?: number
           score_b?: number
           screenshot_url?: string | null
+          status?: string
           submitted_by?: string
           verified?: boolean
           verified_at?: string | null
