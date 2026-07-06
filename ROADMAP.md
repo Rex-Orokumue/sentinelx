@@ -15,7 +15,7 @@ Status legend: ⬜ pending · 🔨 in progress · ✅ done
 | 3 | Tournament detail + Paystack registration (₦500) | `/tournaments/[slug]` | ✅ |
 | 4 | Bracket page — groups + knockout, admin-confirmed updates | `/tournaments/[slug]/bracket` | ✅ |
 | 5 | Match Centre — YouTube embed, result submission | `/matches/[id]` | ✅ |
-| 6 | Leaderboard | `/rankings` | ⬜ |
+| 6 | Leaderboard | `/rankings` | ✅ |
 | 7 | Hall of Fame | `/hall-of-fame` | ⬜ |
 | 8 | Player Dashboard — fixtures, submit results, withdrawals | `/dashboard` | ⬜ |
 | 9 | Admin Dashboard — tournaments, result verification, flags | `/admin` | ⬜ |
