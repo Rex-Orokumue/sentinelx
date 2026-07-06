@@ -4,22 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 import { TournamentCard } from '@/components/tournament/TournamentCard'
 import type { TournamentCardData } from '@/components/tournament/TournamentCard'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { TierBadge } from '@/components/player/TierBadge'
 
 const WHATSAPP_COMMUNITY = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL ?? '#'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
-
-const TIER_STYLE: Record<string, string> = {
-  elite:      'text-emerald-400',
-  trusted:    'text-blue-400',
-  developing: 'text-violet-400',
-  at_risk:    'text-red-400',
-}
-const TIER_LABEL: Record<string, string> = {
-  elite:      '🟢 Elite',
-  trusted:    '🔵 Trusted',
-  developing: '🟡 Developing',
-  at_risk:    '🔴 At Risk',
-}
 
 export default async function HomePage() {
   const supabase = createClient()
@@ -167,11 +155,7 @@ export default async function HomePage() {
                           <p className="font-semibold leading-tight text-white">
                             {player.display_name ?? player.username ?? 'Anonymous'}
                           </p>
-                          {player.sentinel_tier && (
-                            <p className={`text-[11px] ${TIER_STYLE[player.sentinel_tier] ?? 'text-slate-400'}`}>
-                              {TIER_LABEL[player.sentinel_tier] ?? player.sentinel_tier}
-                            </p>
-                          )}
+                          <TierBadge tier={player.sentinel_tier} />
                         </div>
                       </div>
                     </td>
