@@ -238,6 +238,15 @@ Every score change must be logged in `sentinel_score_events`.
 
 ---
 
+## Authentication
+
+- Email + password via Supabase Auth. All auth mutations are **Server Actions** in `lib/auth/actions.ts` (login, signup, requestReset, resetPassword, signOut); validation uses shared `zod` schemas in `lib/auth/schema.ts`.
+- Signup is a multi-step wizard; the username is passed as signup metadata and written into `profiles` by the `handle_new_user()` trigger (`raw_user_meta_data->>'username'` → `username` + `display_name`). Uniqueness is enforced by the DB `UNIQUE` constraint; a collision surfaces as Postgres `23505`, which the signup action maps to a friendly "username taken" message.
+- **Email links use the `token_hash` + `verifyOtp` flow, NOT `exchangeCodeForSession`.** The route `app/auth/confirm/route.ts` reads `token_hash` + `type` from the query string and calls `supabase.auth.verifyOtp(...)`, which establishes the session via cookies entirely server-side. Do NOT reintroduce a `?code=`/`exchangeCodeForSession` callback — the verify/implicit flow returns tokens in the URL fragment, which a server route cannot read, and it breaks the password-reset flow.
+- After verification, `resolveCallbackRedirect({ type, next })` decides the destination: `type=recovery` → `/reset-password`; otherwise the `next` param (default `/dashboard`).
+- The Supabase **email templates** (Confirm signup, Reset password) must point at `/auth/confirm` with `token_hash={{ .TokenHash }}&type={{ .Type }}&next=…`. This is dashboard configuration, not code.
+- `middleware.ts` refreshes the session on every request and guards `/dashboard` + `/admin` (redirect to `/login?next=…`); authenticated users are bounced away from `/login` and `/signup`.
+
 ## Payments — Paystack
 
 - Registration fee: **₦500** per tournament

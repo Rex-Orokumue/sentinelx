@@ -102,17 +102,24 @@ establishes a session. Client form (new password + confirm) → server action
 no active session (link expired / opened cold), show an error prompting the user to
 request a new link.
 
-### Callback (`/auth/callback`)
-Route handler. Exchanges the code in the URL for a session
-(`exchangeCodeForSession`), then **branches on the `type` query param that Supabase
-includes in the email link:**
+### Confirm route (`/auth/confirm`)
+
+> **Revised after testing.** The original design used `exchangeCodeForSession` at
+> `/auth/callback`. That failed for password recovery: Supabase's verify/email links
+> return tokens in the URL **fragment** (`#access_token=…`), which a server-side route
+> cannot read, so the callback found no `code` and bounced to `/login?error=auth`.
+> Replaced with the `token_hash` + `verifyOtp` flow below.
+
+Route handler at `/auth/confirm`. Reads `token_hash` + `type` from the query string
+and calls `supabase.auth.verifyOtp({ type, token_hash })`, which establishes the
+session via cookies entirely server-side (no fragment, no PKCE `code_verifier`, no
+"same browser" requirement). Then **branches on `type`:**
 
 - **`type=recovery`** → redirect to `/reset-password`.
 - **otherwise** (e.g. `type=signup`) → redirect to `next` (default `/dashboard`).
 
-This branch is required. Without it, a password-reset link would redirect the same as
-an email-confirmation link and drop the user on the dashboard instead of the
-password-reset form.
+This requires the Supabase email templates (Confirm signup, Reset password) to point
+at `/auth/confirm?token_hash={{ .TokenHash }}&type={{ .Type }}&next=…`.
 
 ---
 
