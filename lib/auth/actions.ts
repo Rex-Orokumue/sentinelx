@@ -12,10 +12,6 @@ import { mapSignupError } from './errors'
 
 export type ActionState = { error?: string; success?: string } | undefined
 
-function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
-}
-
 function safeNext(value: FormDataEntryValue | null): string {
   const next = typeof value === 'string' ? value : ''
   return next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard'
@@ -46,12 +42,13 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
 
   const { username, email, password } = parsed.data
   const supabase = createClient()
+  // The email link format (token_hash + type + next) is controlled by the
+  // Supabase "Confirm signup" template, which routes to /auth/confirm.
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { username },
-      emailRedirectTo: `${siteUrl()}/auth/callback`,
     },
   })
   if (error) return { error: mapSignupError(error) }
@@ -64,9 +61,9 @@ export async function requestReset(_prev: ActionState, formData: FormData): Prom
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const supabase = createClient()
-  await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${siteUrl()}/auth/callback?next=/reset-password`,
-  })
+  // The recovery link format (token_hash + type + next=/reset-password) is
+  // controlled by the Supabase "Reset password" template → /auth/confirm.
+  await supabase.auth.resetPasswordForEmail(parsed.data.email)
   // Neutral response regardless of whether the account exists.
   return { success: "If an account exists for that email, we've sent a reset link." }
 }

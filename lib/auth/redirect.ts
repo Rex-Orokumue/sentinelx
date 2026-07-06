@@ -1,6 +1,6 @@
-// Decides where the auth callback sends the user after establishing a session.
-// Supabase includes `type` in email links: `recovery` for password resets,
-// `signup`/others for email confirmation. Recovery MUST land on the
+// Decides where /auth/confirm sends the user after verifyOtp establishes a
+// session. Supabase sets `type` in email links: `recovery` for password
+// resets, `signup`/others for email confirmation. Recovery MUST land on the
 // reset-password form, not the dashboard.
 export function resolveCallbackRedirect(params: {
   type: string | null
