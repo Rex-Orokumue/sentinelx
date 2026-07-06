@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Sentinel X forces dark mode — no light variant needed */
+    --background: 222 84% 4.9%;       /* ≈ slate-950 */
+    --foreground: 210 40% 98%;        /* ≈ slate-50  */
+    --card: 222 47% 9%;               /* ≈ slate-900 */
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 263 70% 50%;           /* brand violet */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217 33% 17%;         /* ≈ slate-800 */
+    --secondary-foreground: 210 40% 98%;
+    --muted: 215 28% 17%;
+    --muted-foreground: 215 20% 65%;  /* ≈ slate-400 */
+    --accent: 263 70% 50%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 17%;            /* ≈ slate-800 */
+    --input: 215 28% 17%;
+    --ring: 263 70% 50%;
+    --radius: 0.625rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

@@ -1,0 +1,385 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What is Sentinel X?
+
+Sentinel X is a **mobile esports platform** based in Nigeria. It is NOT a Dream League Soccer website — DLS is just the first game supported. The platform is built to support multiple games (EA FC Mobile, eFootball, PUBG Mobile, Free Fire, COD Mobile, Mortal Kombat) without rebuilding anything. Every system — tournaments, rankings, profiles — must be designed for multi-game from day one.
+
+**Tagline:** "Nigeria's Home of Mobile Esports"
+**Mission:** Build the most trusted and exciting mobile esports platform in Africa, where gamers compete, connect, and transact safely.
+
+---
+
+## Tech Stack
+
+- **Framework:** Next.js 14 (App Router), TypeScript
+- **Styling:** Tailwind CSS, shadcn/ui
+- **Backend/DB:** Supabase (PostgreSQL, Auth, Storage, Realtime)
+- **Payments:** Paystack (registration fees + prize withdrawals)
+- **Video:** YouTube embed (live streams + replays — no native video hosting)
+- **Notifications (v2):** WhatsApp Business API via Termii
+- **Deployment:** Vercel
+
+**Design rule:** Mobile-first always. Users are mobile gamers on phones.
+
+---
+
+## Development Commands
+
+```bash
+# Install dependencies
+npm install
+
+# Run dev server
+npm run dev
+
+# Build for production
+npm run build
+
+# Run type checking
+npx tsc --noEmit
+
+# Lint
+npm run lint
+
+# Generate Supabase TypeScript types (requires SUPABASE_URL + SUPABASE_ANON_KEY)
+npx supabase gen types typescript --project-id <project-id> > lib/supabase/types.ts
+
+# Run Supabase locally
+npx supabase start
+npx supabase stop
+```
+
+---
+
+## Four Pillars — Every Feature Maps to One
+
+| Pillar | What it does |
+|--------|-------------|
+| 🎮 Compete | Tournaments, brackets, matches |
+| 📺 Watch | Sentinel X TV — live streams, replays, highlights |
+| 🤝 Community | Posts, discussions, announcements |
+| 🔒 Trade | Gaming Exchange powered by Zolarux escrow |
+
+---
+
+## Pages / Routes
+
+| Route | Description |
+|-------|-------------|
+| `/` | Home — hero, live tournament, upcoming events, leaderboard, CTA |
+| `/tournaments` | All tournaments — current, upcoming, past |
+| `/tournaments/[slug]` | Tournament details — prize pool, format, bracket, registration |
+| `/tournaments/[slug]/bracket` | Interactive bracket page |
+| `/matches/[id]` | Match Centre — Player A vs B, live stream embed, replay, stats |
+| `/tv` | Sentinel X TV — live, highlights, finals, replays |
+| `/rankings` | Overall, season, game-specific leaderboards |
+| `/players/[username]` | Player profile — stats, achievements, Sentinel Score, match history |
+| `/hall-of-fame` | Season champions, MVP, Golden Boot, Best Goal |
+| `/exchange` | Gaming Exchange (Zolarux integration) |
+| `/community` | Posts, announcements, discussions |
+| `/about` | Story, mission, partners, contact |
+| `/dashboard` | Player dashboard — fixtures, stats, prize withdrawal, listings |
+| `/admin` | Admin dashboard — protected, Admin/Moderator roles only |
+
+---
+
+## Database Schema (Supabase)
+
+### `games`
+```
+id, name, slug, icon_url, active
+```
+
+### `tournaments`
+```
+id, game_id, title, slug, description, banner_url,
+registration_fee (default 500 NGN), prize_pool,
+status (draft | registration_open | registration_closed | active | completed),
+format (group_knockout), max_players,
+registration_start, registration_end,
+tournament_start, tournament_end,
+created_at
+```
+
+### `tournament_registrations`
+```
+id, tournament_id, player_id,
+payment_status (pending | paid | refunded),
+paystack_reference, registered_at
+```
+
+### `groups`
+```
+id, tournament_id, name (Group A, Group B...),
+created_at
+```
+
+### `group_memberships`
+```
+id, group_id, player_id, points, wins, draws, losses, goals_for, goals_against
+```
+
+### `matches`
+```
+id, tournament_id, group_id (nullable — null for knockout),
+round (group | round_of_32 | round_of_16 | quarter_final | semi_final | final),
+player_a_id, player_b_id,
+score_a, score_b,
+status (scheduled | live | completed | disputed | cancelled),
+youtube_stream_url, replay_url,
+scheduled_at, completed_at
+```
+
+### `match_results`
+```
+id, match_id, submitted_by (player_id),
+score_a, score_b,
+screenshot_url, recording_url,
+verified (boolean), verified_by (admin_id), verified_at
+```
+
+### `profiles`
+```
+id (= auth.users.id), username, display_name, avatar_url,
+country, phone, whatsapp_number,
+sentinel_score (default 70), sentinel_tier,
+total_matches, wins, losses, goals_scored, goals_conceded,
+total_titles, kyc_verified,
+created_at
+```
+
+### `sentinel_score_events`
+```
+id, player_id, match_id (nullable),
+event_type (match_completed | no_show | rage_quit | dispute_lost |
+            rating_received | admin_flag_conduct | admin_flag_cheat),
+points_delta, note, created_at
+```
+
+### `opponent_ratings`
+```
+id, match_id, rater_id, rated_id, stars (1-5), created_at
+```
+
+### `admin_flags`
+```
+id, player_id, flagged_by (admin_id), reason, severity (conduct | cheat),
+created_at
+```
+
+### `marketplace_listings` (Gaming Exchange)
+```
+id, seller_id, game_id, category (account | coins | accessories | gift_card | controller | phone),
+title, description, price, currency (NGN),
+status (pending | active | sold | removed),
+escrow_status, zolarux_reference, created_at
+```
+
+### `user_roles`
+```
+id, user_id, role (admin | moderator | player)
+```
+
+---
+
+## Tournament Logic — How Grouping Works
+
+Brackets are NEVER generated before registration closes. When admin closes registration, the system auto-calculates groups:
+
+| Players registered | Groups | Players per group | Who advances |
+|-------------------|--------|-------------------|--------------|
+| ≤ 8 | None — straight knockout | — | All |
+| 9–16 | 2 | 4–8 | Top 2 per group |
+| 17–32 | 4 | 4–8 | Top 2 per group |
+| 33–64 | 8 | 4–8 | Top 2 per group |
+
+Admin can override before publishing. After groups, it's single elimination knockout.
+
+---
+
+## Sentinel Score System
+
+Every player starts at **70/100**. Range is 0–100.
+
+**Points earned:**
+- Complete a match (showed up + finished): +2
+- Win with no dispute: +1
+- Receive 5-star opponent rating: +2
+- Receive 4-star opponent rating: +1
+
+**Points lost:**
+- No-show: −10
+- Abandoned / rage-quit: −8
+- Lost a dispute (false result): −15
+- Receive 1–2 star rating: −2
+- Admin flag (conduct): −5
+- Admin flag (cheating): −20 + suspension
+
+**Tiers displayed on profile:**
+- 90–100 → 🟢 Elite
+- 75–89 → 🔵 Trusted
+- 60–74 → 🟡 Developing
+- <60 → 🔴 At Risk
+
+Every score change must be logged in `sentinel_score_events`.
+
+---
+
+## Match Result Verification Flow
+
+1. Match is played
+2. Winner submits screenshot + screen recording via Player Dashboard
+3. Admin reviews submission in Admin Dashboard
+4. Admin confirms or disputes result
+5. Bracket / group table updates only after admin confirms
+6. If disputed: admin reviews both players' recordings → rules → Sentinel Scores update accordingly
+
+---
+
+## Payments — Paystack
+
+- Registration fee: **₦500** per tournament
+- Player pays at registration via Paystack inline/popup
+- Store `paystack_reference` on `tournament_registrations`
+- Verify payment via Paystack webhook before confirming registration
+- Prize withdrawal: player requests from Dashboard → Paystack Transfer API → bank account
+- KYC required before first withdrawal (BVN or NIN via Paystack)
+
+---
+
+## Live Streaming
+
+- Players stream to **Sentinel X YouTube channel** via YouTube Go Live or Streamlabs Mobile
+- Admin pastes the YouTube URL into the match page in Admin Dashboard
+- Frontend embeds it as `<iframe>` on the Match Centre page
+- No native streaming infrastructure needed
+
+---
+
+## WhatsApp Integration
+
+**v1.0 — Share buttons only (zero infrastructure):**
+- "Share on WhatsApp" button on: tournament pages, match win, bracket updates
+- Uses `https://wa.me/?text=` prefilled message with page URL
+- "Join our WhatsApp Community" link pinned in site header
+
+**v2.0 — Automated notifications via Termii:**
+- Registration confirmation
+- Fixture reminders (1 hour before match)
+- Result confirmed
+- Prize credited
+
+---
+
+## Admin Dashboard — What Samuel Can Do
+
+- Create / edit / delete tournaments
+- Close registration and generate brackets
+- Assign matches to time slots
+- Add YouTube stream URL to match pages
+- Review and confirm match results
+- Flag players (conduct / cheating)
+- Approve / remove Gaming Exchange listings
+- Manage disputes
+- View all financials
+
+**Roles:** `admin` (full access) | `moderator` (no financial actions, no player bans)
+
+---
+
+## SEO Rules
+
+- All tournament, match, and player pages use Next.js `generateMetadata()`
+- Open Graph tags on every page (for WhatsApp link previews)
+- Tournament result pages stay live permanently after tournaments end
+- Structured data (JSON-LD) on tournament and player pages
+
+---
+
+## v1.0 Scope — Build This First
+
+These are the only things needed to run the next tournament:
+
+1. Home page
+2. Tournament listing page
+3. Tournament detail + registration (Paystack)
+4. Bracket page (interactive, updates as results confirmed)
+5. Match Centre page (with YouTube embed + replay)
+6. Leaderboard
+7. Hall of Fame
+8. Basic Admin Dashboard (Samuel only — tournament management, result verification)
+9. Player Dashboard (register, pay, submit results, view fixtures)
+10. WhatsApp share buttons on all pages
+11. Mobile-first throughout
+
+**Not in v1.0:** Player profiles, Sentinel Score display, Sentinel X TV, Gaming Exchange, notifications, multi-game support.
+
+---
+
+## v2.0 Scope
+- Player profiles with full stats and Sentinel Score
+- Sentinel X TV page
+- Full YouTube streaming workflow
+- WhatsApp Business API notifications (Termii)
+
+## v3.0 Scope
+- Gaming Exchange (Zolarux escrow integration)
+- KYC for prize withdrawals
+
+## v4.0 Scope
+- Multi-game support
+- Team leagues — schools, universities, state/national championships
+
+---
+
+## Folder Structure
+
+```
+sentinelx/
+├── app/
+│   ├── (public)/
+│   │   ├── page.tsx                  # Home
+│   │   ├── tournaments/
+│   │   ├── matches/[id]/
+│   │   ├── tv/
+│   │   ├── rankings/
+│   │   ├── players/[username]/
+│   │   ├── hall-of-fame/
+│   │   ├── exchange/
+│   │   └── community/
+│   ├── (auth)/
+│   │   └── dashboard/
+│   ├── admin/
+│   └── layout.tsx
+├── components/
+│   ├── ui/                           # shadcn components
+│   ├── tournament/
+│   ├── match/
+│   ├── bracket/
+│   ├── player/
+│   └── shared/
+├── lib/
+│   ├── supabase/
+│   │   ├── client.ts
+│   │   ├── server.ts
+│   │   └── types.ts                  # Generated from Supabase
+│   ├── paystack/
+│   └── utils.ts
+├── hooks/
+└── types/
+```
+
+---
+
+## Key Rules When Coding
+
+1. Always mobile-first — design for 375px width, scale up
+2. Use Supabase Row Level Security (RLS) on every table
+3. Never expose admin routes to non-admin users — check role server-side
+4. All Paystack payment verification must happen server-side (webhook or API route) — never trust the client
+5. Bracket updates only happen after admin confirms a result — never auto-update from player submissions
+6. Every Sentinel Score change must write a row to `sentinel_score_events` — never update the score directly without logging
+7. Tournament slug must be URL-safe and unique — used in all public URLs
+8. Use Next.js Server Components by default; only use `"use client"` when you need interactivity
