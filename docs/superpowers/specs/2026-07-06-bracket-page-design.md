@@ -47,8 +47,12 @@ for v1.0).
      top-`advancingCount` rows highlighted (✅ advancing).
    - **Fixtures**: **global** (all groups combined), each card tagged with its group,
      split into **🔴 Live** (top, pulsing) → **⏳ Upcoming** (chronological) →
-     **🏁 Completed** (collapsed behind a "Show results" toggle). Global — not
-     per-group — because this is a time-sorted "what's on now" surface.
+     **🏁 Completed** (collapsed behind a "Show results" toggle) → **🚫 Disputed /
+     Cancelled** (bottom, no toggle, only rendered if any exist). Global — not
+     per-group — because this is a time-sorted "what's on now" surface. The
+     disputed/cancelled bucket exists so a user can always reconcile the standings
+     with the matches they expect — a disputed match affects (or will affect)
+     standings, so it must be visible somewhere, not dropped.
 3. **Knockout** (only if knockout matches exist) — `KnockoutBracket`: stacked round
    sections in canonical order (Round of 32 → Final), each a list of `MatchCard`s.
 4. **Empty state** — no groups and no knockout matches → "Bracket not published yet.
@@ -111,8 +115,9 @@ const ROUND_ORDER = [
 // admin-confirmed state, not the actual real-time match state — it can lag.
 export function splitFixturesByState(matches: MatchInput[]): {
   live: MatchInput[]
-  upcoming: MatchInput[]   // status scheduled; sorted by scheduled_at (nulls last)
-  completed: MatchInput[]  // status completed
+  upcoming: MatchInput[]              // status scheduled; sorted by scheduled_at (nulls last)
+  completed: MatchInput[]            // status completed
+  disputedOrCancelled: MatchInput[]  // status disputed | cancelled — surfaced at bottom
 }
 
 // Only rounds that have matches, in ROUND_ORDER; each with a display label.
@@ -126,8 +131,10 @@ export function orderKnockoutRounds(matches: MatchInput[]): {
 export function getChampion(matches: MatchInput[]): { id: string; name: string } | null
 ```
 
-`disputed`/`cancelled` matches are excluded from live/upcoming/completed buckets
-(they render, if at all, only within their knockout round list with a status badge).
+Group `disputed`/`cancelled` matches go in the `disputedOrCancelled` bucket (rendered
+at the bottom of the Fixtures tab, no toggle). Knockout `disputed`/`cancelled` matches
+stay in their round list with a status badge — contextually understood within the
+bracket, so they are NOT duplicated into a separate surface.
 
 ## Error handling
 
@@ -147,8 +154,9 @@ Vitest units (pure functions, no mocking):
 
 - `sortStandings` — ordering by points→GD→GF; tie-breaks; rank assignment; `advancing`
   flag honoring default 2 and a custom `advancingCount`; derived `played`/`goalDiff`.
-- `splitFixturesByState` — bucketing by status; upcoming sorted by `scheduled_at` with
-  nulls last; disputed/cancelled excluded.
+- `splitFixturesByState` — bucketing by status (live/upcoming/completed +
+  disputedOrCancelled); upcoming sorted by `scheduled_at` with nulls last; disputed
+  and cancelled both land in `disputedOrCancelled`.
 - `orderKnockoutRounds` — rounds returned in `ROUND_ORDER` regardless of input order;
   empty rounds omitted; labels correct.
 - `getChampion` — winner of completed final; null when final missing/incomplete;
