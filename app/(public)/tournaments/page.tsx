@@ -9,15 +9,15 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
 const PAST_LIMIT = 10
 
 export const metadata: Metadata = {
-  title: 'Tournaments — Sentinel X',
+  title: 'Tournaments — SentinelX Esports',
   description:
-    'Browse live, open, and upcoming mobile esports tournaments on Sentinel X — Nigeria\'s Home of Mobile Esports. Compete. Win. Level Up!',
+    'Browse live, open, and upcoming mobile esports tournaments on SentinelX Esports — Nigeria\'s Home of Mobile Esports. Compete. Win. Level Up!',
   openGraph: {
-    title: 'Tournaments — Sentinel X',
+    title: 'Tournaments — SentinelX Esports',
     description:
-      'Browse live, open, and upcoming mobile esports tournaments on Sentinel X.',
+      'Browse live, open, and upcoming mobile esports tournaments on SentinelX Esports.',
     url: `${SITE_URL}/tournaments`,
-    siteName: 'Sentinel X',
+    siteName: 'SentinelX Esports',
     type: 'website',
   },
 }
@@ -233,7 +233,7 @@ function Grid({
 }
 
 function ShareCta() {
-  const shareText = `Compete in mobile esports tournaments on Sentinel X 🎮 ${SITE_URL}/tournaments`
+  const shareText = `Compete in mobile esports tournaments on SentinelX Esports 🎮 ${SITE_URL}/tournaments`
   return (
     <div className="mt-4 flex justify-center">
       <a

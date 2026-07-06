@@ -60,7 +60,7 @@ export function SignupWizard() {
       {/* Step 1 — username only */}
       <div className={step === 1 ? 'block' : 'hidden'}>
         <h1 className="mb-1 text-xl font-bold">Choose your handle</h1>
-        <p className="mb-6 text-sm text-slate-400">This is your public username on Sentinel X.</p>
+        <p className="mb-6 text-sm text-slate-400">This is your public username on SentinelX Esports.</p>
         <div className="space-y-1.5">
           <Label htmlFor="username-input">Username</Label>
           <div className="relative">

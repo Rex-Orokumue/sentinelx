@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { ResetPasswordForm } from '@/components/auth/ResetPasswordForm'
 
-export const metadata: Metadata = { title: 'Set new password · Sentinel X' }
+export const metadata: Metadata = { title: 'Set new password · SentinelX Esports' }
 
 export default function ResetPasswordPage() {
   return (

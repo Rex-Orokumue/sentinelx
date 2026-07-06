@@ -27,9 +27,14 @@ export function SiteHeader({
           onClick={() => setOpen(false)}
           className="flex shrink-0 items-center gap-2"
         >
-          <Image src="/logo-icon.png" alt="Sentinel X" width={32} height={32} priority />
-          <span className="whitespace-nowrap font-display text-lg font-bold uppercase tracking-wide text-white sm:text-xl">
-            Sentinel <span className="text-violet-400">X</span>
+          <Image src="/logo-icon.png" alt="SentinelX Esports" width={32} height={32} priority />
+          <span className="flex flex-col leading-none">
+            <span className="whitespace-nowrap font-display text-lg font-bold uppercase tracking-wide text-white sm:text-xl">
+              Sentinel<span className="text-violet-400">X</span>
+            </span>
+            <span className="font-display text-[10px] font-semibold uppercase tracking-[0.25em] text-slate-400">
+              Esports
+            </span>
           </span>
         </Link>
 

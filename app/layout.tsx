@@ -24,7 +24,7 @@ const rajdhani = Rajdhani({
 })
 
 export const metadata: Metadata = {
-  title: 'Sentinel X',
+  title: 'SentinelX Esports',
   description: "Nigeria's Home of Mobile Esports — Where Gamers Unite. Champions Rise.",
 }
 
@@ -42,7 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main className="flex-1">{children}</main>
 
           <footer className="border-t border-slate-800 py-5 text-center text-xs text-slate-600">
-            © {new Date().getFullYear()} Sentinel X · Nigeria's Home of Mobile Esports
+            © {new Date().getFullYear()} SentinelX Esports · Nigeria's Home of Mobile Esports
           </footer>
         </div>
       </body>

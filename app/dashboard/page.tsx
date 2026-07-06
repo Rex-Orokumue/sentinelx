@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 
-export const metadata: Metadata = { title: 'Dashboard · Sentinel X' }
+export const metadata: Metadata = { title: 'Dashboard · SentinelX Esports' }
 
 // Placeholder dashboard — proves auth works and gives the post-login/confirm
 // redirect a real destination. Full dashboard is roadmap v1.0 #8.

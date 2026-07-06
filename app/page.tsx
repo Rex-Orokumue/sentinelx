@@ -52,7 +52,7 @@ export default async function HomePage() {
   const upcoming  = tournaments.slice(1)
   const leaderboard = players ?? []
 
-  const shareText = `Play mobile esports in Nigeria on Sentinel X — Compete. Win. Level Up! ${SITE_URL}`
+  const shareText = `Play mobile esports in Nigeria on SentinelX Esports — Compete. Win. Level Up! ${SITE_URL}`
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-20">
@@ -62,7 +62,7 @@ export default async function HomePage() {
         <div className="mx-auto mb-6 flex justify-center">
           <Image
             src="/logo-full.png"
-            alt="Sentinel X — Where Gamers Unite. Champions Rise."
+            alt="SentinelX Esports — Where Gamers Unite. Champions Rise."
             width={340}
             height={220}
             priority
