@@ -13,7 +13,7 @@ Status legend: ⬜ pending · 🔨 in progress · ✅ done
 | 1 | Auth pages — login, signup, forgot password | `/(auth)/*` | ✅ |
 | 2 | Tournament listing | `/tournaments` | ✅ |
 | 3 | Tournament detail + Paystack registration (₦500) | `/tournaments/[slug]` | ✅ |
-| 4 | Bracket page — groups + knockout, admin-confirmed updates | `/tournaments/[slug]/bracket` | ⬜ |
+| 4 | Bracket page — groups + knockout, admin-confirmed updates | `/tournaments/[slug]/bracket` | ✅ |
 | 5 | Match Centre — YouTube embed, result submission | `/matches/[id]` | ⬜ |
 | 6 | Leaderboard | `/rankings` | ⬜ |
 | 7 | Hall of Fame | `/hall-of-fame` | ⬜ |
