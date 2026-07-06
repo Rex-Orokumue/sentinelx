@@ -568,6 +568,14 @@ git commit -m "feat(auth): add login/signup/reset/signout server actions"
 
 ### Task 5: Auth callback route + session middleware
 
+> **Revised after testing:** the `?code=`/`exchangeCodeForSession` callback at
+> `app/auth/callback/route.ts` was replaced with a `token_hash`/`verifyOtp` route at
+> `app/auth/confirm/route.ts` (server-side email links return tokens in the URL
+> fragment, which `exchangeCodeForSession` can't read — it broke password reset).
+> The `verifyOtp` route still consumes `resolveCallbackRedirect` and the middleware is
+> unchanged except its matcher now excludes `auth/confirm`. See CLAUDE.md →
+> Authentication and the design spec for the final approach.
+
 The email-link callback (branching on `type`) and the middleware that refreshes the session and guards routes. Depends on Task 1 (`resolveCallbackRedirect`).
 
 **Files:**
