@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import localFont from 'next/font/local'
+import { AuthNav } from '@/components/shared/AuthNav'
 import './globals.css'
 
 const geistSans = localFont({
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <WhatsAppIcon className="h-3.5 w-3.5" />
                   <span>Community</span>
                 </a>
+                <AuthNav />
               </div>
             </nav>
           </header>
