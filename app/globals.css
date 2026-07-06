@@ -34,6 +34,11 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Headings use the display font (sporty/esports, matches the logo). */
+  h1, h2, h3 {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  }
 }
 
 @layer utilities {
