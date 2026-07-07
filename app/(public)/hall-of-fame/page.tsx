@@ -49,8 +49,7 @@ export default async function HallOfFamePage() {
       .select(
         'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sentinel_score, sentinel_tier',
       )
-      .gte('total_matches', RANKING_MIN_MATCHES)
-      .limit(500),
+      .gte('total_matches', RANKING_MIN_MATCHES),
     supabase
       .from('tournaments')
       .select('id, slug, title, tournament_end, games(name)')
