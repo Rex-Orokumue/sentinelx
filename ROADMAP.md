@@ -17,7 +17,7 @@ Status legend: ⬜ pending · 🔨 in progress · ✅ done
 | 5 | Match Centre — YouTube embed, result submission | `/matches/[id]` | ✅ |
 | 6 | Leaderboard | `/rankings` | ✅ |
 | 7 | Hall of Fame | `/hall-of-fame` | ✅ |
-| 8 | Player Dashboard — fixtures, submit results, withdrawals | `/dashboard` | ⬜ |
+| 8 | Player Dashboard — fixtures, submit results, withdrawals | `/dashboard` | ✅ |
 | 9 | Admin Dashboard — tournaments, result verification, flags | `/admin` | ⬜ |
 
 WhatsApp share buttons + mobile-first apply across all v1.0 pages.
