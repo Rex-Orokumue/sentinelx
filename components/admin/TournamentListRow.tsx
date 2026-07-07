@@ -53,6 +53,12 @@ export function TournamentListRow({ t, isAdmin }: { t: AdminTournamentRow; isAdm
           >
             Edit
           </Link>
+          <Link
+            href={`/admin/tournaments/${t.id}/bracket`}
+            className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-300 hover:border-slate-500"
+          >
+            Bracket
+          </Link>
           {isDraft && (
             <form action={openAction}>
               <input type="hidden" name="id" value={t.id} />
