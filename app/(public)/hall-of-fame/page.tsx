@@ -1,0 +1,213 @@
+import type { Metadata } from 'next'
+import { createClient } from '@/lib/supabase/server'
+import { RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
+import {
+  pickMVP,
+  pickGoldenBoot,
+  deriveChampions,
+  type ChampionInput,
+} from '@/lib/hall-of-fame/awards'
+import type { BracketMatch } from '@/lib/tournaments/bracket'
+import { AwardCard } from '@/components/hall-of-fame/AwardCard'
+import { ChampionCard } from '@/components/hall-of-fame/ChampionCard'
+import { EmptyState } from '@/components/shared/EmptyState'
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+
+export const metadata: Metadata = {
+  title: 'Hall of Fame — Sentinel X',
+  description:
+    "Sentinel X champions, MVP, and Golden Boot — the all-time honors of Nigeria's home of mobile esports.",
+  openGraph: {
+    title: 'Hall of Fame — Sentinel X',
+    description: 'Champions, MVP, and Golden Boot — the all-time honors of Sentinel X.',
+    url: `${SITE_URL}/hall-of-fame`,
+    siteName: 'Sentinel X',
+    type: 'website',
+  },
+}
+
+type ProfileRef = { id?: string; username: string | null; display_name: string | null } | null
+
+function nameOf(p: ProfileRef): string {
+  return p?.display_name ?? p?.username ?? 'TBD'
+}
+
+// Supabase to-one embeds can arrive as an object or a single-element array; normalize.
+function firstGameName(games: unknown): string | null {
+  if (Array.isArray(games)) return (games[0] as { name?: string } | undefined)?.name ?? null
+  return (games as { name?: string } | null)?.name ?? null
+}
+
+export default async function HallOfFamePage() {
+  const supabase = createClient()
+
+  // Awards: eligible profiles. Champions: completed tournaments + their completed finals.
+  const [{ data: profileRows }, { data: tournamentRows }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select(
+        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sentinel_score, sentinel_tier',
+      )
+      .gte('total_matches', RANKING_MIN_MATCHES)
+      .limit(500),
+    supabase
+      .from('tournaments')
+      .select('id, slug, title, tournament_end, games(name)')
+      .eq('status', 'completed'),
+  ])
+
+  const players: PlayerStatsInput[] = (profileRows ?? []).map((p) => ({
+    id: p.id,
+    username: p.username,
+    displayName: p.display_name,
+    avatarUrl: p.avatar_url,
+    country: p.country,
+    wins: p.wins,
+    losses: p.losses,
+    totalMatches: p.total_matches,
+    goalsScored: p.goals_scored,
+    goalsConceded: p.goals_conceded,
+    totalTitles: p.total_titles,
+    sentinelScore: p.sentinel_score,
+    sentinelTier: p.sentinel_tier,
+  }))
+
+  const mvp = pickMVP(players)
+  const goldenBoot = pickGoldenBoot(players)
+
+  // Fetch completed final matches for the completed tournaments, then attach to each.
+  const tournaments = (tournamentRows ?? []) as unknown as {
+    id: string
+    slug: string
+    title: string
+    tournament_end: string | null
+    games: unknown
+  }[]
+  const tournamentIds = tournaments.map((t) => t.id)
+
+  const { data: finalRows } =
+    tournamentIds.length > 0
+      ? await supabase
+          .from('matches')
+          .select(
+            'id, tournament_id, round, status, score_a, score_b, ' +
+              'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
+              'player_b:profiles!matches_player_b_id_fkey(id, username, display_name)',
+          )
+          .in('tournament_id', tournamentIds)
+          .eq('round', 'final')
+          .eq('status', 'completed')
+      : { data: [] as unknown[] }
+
+  // Map tournament_id -> its completed final as a BracketMatch.
+  const finalByTournament = new Map<string, BracketMatch>()
+  for (const raw of (finalRows as unknown[] | null) ?? []) {
+    const m = raw as {
+      id: string
+      tournament_id: string
+      round: string
+      status: string
+      score_a: number | null
+      score_b: number | null
+      player_a: ProfileRef
+      player_b: ProfileRef
+    }
+    finalByTournament.set(m.tournament_id, {
+      id: m.id,
+      round: m.round,
+      group_id: null,
+      groupName: null,
+      status: m.status,
+      score_a: m.score_a,
+      score_b: m.score_b,
+      scheduled_at: null,
+      playerA: { id: m.player_a?.id ?? '', name: nameOf(m.player_a) },
+      playerB: { id: m.player_b?.id ?? '', name: nameOf(m.player_b) },
+    })
+  }
+
+  const championInputs: ChampionInput[] = tournaments.map((t) => ({
+    tournamentId: t.id,
+    slug: t.slug,
+    title: t.title,
+    gameName: firstGameName(t.games),
+    tournamentEnd: t.tournament_end,
+    finalMatch: finalByTournament.get(t.id) ?? null,
+  }))
+  const champions = deriveChampions(championInputs)
+
+  const hasAwards = mvp != null || goldenBoot != null
+  const hasChampions = champions.length > 0
+
+  return (
+    <div className="mx-auto max-w-3xl px-4 pb-20">
+      <div className="py-8">
+        <h1 className="text-2xl font-black text-white">Hall of Fame</h1>
+        <p className="mt-1 text-sm text-slate-400">
+          Champions, MVP, and the Golden Boot — Sentinel X&apos;s all-time honors.
+        </p>
+      </div>
+
+      {!hasAwards && !hasChampions ? (
+        <EmptyState
+          icon="🏆"
+          title="The Hall of Fame awaits its first legends"
+          body="Champions and awards appear here once tournaments are played and won."
+        />
+      ) : (
+        <>
+          <section className="mb-10">
+            <h2 className="mb-4 text-base font-bold text-white">🏅 Awards</h2>
+            {hasAwards ? (
+              <div className="flex flex-col gap-4 sm:flex-row">
+                {mvp && (
+                  <AwardCard
+                    label="MVP"
+                    icon="⭐"
+                    name={mvp.displayName ?? mvp.username ?? 'Anonymous'}
+                    metricLabel="Sentinel Score"
+                    metricValue={mvp.sentinelScore}
+                    tier={mvp.sentinelTier}
+                  />
+                )}
+                {goldenBoot && (
+                  <AwardCard
+                    label="Golden Boot"
+                    icon="👟"
+                    name={goldenBoot.displayName ?? goldenBoot.username ?? 'Anonymous'}
+                    metricLabel="goals scored"
+                    metricValue={goldenBoot.goalsScored}
+                  />
+                )}
+              </div>
+            ) : (
+              <EmptyState
+                icon="🏅"
+                title="Awards unlock once matches are played"
+                body="MVP and the Golden Boot are decided from completed matches."
+              />
+            )}
+          </section>
+
+          <section className="mb-10">
+            <h2 className="mb-4 text-base font-bold text-white">🏆 Champions</h2>
+            {hasChampions ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {champions.map((c) => (
+                  <ChampionCard key={c.tournamentId} entry={c} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon="🏆"
+                title="No champions crowned yet"
+                body="Winners appear here when tournaments finish and finals are confirmed."
+              />
+            )}
+          </section>
+        </>
+      )}
+    </div>
+  )
+}
