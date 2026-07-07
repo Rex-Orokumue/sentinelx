@@ -31,9 +31,14 @@ leaderboard (`/rankings`) already serves relative ranking.
   (flat scores) this resolves naturally to most wins — the intended "fallback to wins"
   with no mode switch or special-case code. As Sentinel Score differentiates over time,
   the metric becomes what it was designed to be with zero intervention.
-  Displays: avatar, name, `TierBadge`, the score value.
+  Displays: initial-circle avatar (name's first letter, matching `LeaderboardTable`/home),
+  name, `TierBadge`, the score value.
 - **Golden Boot:** the highest `goals_scored` among eligible players. Tiebreak: `wins` desc.
-  Displays: avatar, name, goal count.
+  Displays: initial-circle avatar, name, goal count.
+
+Avatars use the initial-letter circle pattern used everywhere else in the app
+(`LeaderboardTable`, home page) — `avatar_url` images are not rendered anywhere in the
+codebase, so no `next/image` remote config is needed.
 
 **Eligibility gate:** `total_matches >= 1`. Defined **once** and shared with the rankings
 page so the two definitions cannot drift:
@@ -64,16 +69,16 @@ whose final is not yet verified (a possible mid-workflow admin edge case) must N
 a champion entry. The wall shows only fully confirmed results.
 
 The winner is computed by reusing the existing `getChampion` helper from
-`lib/tournaments/bracket.ts` — its returned winner `id` is then matched against the joined
-final match's player rows to pull the champion's full profile (avatar, name). The winner
-rule (`score_a > score_b`, guarding null scores and draws) is therefore reused, never
-reimplemented.
+`lib/tournaments/bracket.ts`, which returns the winner's `id` and `name`. `name` is
+sufficient for display (initial-circle avatar), so no extra profile lookup or `avatar_url`
+join is needed. The winner rule (`score_a > score_b`, guarding null scores and draws) is
+reused, never reimplemented.
 
 `profiles.total_titles` remains a denormalized cache used only for the leaderboard sort. It
 is never the champions wall's source.
 
-Each entry displays: tournament title + game, champion avatar + name, tournament date,
-and links to `/tournaments/[slug]`.
+Each entry displays: tournament title + game, champion initial-circle avatar + name,
+tournament date, and links to `/tournaments/[slug]`.
 
 **Note:** player names are NOT linked to `/players/[username]` — that page is v2.0 #10 and
 does not exist yet (only a `.gitkeep` placeholder). Avatar + name render un-linked until #10.
@@ -82,14 +87,21 @@ does not exist yet (only a `.gitkeep` placeholder). Avatar + name render un-link
 
 - **`lib/hall-of-fame/awards.ts`** — pure, unit-tested, no Supabase imports. Takes plain
   inputs, returns winners:
-  - `pickMVP(players: PlayerStatsInput[]): RankedPlayer | null` — filters to eligible,
-    sorts by `sentinelScore` desc → `wins` desc → win rate desc, returns first or `null`.
-  - `pickGoldenBoot(players: PlayerStatsInput[]): RankedPlayer | null` — filters to
+  - `pickMVP(players: PlayerStatsInput[]): PlayerStatsInput | null` — filters to eligible
+    (`isRankingEligible`), sorts by `sentinelScore` desc → `wins` desc → win rate desc,
+    returns first or `null`.
+  - `pickGoldenBoot(players: PlayerStatsInput[]): PlayerStatsInput | null` — filters to
     eligible, sorts by `goalsScored` desc → `wins` desc, returns first or `null`.
-  - `deriveChampions(tournaments, finalMatches): ChampionEntry[]` — for each completed
-    tournament, locate its completed final match, call `getChampion`, and on a non-null
-    result emit a `ChampionEntry`; ordered by `tournament_end` desc.
-  - Reuses `PlayerStatsInput` / `RankedPlayer` types and `getChampion` — no new winner logic.
+  - `deriveChampions(inputs: ChampionInput[]): ChampionEntry[]` — for each input, if its
+    `finalMatch` is non-null call `getChampion([finalMatch])` (which enforces
+    round=`final` + status=`completed`); on a non-null winner emit a `ChampionEntry`.
+    Result ordered by `tournamentEnd` desc, nulls last.
+  - `ChampionInput = { tournamentId, slug, title, gameName: string | null,
+    tournamentEnd: string | null, finalMatch: BracketMatch | null }`.
+  - `ChampionEntry = { tournamentId, slug, title, gameName: string | null,
+    date: string | null, champion: { id: string; name: string } }`.
+  - Reuses `PlayerStatsInput` type, `isRankingEligible`, `BracketMatch`, and `getChampion`
+    — no new winner logic.
 - **Page** — `app/(public)/hall-of-fame/page.tsx` (Server Component):
   - Parallel queries: (a) eligible profiles for awards; (b) completed tournaments plus
     their completed final matches with player profiles joined.
