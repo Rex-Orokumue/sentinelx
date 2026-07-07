@@ -132,6 +132,9 @@ export default async function MatchCentrePage({ params }: { params: { id: string
 
       {/* Video */}
       <div className="mb-6">
+        {/* youtube_stream_url / replay_url are YouTube-only — validated by
+            matchEditSchema (lib/matches/edit-schema.ts) via parseYouTubeId.
+            If that validation changes, update this embed in the same change. */}
         <VideoEmbed streamUrl={m.youtube_stream_url} replayUrl={m.replay_url} isLive={m.status === 'live'} />
       </div>
 
