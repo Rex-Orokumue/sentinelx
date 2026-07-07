@@ -669,6 +669,53 @@ export type Database = {
           },
         ]
       }
+      withdrawal_requests: {
+        Row: {
+          account_name: string
+          account_number: string
+          admin_note: string | null
+          amount: number
+          bank_name: string
+          id: string
+          player_id: string
+          requested_at: string
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          admin_note?: string | null
+          amount: number
+          bank_name: string
+          id?: string
+          player_id: string
+          requested_at?: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          admin_note?: string | null
+          amount?: number
+          bank_name?: string
+          id?: string
+          player_id?: string
+          requested_at?: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_requests_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
