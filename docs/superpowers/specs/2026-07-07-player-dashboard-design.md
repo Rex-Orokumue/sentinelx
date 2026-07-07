@@ -102,6 +102,12 @@ CREATE TABLE public.withdrawal_requests (
 CREATE INDEX ON public.withdrawal_requests (player_id);
 CREATE INDEX ON public.withdrawal_requests (status);
 
+-- At most one pending request per player. Partial unique index enforces this
+-- atomically (race-safe), so two simultaneous submits cannot both land — a
+-- stronger DB net than a NOT EXISTS in the RLS policy, which has a TOCTOU window.
+CREATE UNIQUE INDEX withdrawal_requests_one_pending_per_player
+  ON public.withdrawal_requests (player_id) WHERE status = 'pending';
+
 ALTER TABLE public.withdrawal_requests ENABLE ROW LEVEL SECURITY;
 
 -- A player may file a request only for themselves, and only as pending.
@@ -127,7 +133,9 @@ After applying the migration (via Supabase MCP, project `itxubrkbropttfdackmi`),
 ### `requestWithdrawal` Server Action
 
 - **`lib/withdrawals/schema.ts`** — zod schema, unit-tested:
-  - `amount`: coerced integer, `> 0`, `<= 100_000_000` (a sanity ceiling, not a balance check).
+  - `amount`: coerced integer, `>= 1000` (minimum ₦1,000 — blocks ₦1 test/typo submissions
+    that waste admin queue time), `<= 100_000_000` (a sanity ceiling, not a balance check).
+    Both bounds live in zod so they are caught before the insert.
   - `bankName`: non-empty (trimmed), max 100.
   - `accountName`: non-empty (trimmed), max 100.
   - `accountNumber`: exactly 10 digits (NUBAN) — regex `^\d{10}$`.
@@ -135,7 +143,9 @@ After applying the migration (via Supabase MCP, project `itxubrkbropttfdackmi`),
   the `lib/auth/actions.ts` pattern: validate with the schema, get the user, insert a `pending`
   row (`player_id = user.id`), `revalidatePath('/dashboard')`, and return a
   `{ success: true } | { error: string }` state. Never trusts client-supplied `player_id` or
-  `status`.
+  `status`. A Postgres unique-violation (`23505`) from the one-pending-request index is mapped
+  to a friendly "You already have a pending withdrawal request" message — the same
+  23505-to-message pattern used by the signup action.
 
 ## Pure, unit-tested helpers
 
@@ -170,8 +180,13 @@ testable. `awaitingMyResult` implements the heuristic above.
 - `FixtureCard.tsx` — one fixture row (opponent, tournament, time, status, optional
   "Submit result →"), plus a small list/section wrapper for the three buckets.
 - `MyTournaments.tsx` — registration rows with payment status + nudges.
-- `WithdrawalPanel.tsx` — `"use client"`: the request form (`useFormState` over
-  `requestWithdrawal`) and the list of past requests with status + timestamps.
+- `WithdrawalPanel.tsx` — `"use client"`: the list of past requests with status + timestamps,
+  and **either** the request form (`useFormState` over `requestWithdrawal`) **or**, when the
+  player already has a `pending` request, a "Request pending — we'll be in touch" message in
+  place of the form. The panel receives a `hasPending` flag computed by the page from the
+  already-fetched requests (same suppress-the-form pattern as Match Centre's read-only
+  submission view). This is the UI half of the one-pending-request rule; the partial unique
+  index is the DB half.
 - Reuse `components/shared/EmptyState.tsx` and the initial-circle avatar convention.
 
 ## Page
@@ -190,6 +205,8 @@ run five parallel RLS-scoped queries:
 5. `withdrawal_requests` where `player_id = me` (RLS already scopes it), newest first.
 
 Map rows into `bucketFixtures(...)` and the section components; render with real empty states.
+`hasPending` = whether any fetched withdrawal request has `status = 'pending'`, passed to
+`WithdrawalPanel` to suppress the form.
 
 ## Security
 
@@ -207,9 +224,9 @@ Vitest:
   the `awaitingMyResult` flag, including the three mandated cases: future scheduled match (no
   flag), past unplayed match (flag), already-submitted match (no flag); plus live match (flag)
   and null `scheduled_at` (no flag unless live).
-- `lib/withdrawals/schema.ts` — valid input passes; rejects amount ≤ 0, non-integer amount,
-  amount over the ceiling, empty bank/account name, and account numbers that are not exactly
-  10 digits.
+- `lib/withdrawals/schema.ts` — valid input passes; rejects amount below the ₦1,000 floor
+  (including ₦1 and 0), non-integer amount, amount over the ₦100,000,000 ceiling, empty
+  bank/account name, and account numbers that are not exactly 10 digits.
 
 ## Consistency notes
 
