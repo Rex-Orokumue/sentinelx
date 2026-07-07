@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import { rankPlayers, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
+import { rankPlayers, RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
 import { LeaderboardTable } from '@/components/rankings/LeaderboardTable'
 import { EmptyState } from '@/components/shared/EmptyState'
 
@@ -26,7 +26,7 @@ export default async function RankingsPage() {
       .select(
         'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sentinel_score, sentinel_tier',
       )
-      .gt('total_matches', 0)
+      .gte('total_matches', RANKING_MIN_MATCHES)
       .order('wins', { ascending: false })
       .limit(200),
     supabase.auth.getUser(),

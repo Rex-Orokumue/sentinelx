@@ -20,6 +20,15 @@ export interface RankedPlayer extends PlayerStatsInput {
   rank: number
 }
 
+// Minimum matches a player must have completed to appear in any ranking or award.
+// Value equals the semantic minimum (1 = at least one match) so the constant never
+// contradicts its name. Shared by the rankings page and the Hall of Fame.
+export const RANKING_MIN_MATCHES = 1
+
+export function isRankingEligible(p: { totalMatches: number }): boolean {
+  return p.totalMatches >= RANKING_MIN_MATCHES
+}
+
 // Sort: wins desc → win rate desc → titles desc → goal difference desc.
 // Callers exclude total_matches = 0, but winRate still guards divide-by-zero.
 export function rankPlayers(players: PlayerStatsInput[]): RankedPlayer[] {

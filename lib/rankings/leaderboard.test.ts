@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { rankPlayers, type PlayerStatsInput } from './leaderboard'
+import { rankPlayers, isRankingEligible, RANKING_MIN_MATCHES, type PlayerStatsInput } from './leaderboard'
 
 function p(over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput {
   return {
@@ -59,5 +59,20 @@ describe('rankPlayers', () => {
     ])
     expect(row.winRate).toBeCloseTo(0.5)
     expect(row.goalDiff).toBe(12)
+  })
+})
+
+describe('isRankingEligible', () => {
+  it('excludes players with zero matches', () => {
+    expect(isRankingEligible({ totalMatches: 0 })).toBe(false)
+  })
+
+  it('includes players at the minimum and above', () => {
+    expect(isRankingEligible({ totalMatches: RANKING_MIN_MATCHES })).toBe(true)
+    expect(isRankingEligible({ totalMatches: 5 })).toBe(true)
+  })
+
+  it('RANKING_MIN_MATCHES is 1 (at least one match)', () => {
+    expect(RANKING_MIN_MATCHES).toBe(1)
   })
 })
