@@ -24,9 +24,17 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
 
   return (
     <section>
-      <Link href="/admin/tournaments" className="text-sm text-violet-400 hover:text-violet-300">
-        ← Tournaments
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link href="/admin/tournaments" className="text-sm text-violet-400 hover:text-violet-300">
+          ← Tournaments
+        </Link>
+        <Link
+          href={`/admin/tournaments/${t.id}/matches`}
+          className="text-sm text-violet-400 hover:text-violet-300"
+        >
+          Manage matches →
+        </Link>
+      </div>
       <h2 className="mb-4 mt-2 text-base font-bold text-white">
         {t.title} · <span className="text-slate-400">{t.status.replace(/_/g, ' ')}</span>
       </h2>
