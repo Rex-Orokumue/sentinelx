@@ -20,6 +20,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   completed: { label: 'FULL TIME', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
   disputed:  { label: 'DISPUTED',  cls: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
   cancelled: { label: 'CANCELLED', cls: 'bg-slate-700/40 text-slate-500 border-slate-700/50' },
+  bye:       { label: 'BYE',       cls: 'bg-slate-700/40 text-slate-400 border-slate-700/50' },
 }
 
 const MATCH_SELECT =
@@ -36,8 +37,8 @@ type MatchRow = {
   score_b: number | null
   youtube_stream_url: string | null
   replay_url: string | null
-  player_a_id: string
-  player_b_id: string
+  player_a_id: string | null
+  player_b_id: string | null
   tournaments: { title: string; slug: string } | null
   player_a: ProfileRef
   player_b: ProfileRef
@@ -97,7 +98,11 @@ export default async function MatchCentrePage({ params }: { params: { id: string
   const resultConfirmed = m.status === 'completed'
   const showScore = m.score_a != null && m.score_b != null
   const canSubmit =
-    isParticipant && m.status !== 'cancelled' && !resultConfirmed && (!myResult || myResult.status === 'pending')
+    isParticipant &&
+    m.status !== 'cancelled' &&
+    m.status !== 'bye' &&
+    !resultConfirmed &&
+    (!myResult || myResult.status === 'pending')
   const shareText = `${nameOf(m.player_a)} vs ${nameOf(m.player_b)} on Sentinel X 🎮 ${SITE_URL}/matches/${m.id}`
 
   return (

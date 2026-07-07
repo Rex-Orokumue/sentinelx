@@ -14,7 +14,7 @@ export interface DashboardFixture extends DashboardMatchInput {
 
 // A match is resolved once it reaches any of these states — never "awaiting result".
 // ('verified' is a match_results status, kept here defensively.)
-const RESOLVED = new Set(['completed', 'verified', 'cancelled', 'disputed'])
+const RESOLVED = new Set(['completed', 'verified', 'cancelled', 'disputed', 'bye'])
 
 function awaitingMyResult(
   m: DashboardMatchInput,

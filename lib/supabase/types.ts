@@ -299,8 +299,8 @@ export type Database = {
           created_at: string
           group_id: string | null
           id: string
-          player_a_id: string
-          player_b_id: string
+          player_a_id: string | null
+          player_b_id: string | null
           replay_url: string | null
           round: string
           scheduled_at: string | null
@@ -316,8 +316,8 @@ export type Database = {
           created_at?: string
           group_id?: string | null
           id?: string
-          player_a_id: string
-          player_b_id: string
+          player_a_id?: string | null
+          player_b_id?: string | null
           replay_url?: string | null
           round: string
           scheduled_at?: string | null
@@ -333,8 +333,8 @@ export type Database = {
           created_at?: string
           group_id?: string | null
           id?: string
-          player_a_id?: string
-          player_b_id?: string
+          player_a_id?: string | null
+          player_b_id?: string | null
           replay_url?: string | null
           round?: string
           scheduled_at?: string | null

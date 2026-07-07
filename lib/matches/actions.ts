@@ -32,6 +32,7 @@ export async function submitMatchResult(
     .eq('id', matchId)
     .maybeSingle()
   if (!match) return { error: 'Match not found.' }
+  if (match.status === 'bye') return { error: 'This is a bye — there is no result to submit.' }
   if (user.id !== match.player_a_id && user.id !== match.player_b_id) {
     return { error: 'Only the players in this match can submit a result.' }
   }

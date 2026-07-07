@@ -95,4 +95,13 @@ describe('bucketFixtures — awaitingMyResult', () => {
     )
     expect(r.completed[0].awaitingMyResult).toBe(false)
   })
+
+  it('does NOT flag a bye row even if its scheduledAt is in the past', () => {
+    const r = bucketFixtures(
+      [m({ id: 'b', status: 'bye', scheduledAt: '2026-07-01T10:00:00Z' })],
+      new Set(),
+      NOW,
+    )
+    expect(r.completed[0].awaitingMyResult).toBe(false)
+  })
 })
