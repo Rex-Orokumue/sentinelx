@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { pickMVP, pickGoldenBoot } from './awards'
+import { pickMVP, pickGoldenBoot, deriveChampions, type ChampionInput } from './awards'
 import type { PlayerStatsInput } from '@/lib/rankings/leaderboard'
+import type { BracketMatch } from '@/lib/tournaments/bracket'
 
 function p(over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput {
   return {
@@ -79,5 +80,77 @@ describe('pickGoldenBoot', () => {
       p({ id: 'b', totalMatches: 5, goalsScored: 15, wins: 4 }),
     ])
     expect(r?.id).toBe('b')
+  })
+})
+
+function finalMatch(over: Partial<BracketMatch>): BracketMatch {
+  return {
+    id: 'm',
+    round: 'final',
+    group_id: null,
+    groupName: null,
+    status: 'completed',
+    score_a: 2,
+    score_b: 1,
+    scheduled_at: null,
+    playerA: { id: 'pa', name: 'Ada' },
+    playerB: { id: 'pb', name: 'Bill' },
+    ...over,
+  }
+}
+
+function champInput(over: Partial<ChampionInput> & { tournamentId: string }): ChampionInput {
+  return {
+    slug: over.tournamentId,
+    title: `Cup ${over.tournamentId}`,
+    gameName: 'DLS',
+    tournamentEnd: '2026-01-01',
+    finalMatch: finalMatch({}),
+    ...over,
+  }
+}
+
+describe('deriveChampions', () => {
+  it('returns [] for empty input', () => {
+    expect(deriveChampions([])).toEqual([])
+  })
+
+  it('emits the final winner as the champion', () => {
+    const r = deriveChampions([champInput({ tournamentId: 't1' })])
+    expect(r).toHaveLength(1)
+    expect(r[0].champion).toEqual({ id: 'pa', name: 'Ada' })
+    expect(r[0].slug).toBe('t1')
+  })
+
+  it('skips a tournament whose final is not completed', () => {
+    const r = deriveChampions([
+      champInput({ tournamentId: 't1', finalMatch: finalMatch({ status: 'scheduled' }) }),
+    ])
+    expect(r).toEqual([])
+  })
+
+  it('skips a tournament with a null final match', () => {
+    const r = deriveChampions([champInput({ tournamentId: 't1', finalMatch: null })])
+    expect(r).toEqual([])
+  })
+
+  it('skips a drawn or null-score final', () => {
+    const draw = deriveChampions([
+      champInput({ tournamentId: 't1', finalMatch: finalMatch({ score_a: 1, score_b: 1 }) }),
+    ])
+    expect(draw).toEqual([])
+    const nullScore = deriveChampions([
+      champInput({ tournamentId: 't2', finalMatch: finalMatch({ score_a: null }) }),
+    ])
+    expect(nullScore).toEqual([])
+  })
+
+  it('orders most-recent-first with nulls last', () => {
+    const r = deriveChampions([
+      champInput({ tournamentId: 'old', tournamentEnd: '2025-01-01' }),
+      champInput({ tournamentId: 'none', tournamentEnd: null }),
+      champInput({ tournamentId: 'new', tournamentEnd: '2026-06-01' }),
+    ])
+    expect(r.map((c) => c.tournamentId)).toEqual(['new', 'old', 'none'])
   })
 })
