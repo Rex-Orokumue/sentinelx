@@ -1,18 +1,7 @@
 import Link from 'next/link'
 import type { DashboardFixture } from '@/lib/dashboard/fixtures'
 import { EmptyState } from '@/components/shared/EmptyState'
-
-function formatWhen(iso: string | null): string {
-  if (!iso) return 'Time TBD'
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return 'Time TBD'
-  return d.toLocaleString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
+import { formatDateTime } from '@/lib/format'
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   live: { label: '🔴 Live', cls: 'text-red-400' },
@@ -33,7 +22,7 @@ export function FixtureCard({ fixture }: { fixture: DashboardFixture }) {
         <div className="min-w-0">
           <p className="truncate font-bold text-white">vs {fixture.opponentName}</p>
           <p className="mt-0.5 truncate text-xs text-slate-500">
-            {fixture.tournamentTitle} · {formatWhen(fixture.scheduledAt)}
+            {fixture.tournamentTitle} · {formatDateTime(fixture.scheduledAt) ?? 'Time TBD'}
           </p>
         </div>
         {fixture.awaitingMyResult ? (

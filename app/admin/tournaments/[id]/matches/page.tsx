@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
 import { ROUND_ORDER, ROUND_LABELS } from '@/lib/tournaments/bracket'
 import { MatchRow, type AdminMatchRow } from '@/components/admin/MatchRow'
+import { toDateTimeLocal } from '@/lib/format'
 
 export const metadata: Metadata = { title: 'Matches · Admin · SentinelX' }
 
@@ -15,9 +16,6 @@ function nameOf(p: ProfileRef): string | null {
 }
 function groupNameOf(g: GroupRef): string | null {
   return Array.isArray(g) ? g[0]?.name ?? null : g?.name ?? null
-}
-function toLocalInput(iso: string | null): string {
-  return iso ? iso.slice(0, 16) : ''
 }
 
 export default async function AdminMatchesPage({ params }: { params: { id: string } }) {
@@ -60,7 +58,7 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
         playerAName: nameOf(m.player_a) ?? 'TBD',
         playerBName: nameOf(m.player_b),
         status: m.status,
-        scheduledAt: toLocalInput(m.scheduled_at),
+        scheduledAt: toDateTimeLocal(m.scheduled_at),
         streamUrl: m.youtube_stream_url ?? '',
         replayUrl: m.replay_url ?? '',
       } as AdminMatchRow,

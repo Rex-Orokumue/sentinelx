@@ -2,6 +2,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
+import { fromDateTimeLocal } from '@/lib/format'
 import { matchEditSchema } from './edit-schema'
 
 export type MatchAdminState = { error?: string; success?: boolean } | undefined
@@ -49,7 +50,7 @@ export async function updateMatch(
   const { error } = await supabase
     .from('matches')
     .update({
-      scheduled_at: orNull(parsed.data.scheduledAt),
+      scheduled_at: fromDateTimeLocal(parsed.data.scheduledAt),
       youtube_stream_url: orNull(parsed.data.streamUrl),
       replay_url: orNull(parsed.data.replayUrl),
     })

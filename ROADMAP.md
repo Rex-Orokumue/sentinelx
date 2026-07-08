@@ -47,7 +47,7 @@ WhatsApp share buttons + mobile-first apply across all v1.0 pages.
 
 ## Follow-ups / tech debt
 
-- ⬜ **Timezone display (app-wide):** date/time formatters (`formatWhen`/`formatDate` in the dashboard, `scheduled_at` on the bracket page, etc.) render in the server's timezone (UTC on Vercel), not Nigerian local time (WAT, UTC+1). A 20:00 WAT match shows as 19:00. Fix once with a shared formatter that sets `{ timeZone: 'Africa/Lagos' }` (or formats client-side). Surfaced during #8 review.
+- ✅ **Timezone display (app-wide):** shared WAT (`Africa/Lagos`, UTC+1 year-round) date/time helpers in `lib/format.ts` — `formatDateTime`/`formatDate`/`formatMonthYear` for display, and `toDateTimeLocal`/`fromDateTimeLocal` for the admin `datetime-local` scheduling round-trip. All formatter sites now route through them; admin enters WAT → stored as UTC instant → rendered back in WAT.
 
 ---
 

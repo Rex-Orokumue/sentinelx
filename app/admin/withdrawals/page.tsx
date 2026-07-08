@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin/auth'
-import { formatNaira } from '@/lib/format'
+import { formatDate, formatNaira } from '@/lib/format'
 import { WithdrawalQueueRow, type PendingWithdrawal } from '@/components/admin/WithdrawalQueueRow'
 
 export const metadata: Metadata = { title: 'Withdrawals · Admin · SentinelX' }
@@ -13,14 +13,6 @@ function nameOf(p: ProfileRef): string {
 function firstP(p: ProfileRef | ProfileRef[]): ProfileRef {
   return Array.isArray(p) ? p[0] ?? null : p
 }
-function fmtDate(iso: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return Number.isNaN(d.getTime())
-    ? ''
-    : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
 const RESOLVED_STATUS: Record<string, string> = {
   paid: 'text-emerald-400',
   rejected: 'text-red-400',
@@ -114,7 +106,7 @@ export default async function AdminWithdrawalsPage() {
                   </p>
                 </div>
                 <p className="mt-1 text-xs text-slate-500">
-                  {fmtDate(r.resolvedAt)}
+                  {formatDate(r.resolvedAt) ?? ''}
                   {r.adminNote ? ` · ${r.adminNote}` : ''}
                 </p>
               </div>

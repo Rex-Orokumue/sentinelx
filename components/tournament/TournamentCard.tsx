@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { formatNaira } from '@/lib/format'
+import { formatDate, formatNaira } from '@/lib/format'
 
 export interface TournamentCardData {
   id: string
@@ -19,12 +19,6 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   registration_open:   { label: 'OPEN',        cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
   registration_closed: { label: 'REG. CLOSED', cls: 'bg-violet-500/20 text-violet-400 border-violet-500/30' },
   completed:           { label: 'ENDED',       cls: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
-}
-
-function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString('en-NG', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  })
 }
 
 export function TournamentCard({
@@ -81,9 +75,9 @@ export function TournamentCard({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-        {t.tournament_start && <span>Starts {fmtDate(t.tournament_start)}</span>}
+        {t.tournament_start && <span>Starts {formatDate(t.tournament_start)}</span>}
         {t.registration_end && t.status === 'registration_open' && (
-          <span className="text-violet-400/80">Reg. closes {fmtDate(t.registration_end)}</span>
+          <span className="text-violet-400/80">Reg. closes {formatDate(t.registration_end)}</span>
         )}
       </div>
     </Link>

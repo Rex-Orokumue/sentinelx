@@ -1,16 +1,10 @@
 import Link from 'next/link'
 import type { ChampionEntry } from '@/lib/hall-of-fame/awards'
-
-function formatDate(iso: string | null): string | null {
-  if (!iso) return null
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return null
-  return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
-}
+import { formatMonthYear } from '@/lib/format'
 
 export function ChampionCard({ entry }: { entry: ChampionEntry }) {
   const initial = (entry.champion.name[0] ?? '?').toUpperCase()
-  const date = formatDate(entry.date)
+  const date = formatMonthYear(entry.date)
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-lg">

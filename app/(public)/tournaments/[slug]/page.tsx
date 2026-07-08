@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { resolveRegistrationView } from '@/lib/tournaments/view'
 import { RegistrationPanel } from '@/components/tournament/RegistrationPanel'
-import { formatNaira } from '@/lib/format'
+import { formatDate, formatNaira } from '@/lib/format'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
 
@@ -13,11 +13,6 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   registration_open:   { label: 'OPEN',        cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
   registration_closed: { label: 'REG. CLOSED', cls: 'bg-violet-500/20 text-violet-400 border-violet-500/30' },
   completed:           { label: 'ENDED',       cls: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
-}
-
-function fmtDate(d: string | null) {
-  if (!d) return null
-  return new Date(d).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 async function getTournament(slug: string) {
@@ -97,8 +92,8 @@ export default async function TournamentDetailPage({
   })
 
   const status = STATUS[t.status] ?? STATUS.completed
-  const start = fmtDate(t.tournament_start)
-  const regEnd = fmtDate(t.registration_end)
+  const start = formatDate(t.tournament_start)
+  const regEnd = formatDate(t.registration_end)
   const game = t.games as { name: string; icon_url: string | null; slug: string } | null
   const shareText = `${t.title} on Sentinel X — ${formatNaira(t.prize_pool)} prize pool 🎮 ${SITE_URL}/tournaments/${t.slug}`
 

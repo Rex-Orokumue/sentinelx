@@ -2,7 +2,7 @@
 import type { InputHTMLAttributes } from 'react'
 import { useFormState } from 'react-dom'
 import { requestWithdrawal, type WithdrawalState } from '@/lib/withdrawals/actions'
-import { formatNaira } from '@/lib/format'
+import { formatDate, formatNaira } from '@/lib/format'
 
 export interface WithdrawalRow {
   id: string
@@ -14,14 +14,6 @@ export interface WithdrawalRow {
   admin_note: string | null
   requested_at: string
   resolved_at: string | null
-}
-
-function formatDate(iso: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return Number.isNaN(d.getTime())
-    ? ''
-    : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -108,7 +100,7 @@ function Field({
 
 function RequestRow({ req }: { req: WithdrawalRow }) {
   const s = STATUS[req.status] ?? { label: req.status, cls: 'text-slate-400' }
-  const when = formatDate(req.resolved_at ?? req.requested_at)
+  const when = formatDate(req.resolved_at ?? req.requested_at) ?? ''
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
       <div className="flex items-center justify-between gap-3">
