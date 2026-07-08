@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { formatNaira } from '@/lib/format'
 
 export interface TournamentCardData {
   id: string
@@ -60,13 +61,13 @@ export function TournamentCard({
         <div>
           <p className="text-[11px] text-slate-500">Prize Pool</p>
           <p className={`font-black text-violet-400 ${featured ? 'text-2xl' : 'text-lg'}`}>
-            ₦{t.prize_pool.toLocaleString()}
+            {formatNaira(t.prize_pool)}
           </p>
         </div>
         <div>
           <p className="text-[11px] text-slate-500">Entry Fee</p>
           <p className={`font-black text-white ${featured ? 'text-2xl' : 'text-lg'}`}>
-            ₦{t.registration_fee.toLocaleString()}
+            {formatNaira(t.registration_fee)}
           </p>
         </div>
         {t.max_players != null && (

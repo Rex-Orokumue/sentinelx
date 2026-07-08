@@ -2,6 +2,7 @@
 import type { InputHTMLAttributes } from 'react'
 import { useFormState } from 'react-dom'
 import { requestWithdrawal, type WithdrawalState } from '@/lib/withdrawals/actions'
+import { formatNaira } from '@/lib/format'
 
 export interface WithdrawalRow {
   id: string
@@ -13,10 +14,6 @@ export interface WithdrawalRow {
   admin_note: string | null
   requested_at: string
   resolved_at: string | null
-}
-
-function formatNaira(n: number): string {
-  return `₦${n.toLocaleString('en-NG')}`
 }
 
 function formatDate(iso: string | null): string {

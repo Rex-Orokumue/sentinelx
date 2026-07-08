@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { resolveRegistrationView } from '@/lib/tournaments/view'
 import { RegistrationPanel } from '@/components/tournament/RegistrationPanel'
+import { formatNaira } from '@/lib/format'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
 
@@ -41,7 +42,7 @@ export async function generateMetadata({
   const title = `${t.title} — Sentinel X`
   const description =
     t.description?.slice(0, 160) ??
-    `₦${t.prize_pool.toLocaleString()} prize pool. Entry ₦${t.registration_fee.toLocaleString()}. Compete on Sentinel X.`
+    `${formatNaira(t.prize_pool)} prize pool. Entry ${formatNaira(t.registration_fee)}. Compete on Sentinel X.`
   return {
     title,
     description,
@@ -99,7 +100,7 @@ export default async function TournamentDetailPage({
   const start = fmtDate(t.tournament_start)
   const regEnd = fmtDate(t.registration_end)
   const game = t.games as { name: string; icon_url: string | null; slug: string } | null
-  const shareText = `${t.title} on Sentinel X — ₦${t.prize_pool.toLocaleString()} prize pool 🎮 ${SITE_URL}/tournaments/${t.slug}`
+  const shareText = `${t.title} on Sentinel X — ${formatNaira(t.prize_pool)} prize pool 🎮 ${SITE_URL}/tournaments/${t.slug}`
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-20">
@@ -143,8 +144,8 @@ export default async function TournamentDetailPage({
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:grid-cols-4">
-        <Stat label="Prize Pool" value={`₦${t.prize_pool.toLocaleString()}`} accent />
-        <Stat label="Entry Fee" value={`₦${t.registration_fee.toLocaleString()}`} />
+        <Stat label="Prize Pool" value={formatNaira(t.prize_pool)} accent />
+        <Stat label="Entry Fee" value={formatNaira(t.registration_fee)} />
         <Stat
           label="Players"
           value={t.max_players != null ? `${paidCount ?? 0}/${t.max_players}` : `${paidCount ?? 0}`}

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useFormState, useFormStatus } from 'react-dom'
 import { registerForTournament, type RegisterState } from '@/lib/tournaments/actions'
 import type { RegView } from '@/lib/tournaments/view'
+import { formatNaira } from '@/lib/format'
 
 function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus()
@@ -41,7 +42,7 @@ export function RegistrationPanel({
           href={loginHref}
           className="block w-full rounded-xl bg-violet-600 px-7 py-3.5 text-center text-sm font-bold text-white transition-colors hover:bg-violet-500"
         >
-          Register — ₦{fee.toLocaleString()}
+          Register — {formatNaira(fee)}
         </Link>
         <p className="mt-2 text-center text-xs text-slate-500">Log in to register and pay.</p>
       </div>
@@ -54,11 +55,11 @@ export function RegistrationPanel({
         <RegisterForm
           tournamentId={tournamentId}
           label={
-            view === 'complete_payment' ? 'Complete payment →' : `Register — ₦${fee.toLocaleString()}`
+            view === 'complete_payment' ? 'Complete payment →' : `Register — ${formatNaira(fee)}`
           }
         />
         <p className="mt-2 text-center text-xs text-slate-500">
-          Secure payment via Paystack. Entry fee ₦{fee.toLocaleString()}.
+          Secure payment via Paystack. Entry fee {formatNaira(fee)}.
         </p>
       </div>
     )
