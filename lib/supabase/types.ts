@@ -295,6 +295,7 @@ export type Database = {
       }
       matches: {
         Row: {
+          admin_note: string | null
           completed_at: string | null
           created_at: string
           group_id: string | null
@@ -312,6 +313,7 @@ export type Database = {
           youtube_stream_url: string | null
         }
         Insert: {
+          admin_note?: string | null
           completed_at?: string | null
           created_at?: string
           group_id?: string | null
@@ -329,6 +331,7 @@ export type Database = {
           youtube_stream_url?: string | null
         }
         Update: {
+          admin_note?: string | null
           completed_at?: string | null
           created_at?: string
           group_id?: string | null
