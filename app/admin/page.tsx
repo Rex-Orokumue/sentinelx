@@ -34,7 +34,7 @@ export default async function AdminHomePage() {
         <StatCard label="Active tournaments" count={activeTournaments.count ?? 0} />
         <StatCard label="Open registrations" count={openRegs.count ?? 0} />
         {ctx.isAdmin && (
-          <StatCard label="Pending withdrawals" count={pendingWithdrawals.count ?? 0} />
+          <StatCard label="Pending withdrawals" count={pendingWithdrawals.count ?? 0} href="/admin/withdrawals" />
         )}
       </div>
     </section>
