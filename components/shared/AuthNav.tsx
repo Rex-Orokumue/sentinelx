@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { signOut } from '@/lib/auth/actions'
+import { getStaffContext } from '@/lib/admin/auth'
 
 export async function AuthNav() {
   const supabase = createClient()
@@ -17,8 +18,18 @@ export async function AuthNav() {
     )
   }
 
+  const staff = await getStaffContext()
+
   return (
     <div className="flex items-center gap-1">
+      {staff?.isStaff && (
+        <Link
+          href="/admin"
+          className="rounded-lg px-3 py-1.5 text-sm font-semibold text-violet-300 transition-colors hover:bg-slate-800 hover:text-violet-200"
+        >
+          Admin
+        </Link>
+      )}
       <Link
         href="/dashboard"
         className="rounded-lg px-3 py-1.5 text-sm text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
