@@ -30,7 +30,7 @@ export default async function AdminHomePage() {
         Needs attention
       </h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Pending results" count={pendingResults.count ?? 0} />
+        <StatCard label="Pending results" count={pendingResults.count ?? 0} href="/admin/results" />
         <StatCard label="Active tournaments" count={activeTournaments.count ?? 0} />
         <StatCard label="Open registrations" count={openRegs.count ?? 0} />
         {ctx.isAdmin && (

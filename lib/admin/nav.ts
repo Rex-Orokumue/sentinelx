@@ -8,6 +8,7 @@ export interface AdminNavItem {
 export const ADMIN_NAV: AdminNavItem[] = [
   { label: 'Overview', href: '/admin', adminOnly: false },
   { label: 'Tournaments', href: '/admin/tournaments', adminOnly: false },
+  { label: 'Results', href: '/admin/results', adminOnly: false },
 ]
 
 // Returns items in original order, dropping adminOnly items for non-admins.
