@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
 import { StatCard } from '@/components/admin/StatCard'
+import { RecomputeButton } from '@/components/admin/RecomputeButton'
 
 export const metadata: Metadata = { title: 'Admin · SentinelX Esports' }
 
@@ -37,6 +38,15 @@ export default async function AdminHomePage() {
           <StatCard label="Pending withdrawals" count={pendingWithdrawals.count ?? 0} href="/admin/withdrawals" />
         )}
       </div>
+
+      {ctx.isAdmin && (
+        <div className="mt-8">
+          <h2 className="mb-4 text-[11px] font-bold uppercase tracking-widest text-slate-500">
+            Maintenance
+          </h2>
+          <RecomputeButton />
+        </div>
+      )}
     </section>
   )
 }
