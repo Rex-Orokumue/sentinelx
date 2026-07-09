@@ -53,8 +53,12 @@ export function AccountMenu({ session }: { session: NavSession }) {
       </button>
       {open && (
         <div className="absolute right-0 mt-2 w-44 rounded-xl border border-slate-800 bg-slate-900 py-1 shadow-xl">
-          {/* My Profile → /players/[username] once #10b ships; /dashboard until then */}
-          <MenuLink href="/dashboard" onNavigate={() => setOpen(false)}>My Profile</MenuLink>
+          <MenuLink
+            href={session.username ? `/players/${session.username}` : '/dashboard'}
+            onNavigate={() => setOpen(false)}
+          >
+            My Profile
+          </MenuLink>
           <MenuLink href="/dashboard" onNavigate={() => setOpen(false)}>Dashboard</MenuLink>
           {session.isStaff && (
             <MenuLink href="/admin" onNavigate={() => setOpen(false)}>Admin</MenuLink>

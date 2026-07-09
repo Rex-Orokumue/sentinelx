@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { TierBadge } from '@/components/player/TierBadge'
 import type { RankedPlayer } from '@/lib/rankings/leaderboard'
 
@@ -46,7 +47,13 @@ export function LeaderboardTable({
                     </div>
                     <div className="min-w-0">
                       <p className="truncate font-semibold leading-tight text-white">
-                        {name}
+                        {pl.username ? (
+                          <Link href={`/players/${pl.username}`} className="hover:text-violet-300">
+                            {name}
+                          </Link>
+                        ) : (
+                          name
+                        )}
                         {isMe && <span className="ml-1 text-[11px] text-violet-400">(you)</span>}
                       </p>
                       <TierBadge tier={pl.sentinelTier} />
