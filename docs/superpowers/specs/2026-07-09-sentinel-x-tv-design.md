@@ -48,7 +48,7 @@ After applying, **regenerate `lib/supabase/types.ts`** so the table is typed.
 1. **Live Now** — if any match is live with a stream: embed the newest as a hero (`VideoEmbed`) with a link to its Match Centre; any others as match cards.
 2. **Highlights** — active `tv_videos` (`.eq('active', true)`), newest `published_at` first, each with a category badge.
 3. **Finals** — completed final-round matches with a replay.
-4. **All Replays** — completed matches with a replay, newest first (cap ~12).
+4. **All Replays** — completed matches with a replay, newest first, a **hard `.limit(12)`** for v1 (no pagination / "load more" UI — that's a later seam; older replays are simply not shown for now).
 
 Empty overall state (no live, no curated, no replays): a branded "Nothing on air yet" `EmptyState`.
 
@@ -63,7 +63,8 @@ Thumbnails: `thumbnail_url` if set, else derived `https://img.youtube.com/vi/{id
 `components/tv/VideoModal.tsx` (client) — opened by a curated `VideoCard` on click:
 - **Mobile (`<640px`):** a **bottom sheet** — full width, slides up from the bottom, video at 16:9.
 - **Desktop (`≥640px`):** a **centered modal**, `max-w-3xl`, video at 16:9.
-- Dismiss via **backdrop tap**, **Escape**, and a **close button**. **Locks body scroll** while open; `role="dialog"` + `aria-modal`. Iframe uses `youtubeEmbedUrl(id, { autoplay: true })`.
+- Dismiss via **backdrop tap**, **Escape**, and a **close button**. **Locks body scroll** while open; `role="dialog"` + `aria-modal`.
+- **Autoplay MUST be muted.** Mobile browsers block autoplaying audio without a user gesture, so `autoplay=1` alone loads a paused video. `youtubeEmbedUrl` (`lib/matches/youtube.ts`) is extended to take `{ autoplay?, mute? }` and build the query string; `VideoModal` calls `youtubeEmbedUrl(id, { autoplay: true, mute: true })`. The viewer unmutes via the native player controls. Adding the `mute` option is backward-compatible — the existing `VideoEmbed` (match centre) passes neither flag and is unaffected.
 
 `components/tv/VideoCard.tsx` (client) holds the open state and renders the thumbnail + title + category badge; clicking opens `VideoModal`. This is why the mobile decision is made up front — the card owns the player.
 
@@ -71,7 +72,7 @@ Thumbnails: `thumbnail_url` if set, else derived `https://img.youtube.com/vi/{id
 
 ## 5. Admin surface (`/admin/tv`)
 
-Staff-visible (`adminOnly: false` — editorial content, not financial, so moderators may manage it). `app/admin/tv/page.tsx` (`requireStaff`):
+Staff-visible (`adminOnly: false` — editorial content, not financial, so moderators may manage it). **Intentional consequence:** with `adminOnly: false` and the `tv_videos_staff_delete` RLS policy, moderators can hide/delete videos any admin uploaded. This is accepted for a small trusted team; if that changes later, tighten the delete policy to `is_admin()` and the nav to `adminOnly: true`. `app/admin/tv/page.tsx` (`requireStaff`):
 - **Add video** form (`components/admin/TvVideoForm.tsx`, client + `useFormState`): title, category (select), YouTube URL, description. On submit → `addVideo` action.
 - **Video list** (`components/admin/TvVideoRow.tsx`): each existing video with **Edit** (same form, prefilled), **Hide/Unhide** (toggles `active`), **Delete**.
 
