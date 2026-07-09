@@ -48,6 +48,7 @@ WhatsApp share buttons + mobile-first apply across all v1.0 pages.
 
 ## Follow-ups / tech debt
 
+- ✅ **Logged-in navigation rework:** fixed the mobile header horizontal-scroll (auth links overflowed the row; the added header Admin link tipped it over). Built the primary nav — mobile **bottom tab bar** (Compete/Watch/Community/Trade + Account, four pillars = product identity), desktop **avatar/account dropdown** (`AccountMenu`), admin **sidebar/drawer** (`AdminSidebar`, replaced the tab strip). Unbuilt pillars route to a shared `/coming-soon?feature=` page. Helpers in `lib/nav/`. Shipped as a hotfix commit first, then the full system. ⚠️ In-browser mobile-width visual check couldn't be completed (Chrome extension blocked JS/screenshots on localhost) — verified via tests/build/structure; recommend an eyeball on the deployed site.
 - ✅ **Timezone display (app-wide):** shared WAT (`Africa/Lagos`, UTC+1 year-round) date/time helpers in `lib/format.ts` — `formatDateTime`/`formatDate`/`formatMonthYear` for display, and `toDateTimeLocal`/`fromDateTimeLocal` for the admin `datetime-local` scheduling round-trip. All formatter sites now route through them; admin enters WAT → stored as UTC instant → rendered back in WAT.
 
 ---
