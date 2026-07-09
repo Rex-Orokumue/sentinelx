@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import localFont from 'next/font/local'
 import { Rajdhani } from 'next/font/google'
-import { AuthNav } from '@/components/shared/AuthNav'
 import { SiteHeader } from '@/components/shared/SiteHeader'
 import { BottomTabBar } from '@/components/shared/BottomTabBar'
 import { getNavSession } from '@/lib/nav/session'
@@ -41,7 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         className={`${geistSans.variable} ${geistMono.variable} ${rajdhani.variable} bg-slate-950 font-sans text-white antialiased`}
       >
         <div className="flex min-h-screen flex-col">
-          <SiteHeader authNav={<AuthNav />} whatsappUrl={WHATSAPP_COMMUNITY} />
+          <SiteHeader session={navSession} whatsappUrl={WHATSAPP_COMMUNITY} />
 
           {/* pb-16 clears the fixed mobile tab bar; removed at sm+ */}
           <main className="flex-1 pb-16 sm:pb-0">{children}</main>

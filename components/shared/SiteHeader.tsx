@@ -1,8 +1,8 @@
 'use client'
-import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Menu, X } from 'lucide-react'
+import { AccountMenu } from '@/components/shared/AccountMenu'
+import type { NavSession } from '@/lib/nav/session'
 
 const NAV = [
   { href: '/tournaments', label: 'Tournaments' },
@@ -10,23 +10,16 @@ const NAV = [
 ]
 
 export function SiteHeader({
-  authNav,
+  session,
   whatsappUrl,
 }: {
-  authNav: React.ReactNode
+  session: NavSession
   whatsappUrl: string
 }) {
-  const [open, setOpen] = useState(false)
-
   return (
     <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/90 backdrop-blur-sm">
       <nav className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-3">
-        {/* Logo */}
-        <Link
-          href="/"
-          onClick={() => setOpen(false)}
-          className="flex shrink-0 items-center gap-2"
-        >
+        <Link href="/" className="flex shrink-0 items-center gap-2">
           <Image src="/logo-icon.png" alt="SentinelX Esports" width={32} height={32} priority />
           <span className="flex flex-col leading-none">
             <span className="whitespace-nowrap font-display text-lg font-bold uppercase tracking-wide text-white sm:text-xl">
@@ -39,7 +32,7 @@ export function SiteHeader({
         </Link>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          {/* Desktop links */}
+          {/* Desktop-only primary links */}
           <div className="hidden items-center gap-1 sm:flex">
             {NAV.map((item) => (
               <Link
@@ -50,58 +43,25 @@ export function SiteHeader({
                 {item.label}
               </Link>
             ))}
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-1 flex items-center gap-1.5 rounded-full bg-[#25D366] px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
-            >
-              <WhatsAppIcon className="h-3.5 w-3.5" />
-              <span>Community</span>
-            </a>
           </div>
 
-          {/* Auth — desktop inline; mobile moves into the dropdown below */}
-          <div className="hidden sm:block">{authNav}</div>
-
-          {/* Mobile menu toggle */}
-          <button
-            type="button"
-            onClick={() => setOpen((o) => !o)}
-            aria-label={open ? 'Close menu' : 'Open menu'}
-            aria-expanded={open}
-            className="rounded-lg p-2 text-slate-300 transition-colors hover:bg-slate-800 hover:text-white sm:hidden"
-          >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
-      </nav>
-
-      {/* Mobile dropdown */}
-      {open && (
-        <div className="space-y-1 border-t border-slate-800 bg-slate-950 px-4 py-3 sm:hidden">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setOpen(false)}
-              className="block rounded-lg px-3 py-2.5 text-sm text-slate-200 transition-colors hover:bg-slate-800 hover:text-white"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {/* WhatsApp CTA — all breakpoints */}
           <a
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1 flex items-center justify-center gap-2 rounded-lg bg-[#25D366] px-3 py-2.5 text-sm font-bold text-white"
+            className="flex items-center gap-1.5 rounded-full bg-[#25D366] px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
           >
-            <WhatsAppIcon className="h-4 w-4" />
-            Join our WhatsApp Community
+            <WhatsAppIcon className="h-3.5 w-3.5" />
+            <span>Community</span>
           </a>
-          <div className="mt-1 border-t border-slate-800 pt-2">{authNav}</div>
+
+          {/* Account — desktop only; mobile uses the bottom tab bar */}
+          <div className="hidden sm:block">
+            <AccountMenu session={session} />
+          </div>
         </div>
-      )}
+      </nav>
     </header>
   )
 }
