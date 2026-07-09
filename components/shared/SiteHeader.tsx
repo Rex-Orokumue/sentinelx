@@ -61,8 +61,8 @@ export function SiteHeader({
             </a>
           </div>
 
-          {/* Auth (always visible) */}
-          {authNav}
+          {/* Auth — desktop inline; mobile moves into the dropdown below */}
+          <div className="hidden sm:block">{authNav}</div>
 
           {/* Mobile menu toggle */}
           <button
@@ -99,6 +99,7 @@ export function SiteHeader({
             <WhatsAppIcon className="h-4 w-4" />
             Join our WhatsApp Community
           </a>
+          <div className="mt-1 border-t border-slate-800 pt-2">{authNav}</div>
         </div>
       )}
     </header>
