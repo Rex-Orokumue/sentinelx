@@ -726,6 +726,7 @@ export type Database = {
     Functions: {
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      player_rank: { Args: { uname: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never
