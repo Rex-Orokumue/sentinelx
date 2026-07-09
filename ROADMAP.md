@@ -26,7 +26,8 @@ WhatsApp share buttons + mobile-first apply across all v1.0 pages.
 
 | # | Task | Route | Status |
 |---|------|-------|--------|
-| 10 | Player profiles — stats, Sentinel Score, tier badge | `/players/[username]` | ⬜ |
+| 10a | Stats & Sentinel Score engine — populate profile aggregates + score on result confirm; admin recompute button | (backend) | ✅ |
+| 10b | Player profile page — stats, Sentinel Score, tier badge | `/players/[username]` | ⬜ |
 | 11 | Sentinel X TV — live, highlights, replays | `/tv` | ⬜ |
 | 12 | WhatsApp Business notifications via Termii | — | ⬜ |
 
