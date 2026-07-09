@@ -111,6 +111,15 @@ export default async function TournamentsPage({
     <div className="mx-auto max-w-5xl px-4 pb-20">
       <Header />
 
+      <div className="mb-6 flex items-center gap-4 text-sm">
+        <Link href="/rankings" className="font-semibold text-violet-400 hover:text-violet-300">
+          Rankings
+        </Link>
+        <Link href="/hall-of-fame" className="font-semibold text-violet-400 hover:text-violet-300">
+          Hall of Fame
+        </Link>
+      </div>
+
       {gameList.length > 1 && (
         <GameFilter games={gameList} active={gameFilter} />
       )}

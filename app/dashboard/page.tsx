@@ -6,6 +6,7 @@ import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { FixtureSection } from '@/components/dashboard/FixtureCard'
 import { MyTournaments, type RegistrationRow } from '@/components/dashboard/MyTournaments'
 import { WithdrawalPanel, type WithdrawalRow } from '@/components/dashboard/WithdrawalPanel'
+import { signOut } from '@/lib/auth/actions'
 
 export const metadata: Metadata = { title: 'Dashboard · SentinelX Esports' }
 
@@ -110,6 +111,14 @@ export default async function DashboardPage() {
         losses={profile?.losses ?? 0}
         goalsScored={profile?.goals_scored ?? 0}
       />
+      <form action={signOut} className="mb-4">
+        <button
+          type="submit"
+          className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
+        >
+          Sign out
+        </button>
+      </form>
       <FixtureSection fixtures={fixtures} />
       <MyTournaments registrations={registrations} />
       <WithdrawalPanel requests={withdrawals} hasPending={hasPending} />
