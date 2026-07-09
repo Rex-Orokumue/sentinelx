@@ -13,6 +13,7 @@ import {
 } from '@/lib/tournaments/advancement'
 import { knockoutRound1 } from '@/lib/tournaments/draw'
 import { sortStandings, type MembershipInput } from '@/lib/tournaments/standings'
+import { syncMatchEvents } from '@/lib/scoring/apply'
 
 export type VerifyState = { error?: string; success?: boolean } | undefined
 type Admin = ReturnType<typeof createAdminClient>
@@ -216,6 +217,8 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
     }
   }
 
+  await syncMatchEvents(admin, id)
+
   revalidateAll(m.tournament_id, slug, id)
   return { success: true }
 }
@@ -241,6 +244,8 @@ export async function disputeResult(_prev: VerifyState, formData: FormData): Pro
     .eq('id', id)
   if (error) return { error: 'Could not save the dispute.' }
   await admin.from('match_results').update({ status: 'disputed' }).eq('match_id', id)
+
+  await syncMatchEvents(admin, id)
 
   const t = firstStr(m.tournament as { slug: string } | { slug: string }[] | null)
   revalidateAll(m.tournament_id, t?.slug ?? '', id)
