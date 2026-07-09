@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import localFont from 'next/font/local'
 import { Rajdhani } from 'next/font/google'
 import { AuthNav } from '@/components/shared/AuthNav'
 import { SiteHeader } from '@/components/shared/SiteHeader'
+import { BottomTabBar } from '@/components/shared/BottomTabBar'
+import { getNavSession } from '@/lib/nav/session'
 import './globals.css'
 
 const geistSans = localFont({
@@ -30,7 +33,8 @@ export const metadata: Metadata = {
 
 const WHATSAPP_COMMUNITY = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL ?? '#'
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const navSession = await getNavSession()
   return (
     <html lang="en" className="dark">
       <body
@@ -39,12 +43,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="flex min-h-screen flex-col">
           <SiteHeader authNav={<AuthNav />} whatsappUrl={WHATSAPP_COMMUNITY} />
 
-          <main className="flex-1">{children}</main>
+          {/* pb-16 clears the fixed mobile tab bar; removed at sm+ */}
+          <main className="flex-1 pb-16 sm:pb-0">{children}</main>
 
           <footer className="border-t border-slate-800 py-5 text-center text-xs text-slate-600">
-            © {new Date().getFullYear()} SentinelX Esports · Nigeria's Home of Mobile Esports
+            © {new Date().getFullYear()} SentinelX Esports · Nigeria&apos;s Home of Mobile Esports
           </footer>
         </div>
+
+        {/* useSearchParams requires a Suspense boundary to avoid de-opting pages to CSR */}
+        <Suspense fallback={null}>
+          <BottomTabBar session={navSession} />
+        </Suspense>
       </body>
     </html>
   )
