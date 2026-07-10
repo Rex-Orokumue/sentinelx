@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import localFont from 'next/font/local'
 import { Rajdhani } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
 import { SiteHeader } from '@/components/shared/SiteHeader'
 import { BottomTabBar } from '@/components/shared/BottomTabBar'
 import { getNavSession } from '@/lib/nav/session'
@@ -54,6 +55,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Suspense fallback={null}>
           <BottomTabBar session={navSession} />
         </Suspense>
+        <Analytics />
       </body>
     </html>
   )
