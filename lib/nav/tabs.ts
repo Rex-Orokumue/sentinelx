@@ -13,7 +13,7 @@ export const PILLAR_TABS: TabDef[] = [
   { key: 'compete', label: 'Compete', href: '/tournaments', feature: null, match: '/tournaments' },
   { key: 'watch', label: 'Watch', href: '/tv', feature: null, match: '/tv' },
   { key: 'community', label: 'Community', href: '/coming-soon?feature=Community', feature: 'Community', match: null },
-  { key: 'trade', label: 'Trade', href: '/coming-soon?feature=Trade', feature: 'Trade', match: null },
+  { key: 'trade', label: 'Trade', href: '/exchange', feature: null, match: '/exchange' },
 ]
 
 export function isTabActive(

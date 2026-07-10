@@ -22,6 +22,12 @@ describe('isTabActive', () => {
     expect(isTabActive(watch, '/tv', null)).toBe(true)
     expect(isTabActive(watch, '/coming-soon', 'Watch')).toBe(false)
   })
+
+  it('marks the Trade tab active on /exchange', () => {
+    const trade = PILLAR_TABS.find((t) => t.key === 'trade')!
+    expect(isTabActive(trade, '/exchange', null)).toBe(true)
+    expect(isTabActive(trade, '/coming-soon', 'Trade')).toBe(false)
+  })
 })
 
 describe('initialsFrom', () => {

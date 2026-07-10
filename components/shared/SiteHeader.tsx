@@ -7,6 +7,7 @@ import type { NavSession } from '@/lib/nav/session'
 const NAV = [
   { href: '/tournaments', label: 'Tournaments' },
   { href: '/tv', label: 'TV' },
+  { href: '/exchange', label: 'Exchange' },
   { href: '/rankings', label: 'Rankings' },
 ]
 
