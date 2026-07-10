@@ -12,9 +12,15 @@ describe('isTabActive', () => {
   })
 
   it('marks a coming-soon tab active only for its feature', () => {
-    expect(isTabActive(watch, '/coming-soon', 'Watch')).toBe(true)
-    expect(isTabActive(watch, '/coming-soon', 'Trade')).toBe(false)
-    expect(isTabActive(watch, '/tournaments', 'Watch')).toBe(false)
+    const community = PILLAR_TABS.find((t) => t.key === 'community')!
+    expect(isTabActive(community, '/coming-soon', 'Community')).toBe(true)
+    expect(isTabActive(community, '/coming-soon', 'Trade')).toBe(false)
+    expect(isTabActive(community, '/tournaments', 'Community')).toBe(false)
+  })
+
+  it('marks the Watch tab active on /tv (real page, not coming-soon)', () => {
+    expect(isTabActive(watch, '/tv', null)).toBe(true)
+    expect(isTabActive(watch, '/coming-soon', 'Watch')).toBe(false)
   })
 })
 
