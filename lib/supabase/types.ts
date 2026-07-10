@@ -646,6 +646,50 @@ export type Database = {
           },
         ]
       }
+      tv_videos: {
+        Row: {
+          active: boolean
+          category: string
+          created_by: string
+          description: string | null
+          id: string
+          published_at: string
+          thumbnail_url: string | null
+          title: string
+          youtube_url: string
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          created_by: string
+          description?: string | null
+          id?: string
+          published_at?: string
+          thumbnail_url?: string | null
+          title: string
+          youtube_url: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          published_at?: string
+          thumbnail_url?: string | null
+          title?: string
+          youtube_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tv_videos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
