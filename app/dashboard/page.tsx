@@ -6,6 +6,7 @@ import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { FixtureSection } from '@/components/dashboard/FixtureCard'
 import { MyTournaments, type RegistrationRow } from '@/components/dashboard/MyTournaments'
 import { WithdrawalPanel, type WithdrawalRow } from '@/components/dashboard/WithdrawalPanel'
+import { MyListings, type MyListing } from '@/components/dashboard/MyListings'
 import { signOut } from '@/lib/auth/actions'
 
 export const metadata: Metadata = { title: 'Dashboard · SentinelX Esports' }
@@ -28,7 +29,7 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/dashboard')
 
-  const [profileRes, matchesRes, resultsRes, regsRes, wrRes] = await Promise.all([
+  const [profileRes, matchesRes, resultsRes, regsRes, wrRes, listingsRes] = await Promise.all([
     supabase
       .from('profiles')
       .select('username, display_name, wins, losses, goals_scored')
@@ -56,9 +57,21 @@ export default async function DashboardPage() {
       )
       .eq('player_id', user.id)
       .order('requested_at', { ascending: false }),
+    supabase
+      .from('marketplace_listings')
+      .select('id, title, price, status')
+      .eq('seller_id', user.id)
+      .neq('status', 'removed')
+      .order('created_at', { ascending: false }),
   ])
 
   const profile = profileRes.data
+  const myListings: MyListing[] = (listingsRes.data ?? []).map((l) => ({
+    id: l.id,
+    title: l.title,
+    price: l.price,
+    status: l.status,
+  }))
   const submittedMatchIds = new Set((resultsRes.data ?? []).map((r) => r.match_id))
 
   const matches: DashboardMatchInput[] = ((matchesRes.data as unknown[] | null) ?? []).map((raw) => {
@@ -121,6 +134,7 @@ export default async function DashboardPage() {
       </form>
       <FixtureSection fixtures={fixtures} />
       <MyTournaments registrations={registrations} />
+      <MyListings listings={myListings} />
       <WithdrawalPanel requests={withdrawals} hasPending={hasPending} />
     </div>
   )
