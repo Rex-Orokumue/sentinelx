@@ -379,6 +379,62 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          dedupe_key: string
+          error: string | null
+          id: string
+          player_id: string
+          provider_reference: string | null
+          sent_at: string | null
+          status: string
+          template_name: string
+          to_number: string | null
+          type: string
+        }
+        Insert: {
+          body: string
+          channel?: string
+          created_at?: string
+          dedupe_key: string
+          error?: string | null
+          id?: string
+          player_id: string
+          provider_reference?: string | null
+          sent_at?: string | null
+          status: string
+          template_name: string
+          to_number?: string | null
+          type: string
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          dedupe_key?: string
+          error?: string | null
+          id?: string
+          player_id?: string
+          provider_reference?: string | null
+          sent_at?: string | null
+          status?: string
+          template_name?: string
+          to_number?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       opponent_ratings: {
         Row: {
           created_at: string
