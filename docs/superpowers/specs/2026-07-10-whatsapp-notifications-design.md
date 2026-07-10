@@ -76,9 +76,9 @@ One builder per type → `{ templateName: string; variables: Record<string,strin
 `notify({ type, playerId, dedupeKey, context }): Promise<void>` — never throws:
 1. Build the template (rendered `body`).
 2. Resolve the player's `whatsapp_number` + display name.
-3. **Insert the log row first** with the unique `dedupe_key` (on conflict → return early / skip — idempotent).
-4. If no `whatsapp_number` or `termii` returns `skipped` → update `status='skipped'`.
-5. Else call `termii.sendWhatsApp` → update `status='sent'`+`provider_reference` or `status='failed'`+`error`.
+3. **Insert the log row first**, with the unique `dedupe_key` and **initial `status = 'skipped'`** — the conservative default (there is no `pending` state in the CHECK). On conflict (row already exists for this key) → return early, idempotent. Inserting `skipped` first means that even if a later UPDATE is lost after a successful send (rare), the row still exists with a safe status rather than not at all.
+4. If no `whatsapp_number` or `termii` returns `skipped` → leave `status='skipped'` (no update needed).
+5. Else call `termii.sendWhatsApp` → UPDATE the row to `status='sent'`+`provider_reference`+`sent_at`, or `status='failed'`+`error`.
 6. The whole body is wrapped in try/catch; any unexpected error is logged and swallowed.
 
 ## 4. Event triggers (wired inline, best-effort)
