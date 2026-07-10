@@ -29,7 +29,9 @@ WhatsApp share buttons + mobile-first apply across all v1.0 pages.
 | 10a | Stats & Sentinel Score engine — populate profile aggregates + score on result confirm; admin recompute button | (backend) | ✅ |
 | 10b | Player profile page — stats, Sentinel Score, tier badge, leaderboard rank, achievements, match history | `/players/[username]` | ✅ |
 | 11 | Sentinel X TV — live, highlights, finals, replays + curated `tv_videos` + admin CRUD | `/tv` | ✅ |
-| 12 | WhatsApp Business notifications via Termii | — | ⬜ |
+| 12 | WhatsApp Business notifications via Termii — registration/fixture/result/prize; pg_cron reminders; ready-to-activate | — | ✅ |
+
+**★ v2.0 COMPLETE (#10a–#12).** Player profiles + Sentinel Score, Sentinel X TV, and WhatsApp notification infrastructure all shipped. (#12 is built ready-to-activate — no-ops until `TERMII_API_KEY` + Meta-approved templates are set; see the activation runbook in the #12 plan.)
 
 ## v3.0 — Exchange + KYC
 
