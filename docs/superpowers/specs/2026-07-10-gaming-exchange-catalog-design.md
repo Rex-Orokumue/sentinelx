@@ -34,7 +34,7 @@ IF NEW.status IS DISTINCT FROM OLD.status
    AND NEW.status <> 'removed'
 THEN RAISE EXCEPTION ...
 ```
-So sellers may edit content while `pending` and withdraw (`removed`); only staff can `active`/`sold`.
+So a seller can only **withdraw** their own listing (`→ removed`); `active`/`sold` are staff-only. The trigger restricts *status transitions* only — 13a ships **no listing-edit UI** (a seller who wants changes removes and recreates; see §8).
 
 After the migration, **regenerate `lib/supabase/types.ts`**.
 
@@ -58,7 +58,7 @@ After the migration, **regenerate `lib/supabase/types.ts`**.
 ## 6. Helpers, validation, testing
 
 `lib/exchange/` pure, unit-tested (Vitest):
-- `schema.ts` — `LISTING_CATEGORIES`, `CATEGORY_LABELS`, `listingSchema` (zod: `title` non-empty, `category` enum, `price` integer ≥ a floor e.g. ₦100, optional `gameId` uuid / `description`).
+- `schema.ts` — `LISTING_CATEGORIES`, `CATEGORY_LABELS`, `listingSchema` (zod: `title` non-empty, `category` enum, `price` integer **≥ ₦500** — matches the tournament entry fee and filters junk listings, optional `gameId` uuid / `description`).
 - `images.ts` — `imageRequired(category): boolean` and `validateImageCount(category, count): boolean` (the §2 rule). Tested for each category + boundary.
 
 Presentational components and pages verified by `npm run build`; the upload/admin flows are thin over these tested pures.
@@ -72,4 +72,6 @@ Presentational components and pages verified by `npm run build`; the upload/admi
 ## 8. Scope boundaries
 
 **In:** `listing_images` + public bucket + status-guard trigger; browse/filter/detail; multi-image create + reorder; My Listings + remove; admin approve/remove; helpers + tests; Trade-tab + header wiring.
-**Out (#13b / later):** the Buy flow; Zolarux escrow (`escrow_status`/`zolarux_reference`); the `sold` transition; delivery confirmation; **any buyer-seller contact / messaging**; offers/negotiation; listing edit-after-active; favourites/saved; seller ratings; orphaned-image cleanup (a later housekeeping job).
+**Out (#13b / later):** the Buy flow; Zolarux escrow (`escrow_status`/`zolarux_reference`); the `sold` transition; delivery confirmation; **any buyer-seller contact / messaging**; offers/negotiation; **listing edit of any kind** (no edit UI in 13a — remove + recreate); favourites/saved; seller ratings.
+
+**Known technical debt (call out, don't build now):** **orphaned Storage files.** `ON DELETE CASCADE` removes `listing_images` rows, but the actual files in the `listing-images` bucket are **not** deleted when a listing is removed or admin-deleted. A later housekeeping job (or a Storage-cleanup on delete) will handle this; until then, orphaned files accumulate harmlessly.
