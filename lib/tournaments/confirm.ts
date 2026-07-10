@@ -1,6 +1,8 @@
 import { REGISTRATION_FEE_NGN } from '@/lib/paystack'
 import { verifyTransaction } from '@/lib/paystack/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { notify } from '@/lib/notifications/notify'
+import { regKey } from '@/lib/notifications/keys'
 
 export type ConfirmResult = 'confirmed' | 'already_paid' | 'not_found' | 'not_successful'
 
@@ -26,7 +28,7 @@ export async function confirmRegistration(reference: string): Promise<ConfirmRes
 
   const { data: existing } = await db
     .from('tournament_registrations')
-    .select('id, payment_status')
+    .select('id, payment_status, player_id, tournament:tournaments(title)')
     .eq('paystack_reference', reference)
     .maybeSingle()
 
@@ -49,6 +51,15 @@ export async function confirmRegistration(reference: string): Promise<ConfirmRes
     .update({ payment_status: 'paid' })
     .eq('id', existing.id)
     .eq('payment_status', 'pending')
+
+  const tv = existing.tournament as { title: string } | { title: string }[] | null
+  const tournamentTitle = (Array.isArray(tv) ? tv[0]?.title : tv?.title) ?? 'the tournament'
+  await notify({
+    type: 'registration_confirmed',
+    playerId: existing.player_id,
+    dedupeKey: regKey(existing.id),
+    tournament: tournamentTitle,
+  })
 
   return 'confirmed'
 }

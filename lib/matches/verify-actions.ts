@@ -14,6 +14,8 @@ import {
 import { knockoutRound1 } from '@/lib/tournaments/draw'
 import { sortStandings, type MembershipInput } from '@/lib/tournaments/standings'
 import { syncMatchEvents } from '@/lib/scoring/apply'
+import { notify } from '@/lib/notifications/notify'
+import { resultKey } from '@/lib/notifications/keys'
 
 export type VerifyState = { error?: string; success?: boolean } | undefined
 type Admin = ReturnType<typeof createAdminClient>
@@ -218,6 +220,52 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
   }
 
   await syncMatchEvents(admin, id)
+
+  type NameRef =
+    | { display_name: string | null; username: string | null }
+    | { display_name: string | null; username: string | null }[]
+    | null
+  type NdRow = {
+    player_a_id: string | null
+    player_b_id: string | null
+    player_a: NameRef
+    player_b: NameRef
+    tournament: { title: string } | { title: string }[] | null
+  }
+  const { data: ndRaw } = await admin
+    .from('matches')
+    .select(
+      'player_a_id, player_b_id, ' +
+        'player_a:profiles!matches_player_a_id_fkey(display_name, username), ' +
+        'player_b:profiles!matches_player_b_id_fkey(display_name, username), ' +
+        'tournament:tournaments(title)',
+    )
+    .eq('id', id)
+    .maybeSingle()
+  const nd = (ndRaw ?? null) as unknown as NdRow | null
+  if (nd) {
+    const nameOf = (x: NameRef) => {
+      const r = Array.isArray(x) ? x[0] ?? null : x
+      return r?.display_name ?? r?.username ?? 'Player'
+    }
+    const tRef = nd.tournament
+    const title = (Array.isArray(tRef) ? tRef[0]?.title : tRef?.title) ?? 'the tournament'
+    const a = nameOf(nd.player_a)
+    const b = nameOf(nd.player_b)
+    for (const pid of [nd.player_a_id, nd.player_b_id]) {
+      if (!pid) continue
+      await notify({
+        type: 'result_confirmed',
+        playerId: pid,
+        dedupeKey: resultKey(id, pid),
+        playerA: a,
+        playerB: b,
+        scoreA,
+        scoreB,
+        tournament: title,
+      })
+    }
+  }
 
   revalidateAll(m.tournament_id, slug, id)
   return { success: true }

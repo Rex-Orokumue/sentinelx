@@ -2,6 +2,9 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin/auth'
+import { notify } from '@/lib/notifications/notify'
+import { prizeKey } from '@/lib/notifications/keys'
+import { formatNaira } from '@/lib/format'
 
 export type WithdrawalResolveState = { error?: string; success?: boolean } | undefined
 
@@ -20,7 +23,7 @@ export async function resolveWithdrawal(
   const supabase = createClient()
   const { data: wr } = await supabase
     .from('withdrawal_requests')
-    .select('status')
+    .select('status, player_id, amount')
     .eq('id', id)
     .maybeSingle()
   if (!wr) return { error: 'Request not found.' }
@@ -31,6 +34,15 @@ export async function resolveWithdrawal(
     .update({ status: action, admin_note: note || null, resolved_at: new Date().toISOString() })
     .eq('id', id)
   if (error) return { error: 'Could not resolve the request. Please try again.' }
+
+  if (action === 'paid') {
+    await notify({
+      type: 'prize_credited',
+      playerId: wr.player_id,
+      dedupeKey: prizeKey(id),
+      amount: formatNaira(wr.amount),
+    })
+  }
 
   revalidatePath('/admin/withdrawals')
   revalidatePath('/dashboard')
