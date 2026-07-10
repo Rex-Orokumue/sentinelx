@@ -1,6 +1,10 @@
 import type { ListingCategory } from './schema'
 
-const IMAGE_REQUIRED: ReadonlySet<ListingCategory> = new Set(['account', 'controller', 'phone'])
+const IMAGE_REQUIRED: ReadonlySet<ListingCategory> = new Set<ListingCategory>([
+  'account',
+  'controller',
+  'phone',
+])
 
 export function imageRequired(category: ListingCategory): boolean {
   return IMAGE_REQUIRED.has(category)
