@@ -37,7 +37,8 @@ WhatsApp share buttons + mobile-first apply across all v1.0 pages.
 
 | # | Task | Route | Status |
 |---|------|-------|--------|
-| 13 | Gaming Exchange — Zolarux escrow | `/exchange` | ⬜ |
+| 13a | Gaming Exchange catalog — browse/filter/detail, multi-image listings, My Listings, admin approve/remove | `/exchange` | ✅ |
+| 13b | Gaming Exchange purchase + Zolarux escrow (buy flow, escrow adapter, delivery) | `/exchange` | ⬜ |
 | 14 | KYC (BVN/NIN) + prize withdrawals via Paystack Transfer | — | ⬜ |
 
 ## v4.0 — Scale
