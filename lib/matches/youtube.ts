@@ -15,6 +15,13 @@ export function parseYouTubeId(url: string | null | undefined): string | null {
   return null
 }
 
-export function youtubeEmbedUrl(id: string, opts: { autoplay?: boolean } = {}): string {
-  return `https://www.youtube.com/embed/${id}${opts.autoplay ? '?autoplay=1' : ''}`
+export function youtubeEmbedUrl(
+  id: string,
+  opts: { autoplay?: boolean; mute?: boolean } = {},
+): string {
+  const params = new URLSearchParams()
+  if (opts.autoplay) params.set('autoplay', '1')
+  if (opts.mute) params.set('mute', '1')
+  const qs = params.toString()
+  return `https://www.youtube.com/embed/${id}${qs ? `?${qs}` : ''}`
 }

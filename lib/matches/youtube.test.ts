@@ -32,4 +32,9 @@ describe('youtubeEmbedUrl', () => {
   it('adds autoplay when requested', () => {
     expect(youtubeEmbedUrl('dQw4w9WgXcQ', { autoplay: true })).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1')
   })
+  it('adds autoplay and mute together', () => {
+    const url = youtubeEmbedUrl('dQw4w9WgXcQ', { autoplay: true, mute: true })
+    expect(url).toContain('autoplay=1')
+    expect(url).toContain('mute=1')
+  })
 })
