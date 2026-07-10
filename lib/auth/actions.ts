@@ -42,6 +42,28 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
 
   const { username, email, password } = parsed.data
   const supabase = createClient()
+
+  // Precise username-availability check before signUp. `profiles` is
+  // publicly readable (profiles_public_read) and username uniqueness is
+  // case-sensitive (`username text UNIQUE`), so an exact match mirrors the
+  // DB constraint. This is the primary path — the constraint itself remains
+  // the backstop for the rare check-then-insert race.
+  const { data: existing, error: lookupError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('username', username)
+    .maybeSingle()
+  if (lookupError) {
+    // Fail open: don't block signup on a lookup hiccup — the UNIQUE
+    // constraint still protects us. Log so it's visible in Vercel logs.
+    console.error('[signup] username availability check failed', {
+      code: lookupError.code,
+      message: lookupError.message,
+    })
+  } else if (existing) {
+    return { error: 'That username is taken — go back and pick another.' }
+  }
+
   // The email link format (token_hash + type + next) is controlled by the
   // Supabase "Confirm signup" template, which routes to /auth/confirm.
   const { error } = await supabase.auth.signUp({
@@ -51,7 +73,18 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
       data: { username },
     },
   })
-  if (error) return { error: mapSignupError(error) }
+  if (error) {
+    // Surface the real cause in Vercel logs — the user-facing message is
+    // intentionally generic, so without this the root cause (e.g. an SMTP
+    // send failure returning 500) is invisible outside the Supabase dashboard.
+    console.error('[signup] supabase.auth.signUp failed', {
+      email,
+      code: (error as { code?: string }).code,
+      status: (error as { status?: number }).status,
+      message: error.message,
+    })
+    return { error: mapSignupError(error) }
+  }
 
   return { success: 'check-email' }
 }
