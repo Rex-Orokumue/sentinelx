@@ -10,10 +10,14 @@ export interface PendingWithdrawal {
   bankName: string
   accountNumber: string
   accountName: string
+  status: 'pending' | 'failed'
+  adminNote: string | null
 }
 
 export function WithdrawalQueueRow({ req }: { req: PendingWithdrawal }) {
   const [state, action] = useFormState<WithdrawalResolveState, FormData>(resolveWithdrawal, undefined)
+  const isFailed = req.status === 'failed'
+
   return (
     <form action={action} className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
       <input type="hidden" name="id" value={req.id} />
@@ -24,12 +28,17 @@ export function WithdrawalQueueRow({ req }: { req: PendingWithdrawal }) {
       <p className="mt-1 text-xs text-slate-500">
         {req.bankName} · {req.accountNumber} · {req.accountName}
       </p>
-      <textarea
-        name="note"
-        rows={2}
-        placeholder="Note (required to reject; optional transfer ref if paid)"
-        className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
-      />
+      {isFailed && req.adminNote && (
+        <p className="mt-2 text-xs text-red-400">Last attempt failed: {req.adminNote}</p>
+      )}
+      {!isFailed && (
+        <textarea
+          name="note"
+          rows={2}
+          placeholder="Note (required to reject)"
+          className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
+        />
+      )}
       {state?.error && <p className="mt-2 text-sm text-red-400">{state.error}</p>}
       <div className="mt-2 flex gap-2">
         <button
@@ -38,16 +47,18 @@ export function WithdrawalQueueRow({ req }: { req: PendingWithdrawal }) {
           value="paid"
           className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500"
         >
-          Mark paid
+          {isFailed ? 'Retry payout' : 'Pay'}
         </button>
-        <button
-          type="submit"
-          name="action"
-          value="rejected"
-          className="rounded-lg border border-red-500/40 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/10"
-        >
-          Reject
-        </button>
+        {!isFailed && (
+          <button
+            type="submit"
+            name="action"
+            value="rejected"
+            className="rounded-lg border border-red-500/40 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/10"
+          >
+            Reject
+          </button>
+        )}
       </div>
     </form>
   )

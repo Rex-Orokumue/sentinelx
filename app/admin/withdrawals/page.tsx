@@ -21,27 +21,36 @@ const RESOLVED_STATUS: Record<string, string> = {
 export default async function AdminWithdrawalsPage() {
   await requireAdmin()
   const supabase = createClient()
-  const [{ data: pendingData }, { data: resolvedData }] = await Promise.all([
+  const [{ data: queueData }, { data: processingData }, { data: resolvedData }] = await Promise.all([
     supabase
       .from('withdrawal_requests')
-      .select('id, amount, bank_name, account_number, account_name, profiles(username, display_name)')
-      .eq('status', 'pending')
+      .select(
+        'id, amount, bank_name, account_number, account_name, status, admin_note, profiles(username, display_name)',
+      )
+      .in('status', ['pending', 'failed'])
+      .order('requested_at', { ascending: true }),
+    supabase
+      .from('withdrawal_requests')
+      .select('id, amount, profiles(username, display_name)')
+      .eq('status', 'processing')
       .order('requested_at', { ascending: true }),
     supabase
       .from('withdrawal_requests')
       .select('id, amount, status, admin_note, resolved_at, profiles(username, display_name)')
-      .neq('status', 'pending')
+      .in('status', ['paid', 'rejected'])
       .order('resolved_at', { ascending: false })
       .limit(20),
   ])
 
-  const pending: PendingWithdrawal[] = ((pendingData as unknown[] | null) ?? []).map((raw) => {
+  const queue: PendingWithdrawal[] = ((queueData as unknown[] | null) ?? []).map((raw) => {
     const w = raw as {
       id: string
       amount: number
       bank_name: string
       account_number: string
       account_name: string
+      status: 'pending' | 'failed'
+      admin_note: string | null
       profiles: ProfileRef | ProfileRef[]
     }
     return {
@@ -51,7 +60,14 @@ export default async function AdminWithdrawalsPage() {
       bankName: w.bank_name,
       accountNumber: w.account_number,
       accountName: w.account_name,
+      status: w.status,
+      adminNote: w.admin_note,
     }
+  })
+
+  const processing = ((processingData as unknown[] | null) ?? []).map((raw) => {
+    const w = raw as { id: string; amount: number; profiles: ProfileRef | ProfileRef[] }
+    return { id: w.id, playerName: nameOf(firstP(w.profiles)), amount: w.amount }
   })
 
   const resolved = ((resolvedData as unknown[] | null) ?? []).map((raw) => {
@@ -76,19 +92,35 @@ export default async function AdminWithdrawalsPage() {
   return (
     <section className="space-y-8">
       <div>
-        <h2 className="mb-4 text-base font-bold text-white">Pending withdrawals</h2>
-        {pending.length === 0 ? (
+        <h2 className="mb-4 text-base font-bold text-white">Needs action</h2>
+        {queue.length === 0 ? (
           <p className="rounded-2xl border border-slate-800 bg-slate-900/50 p-8 text-center text-sm text-slate-500">
-            No pending withdrawals.
+            No withdrawals need action.
           </p>
         ) : (
           <div className="space-y-2">
-            {pending.map((req) => (
+            {queue.map((req) => (
               <WithdrawalQueueRow key={req.id} req={req} />
             ))}
           </div>
         )}
       </div>
+
+      {processing.length > 0 && (
+        <div>
+          <h2 className="mb-4 text-base font-bold text-white">Processing (awaiting confirmation)</h2>
+          <div className="space-y-2">
+            {processing.map((p) => (
+              <div key={p.id} className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="min-w-0 truncate font-bold text-white">{p.playerName}</p>
+                  <p className="shrink-0 text-sm font-semibold text-sky-400">{formatNaira(p.amount)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {resolved.length > 0 && (
         <div>
