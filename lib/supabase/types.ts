@@ -201,7 +201,6 @@ export type Database = {
           created_at: string
           currency: string
           description: string | null
-          escrow_status: string | null
           game_id: string | null
           id: string
           price: number
@@ -209,14 +208,12 @@ export type Database = {
           status: string
           title: string
           updated_at: string
-          zolarux_reference: string | null
         }
         Insert: {
           category: string
           created_at?: string
           currency?: string
           description?: string | null
-          escrow_status?: string | null
           game_id?: string | null
           id?: string
           price: number
@@ -224,14 +221,12 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
-          zolarux_reference?: string | null
         }
         Update: {
           category?: string
           created_at?: string
           currency?: string
           description?: string | null
-          escrow_status?: string | null
           game_id?: string | null
           id?: string
           price?: number
@@ -239,7 +234,6 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
-          zolarux_reference?: string | null
         }
         Relationships: [
           {
@@ -251,6 +245,70 @@ export type Database = {
           },
           {
             foreignKeyName: "marketplace_listings_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_orders: {
+        Row: {
+          amount: number
+          buyer_id: string
+          created_at: string
+          id: string
+          listing_id: string
+          listing_title: string
+          seller_id: string
+          status: string
+          updated_at: string
+          zolarux_order_id: string
+          zolarux_order_ref: string
+        }
+        Insert: {
+          amount: number
+          buyer_id: string
+          created_at?: string
+          id?: string
+          listing_id: string
+          listing_title: string
+          seller_id: string
+          status?: string
+          updated_at?: string
+          zolarux_order_id: string
+          zolarux_order_ref: string
+        }
+        Update: {
+          amount?: number
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          listing_id?: string
+          listing_title?: string
+          seller_id?: string
+          status?: string
+          updated_at?: string
+          zolarux_order_id?: string
+          zolarux_order_ref?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_orders_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_orders_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_orders_seller_id_fkey"
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "profiles"
