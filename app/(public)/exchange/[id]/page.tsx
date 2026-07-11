@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ImageGallery } from '@/components/exchange/ImageGallery'
+import { BuyButton } from '@/components/exchange/BuyButton'
 import { formatNaira } from '@/lib/format'
 import { CATEGORY_LABELS, type ListingCategory } from '@/lib/exchange/schema'
 import { primaryImageUrl } from '@/lib/exchange/images'
@@ -18,6 +19,7 @@ type ListingRow = {
   price: number
   category: ListingCategory
   status: string
+  seller_id: string
   seller: NameRef
   games: GameRef
   listing_images: { image_url: string; display_order: number }[] | null
@@ -26,7 +28,7 @@ function first<T>(x: T | T[] | null): T | null {
   return Array.isArray(x) ? x[0] ?? null : x
 }
 const COLS =
-  'id, title, description, price, category, status, ' +
+  'id, title, description, price, category, status, seller_id, ' +
   'seller:profiles!marketplace_listings_seller_id_fkey(username), ' +
   'games(name), listing_images(image_url, display_order)'
 
@@ -65,6 +67,16 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
   const sellerName = first(l.seller)?.username ?? null
   const game = first(l.games)?.name ?? null
 
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const viewerState: 'guest' | 'owner' | 'buyable' = !user
+    ? 'guest'
+    : user.id === l.seller_id
+      ? 'owner'
+      : 'buyable'
+
   return (
     <div className="mx-auto max-w-2xl px-4 pb-20 pt-6">
       <ImageGallery images={images} title={l.title} />
@@ -90,14 +102,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
       {l.description && <p className="mt-4 whitespace-pre-wrap text-sm text-slate-300">{l.description}</p>}
 
       <div className="mt-6">
-        <button
-          type="button"
-          disabled
-          className="w-full cursor-not-allowed rounded-xl bg-slate-800 px-5 py-3 text-sm font-bold text-slate-400"
-        >
-          🔒 Buy — Protected by Zolarux
-        </button>
-        <p className="mt-1.5 text-center text-xs text-slate-500">Secure escrow checkout is coming soon.</p>
+        <BuyButton listingId={l.id} viewerState={viewerState} />
       </div>
     </div>
   )
