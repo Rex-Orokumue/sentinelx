@@ -10,6 +10,7 @@ import { MyListings, type MyListing } from '@/components/dashboard/MyListings'
 import { MyOrders, type OrderRow } from '@/components/dashboard/MyOrders'
 import { MySales } from '@/components/dashboard/MySales'
 import { signOut } from '@/lib/auth/actions'
+import { listBanks, type Bank } from '@/lib/paystack/server'
 
 export const metadata: Metadata = { title: 'Dashboard · SentinelX Esports' }
 
@@ -31,8 +32,18 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/dashboard')
 
-  const [profileRes, matchesRes, resultsRes, regsRes, wrRes, listingsRes, ordersRes, salesRes] =
-    await Promise.all([
+  const [
+    profileRes,
+    matchesRes,
+    resultsRes,
+    regsRes,
+    wrRes,
+    listingsRes,
+    ordersRes,
+    salesRes,
+    kycRes,
+    banks,
+  ] = await Promise.all([
     supabase
       .from('profiles')
       .select('username, display_name, wins, losses, goals_scored')
@@ -76,6 +87,12 @@ export default async function DashboardPage() {
       .select('id, listing_title, amount, status')
       .eq('seller_id', user.id)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('player_kyc')
+      .select('kyc_status, kyc_failure_reason, payout_bank_name, payout_account_number, payout_account_name')
+      .eq('player_id', user.id)
+      .maybeSingle(),
+    listBanks().catch(() => [] as Bank[]),
   ])
 
   const profile = profileRes.data
@@ -133,8 +150,17 @@ export default async function DashboardPage() {
     }
   })
 
+  const kyc = kycRes.data
   const withdrawals = (wrRes.data ?? []) as WithdrawalRow[]
-  const hasPending = withdrawals.some((w) => w.status === 'pending')
+  const hasActive = withdrawals.some((w) => w.status === 'pending' || w.status === 'processing')
+  const payoutAccount =
+    kyc?.payout_bank_name && kyc?.payout_account_number && kyc?.payout_account_name
+      ? {
+          bankName: kyc.payout_bank_name,
+          accountNumber: kyc.payout_account_number,
+          accountName: kyc.payout_account_name,
+        }
+      : null
 
   const displayName = profile?.display_name ?? profile?.username ?? user.email ?? 'Player'
 
@@ -159,7 +185,14 @@ export default async function DashboardPage() {
       <MyListings listings={myListings} />
       <MyOrders orders={myOrders} />
       <MySales sales={mySales} />
-      <WithdrawalPanel requests={withdrawals} hasPending={hasPending} />
+      <WithdrawalPanel
+        requests={withdrawals}
+        hasActive={hasActive}
+        kycStatus={kyc?.kyc_status ?? 'unverified'}
+        kycFailureReason={kyc?.kyc_failure_reason ?? null}
+        banks={banks}
+        payoutAccount={payoutAccount}
+      />
     </div>
   )
 }
