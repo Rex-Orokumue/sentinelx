@@ -9,12 +9,7 @@ export async function requestWithdrawal(
   _prev: WithdrawalState,
   formData: FormData,
 ): Promise<WithdrawalState> {
-  const parsed = withdrawalSchema.safeParse({
-    amount: formData.get('amount'),
-    bankName: formData.get('bankName') ?? '',
-    accountName: formData.get('accountName') ?? '',
-    accountNumber: formData.get('accountNumber') ?? '',
-  })
+  const parsed = withdrawalSchema.safeParse({ amount: formData.get('amount') })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const supabase = createClient()
@@ -23,17 +18,31 @@ export async function requestWithdrawal(
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to request a withdrawal.' }
 
+  const { data: kyc } = await supabase
+    .from('player_kyc')
+    .select('kyc_status, payout_bank_name, payout_account_number, payout_account_name')
+    .eq('player_id', user.id)
+    .maybeSingle()
+  if (
+    kyc?.kyc_status !== 'verified' ||
+    !kyc.payout_bank_name ||
+    !kyc.payout_account_number ||
+    !kyc.payout_account_name
+  ) {
+    return { error: 'Verify your identity before requesting a withdrawal.' }
+  }
+
   const { error } = await supabase.from('withdrawal_requests').insert({
     player_id: user.id,
     amount: parsed.data.amount,
-    bank_name: parsed.data.bankName,
-    account_number: parsed.data.accountNumber,
-    account_name: parsed.data.accountName,
+    bank_name: kyc.payout_bank_name,
+    account_number: kyc.payout_account_number,
+    account_name: kyc.payout_account_name,
     status: 'pending',
   })
 
   if (error) {
-    // Partial unique index (one pending per player) surfaces as 23505.
+    // Partial unique index (one active request per player) surfaces as 23505.
     if ((error as { code?: string }).code === '23505') {
       return { error: 'You already have a pending withdrawal request.' }
     }
