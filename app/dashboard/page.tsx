@@ -7,6 +7,8 @@ import { FixtureSection } from '@/components/dashboard/FixtureCard'
 import { MyTournaments, type RegistrationRow } from '@/components/dashboard/MyTournaments'
 import { WithdrawalPanel, type WithdrawalRow } from '@/components/dashboard/WithdrawalPanel'
 import { MyListings, type MyListing } from '@/components/dashboard/MyListings'
+import { MyOrders, type OrderRow } from '@/components/dashboard/MyOrders'
+import { MySales } from '@/components/dashboard/MySales'
 import { signOut } from '@/lib/auth/actions'
 
 export const metadata: Metadata = { title: 'Dashboard · SentinelX Esports' }
@@ -29,7 +31,8 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/dashboard')
 
-  const [profileRes, matchesRes, resultsRes, regsRes, wrRes, listingsRes] = await Promise.all([
+  const [profileRes, matchesRes, resultsRes, regsRes, wrRes, listingsRes, ordersRes, salesRes] =
+    await Promise.all([
     supabase
       .from('profiles')
       .select('username, display_name, wins, losses, goals_scored')
@@ -63,6 +66,16 @@ export default async function DashboardPage() {
       .eq('seller_id', user.id)
       .neq('status', 'removed')
       .order('created_at', { ascending: false }),
+    supabase
+      .from('marketplace_orders')
+      .select('id, listing_title, amount, status')
+      .eq('buyer_id', user.id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('marketplace_orders')
+      .select('id, listing_title, amount, status')
+      .eq('seller_id', user.id)
+      .order('created_at', { ascending: false }),
   ])
 
   const profile = profileRes.data
@@ -72,6 +85,15 @@ export default async function DashboardPage() {
     price: l.price,
     status: l.status,
   }))
+  const toOrderRow = (r: {
+    id: string
+    listing_title: string
+    amount: number
+    status: string
+  }): OrderRow => ({ id: r.id, title: r.listing_title, amount: r.amount, status: r.status })
+  const myOrders: OrderRow[] = (ordersRes.data ?? []).map(toOrderRow)
+  const mySales: OrderRow[] = (salesRes.data ?? []).map(toOrderRow)
+
   const submittedMatchIds = new Set((resultsRes.data ?? []).map((r) => r.match_id))
 
   const matches: DashboardMatchInput[] = ((matchesRes.data as unknown[] | null) ?? []).map((raw) => {
@@ -135,6 +157,8 @@ export default async function DashboardPage() {
       <FixtureSection fixtures={fixtures} />
       <MyTournaments registrations={registrations} />
       <MyListings listings={myListings} />
+      <MyOrders orders={myOrders} />
+      <MySales sales={mySales} />
       <WithdrawalPanel requests={withdrawals} hasPending={hasPending} />
     </div>
   )

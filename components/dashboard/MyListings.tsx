@@ -15,6 +15,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   active: { label: 'Active', cls: 'text-emerald-400' },
   removed: { label: 'Removed', cls: 'text-slate-500' },
   sold: { label: 'Sold', cls: 'text-violet-400' },
+  reserved: { label: 'Reserved (in escrow)', cls: 'text-sky-400' },
 }
 
 export function MyListings({ listings }: { listings: MyListing[] }) {
