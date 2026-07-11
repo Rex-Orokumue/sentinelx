@@ -574,6 +574,53 @@ export type Database = {
           },
         ]
       }
+      player_kyc: {
+        Row: {
+          kyc_failure_reason: string | null
+          kyc_status: string
+          paystack_customer_code: string | null
+          paystack_recipient_code: string | null
+          payout_account_name: string | null
+          payout_account_number: string | null
+          payout_bank_code: string | null
+          payout_bank_name: string | null
+          player_id: string
+          updated_at: string
+        }
+        Insert: {
+          kyc_failure_reason?: string | null
+          kyc_status?: string
+          paystack_customer_code?: string | null
+          paystack_recipient_code?: string | null
+          payout_account_name?: string | null
+          payout_account_number?: string | null
+          payout_bank_code?: string | null
+          payout_bank_name?: string | null
+          player_id: string
+          updated_at?: string
+        }
+        Update: {
+          kyc_failure_reason?: string | null
+          kyc_status?: string
+          paystack_customer_code?: string | null
+          paystack_recipient_code?: string | null
+          payout_account_name?: string | null
+          payout_account_number?: string | null
+          payout_bank_code?: string | null
+          payout_bank_name?: string | null
+          player_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_kyc_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -870,6 +917,8 @@ export type Database = {
           amount: number
           bank_name: string
           id: string
+          paystack_transfer_code: string | null
+          paystack_transfer_reference: string | null
           player_id: string
           requested_at: string
           resolved_at: string | null
@@ -882,6 +931,8 @@ export type Database = {
           amount: number
           bank_name: string
           id?: string
+          paystack_transfer_code?: string | null
+          paystack_transfer_reference?: string | null
           player_id: string
           requested_at?: string
           resolved_at?: string | null
@@ -894,6 +945,8 @@ export type Database = {
           amount?: number
           bank_name?: string
           id?: string
+          paystack_transfer_code?: string | null
+          paystack_transfer_reference?: string | null
           player_id?: string
           requested_at?: string
           resolved_at?: string | null
