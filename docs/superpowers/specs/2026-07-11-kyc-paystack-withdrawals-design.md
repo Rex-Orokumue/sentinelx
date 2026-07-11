@@ -1,10 +1,24 @@
 # #14 — KYC (BVN) + prize withdrawals via Paystack Transfer
 
 **Date:** 2026-07-11
-**Status:** Approved design
+**Status:** Approved design (amended during planning — see note below)
 **Depends on:** existing `withdrawal_requests` table (#9, migration 005), existing
 Paystack lib (`lib/paystack/server.ts`), existing webhook route
 (`app/api/paystack/webhook/route.ts`), notification helper (`lib/notifications/notify.ts`)
+
+**Amendment (found during implementation planning):** this document's "Data model"
+section below puts the new `kyc_status`/`payout_*`/`paystack_*` columns directly on
+`profiles`. That table has a public-read RLS policy (`profiles_public_read`, `USING
+(true)`) for the public player-profile pages — putting a real bank account number and
+BVN-matched legal name there would make them world-readable. The implementation plan
+(`docs/superpowers/plans/2026-07-11-kyc-paystack-withdrawals.md`) instead puts all of
+it in a new, separate `player_kyc` table with tight RLS (self-or-staff read, no client
+write policies at all). `profiles.kyc_verified` (pre-existing, non-sensitive) is kept
+as a public "badge" boolean, updated alongside `player_kyc` but never used to gate any
+financial behavior. Everything else in this spec (BVN never persisted, admin approval
+checkpoint, `processing`/`failed` status lifecycle, `resetKycForPlayer`, OTP
+prerequisite) is unchanged — treat the plan as authoritative for exact table/column
+placement.
 
 ## ⚠️ Prerequisite — must be done in the Paystack dashboard before this works
 
