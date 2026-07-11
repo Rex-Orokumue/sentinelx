@@ -78,3 +78,155 @@ export async function verifyTransaction(reference: string): Promise<VerifyResult
     reference: json.data.reference,
   }
 }
+
+export interface Bank {
+  name: string
+  code: string
+}
+
+export async function listBanks(): Promise<Bank[]> {
+  const res = await fetch(`${PAYSTACK_BASE_URL}/bank?country=nigeria&currency=NGN&type=nuban`, {
+    headers: { Authorization: `Bearer ${secret()}` },
+    next: { revalidate: 86400 },
+  })
+  const json = await res.json()
+  if (!res.ok || !json.status) throw new Error(json?.message || 'Paystack bank list failed')
+  return (json.data as Array<{ name: string; code: string }>).map((b) => ({
+    name: b.name,
+    code: b.code,
+  }))
+}
+
+export interface ResolvedAccount {
+  accountName: string
+}
+
+export async function resolveAccount(
+  accountNumber: string,
+  bankCode: string,
+): Promise<ResolvedAccount> {
+  const res = await fetch(
+    `${PAYSTACK_BASE_URL}/bank/resolve?account_number=${encodeURIComponent(accountNumber)}&bank_code=${encodeURIComponent(bankCode)}`,
+    { headers: { Authorization: `Bearer ${secret()}` }, cache: 'no-store' },
+  )
+  const json = await res.json()
+  if (!res.ok || !json.status) {
+    throw new Error(json?.message || 'Could not resolve this account number')
+  }
+  return { accountName: json.data.account_name as string }
+}
+
+export async function createCustomer(
+  email: string,
+  firstName: string,
+  lastName: string,
+): Promise<string> {
+  const res = await fetch(`${PAYSTACK_BASE_URL}/customer`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${secret()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, first_name: firstName, last_name: lastName }),
+  })
+  const json = await res.json()
+  if (!res.ok || !json.status) throw new Error(json?.message || 'Paystack customer creation failed')
+  return json.data.customer_code as string
+}
+
+export function buildIdentificationPayload(params: {
+  bvn: string
+  bankCode: string
+  accountNumber: string
+  firstName: string
+  lastName: string
+}) {
+  return {
+    country: 'NG',
+    type: 'bank_account',
+    bvn: params.bvn,
+    bank_code: params.bankCode,
+    account_number: params.accountNumber,
+    first_name: params.firstName,
+    last_name: params.lastName,
+  }
+}
+
+export async function submitBvnIdentification(
+  customerCode: string,
+  params: { bvn: string; bankCode: string; accountNumber: string; firstName: string; lastName: string },
+): Promise<void> {
+  const res = await fetch(
+    `${PAYSTACK_BASE_URL}/customer/${encodeURIComponent(customerCode)}/identification`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${secret()}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildIdentificationPayload(params)),
+    },
+  )
+  const json = await res.json()
+  if (!res.ok || !json.status) {
+    throw new Error(json?.message || 'Paystack identification submission failed')
+  }
+}
+
+export function buildRecipientPayload(params: {
+  accountName: string
+  accountNumber: string
+  bankCode: string
+}) {
+  return {
+    type: 'nuban',
+    name: params.accountName,
+    account_number: params.accountNumber,
+    bank_code: params.bankCode,
+    currency: 'NGN',
+  }
+}
+
+export async function createTransferRecipient(params: {
+  accountName: string
+  accountNumber: string
+  bankCode: string
+}): Promise<string> {
+  const res = await fetch(`${PAYSTACK_BASE_URL}/transferrecipient`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${secret()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(buildRecipientPayload(params)),
+  })
+  const json = await res.json()
+  if (!res.ok || !json.status) throw new Error(json?.message || 'Paystack recipient creation failed')
+  return json.data.recipient_code as string
+}
+
+export function buildTransferReference(withdrawalId: string): string {
+  const w = withdrawalId.replace(/-/g, '').slice(0, 12)
+  const rand = Math.random().toString(36).slice(2, 10).padEnd(8, '0')
+  return `sxwd_${w}_${rand}`
+}
+
+export function buildTransferPayload(params: {
+  amountKobo: number
+  recipientCode: string
+  reference: string
+}) {
+  return {
+    source: 'balance',
+    amount: params.amountKobo,
+    recipient: params.recipientCode,
+    reason: 'SentinelX prize withdrawal',
+    reference: params.reference,
+  }
+}
+
+export async function initiateTransfer(params: {
+  amountKobo: number
+  recipientCode: string
+  reference: string
+}): Promise<{ transferCode: string }> {
+  const res = await fetch(`${PAYSTACK_BASE_URL}/transfer`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${secret()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(buildTransferPayload(params)),
+  })
+  const json = await res.json()
+  if (!res.ok || !json.status) throw new Error(json?.message || 'Paystack transfer initiation failed')
+  return { transferCode: json.data.transfer_code as string }
+}
