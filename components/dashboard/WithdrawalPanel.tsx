@@ -1,8 +1,10 @@
 'use client'
-import type { InputHTMLAttributes } from 'react'
 import { useFormState } from 'react-dom'
 import { requestWithdrawal, type WithdrawalState } from '@/lib/withdrawals/actions'
 import { formatDate, formatNaira } from '@/lib/format'
+import { maskAccountNumber, kycPanelMode } from '@/lib/kyc/logic'
+import { KycForm } from './KycForm'
+import { Field } from './FormField'
 
 export interface WithdrawalRow {
   id: string
@@ -16,52 +18,49 @@ export interface WithdrawalRow {
   resolved_at: string | null
 }
 
+export interface PayoutAccount {
+  bankName: string
+  accountNumber: string
+  accountName: string
+}
+
 const STATUS: Record<string, { label: string; cls: string }> = {
   pending: { label: 'Pending review', cls: 'text-amber-400' },
+  processing: { label: 'Processing payout', cls: 'text-sky-400' },
   paid: { label: 'Paid', cls: 'text-emerald-400' },
   rejected: { label: 'Rejected', cls: 'text-red-400' },
+  failed: { label: 'Payout failed', cls: 'text-red-400' },
 }
 
 export function WithdrawalPanel({
   requests,
-  hasPending,
+  hasActive,
+  kycStatus,
+  kycFailureReason,
+  banks,
+  payoutAccount,
 }: {
   requests: WithdrawalRow[]
-  hasPending: boolean
+  hasActive: boolean
+  kycStatus: string
+  kycFailureReason: string | null
+  banks: { name: string; code: string }[]
+  payoutAccount: PayoutAccount | null
 }) {
-  const [state, formAction] = useFormState<WithdrawalState, FormData>(requestWithdrawal, undefined)
-  const showPendingMessage = hasPending || state?.success
+  const mode = kycPanelMode(kycStatus)
 
   return (
     <section className="mb-10">
       <h2 className="mb-4 text-base font-bold text-white">Withdrawals</h2>
 
-      {showPendingMessage ? (
-        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-center text-sm font-semibold text-amber-300">
-          Request pending — we&apos;ll be in touch once it&apos;s reviewed.
+      {mode === 'form' && <KycForm banks={banks} failureReason={kycFailureReason} />}
+      {mode === 'pending' && (
+        <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-5 text-center text-sm font-semibold text-sky-300">
+          Verifying your identity — usually completes within a few minutes.
         </div>
-      ) : (
-        <form
-          action={formAction}
-          className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-5"
-        >
-          <Field name="amount" label="Amount (₦)" type="number" min={1000} placeholder="1000" />
-          <Field name="bankName" label="Bank name" placeholder="e.g. GTBank" />
-          <Field
-            name="accountNumber"
-            label="Account number"
-            inputMode="numeric"
-            placeholder="10-digit NUBAN"
-          />
-          <Field name="accountName" label="Account name" placeholder="Name on the account" />
-          {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-violet-600 px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-violet-500"
-          >
-            Request withdrawal
-          </button>
-        </form>
+      )}
+      {mode === 'verified' && payoutAccount && (
+        <VerifiedWithdrawalForm hasActive={hasActive} payoutAccount={payoutAccount} />
       )}
 
       {requests.length > 0 && (
@@ -75,25 +74,40 @@ export function WithdrawalPanel({
   )
 }
 
-function Field({
-  name,
-  label,
-  type = 'text',
-  ...rest
-}: { name: string; label: string; type?: string } & InputHTMLAttributes<HTMLInputElement>) {
+function VerifiedWithdrawalForm({
+  hasActive,
+  payoutAccount,
+}: {
+  hasActive: boolean
+  payoutAccount: PayoutAccount
+}) {
+  const [state, formAction] = useFormState<WithdrawalState, FormData>(requestWithdrawal, undefined)
+
   return (
-    <div className="space-y-1.5">
-      <label htmlFor={name} className="text-sm font-medium text-slate-300">
-        {label}
-      </label>
-      <input
-        id={name}
-        name={name}
-        type={type}
-        required
-        {...rest}
-        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
-      />
+    <div className="space-y-3">
+      <p className="rounded-xl border border-slate-800 bg-slate-900/50 p-3 text-xs text-slate-400">
+        Paid to: <span className="text-slate-200">{payoutAccount.bankName}</span>{' '}
+        {maskAccountNumber(payoutAccount.accountNumber)} {payoutAccount.accountName}
+      </p>
+      {hasActive || state?.success ? (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-center text-sm font-semibold text-amber-300">
+          Request pending — we&apos;ll be in touch once it&apos;s reviewed.
+        </div>
+      ) : (
+        <form
+          action={formAction}
+          className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-5"
+        >
+          <Field name="amount" label="Amount (₦)" type="number" min={1000} placeholder="1000" />
+          {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
+          <button
+            type="submit"
+            className="w-full rounded-xl bg-violet-600 px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-violet-500"
+          >
+            Request withdrawal
+          </button>
+        </form>
+      )}
     </div>
   )
 }
