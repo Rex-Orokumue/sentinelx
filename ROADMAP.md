@@ -39,7 +39,10 @@ WhatsApp share buttons + mobile-first apply across all v1.0 pages.
 |---|------|-------|--------|
 | 13a | Gaming Exchange catalog — browse/filter/detail, multi-image listings, My Listings, admin approve/remove | `/exchange` | ✅ |
 | 13b | Gaming Exchange purchase + Zolarux escrow (buy flow, webhook state, My Orders/Sales) | `/exchange` | ✅ |
-| 14 | KYC (BVN/NIN) + prize withdrawals via Paystack Transfer | — | ⬜ |
+| 14 | KYC (BVN/NIN) + prize withdrawals via Paystack Transfer | — | ✅ |
+
+**★ v3.0 COMPLETE (#13a–#14).** Gaming Exchange (catalog + escrow) and BVN KYC +
+Paystack Transfer prize withdrawals all shipped.
 
 ## v4.0 — Scale
 

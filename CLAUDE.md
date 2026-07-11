@@ -28,27 +28,8 @@ Sentinel X is a **mobile esports platform** based in Nigeria. It is NOT a Dream 
 ## Development Commands
 
 ```bash
-# Install dependencies
-npm install
-
-# Run dev server
-npm run dev
-
-# Build for production
-npm run build
-
-# Run type checking
-npx tsc --noEmit
-
-# Lint
-npm run lint
-
 # Generate Supabase TypeScript types (requires SUPABASE_URL + SUPABASE_ANON_KEY)
 npx supabase gen types typescript --project-id <project-id> > lib/supabase/types.ts
-
-# Run Supabase locally
-npx supabase start
-npx supabase stop
 ```
 
 ---
@@ -87,100 +68,7 @@ npx supabase stop
 
 ## Database Schema (Supabase)
 
-### `games`
-```
-id, name, slug, icon_url, active
-```
-
-### `tournaments`
-```
-id, game_id, title, slug, description, banner_url,
-registration_fee (default 500 NGN), prize_pool,
-status (draft | registration_open | registration_closed | active | completed),
-format (group_knockout), max_players,
-registration_start, registration_end,
-tournament_start, tournament_end,
-created_at
-```
-
-### `tournament_registrations`
-```
-id, tournament_id, player_id,
-payment_status (pending | paid | refunded),
-paystack_reference, registered_at
-```
-
-### `groups`
-```
-id, tournament_id, name (Group A, Group B...),
-created_at
-```
-
-### `group_memberships`
-```
-id, group_id, player_id, points, wins, draws, losses, goals_for, goals_against
-```
-
-### `matches`
-```
-id, tournament_id, group_id (nullable — null for knockout),
-round (group | round_of_32 | round_of_16 | quarter_final | semi_final | final),
-player_a_id, player_b_id,
-score_a, score_b,
-status (scheduled | live | completed | disputed | cancelled),
-youtube_stream_url, replay_url,
-scheduled_at, completed_at
-```
-
-### `match_results`
-```
-id, match_id, submitted_by (player_id),
-score_a, score_b,
-screenshot_url, recording_url,
-verified (boolean), verified_by (admin_id), verified_at
-```
-
-### `profiles`
-```
-id (= auth.users.id), username, display_name, avatar_url,
-country, phone, whatsapp_number,
-sentinel_score (default 70), sentinel_tier,
-total_matches, wins, losses, goals_scored, goals_conceded,
-total_titles, kyc_verified,
-created_at
-```
-
-### `sentinel_score_events`
-```
-id, player_id, match_id (nullable),
-event_type (match_completed | no_show | rage_quit | dispute_lost |
-            rating_received | admin_flag_conduct | admin_flag_cheat),
-points_delta, note, created_at
-```
-
-### `opponent_ratings`
-```
-id, match_id, rater_id, rated_id, stars (1-5), created_at
-```
-
-### `admin_flags`
-```
-id, player_id, flagged_by (admin_id), reason, severity (conduct | cheat),
-created_at
-```
-
-### `marketplace_listings` (Gaming Exchange)
-```
-id, seller_id, game_id, category (account | coins | accessories | gift_card | controller | phone),
-title, description, price, currency (NGN),
-status (pending | active | sold | removed),
-escrow_status, zolarux_reference, created_at
-```
-
-### `user_roles`
-```
-id, user_id, role (admin | moderator | player)
-```
+Full schema lives in `supabase/migrations/*.sql`; generated types in `lib/supabase/types.ts`.
 
 ---
 
@@ -254,7 +142,7 @@ Every score change must be logged in `sentinel_score_events`.
 - Store `paystack_reference` on `tournament_registrations`
 - Verify payment via Paystack webhook before confirming registration
 - Prize withdrawal: player requests from Dashboard → Paystack Transfer API → bank account
-- KYC required before first withdrawal (BVN or NIN via Paystack)
+- KYC required before first withdrawal (BVN via Paystack, validated against the payout bank account — Paystack's identification API does not support NIN as of this writing)
 
 ---
 
@@ -340,45 +228,6 @@ These are the only things needed to run the next tournament:
 ## v4.0 Scope
 - Multi-game support
 - Team leagues — schools, universities, state/national championships
-
----
-
-## Folder Structure
-
-```
-sentinelx/
-├── app/
-│   ├── (public)/
-│   │   ├── page.tsx                  # Home
-│   │   ├── tournaments/
-│   │   ├── matches/[id]/
-│   │   ├── tv/
-│   │   ├── rankings/
-│   │   ├── players/[username]/
-│   │   ├── hall-of-fame/
-│   │   ├── exchange/
-│   │   └── community/
-│   ├── (auth)/
-│   │   └── dashboard/
-│   ├── admin/
-│   └── layout.tsx
-├── components/
-│   ├── ui/                           # shadcn components
-│   ├── tournament/
-│   ├── match/
-│   ├── bracket/
-│   ├── player/
-│   └── shared/
-├── lib/
-│   ├── supabase/
-│   │   ├── client.ts
-│   │   ├── server.ts
-│   │   └── types.ts                  # Generated from Supabase
-│   ├── paystack/
-│   └── utils.ts
-├── hooks/
-└── types/
-```
 
 ---
 
