@@ -1,14 +1,24 @@
 import Link from 'next/link'
 import { TierBadge } from '@/components/player/TierBadge'
-import type { RankedPlayer } from '@/lib/rankings/leaderboard'
+import type { RankedPlayer, LeaderboardMetric } from '@/lib/rankings/leaderboard'
+
+const METRIC_LABEL: Record<LeaderboardMetric, string> = { wins: 'W', score: 'Score', goals: 'Goals' }
+const METRIC_VALUE: Record<LeaderboardMetric, (p: RankedPlayer) => number> = {
+  wins: (p) => p.wins,
+  score: (p) => p.sentinelScore,
+  goals: (p) => p.goalsScored,
+}
 
 export function LeaderboardTable({
   players,
   currentUserId,
+  metric,
 }: {
   players: RankedPlayer[]
   currentUserId: string | null
+  metric: LeaderboardMetric
 }) {
+  const metricValue = METRIC_VALUE[metric]
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900">
       <table className="w-full text-sm">
@@ -16,11 +26,10 @@ export function LeaderboardTable({
           <tr className="border-b border-slate-800 text-[11px] uppercase tracking-widest text-slate-500">
             <th className="px-3 py-3 text-left">#</th>
             <th className="px-2 py-3 text-left">Player</th>
-            <th className="px-2 py-3 text-right">W</th>
+            <th className="px-2 py-3 text-right">{METRIC_LABEL[metric]}</th>
             <th className="px-2 py-3 text-right">Win%</th>
             <th className="hidden px-2 py-3 text-right sm:table-cell">Titles</th>
-            <th className="hidden px-2 py-3 text-right sm:table-cell">GD</th>
-            <th className="hidden px-3 py-3 text-right sm:table-cell">Score</th>
+            <th className="hidden px-3 py-3 text-right sm:table-cell">GD</th>
           </tr>
         </thead>
         <tbody>
@@ -60,14 +69,11 @@ export function LeaderboardTable({
                     </div>
                   </div>
                 </td>
-                <td className="px-2 py-3.5 text-right font-bold text-emerald-400">{pl.wins}</td>
+                <td className="px-2 py-3.5 text-right font-bold text-emerald-400">{metricValue(pl)}</td>
                 <td className="px-2 py-3.5 text-right text-slate-300">{Math.round(pl.winRate * 100)}%</td>
                 <td className="hidden px-2 py-3.5 text-right text-slate-400 sm:table-cell">{pl.totalTitles}</td>
-                <td className="hidden px-2 py-3.5 text-right text-slate-400 sm:table-cell">
-                  {pl.goalDiff > 0 ? `+${pl.goalDiff}` : pl.goalDiff}
-                </td>
                 <td className="hidden px-3 py-3.5 text-right font-bold text-white sm:table-cell">
-                  {pl.sentinelScore}
+                  {pl.goalDiff > 0 ? `+${pl.goalDiff}` : pl.goalDiff}
                 </td>
               </tr>
             )

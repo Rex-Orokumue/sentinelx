@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { rankPlayers, isRankingEligible, RANKING_MIN_MATCHES, type PlayerStatsInput } from './leaderboard'
+import {
+  rankPlayers,
+  rankPlayersBy,
+  isRankingEligible,
+  RANKING_MIN_MATCHES,
+  type PlayerStatsInput,
+} from './leaderboard'
 
 function p(over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput {
   return {
@@ -59,6 +65,42 @@ describe('rankPlayers', () => {
     ])
     expect(row.winRate).toBeCloseTo(0.5)
     expect(row.goalDiff).toBe(12)
+  })
+})
+
+describe('rankPlayersBy', () => {
+  it('sorts by wins when metric is "wins" (matches rankPlayers)', () => {
+    const players = [p({ id: 'a', wins: 3 }), p({ id: 'b', wins: 7 })]
+    expect(rankPlayersBy(players, 'wins').map((x) => x.id)).toEqual(
+      rankPlayers(players).map((x) => x.id),
+    )
+  })
+
+  it('sorts by Sentinel Score when metric is "score"', () => {
+    const r = rankPlayersBy(
+      [p({ id: 'a', sentinelScore: 60, wins: 9 }), p({ id: 'b', sentinelScore: 92, wins: 1 })],
+      'score',
+    )
+    expect(r.map((x) => x.id)).toEqual(['b', 'a'])
+  })
+
+  it('sorts by goals scored when metric is "goals"', () => {
+    const r = rankPlayersBy(
+      [
+        p({ id: 'a', goalsScored: 4, wins: 9 }),
+        p({ id: 'b', goalsScored: 20, wins: 1 }),
+      ],
+      'goals',
+    )
+    expect(r.map((x) => x.id)).toEqual(['b', 'a'])
+  })
+
+  it('assigns sequential ranks for the chosen metric', () => {
+    const r = rankPlayersBy(
+      [p({ id: 'a', sentinelScore: 70 }), p({ id: 'b', sentinelScore: 95 }), p({ id: 'c', sentinelScore: 80 })],
+      'score',
+    )
+    expect(r.map((x) => x.rank)).toEqual([1, 2, 3])
   })
 })
 

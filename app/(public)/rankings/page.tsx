@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import { rankPlayers, RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
-import { LeaderboardTable } from '@/components/rankings/LeaderboardTable'
+import { RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
+import { LeaderboardTabs } from '@/components/rankings/LeaderboardTabs'
 import { EmptyState } from '@/components/shared/EmptyState'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
@@ -32,24 +32,22 @@ export default async function RankingsPage() {
     supabase.auth.getUser(),
   ])
 
-  const players = rankPlayers(
-    (profiles ?? []).map(
-      (p): PlayerStatsInput => ({
-        id: p.id,
-        username: p.username,
-        displayName: p.display_name,
-        avatarUrl: p.avatar_url,
-        country: p.country,
-        wins: p.wins,
-        losses: p.losses,
-        totalMatches: p.total_matches,
-        goalsScored: p.goals_scored,
-        goalsConceded: p.goals_conceded,
-        totalTitles: p.total_titles,
-        sentinelScore: p.sentinel_score,
-        sentinelTier: p.sentinel_tier,
-      }),
-    ),
+  const players: PlayerStatsInput[] = (profiles ?? []).map(
+    (p): PlayerStatsInput => ({
+      id: p.id,
+      username: p.username,
+      displayName: p.display_name,
+      avatarUrl: p.avatar_url,
+      country: p.country,
+      wins: p.wins,
+      losses: p.losses,
+      totalMatches: p.total_matches,
+      goalsScored: p.goals_scored,
+      goalsConceded: p.goals_conceded,
+      totalTitles: p.total_titles,
+      sentinelScore: p.sentinel_score,
+      sentinelTier: p.sentinel_tier,
+    }),
   )
 
   return (
@@ -68,7 +66,7 @@ export default async function RankingsPage() {
           body="Be the first to compete and claim the top spot."
         />
       ) : (
-        <LeaderboardTable players={players} currentUserId={user?.id ?? null} />
+        <LeaderboardTabs players={players} currentUserId={user?.id ?? null} />
       )}
     </div>
   )

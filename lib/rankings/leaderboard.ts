@@ -29,9 +29,20 @@ export function isRankingEligible(p: { totalMatches: number }): boolean {
   return p.totalMatches >= RANKING_MIN_MATCHES
 }
 
-// Sort: wins desc → win rate desc → titles desc → goal difference desc.
-// Callers exclude total_matches = 0, but winRate still guards divide-by-zero.
-export function rankPlayers(players: PlayerStatsInput[]): RankedPlayer[] {
+export type LeaderboardMetric = 'wins' | 'score' | 'goals'
+
+const METRIC_VALUE: Record<LeaderboardMetric, (p: PlayerStatsInput) => number> = {
+  wins: (p) => p.wins,
+  score: (p) => p.sentinelScore,
+  goals: (p) => p.goalsScored,
+}
+
+// Sort led by the chosen metric, falling back to the same tie-break cascade
+// rankPlayers has always used: wins desc → win rate desc → titles desc →
+// goal difference desc. When metric is 'wins', the leading term duplicates
+// the first tie-break — harmless, and keeps this the single sort implementation.
+export function rankPlayersBy(players: PlayerStatsInput[], metric: LeaderboardMetric): RankedPlayer[] {
+  const lead = METRIC_VALUE[metric]
   return players
     .map((pl) => ({
       ...pl,
@@ -40,10 +51,16 @@ export function rankPlayers(players: PlayerStatsInput[]): RankedPlayer[] {
     }))
     .sort(
       (a, b) =>
+        lead(b) - lead(a) ||
         b.wins - a.wins ||
         b.winRate - a.winRate ||
         b.totalTitles - a.totalTitles ||
         b.goalDiff - a.goalDiff,
     )
     .map((pl, i) => ({ ...pl, rank: i + 1 }))
+}
+
+// Kept for existing callers/tests — identical to rankPlayersBy(players, 'wins').
+export function rankPlayers(players: PlayerStatsInput[]): RankedPlayer[] {
+  return rankPlayersBy(players, 'wins')
 }
