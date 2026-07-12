@@ -6,6 +6,7 @@ import { resolveRegistrationView } from '@/lib/tournaments/view'
 import { RegistrationPanel } from '@/components/tournament/RegistrationPanel'
 import { formatDate, formatNaira } from '@/lib/format'
 import ReactMarkdown from 'react-markdown'
+import { RegistrationCountdown } from '@/components/tournament/RegistrationCountdown'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
 
@@ -99,7 +100,6 @@ export default async function TournamentDetailPage({
 
   const status = STATUS[t.status] ?? STATUS.completed
   const start = formatDate(t.tournament_start)
-  const regEnd = formatDate(t.registration_end)
   const game = t.games as { name: string; icon_url: string | null; slug: string } | null
   const shareText = `${t.title} on Sentinel X — ${formatNaira(t.prize_pool)} prize pool 🎮 ${SITE_URL}/tournaments/${t.slug}`
 
@@ -162,6 +162,9 @@ export default async function TournamentDetailPage({
       )}
 
       <div className="mb-6">
+        {(t.status === 'registration_open' || t.status === 'registration_closed') && (
+          <RegistrationCountdown registrationEnd={t.registration_end} />
+        )}
         <RegistrationPanel
           view={view}
           tournamentId={t.id}
@@ -173,12 +176,9 @@ export default async function TournamentDetailPage({
         />
       </div>
 
-      {(start || regEnd) && (
+      {start && (
         <div className="mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm text-slate-400">
-          {start && <span>🗓️ Starts {start}</span>}
-          {regEnd && t.status === 'registration_open' && (
-            <span className="text-violet-400/80">⏳ Registration closes {regEnd}</span>
-          )}
+          <span>🗓️ Starts {start}</span>
         </div>
       )}
 
