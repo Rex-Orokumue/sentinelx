@@ -18,3 +18,12 @@ export const ADMIN_NAV: AdminNavItem[] = [
 export function visibleNav(items: AdminNavItem[], isAdmin: boolean): AdminNavItem[] {
   return items.filter((item) => isAdmin || !item.adminOnly)
 }
+
+// Overview's href ('/admin') is a prefix of every other admin route, so it
+// needs an exact match — otherwise it reads as "active" on every admin page.
+// Every other item keeps prefix matching for its own nested routes (e.g.
+// '/admin/tournaments/[id]/edit' under the Tournaments tab).
+export function isAdminNavActive(href: string, pathname: string): boolean {
+  if (href === '/admin') return pathname === '/admin'
+  return pathname === href || pathname.startsWith(`${href}/`)
+}

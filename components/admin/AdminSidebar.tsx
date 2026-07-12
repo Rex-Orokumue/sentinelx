@@ -3,7 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu, X } from 'lucide-react'
-import type { AdminNavItem } from '@/lib/admin/nav'
+import { isAdminNavActive, type AdminNavItem } from '@/lib/admin/nav'
 
 function RoleBadge({ isAdmin }: { isAdmin: boolean }) {
   return (
@@ -25,7 +25,7 @@ function NavList({
   return (
     <nav className="space-y-1">
       {items.map((item) => {
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
+        const active = isAdminNavActive(item.href, pathname)
         return (
           <Link
             key={item.href}

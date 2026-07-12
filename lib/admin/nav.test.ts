@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { visibleNav, type AdminNavItem } from './nav'
+import { visibleNav, isAdminNavActive, type AdminNavItem } from './nav'
 
 const items: AdminNavItem[] = [
   { label: 'Overview', href: '/admin', adminOnly: false },
@@ -22,5 +22,23 @@ describe('visibleNav', () => {
 
   it('preserves original order', () => {
     expect(visibleNav(items, true)).toEqual(items)
+  })
+})
+
+describe('isAdminNavActive', () => {
+  it('marks Overview (/admin) active only on an exact match, never on subpages', () => {
+    expect(isAdminNavActive('/admin', '/admin')).toBe(true)
+    expect(isAdminNavActive('/admin', '/admin/tournaments')).toBe(false)
+    expect(isAdminNavActive('/admin', '/admin/results')).toBe(false)
+  })
+
+  it('marks a subpage item active on exact match and nested routes', () => {
+    expect(isAdminNavActive('/admin/tournaments', '/admin/tournaments')).toBe(true)
+    expect(isAdminNavActive('/admin/tournaments', '/admin/tournaments/abc-123/edit')).toBe(true)
+  })
+
+  it('does not mark a subpage item active on an unrelated route', () => {
+    expect(isAdminNavActive('/admin/tournaments', '/admin/results')).toBe(false)
+    expect(isAdminNavActive('/admin/tournaments', '/admin')).toBe(false)
   })
 })
