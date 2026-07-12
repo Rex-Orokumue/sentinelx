@@ -1,9 +1,11 @@
 'use server'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { initializeTransaction, buildReference } from '@/lib/paystack/server'
 import { REGISTRATION_FEE_NGN } from '@/lib/paystack'
 import { checkCanRegister } from './guard'
+import { registrationDetailsSchema } from './registration-schema'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
 
@@ -16,19 +18,33 @@ export async function registerForTournament(
   const tournamentId = String(formData.get('tournamentId') ?? '')
   if (!tournamentId) return { error: 'Missing tournament.' }
 
+  const parsed = registrationDetailsSchema.safeParse({
+    displayName: formData.get('displayName') ?? '',
+    whatsapp: formData.get('whatsapp') ?? '',
+    clubName: formData.get('clubName') ?? '',
+    ignTag: formData.get('ignTag') ?? '',
+  })
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
   const supabase = createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to register.' }
 
-  // Re-fetch server-side; never trust the client for status or capacity.
+  // Re-fetch server-side; never trust the client for status, capacity, or rules.
   const { data: tournament } = await supabase
     .from('tournaments')
-    .select('id, slug, status, max_players')
+    .select('id, slug, status, max_players, rules')
     .eq('id', tournamentId)
     .maybeSingle()
   if (!tournament) return { error: 'Tournament not found.' }
+
+  // Only proves the checkbox was ticked at submit time — there is no way to
+  // verify a player actually read the rules, and this deliberately doesn't try.
+  if (tournament.rules && formData.get('agreedToRules') !== 'true') {
+    return { error: 'Please confirm you have read and agree to the rules.' }
+  }
 
   const { count: paidCount } = await supabase
     .from('tournament_registrations')
@@ -60,22 +76,36 @@ export async function registerForTournament(
     }
   }
 
+  const regFields = {
+    reg_display_name: parsed.data.displayName,
+    reg_whatsapp: parsed.data.whatsapp,
+    reg_club_name: parsed.data.clubName,
+    reg_ign_tag: parsed.data.ignTag,
+  }
+
+  // Player has no self-UPDATE RLS policy on tournament_registrations (staff-only,
+  // see migration 001) — writes go through the admin client, same pattern as
+  // lib/kyc/actions.ts's submitKyc. The Server Action's own validation above
+  // (auth, tournament state, input schema) is the trust boundary.
+  const admin = createAdminClient()
+
   // Reuse the pending row's reference; otherwise create a fresh pending row.
   let reference = existing?.paystack_reference ?? null
   if (!existing) {
     reference = buildReference(tournamentId, user.id)
-    const { error: insertErr } = await supabase.from('tournament_registrations').insert({
+    const { error: insertErr } = await admin.from('tournament_registrations').insert({
       tournament_id: tournamentId,
       player_id: user.id,
       payment_status: 'pending',
       paystack_reference: reference,
+      ...regFields,
     })
     if (insertErr) return { error: 'Could not start registration. Please try again.' }
-  } else if (!reference) {
-    reference = buildReference(tournamentId, user.id)
-    await supabase
+  } else {
+    if (!reference) reference = buildReference(tournamentId, user.id)
+    await admin
       .from('tournament_registrations')
-      .update({ paystack_reference: reference })
+      .update({ paystack_reference: reference, ...regFields })
       .eq('id', existing.id)
   }
 
