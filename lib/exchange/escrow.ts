@@ -1,6 +1,23 @@
 import { timingSafeEqual } from 'crypto'
+import { formatNaira } from '@/lib/format'
 
 export const ESCROW_RETURN_URL = 'https://sentinelxesports.vercel.app/dashboard?tab=orders'
+
+// 08120288390 in wa.me's required international format (no leading 0, no +).
+export const ZOLARUX_WHATSAPP_NUMBER = '2348120288390'
+
+export function buildZolaruxWhatsAppUrl(order: {
+  listingTitle: string
+  amountNgn: number
+  zolaruxOrderRef: string
+  buyerUsername: string | null
+  status: string
+}): string {
+  const text =
+    `New Sentinel X order: "${order.listingTitle}" — ${formatNaira(order.amountNgn)} — ` +
+    `Ref ${order.zolaruxOrderRef} — Buyer @${order.buyerUsername ?? 'unknown'} — Status: ${order.status}`
+  return `https://wa.me/${ZOLARUX_WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`
+}
 
 export type OrderStatus = 'initiated' | 'payment_held' | 'completed' | 'refunded'
 

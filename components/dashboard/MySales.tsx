@@ -1,5 +1,5 @@
 import { formatNaira } from '@/lib/format'
-import type { OrderRow } from './MyOrders'
+import type { OrderRow } from '@/lib/exchange/orders'
 
 const SELLER_STATUS: Record<string, { label: string; cls: string }> = {
   initiated: { label: 'Buyer starting checkout', cls: 'text-amber-400' },

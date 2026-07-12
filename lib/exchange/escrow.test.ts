@@ -5,6 +5,8 @@ import {
   transitionForEvent,
   validatePurchase,
   bearerOk,
+  buildZolaruxWhatsAppUrl,
+  ZOLARUX_WHATSAPP_NUMBER,
   ESCROW_RETURN_URL,
 } from './escrow'
 
@@ -71,6 +73,47 @@ describe('validatePurchase', () => {
   })
   it('accepts a valid purchase', () => {
     expect(validatePurchase({ userId: 'b1', listingStatus: 'active', sellerId: 's1' })).toBeNull()
+  })
+})
+
+describe('buildZolaruxWhatsAppUrl', () => {
+  it('targets the Zolarux WhatsApp number in international format', () => {
+    const url = buildZolaruxWhatsAppUrl({
+      listingTitle: 'FC Mobile account',
+      amountNgn: 2500,
+      zolaruxOrderRef: 'zx_ref_1',
+      buyerUsername: 'zee',
+      status: 'payment_held',
+    })
+    expect(url.startsWith(`https://wa.me/${ZOLARUX_WHATSAPP_NUMBER}?text=`)).toBe(true)
+    expect(ZOLARUX_WHATSAPP_NUMBER).toBe('2348120288390')
+  })
+
+  it('URL-encodes the message and includes the key order details', () => {
+    const url = buildZolaruxWhatsAppUrl({
+      listingTitle: 'FC Mobile account',
+      amountNgn: 2500,
+      zolaruxOrderRef: 'zx_ref_1',
+      buyerUsername: 'zee',
+      status: 'payment_held',
+    })
+    const decoded = decodeURIComponent(url.split('?text=')[1])
+    expect(decoded).toContain('FC Mobile account')
+    expect(decoded).toContain('₦2,500')
+    expect(decoded).toContain('zx_ref_1')
+    expect(decoded).toContain('@zee')
+    expect(decoded).toContain('payment_held')
+  })
+
+  it('falls back to "unknown" when the buyer has no username', () => {
+    const url = buildZolaruxWhatsAppUrl({
+      listingTitle: 'FC Mobile account',
+      amountNgn: 2500,
+      zolaruxOrderRef: 'zx_ref_1',
+      buyerUsername: null,
+      status: 'initiated',
+    })
+    expect(decodeURIComponent(url)).toContain('@unknown')
   })
 })
 

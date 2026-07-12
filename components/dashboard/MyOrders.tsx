@@ -1,11 +1,5 @@
 import { formatNaira } from '@/lib/format'
-
-export interface OrderRow {
-  id: string
-  title: string
-  amount: number
-  status: string
-}
+import type { OrderRow } from '@/lib/exchange/orders'
 
 const BUYER_STATUS: Record<string, { label: string; cls: string }> = {
   initiated: { label: 'Awaiting payment', cls: 'text-amber-400' },

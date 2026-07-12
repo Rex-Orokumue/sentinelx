@@ -88,19 +88,43 @@ export async function initiateEscrowPurchase(
     return { error: GENERIC_ERROR }
   }
 
-  // Record the local mirror row via the service-role client (no client INSERT policy).
-  const admin = createAdminClient()
-  const { error: insertErr } = await admin.from('marketplace_orders').insert({
-    listing_id: listing.id,
-    buyer_id: user!.id,
-    seller_id: listing.seller_id,
+  // Reuse an abandoned 'initiated' order for this listing+buyer instead of
+  // piling up a new row on every retry — payment_held/completed/refunded
+  // orders are never revisited here since validatePurchase already blocks
+  // re-purchasing a listing that isn't 'active' anymore.
+  const { data: existingOrder } = await supabase
+    .from('marketplace_orders')
+    .select('id')
+    .eq('listing_id', listing.id)
+    .eq('buyer_id', user!.id)
+    .eq('status', 'initiated')
+    .maybeSingle()
+
+  const orderFields = {
     zolarux_order_id: json.order_id,
     zolarux_order_ref: json.order_ref,
     amount: listing.price,
     listing_title: listing.title,
     status: 'initiated',
-  })
-  if (insertErr) return { error: GENERIC_ERROR }
+  }
+
+  // Writes go via the service-role client (no client INSERT/UPDATE policy).
+  const admin = createAdminClient()
+  if (existingOrder) {
+    const { error: updateErr } = await admin
+      .from('marketplace_orders')
+      .update(orderFields)
+      .eq('id', existingOrder.id)
+    if (updateErr) return { error: GENERIC_ERROR }
+  } else {
+    const { error: insertErr } = await admin.from('marketplace_orders').insert({
+      listing_id: listing.id,
+      buyer_id: user!.id,
+      seller_id: listing.seller_id,
+      ...orderFields,
+    })
+    if (insertErr) return { error: GENERIC_ERROR }
+  }
 
   return { paymentLink: json.payment_link }
 }

@@ -7,7 +7,8 @@ import { FixtureSection } from '@/components/dashboard/FixtureCard'
 import { MyTournaments, type RegistrationRow } from '@/components/dashboard/MyTournaments'
 import { WithdrawalPanel, type WithdrawalRow } from '@/components/dashboard/WithdrawalPanel'
 import { MyListings, type MyListing } from '@/components/dashboard/MyListings'
-import { MyOrders, type OrderRow } from '@/components/dashboard/MyOrders'
+import { MyOrders } from '@/components/dashboard/MyOrders'
+import { latestPerListing, type OrderRow } from '@/lib/exchange/orders'
 import { MySales } from '@/components/dashboard/MySales'
 import { signOut } from '@/lib/auth/actions'
 import { listBanks, type Bank } from '@/lib/paystack/server'
@@ -79,12 +80,12 @@ export default async function DashboardPage() {
       .order('created_at', { ascending: false }),
     supabase
       .from('marketplace_orders')
-      .select('id, listing_title, amount, status')
+      .select('id, listing_id, listing_title, amount, status')
       .eq('buyer_id', user.id)
       .order('created_at', { ascending: false }),
     supabase
       .from('marketplace_orders')
-      .select('id, listing_title, amount, status')
+      .select('id, listing_id, listing_title, amount, status')
       .eq('seller_id', user.id)
       .order('created_at', { ascending: false }),
     supabase
@@ -104,12 +105,21 @@ export default async function DashboardPage() {
   }))
   const toOrderRow = (r: {
     id: string
+    listing_id: string
     listing_title: string
     amount: number
     status: string
-  }): OrderRow => ({ id: r.id, title: r.listing_title, amount: r.amount, status: r.status })
-  const myOrders: OrderRow[] = (ordersRes.data ?? []).map(toOrderRow)
-  const mySales: OrderRow[] = (salesRes.data ?? []).map(toOrderRow)
+  }): OrderRow => ({
+    id: r.id,
+    listingId: r.listing_id,
+    title: r.listing_title,
+    amount: r.amount,
+    status: r.status,
+  })
+  // Both queries are already newest-first — collapse abandoned retries of the
+  // same listing down to just the latest attempt.
+  const myOrders: OrderRow[] = latestPerListing((ordersRes.data ?? []).map(toOrderRow))
+  const mySales: OrderRow[] = latestPerListing((salesRes.data ?? []).map(toOrderRow))
 
   const submittedMatchIds = new Set((resultsRes.data ?? []).map((r) => r.match_id))
 
