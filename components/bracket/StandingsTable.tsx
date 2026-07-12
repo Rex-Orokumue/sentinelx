@@ -14,6 +14,8 @@ export function StandingsTable({ groupName, rows }: { groupName: string; rows: S
               <th className="hidden px-2 py-2.5 text-center sm:table-cell">W</th>
               <th className="hidden px-2 py-2.5 text-center sm:table-cell">D</th>
               <th className="hidden px-2 py-2.5 text-center sm:table-cell">L</th>
+              <th className="hidden px-2 py-2.5 text-center sm:table-cell">GF</th>
+              <th className="hidden px-2 py-2.5 text-center sm:table-cell">GA</th>
               <th className="px-2 py-2.5 text-center">GD</th>
               <th className="px-3 py-2.5 text-right">Pts</th>
             </tr>
@@ -30,6 +32,8 @@ export function StandingsTable({ groupName, rows }: { groupName: string; rows: S
                 <td className="hidden px-2 py-2.5 text-center text-slate-400 sm:table-cell">{r.wins}</td>
                 <td className="hidden px-2 py-2.5 text-center text-slate-400 sm:table-cell">{r.draws}</td>
                 <td className="hidden px-2 py-2.5 text-center text-slate-400 sm:table-cell">{r.losses}</td>
+                <td className="hidden px-2 py-2.5 text-center text-slate-400 sm:table-cell">{r.goalsFor}</td>
+                <td className="hidden px-2 py-2.5 text-center text-slate-400 sm:table-cell">{r.goalsAgainst}</td>
                 <td className="px-2 py-2.5 text-center text-slate-400">
                   {r.goalDiff > 0 ? `+${r.goalDiff}` : r.goalDiff}
                 </td>

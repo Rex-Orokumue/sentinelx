@@ -45,4 +45,16 @@ describe('sortStandings', () => {
     )
     expect(rows.map((r) => r.advancing)).toEqual([true, false, false])
   })
+
+  it('passes clubName through unchanged when present', () => {
+    const [row] = sortStandings([
+      m({ playerId: 'a', name: 'A', clubName: 'Lagos Ronin', points: 3, goalsFor: 2, goalsAgainst: 0 }),
+    ])
+    expect(row.clubName).toBe('Lagos Ronin')
+  })
+
+  it('leaves clubName undefined when not provided', () => {
+    const [row] = sortStandings([m({ playerId: 'a', name: 'A' })])
+    expect(row.clubName).toBeUndefined()
+  })
 })

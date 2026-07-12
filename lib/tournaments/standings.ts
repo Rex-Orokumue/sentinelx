@@ -1,6 +1,7 @@
 export interface MembershipInput {
   playerId: string
   name: string
+  clubName?: string | null
   wins: number
   draws: number
   losses: number
@@ -12,6 +13,7 @@ export interface MembershipInput {
 export interface StandingRow {
   playerId: string
   name: string
+  clubName?: string | null
   played: number
   wins: number
   draws: number
