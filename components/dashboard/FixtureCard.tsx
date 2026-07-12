@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { DashboardFixture } from '@/lib/dashboard/fixtures'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { formatDateTime } from '@/lib/format'
+import { ROUND_LABELS } from '@/lib/tournaments/bracket'
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   live: { label: '🔴 Live', cls: 'text-red-400' },
@@ -22,7 +23,8 @@ export function FixtureCard({ fixture }: { fixture: DashboardFixture }) {
         <div className="min-w-0">
           <p className="truncate font-bold text-white">vs {fixture.opponentName}</p>
           <p className="mt-0.5 truncate text-xs text-slate-500">
-            {fixture.tournamentTitle} · {formatDateTime(fixture.scheduledAt) ?? 'Time TBD'}
+            {fixture.tournamentTitle} · {ROUND_LABELS[fixture.round] ?? fixture.round} ·{' '}
+            {formatDateTime(fixture.scheduledAt) ?? 'Time TBD'}
           </p>
         </div>
         {fixture.awaitingMyResult ? (

@@ -22,6 +22,7 @@ export const ROUND_ORDER = [
 ] as const
 
 export const ROUND_LABELS: Record<string, string> = {
+  group: 'Group Stage',
   round_of_32: 'Round of 32',
   round_of_16: 'Round of 16',
   quarter_final: 'Quarter-finals',
