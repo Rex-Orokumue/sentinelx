@@ -73,14 +73,19 @@ export default async function TournamentDetailPage({
   ])
 
   let existingStatus: string | null = null
+  let prefill = { displayName: '', whatsapp: '' }
   if (user) {
-    const { data: reg } = await supabase
-      .from('tournament_registrations')
-      .select('payment_status')
-      .eq('tournament_id', t.id)
-      .eq('player_id', user.id)
-      .maybeSingle()
+    const [{ data: reg }, { data: profile }] = await Promise.all([
+      supabase
+        .from('tournament_registrations')
+        .select('payment_status')
+        .eq('tournament_id', t.id)
+        .eq('player_id', user.id)
+        .maybeSingle(),
+      supabase.from('profiles').select('display_name, whatsapp_number').eq('id', user.id).maybeSingle(),
+    ])
     existingStatus = reg?.payment_status ?? null
+    prefill = { displayName: profile?.display_name ?? '', whatsapp: profile?.whatsapp_number ?? '' }
   }
 
   const view = resolveRegistrationView({
@@ -155,6 +160,7 @@ export default async function TournamentDetailPage({
           slug={t.slug}
           fee={t.registration_fee}
           loginHref={`/login?next=/tournaments/${t.slug}`}
+          prefill={prefill}
         />
       </div>
 

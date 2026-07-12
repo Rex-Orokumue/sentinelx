@@ -4,6 +4,7 @@ import { useFormState, useFormStatus } from 'react-dom'
 import { registerForTournament, type RegisterState } from '@/lib/tournaments/actions'
 import type { RegView } from '@/lib/tournaments/view'
 import { formatNaira } from '@/lib/format'
+import { Field } from '@/components/dashboard/FormField'
 
 function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus()
@@ -26,12 +27,14 @@ export function RegistrationPanel({
   slug,
   fee,
   loginHref,
+  prefill,
 }: {
   view: RegView
   tournamentId: string
   slug: string
   fee: number
   loginHref: string
+  prefill: { displayName: string; whatsapp: string }
 }) {
   const bracketHref = `/tournaments/${slug}/bracket`
 
@@ -54,6 +57,7 @@ export function RegistrationPanel({
       <div className={box}>
         <RegisterForm
           tournamentId={tournamentId}
+          prefill={prefill}
           label={
             view === 'complete_payment' ? 'Complete payment →' : `Register — ${formatNaira(fee)}`
           }
@@ -109,12 +113,30 @@ export function RegistrationPanel({
   )
 }
 
-function RegisterForm({ tournamentId, label }: { tournamentId: string; label: string }) {
+function RegisterForm({
+  tournamentId,
+  label,
+  prefill,
+}: {
+  tournamentId: string
+  label: string
+  prefill: { displayName: string; whatsapp: string }
+}) {
   const [state, formAction] = useFormState<RegisterState, FormData>(registerForTournament, undefined)
   return (
-    <form action={formAction}>
+    <form action={formAction} className="space-y-3">
       <input type="hidden" name="tournamentId" value={tournamentId} />
-      {state?.error && <p className="mb-2 text-center text-sm text-red-400">{state.error}</p>}
+      <Field name="displayName" label="Display name" defaultValue={prefill.displayName} />
+      <Field
+        name="whatsapp"
+        label="WhatsApp number"
+        type="tel"
+        defaultValue={prefill.whatsapp}
+        placeholder="+234…"
+      />
+      <Field name="clubName" label="Club name" placeholder="Your in-game club/team" />
+      <Field name="ignTag" label="In-game player ID / tag" placeholder="Your IGN or player tag" />
+      {state?.error && <p className="text-center text-sm text-red-400">{state.error}</p>}
       <SubmitButton label={label} pendingLabel="Redirecting to payment…" />
     </form>
   )
