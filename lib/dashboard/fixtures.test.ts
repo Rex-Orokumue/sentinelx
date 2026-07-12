@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { bucketFixtures, type DashboardMatchInput } from './fixtures'
+import { bucketFixtures, toWhatsAppNumber, buildOpponentWhatsAppUrl, type DashboardMatchInput } from './fixtures'
 
 const NOW = new Date('2026-07-07T12:00:00Z')
 
@@ -103,5 +103,59 @@ describe('bucketFixtures — awaitingMyResult', () => {
       NOW,
     )
     expect(r.completed[0].awaitingMyResult).toBe(false)
+  })
+})
+
+describe('toWhatsAppNumber', () => {
+  it('converts a local 0-prefixed Nigerian number to international format', () => {
+    expect(toWhatsAppNumber('08012345678')).toBe('2348012345678')
+  })
+
+  it('accepts an already-international number with a leading +', () => {
+    expect(toWhatsAppNumber('+2348012345678')).toBe('2348012345678')
+  })
+
+  it('accepts an already-international number with no +', () => {
+    expect(toWhatsAppNumber('2348012345678')).toBe('2348012345678')
+  })
+
+  it('accepts a 10-digit number missing the leading 0', () => {
+    expect(toWhatsAppNumber('8012345678')).toBe('2348012345678')
+  })
+
+  it('strips spaces and dashes before formatting', () => {
+    expect(toWhatsAppNumber('080 123-45678')).toBe('2348012345678')
+  })
+
+  it('returns null for an unrecognized length', () => {
+    expect(toWhatsAppNumber('12345')).toBeNull()
+  })
+
+  it('returns null for an empty string', () => {
+    expect(toWhatsAppNumber('')).toBeNull()
+  })
+})
+
+describe('buildOpponentWhatsAppUrl', () => {
+  it('builds a wa.me link to the opponent with a prefilled message', () => {
+    const url = buildOpponentWhatsAppUrl({
+      opponentWhatsapp: '08012345678',
+      opponentName: 'DarkStrikerNG',
+      tournamentTitle: 'Season 3 Cup',
+    })
+    expect(url).not.toBeNull()
+    expect(url!.startsWith('https://wa.me/2348012345678?text=')).toBe(true)
+    const decoded = decodeURIComponent(url!.split('?text=')[1])
+    expect(decoded).toContain('Season 3 Cup')
+  })
+
+  it('returns null when the opponent has no usable WhatsApp number', () => {
+    expect(
+      buildOpponentWhatsAppUrl({
+        opponentWhatsapp: null,
+        opponentName: 'DarkStrikerNG',
+        tournamentTitle: 'Season 3 Cup',
+      }),
+    ).toBeNull()
   })
 })

@@ -53,7 +53,7 @@ export default async function DashboardPage() {
     supabase
       .from('matches')
       .select(
-        'id, status, scheduled_at, round, player_a_id, player_b_id, ' +
+        'id, status, scheduled_at, round, tournament_id, player_a_id, player_b_id, ' +
           'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
           'player_b:profiles!matches_player_b_id_fkey(id, username, display_name), ' +
           'tournament:tournaments(title, slug)',
@@ -123,18 +123,34 @@ export default async function DashboardPage() {
 
   const submittedMatchIds = new Set((resultsRes.data ?? []).map((r) => r.match_id))
 
-  const matches: DashboardMatchInput[] = ((matchesRes.data as unknown[] | null) ?? []).map((raw) => {
-    const mm = raw as {
-      id: string
-      status: string
-      scheduled_at: string | null
-      round: string
-      player_a_id: string
-      player_b_id: string
-      player_a: ProfileRef
-      player_b: ProfileRef
-      tournament: TournamentRef
-    }
+  const rawMatches = ((matchesRes.data as unknown[] | null) ?? []) as {
+    id: string
+    status: string
+    scheduled_at: string | null
+    round: string
+    tournament_id: string
+    player_a_id: string
+    player_b_id: string
+    player_a: ProfileRef
+    player_b: ProfileRef
+    tournament: TournamentRef
+  }[]
+
+  // Opponent WhatsApp numbers are per-tournament registration data, not
+  // profile data — fetch every registration for the tournaments this player
+  // has matches in, then look each opponent up by (tournament_id, player_id).
+  const matchTournamentIds = Array.from(new Set(rawMatches.map((mm) => mm.tournament_id)))
+  const { data: regRows } =
+    matchTournamentIds.length > 0
+      ? await supabase
+          .from('tournament_registrations')
+          .select('tournament_id, player_id, reg_whatsapp')
+          .in('tournament_id', matchTournamentIds)
+      : { data: [] as { tournament_id: string; player_id: string; reg_whatsapp: string | null }[] }
+  const whatsappByKey = new Map((regRows ?? []).map((r) => [`${r.tournament_id}:${r.player_id}`, r.reg_whatsapp]))
+
+  const matches: DashboardMatchInput[] = rawMatches.map((mm) => {
+    const opponentId = mm.player_a_id === user.id ? mm.player_b_id : mm.player_a_id
     const opponent = mm.player_a_id === user.id ? mm.player_b : mm.player_a
     const t = firstTournament(mm.tournament)
     return {
@@ -143,6 +159,7 @@ export default async function DashboardPage() {
       scheduledAt: mm.scheduled_at,
       round: mm.round,
       opponentName: nameOf(opponent),
+      opponentWhatsapp: whatsappByKey.get(`${mm.tournament_id}:${opponentId}`) ?? null,
       tournamentTitle: t?.title ?? 'Tournament',
       tournamentSlug: t?.slug ?? '',
     }

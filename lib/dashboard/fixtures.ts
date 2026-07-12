@@ -4,6 +4,7 @@ export interface DashboardMatchInput {
   scheduledAt: string | null
   round: string
   opponentName: string
+  opponentWhatsapp?: string | null
   tournamentTitle: string
   tournamentSlug: string
 }
@@ -52,4 +53,28 @@ export function bucketFixtures(
     .filter((f) => f.status !== 'live' && f.status !== 'scheduled')
     .sort((a, b) => ascNullsLast(b.scheduledAt, a.scheduledAt)) // descending, nulls last
   return { live, upcoming, completed }
+}
+
+// Normalizes a free-typed registration WhatsApp number (e.g. "0801...",
+// "+234801...", "234801...", "801...") into wa.me's required international
+// format (234 + subscriber number, no leading 0/+). Returns null when the
+// input isn't a recognizable Nigerian number length.
+export function toWhatsAppNumber(raw: string): string | null {
+  const digits = raw.replace(/\D/g, '')
+  if (digits.startsWith('234') && digits.length === 13) return digits
+  if (digits.startsWith('0') && digits.length === 11) return `234${digits.slice(1)}`
+  if (digits.length === 10) return `234${digits}`
+  return null
+}
+
+export function buildOpponentWhatsAppUrl(args: {
+  opponentWhatsapp: string | null | undefined
+  opponentName: string
+  tournamentTitle: string
+}): string | null {
+  if (!args.opponentWhatsapp) return null
+  const number = toWhatsAppNumber(args.opponentWhatsapp)
+  if (!number) return null
+  const text = `Hey ${args.opponentName}! We're matched for ${args.tournamentTitle} on Sentinel X — let's coordinate on timing 👋`
+  return `https://wa.me/${number}?text=${encodeURIComponent(text)}`
 }

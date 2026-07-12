@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import type { DashboardFixture } from '@/lib/dashboard/fixtures'
+import { buildOpponentWhatsAppUrl, type DashboardFixture } from '@/lib/dashboard/fixtures'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { formatDateTime } from '@/lib/format'
 import { ROUND_LABELS } from '@/lib/tournaments/bracket'
@@ -14,28 +14,47 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 
 export function FixtureCard({ fixture }: { fixture: DashboardFixture }) {
   const s = STATUS[fixture.status] ?? { label: fixture.status, cls: 'text-slate-400' }
+  const canMessageOpponent = fixture.status === 'live' || fixture.status === 'scheduled'
+  const whatsappUrl = canMessageOpponent
+    ? buildOpponentWhatsAppUrl({
+        opponentWhatsapp: fixture.opponentWhatsapp,
+        opponentName: fixture.opponentName,
+        tournamentTitle: fixture.tournamentTitle,
+      })
+    : null
+
   return (
-    <Link
-      href={`/matches/${fixture.id}`}
-      className="block rounded-2xl border border-slate-800 bg-slate-900 p-4 transition-colors hover:border-slate-600"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate font-bold text-white">vs {fixture.opponentName}</p>
-          <p className="mt-0.5 truncate text-xs text-slate-500">
-            {fixture.tournamentTitle} · {ROUND_LABELS[fixture.round] ?? fixture.round} ·{' '}
-            {formatDateTime(fixture.scheduledAt) ?? 'Time TBD'}
-          </p>
+    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 transition-colors hover:border-slate-600">
+      <Link href={`/matches/${fixture.id}`} className="block">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate font-bold text-white">vs {fixture.opponentName}</p>
+            <p className="mt-0.5 truncate text-xs text-slate-500">
+              {fixture.tournamentTitle} · {ROUND_LABELS[fixture.round] ?? fixture.round} ·{' '}
+              {formatDateTime(fixture.scheduledAt) ?? 'Time TBD'}
+            </p>
+          </div>
+          {fixture.awaitingMyResult ? (
+            <span className="shrink-0 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-bold text-white">
+              Submit result →
+            </span>
+          ) : (
+            <span className={`shrink-0 text-xs font-semibold ${s.cls}`}>{s.label}</span>
+          )}
         </div>
-        {fixture.awaitingMyResult ? (
-          <span className="shrink-0 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-bold text-white">
-            Submit result →
-          </span>
-        ) : (
-          <span className={`shrink-0 text-xs font-semibold ${s.cls}`}>{s.label}</span>
-        )}
-      </div>
-    </Link>
+      </Link>
+      {whatsappUrl && (
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[#25D366]/30 px-3 py-1.5 text-xs font-bold text-[#25D366] transition-colors hover:bg-[#25D366]/10"
+        >
+          Message opponent
+        </a>
+      )}
+    </div>
   )
 }
 
