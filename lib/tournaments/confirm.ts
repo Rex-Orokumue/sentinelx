@@ -38,11 +38,25 @@ export async function confirmRegistration(reference: string): Promise<ConfirmRes
   let verify: { status: string; amountKobo: number } | null = null
   try {
     verify = await verifyTransaction(reference)
-  } catch {
+  } catch (err) {
+    // Surface the real cause in Vercel logs — a swallowed verify failure here
+    // is indistinguishable from a genuinely failed payment otherwise.
+    console.error('[confirmRegistration] Paystack verify failed', {
+      reference,
+      message: err instanceof Error ? err.message : String(err),
+    })
     verify = null
   }
 
   const decision = decideConfirmation({ existing, verify })
+  // already_paid is an expected, benign no-op — both the webhook and this
+  // callback call confirmRegistration for the same reference by design.
+  if (decision === 'not_successful') {
+    console.error('[confirmRegistration] Paystack verify did not confirm the payment', {
+      reference,
+      verify,
+    })
+  }
   if (decision !== 'confirmed') return decision
 
   // Guard against races: only the pending → paid transition writes.
