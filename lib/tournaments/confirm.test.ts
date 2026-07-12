@@ -24,10 +24,19 @@ describe('decideConfirmation', () => {
     ).toBe('not_successful')
   })
 
-  it('rejects on amount mismatch (partial or tampered payment)', () => {
+  it('rejects underpayment (partial or tampered payment)', () => {
     expect(
       decideConfirmation({ existing: pending, verify: { status: 'success', amountKobo: 100 } }),
     ).toBe('not_successful')
+  })
+
+  it('confirms when the amount paid exceeds the expected fee (customer-bears-fee accounts)', () => {
+    // Paystack adds its transaction fee on top of the requested amount when the
+    // account is configured for the customer to bear fees — verify's amount then
+    // reflects amount+fee, not the exact figure we sent to initialize.
+    expect(
+      decideConfirmation({ existing: pending, verify: { status: 'success', amountKobo: 50762 } }),
+    ).toBe('confirmed')
   })
 
   it('rejects when verify data is unavailable', () => {

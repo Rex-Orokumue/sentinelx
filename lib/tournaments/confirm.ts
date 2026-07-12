@@ -18,7 +18,11 @@ export function decideConfirmation(args: {
   if (args.existing.payment_status === 'paid') return 'already_paid'
   if (!args.verify) return 'not_successful'
   if (args.verify.status !== 'success') return 'not_successful'
-  if (args.verify.amountKobo !== EXPECTED_KOBO) return 'not_successful'
+  // Reject underpayment (partial/tampered), but not overpayment — Paystack
+  // adds its own transaction fee on top of the requested amount when the
+  // account is configured for the customer to bear fees, so a successful
+  // payment can legitimately verify at more than EXPECTED_KOBO.
+  if (args.verify.amountKobo < EXPECTED_KOBO) return 'not_successful'
   return 'confirmed'
 }
 
