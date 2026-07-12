@@ -735,6 +735,10 @@ export type Database = {
           payment_status: string
           paystack_reference: string | null
           player_id: string
+          reg_club_name: string | null
+          reg_display_name: string | null
+          reg_ign_tag: string | null
+          reg_whatsapp: string | null
           registered_at: string
           tournament_id: string
         }
@@ -743,6 +747,10 @@ export type Database = {
           payment_status?: string
           paystack_reference?: string | null
           player_id: string
+          reg_club_name?: string | null
+          reg_display_name?: string | null
+          reg_ign_tag?: string | null
+          reg_whatsapp?: string | null
           registered_at?: string
           tournament_id: string
         }
@@ -751,6 +759,10 @@ export type Database = {
           payment_status?: string
           paystack_reference?: string | null
           player_id?: string
+          reg_club_name?: string | null
+          reg_display_name?: string | null
+          reg_ign_tag?: string | null
+          reg_whatsapp?: string | null
           registered_at?: string
           tournament_id?: string
         }
@@ -784,6 +796,7 @@ export type Database = {
           registration_end: string | null
           registration_fee: number
           registration_start: string | null
+          rules: string | null
           slug: string
           status: string
           title: string
@@ -803,6 +816,7 @@ export type Database = {
           registration_end?: string | null
           registration_fee?: number
           registration_start?: string | null
+          rules?: string | null
           slug: string
           status?: string
           title: string
@@ -822,6 +836,7 @@ export type Database = {
           registration_end?: string | null
           registration_fee?: number
           registration_start?: string | null
+          rules?: string | null
           slug?: string
           status?: string
           title?: string
