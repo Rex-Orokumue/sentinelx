@@ -39,6 +39,7 @@ export default async function EditTournamentPage({ params }: { params: { id: str
     registrationEnd: toLocalInput(t.registration_end),
     tournamentStart: toLocalInput(t.tournament_start),
     tournamentEnd: toLocalInput(t.tournament_end),
+    rules: t.rules ?? '',
   }
 
   return (

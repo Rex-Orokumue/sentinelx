@@ -14,6 +14,7 @@ const valid = {
   registrationEnd: '',
   tournamentStart: '2026-08-01T18:00',
   tournamentEnd: '',
+  rules: '',
 }
 
 describe('tournamentSchema', () => {
@@ -43,5 +44,13 @@ describe('tournamentSchema', () => {
   })
   it('rejects a non-url banner', () => {
     expect(tournamentSchema.safeParse({ ...valid, bannerUrl: 'notaurl' }).success).toBe(false)
+  })
+  it('accepts a Markdown rules string and leaves it as-is', () => {
+    const r = tournamentSchema.safeParse({ ...valid, rules: '**No smurfing.**\n\n- Best of 3' })
+    expect(r.success).toBe(true)
+    if (r.success) expect(r.data.rules).toBe('**No smurfing.**\n\n- Best of 3')
+  })
+  it('allows an empty rules field', () => {
+    expect(tournamentSchema.safeParse({ ...valid, rules: '' }).success).toBe(true)
   })
 })

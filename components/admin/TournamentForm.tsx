@@ -16,6 +16,7 @@ export interface TournamentFormValues {
   registrationEnd: string
   tournamentStart: string
   tournamentEnd: string
+  rules: string
 }
 
 type Action = (prev: TournamentFormState, fd: FormData) => Promise<TournamentFormState>
@@ -92,6 +93,23 @@ export function TournamentForm({
           rows={3}
           className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
         />
+      </div>
+
+      <div className="space-y-1.5">
+        <label htmlFor="rules" className="text-sm font-medium text-slate-300">
+          Rules
+        </label>
+        <textarea
+          id="rules"
+          name="rules"
+          defaultValue={initial.rules}
+          rows={8}
+          placeholder={'Markdown supported: **bold**, - lists, [links](https://...)'}
+          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
+        />
+        <p className="text-xs text-slate-500">
+          Shown to players above the register button. Leave blank to skip the rules step entirely.
+        </p>
       </div>
 
       <Field label="Banner URL" name="bannerUrl" type="url" defaultValue={initial.bannerUrl} />

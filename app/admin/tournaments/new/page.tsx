@@ -20,6 +20,7 @@ const EMPTY: TournamentFormValues = {
   registrationEnd: '',
   tournamentStart: '',
   tournamentEnd: '',
+  rules: '',
 }
 
 export default async function NewTournamentPage() {

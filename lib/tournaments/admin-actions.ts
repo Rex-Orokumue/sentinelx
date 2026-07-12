@@ -24,6 +24,7 @@ function parseForm(formData: FormData) {
     registrationEnd: formData.get('registrationEnd') ?? '',
     tournamentStart: formData.get('tournamentStart') ?? '',
     tournamentEnd: formData.get('tournamentEnd') ?? '',
+    rules: formData.get('rules') ?? '',
   })
 }
 
@@ -42,6 +43,7 @@ function toRow(d: TournamentInput) {
     registration_end: orNull(d.registrationEnd),
     tournament_start: orNull(d.tournamentStart),
     tournament_end: orNull(d.tournamentEnd),
+    rules: orNull(d.rules),
   }
 }
 
