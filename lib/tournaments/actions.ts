@@ -54,7 +54,7 @@ export async function registerForTournament(
 
   const { data: existing } = await supabase
     .from('tournament_registrations')
-    .select('id, payment_status, paystack_reference')
+    .select('id, payment_status')
     .eq('tournament_id', tournamentId)
     .eq('player_id', user.id)
     .maybeSingle()
@@ -89,10 +89,13 @@ export async function registerForTournament(
   // (auth, tournament state, input schema) is the trust boundary.
   const admin = createAdminClient()
 
-  // Reuse the pending row's reference; otherwise create a fresh pending row.
-  let reference = existing?.paystack_reference ?? null
+  // Always mint a fresh reference for this attempt. Paystack rejects
+  // /transaction/initialize with a reference it has already seen — even if
+  // that prior attempt was abandoned and never paid — with "Duplicate
+  // Transaction Reference", so a retried checkout can never reuse the
+  // pending row's stored reference.
+  const reference = buildReference(tournamentId, user.id)
   if (!existing) {
-    reference = buildReference(tournamentId, user.id)
     const { error: insertErr } = await admin.from('tournament_registrations').insert({
       tournament_id: tournamentId,
       player_id: user.id,
@@ -102,7 +105,6 @@ export async function registerForTournament(
     })
     if (insertErr) return { error: 'Could not start registration. Please try again.' }
   } else {
-    if (!reference) reference = buildReference(tournamentId, user.id)
     await admin
       .from('tournament_registrations')
       .update({ paystack_reference: reference, ...regFields })
@@ -114,7 +116,7 @@ export async function registerForTournament(
     authorizationUrl = await initializeTransaction({
       email: user.email!,
       amountKobo: REGISTRATION_FEE_NGN * 100,
-      reference: reference!,
+      reference,
       callbackUrl: `${SITE_URL}/api/paystack/callback`,
       metadata: { tournament_id: tournamentId, player_id: user.id, slug: tournament.slug },
     })
