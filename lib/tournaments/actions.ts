@@ -118,7 +118,14 @@ export async function registerForTournament(
       callbackUrl: `${SITE_URL}/api/paystack/callback`,
       metadata: { tournament_id: tournamentId, player_id: user.id, slug: tournament.slug },
     })
-  } catch {
+  } catch (err) {
+    // Surface the real cause in Vercel logs — the user-facing message is
+    // intentionally generic (never expose payment-provider internals to players).
+    console.error('[registerForTournament] Paystack initialize failed', {
+      tournamentId,
+      reference,
+      message: err instanceof Error ? err.message : String(err),
+    })
     return { error: 'Payment could not be started. Please try again.' }
   }
 

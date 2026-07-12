@@ -51,18 +51,42 @@ export async function initiateEscrowPurchase(
       },
       body: JSON.stringify(payload),
     })
-  } catch {
+  } catch (err) {
+    // Surface the real cause in Vercel logs — the user-facing message is
+    // intentionally generic (never expose escrow-provider internals to buyers).
+    console.error('[initiateEscrowPurchase] Zolarux request failed', {
+      listingId: listing.id,
+      message: err instanceof Error ? err.message : String(err),
+    })
     return { error: GENERIC_ERROR }
   }
-  if (!res.ok) return { error: GENERIC_ERROR }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    console.error('[initiateEscrowPurchase] Zolarux returned a non-OK status', {
+      listingId: listing.id,
+      status: res.status,
+      body: body.slice(0, 500),
+    })
+    return { error: GENERIC_ERROR }
+  }
 
   let json: { order_id?: string; order_ref?: string; payment_link?: string }
   try {
     json = await res.json()
-  } catch {
+  } catch (err) {
+    console.error('[initiateEscrowPurchase] Zolarux response was not valid JSON', {
+      listingId: listing.id,
+      message: err instanceof Error ? err.message : String(err),
+    })
     return { error: GENERIC_ERROR }
   }
-  if (!json.order_id || !json.order_ref || !json.payment_link) return { error: GENERIC_ERROR }
+  if (!json.order_id || !json.order_ref || !json.payment_link) {
+    console.error('[initiateEscrowPurchase] Zolarux response missing required fields', {
+      listingId: listing.id,
+      json,
+    })
+    return { error: GENERIC_ERROR }
+  }
 
   // Record the local mirror row via the service-role client (no client INSERT policy).
   const admin = createAdminClient()
