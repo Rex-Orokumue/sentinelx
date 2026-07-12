@@ -40,7 +40,7 @@ export function TvVideoRow({ video }: { video: AdminTvVideo }) {
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
+    <div className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <p className="truncate font-bold text-white">
           {video.title}
@@ -48,7 +48,7 @@ export function TvVideoRow({ video }: { video: AdminTvVideo }) {
         </p>
         <p className="text-xs text-slate-500">{CATEGORY_LABELS[video.category]}</p>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => setEditing(true)}

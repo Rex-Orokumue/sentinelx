@@ -36,7 +36,7 @@ export function TournamentListRow({ t, isAdmin }: { t: AdminTournamentRow; isAdm
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className="truncate font-bold text-white">{t.title}</p>
           <p className="mt-0.5 text-xs text-slate-500">
@@ -46,7 +46,7 @@ export function TournamentListRow({ t, isAdmin }: { t: AdminTournamentRow; isAdm
             </span>
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href={`/admin/tournaments/${t.id}/edit`}
             className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-300 hover:border-slate-500"
