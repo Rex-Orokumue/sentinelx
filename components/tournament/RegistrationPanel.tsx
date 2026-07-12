@@ -28,6 +28,7 @@ export function RegistrationPanel({
   fee,
   loginHref,
   prefill,
+  hasRules,
 }: {
   view: RegView
   tournamentId: string
@@ -35,6 +36,7 @@ export function RegistrationPanel({
   fee: number
   loginHref: string
   prefill: { displayName: string; whatsapp: string }
+  hasRules: boolean
 }) {
   const bracketHref = `/tournaments/${slug}/bracket`
 
@@ -58,6 +60,7 @@ export function RegistrationPanel({
         <RegisterForm
           tournamentId={tournamentId}
           prefill={prefill}
+          hasRules={hasRules}
           label={
             view === 'complete_payment' ? 'Complete payment →' : `Register — ${formatNaira(fee)}`
           }
@@ -117,10 +120,12 @@ function RegisterForm({
   tournamentId,
   label,
   prefill,
+  hasRules,
 }: {
   tournamentId: string
   label: string
   prefill: { displayName: string; whatsapp: string }
+  hasRules: boolean
 }) {
   const [state, formAction] = useFormState<RegisterState, FormData>(registerForTournament, undefined)
   return (
@@ -136,6 +141,12 @@ function RegisterForm({
       />
       <Field name="clubName" label="Club name" placeholder="Your in-game club/team" />
       <Field name="ignTag" label="In-game player ID / tag" placeholder="Your IGN or player tag" />
+      {hasRules && (
+        <label className="flex items-start gap-2 text-xs text-slate-400">
+          <input type="checkbox" name="agreedToRules" value="true" required className="mt-0.5 accent-violet-600" />
+          <span>I have read and agree to the tournament rules.</span>
+        </label>
+      )}
       {state?.error && <p className="text-center text-sm text-red-400">{state.error}</p>}
       <SubmitButton label={label} pendingLabel="Redirecting to payment…" />
     </form>

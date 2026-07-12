@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { resolveRegistrationView } from '@/lib/tournaments/view'
 import { RegistrationPanel } from '@/components/tournament/RegistrationPanel'
 import { formatDate, formatNaira } from '@/lib/format'
+import ReactMarkdown from 'react-markdown'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
 
@@ -20,7 +21,7 @@ async function getTournament(slug: string) {
   const { data } = await supabase
     .from('tournaments')
     .select(
-      'id, title, slug, description, banner_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, games(name, icon_url, slug)',
+      'id, title, slug, description, banner_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, rules, games(name, icon_url, slug)',
     )
     .eq('slug', slug)
     .maybeSingle()
@@ -153,6 +154,13 @@ export default async function TournamentDetailPage({
         <Stat label="Format" value={t.format === 'group_knockout' ? 'Groups + KO' : t.format} />
       </div>
 
+      {t.rules && (
+        <div className="mb-6 rounded-2xl border border-violet-500/20 bg-violet-500/5 p-5 text-sm leading-relaxed text-slate-300 [&_a]:text-violet-400 [&_a]:underline [&_li]:mt-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_strong]:text-white [&_ul]:list-disc [&_ul]:pl-5">
+          <h2 className="mb-2 text-base font-bold text-white">Tournament Rules</h2>
+          <ReactMarkdown>{t.rules}</ReactMarkdown>
+        </div>
+      )}
+
       <div className="mb-6">
         <RegistrationPanel
           view={view}
@@ -161,6 +169,7 @@ export default async function TournamentDetailPage({
           fee={t.registration_fee}
           loginHref={`/login?next=/tournaments/${t.slug}`}
           prefill={prefill}
+          hasRules={!!t.rules}
         />
       </div>
 
