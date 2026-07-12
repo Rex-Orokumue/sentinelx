@@ -5,8 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
 import { loadBracketView } from '@/lib/tournaments/bracket-view'
 import { BracketActions } from '@/components/admin/BracketActions'
-import { GroupStage } from '@/components/bracket/GroupStage'
-import { KnockoutBracket } from '@/components/bracket/KnockoutBracket'
+import { AdminBracketView } from '@/components/admin/AdminBracketView'
 
 export const metadata: Metadata = { title: 'Bracket · Admin · SentinelX' }
 
@@ -46,10 +45,13 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
           No bracket yet. Close registration to generate one.
         </p>
       ) : (
-        <>
-          {view.hasGroups && <GroupStage standings={view.standings} fixtures={view.fixtures} />}
-          {view.hasKnockout && <KnockoutBracket rounds={view.rounds} />}
-        </>
+        <AdminBracketView
+          standings={view.standings}
+          fixtures={view.fixtures}
+          rounds={view.rounds}
+          hasGroups={view.hasGroups}
+          hasKnockout={view.hasKnockout}
+        />
       )}
     </section>
   )

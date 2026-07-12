@@ -37,7 +37,7 @@ export async function loadBracketView(
   const groupIds = (groups ?? []).map((g) => g.id)
   const groupNameById = new Map((groups ?? []).map((g) => [g.id, g.name]))
 
-  const [membershipsRes, matchesRes] = await Promise.all([
+  const [membershipsRes, matchesRes, regsRes] = await Promise.all([
     groupIds.length > 0
       ? supabase
           .from('group_memberships')
@@ -54,7 +54,15 @@ export async function loadBracketView(
           'player_b:profiles!matches_player_b_id_fkey(id, username, display_name)',
       )
       .eq('tournament_id', tournamentId),
+    supabase.from('tournament_registrations').select('player_id, reg_club_name').eq('tournament_id', tournamentId),
   ])
+
+  const clubNameByPlayer = new Map(
+    ((regsRes.data as { player_id: string; reg_club_name: string | null }[] | null) ?? []).map((r) => [
+      r.player_id,
+      r.reg_club_name,
+    ]),
+  )
 
   const allMatches: BracketMatch[] = ((matchesRes.data as unknown[] | null) ?? []).map((raw) => {
     const m = raw as {
@@ -99,6 +107,7 @@ export async function loadBracketView(
         return {
           playerId: gm.player_id,
           name: nameOf(gm.profiles),
+          clubName: clubNameByPlayer.get(gm.player_id) ?? null,
           wins: gm.wins,
           draws: gm.draws,
           losses: gm.losses,
