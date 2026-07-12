@@ -6,6 +6,8 @@ export interface ReviewMatchInput {
   round: string
   playerAName: string
   playerBName: string
+  playerAClubName?: string | null
+  playerBClubName?: string | null
   tournamentTitle: string
   tournamentSlug: string
 }

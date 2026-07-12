@@ -1,12 +1,12 @@
-import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
 import { bucketReviewQueue, type ReviewMatchInput } from '@/lib/matches/review-queue'
+import { AdminResultsQueue } from '@/components/admin/AdminResultsQueue'
 
 export const metadata: Metadata = { title: 'Results · Admin · SentinelX' }
 
-type ProfileRef = { username: string | null; display_name: string | null } | null
+type ProfileRef = { id?: string; username: string | null; display_name: string | null } | null
 type TournamentRef = { title: string; slug: string } | { title: string; slug: string }[] | null
 function nameOf(p: ProfileRef): string {
   return p?.display_name ?? p?.username ?? 'TBD'
@@ -21,20 +21,34 @@ export default async function AdminResultsPage() {
   const { data } = await supabase
     .from('matches')
     .select(
-      'id, round, status, scheduled_at, ' +
-        'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
-        'player_b:profiles!matches_player_b_id_fkey(username, display_name), ' +
+      'id, round, status, scheduled_at, tournament_id, ' +
+        'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
+        'player_b:profiles!matches_player_b_id_fkey(id, username, display_name), ' +
         'tournament:tournaments(title, slug), ' +
         'match_results(count)',
     )
     .in('status', ['scheduled', 'live', 'disputed'])
 
-  const rows: ReviewMatchInput[] = ((data as unknown[] | null) ?? []).map((raw) => {
+  const rawRows = (data as unknown[] | null) ?? []
+  const tournamentIds = Array.from(
+    new Set(rawRows.map((raw) => (raw as { tournament_id: string }).tournament_id)),
+  )
+  const { data: regs } =
+    tournamentIds.length > 0
+      ? await supabase
+          .from('tournament_registrations')
+          .select('tournament_id, player_id, reg_club_name')
+          .in('tournament_id', tournamentIds)
+      : { data: [] as { tournament_id: string; player_id: string; reg_club_name: string | null }[] }
+  const clubByKey = new Map((regs ?? []).map((r) => [`${r.tournament_id}:${r.player_id}`, r.reg_club_name]))
+
+  const rows: ReviewMatchInput[] = rawRows.map((raw) => {
     const m = raw as {
       id: string
       round: string
       status: string
       scheduled_at: string | null
+      tournament_id: string
       player_a: ProfileRef
       player_b: ProfileRef
       tournament: TournamentRef
@@ -49,6 +63,8 @@ export default async function AdminResultsPage() {
       round: m.round,
       playerAName: nameOf(m.player_a),
       playerBName: nameOf(m.player_b),
+      playerAClubName: m.player_a?.id ? clubByKey.get(`${m.tournament_id}:${m.player_a.id}`) ?? null : null,
+      playerBClubName: m.player_b?.id ? clubByKey.get(`${m.tournament_id}:${m.player_b.id}`) ?? null : null,
       tournamentTitle: t?.title ?? 'Tournament',
       tournamentSlug: t?.slug ?? '',
     }
@@ -59,44 +75,7 @@ export default async function AdminResultsPage() {
   return (
     <section>
       <h2 className="mb-4 text-base font-bold text-white">Results to verify</h2>
-      {needsReview.length + noSubmission.length + disputed.length === 0 ? (
-        <p className="rounded-2xl border border-slate-800 bg-slate-900/50 p-8 text-center text-sm text-slate-500">
-          Nothing to review right now.
-        </p>
-      ) : (
-        <div className="space-y-8">
-          <Bucket title="Needs review" items={needsReview} />
-          <Bucket title="No submission" items={noSubmission} />
-          <Bucket title="Disputed" items={disputed} />
-        </div>
-      )}
+      <AdminResultsQueue needsReview={needsReview} noSubmission={noSubmission} disputed={disputed} />
     </section>
-  )
-}
-
-function Bucket({ title, items }: { title: string; items: ReviewMatchInput[] }) {
-  if (items.length === 0) return null
-  return (
-    <div>
-      <h3 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-slate-500">
-        {title} ({items.length})
-      </h3>
-      <div className="space-y-2">
-        {items.map((m) => (
-          <Link
-            key={m.id}
-            href={`/admin/matches/${m.id}/review`}
-            className="block rounded-2xl border border-slate-800 bg-slate-900 p-4 transition-colors hover:border-slate-600"
-          >
-            <p className="truncate font-bold text-white">
-              {m.playerAName} <span className="text-slate-500">vs</span> {m.playerBName}
-            </p>
-            <p className="mt-0.5 truncate text-xs text-slate-500">
-              {m.tournamentTitle} · {m.round.replace(/_/g, ' ')}
-            </p>
-          </Link>
-        ))}
-      </div>
-    </div>
   )
 }
