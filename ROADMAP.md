@@ -44,11 +44,29 @@ WhatsApp share buttons + mobile-first apply across all v1.0 pages.
 **★ v3.0 COMPLETE (#13a–#14).** Gaming Exchange (catalog + escrow) and BVN KYC +
 Paystack Transfer prize withdrawals all shipped.
 
+## v3.5 — Admin gap fixes
+
+| # | Task | Status |
+|---|------|--------|
+| 15 | Registration fields (display name, WhatsApp, club, IGN tag) + admin registrations list | ✅ |
+| 16 | League table GF/GA columns + 3-tab platform leaderboard (Wins/Score/Goals) | ✅ |
+| 17 | Admin player search (registrations, bracket, results) | ✅ |
+| 18 | Tournament rules (Markdown) + registration agreement checkbox | ✅ |
+| 19 | Dashboard fixture schedule — round label polish | ✅ |
+| 20 | Live registration-deadline countdown | ✅ |
+
+**★ v3.5 COMPLETE (#15–#20).** Six admin-flagged gaps closed: registration now
+captures per-tournament player details verified by Samuel; league tables show
+full goal splits; the leaderboard ranks by three separate metrics; admin search
+works across registrations, brackets, and results; tournaments can carry
+Markdown rules gated by a registration checkbox; and tournament pages show a
+live countdown to the registration deadline.
+
 ## v4.0 — Scale
 
 | # | Task | Status |
 |---|------|--------|
-| 15 | Multi-game support + team/school/state leagues | ⬜ |
+| 21 | Multi-game support + team/school/state leagues | ⬜ |
 
 ---
 
