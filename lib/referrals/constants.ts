@@ -1,0 +1,1 @@
+export const REFERRAL_CREDIT_NGN = 100

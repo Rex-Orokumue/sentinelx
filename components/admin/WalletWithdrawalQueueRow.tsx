@@ -1,9 +1,9 @@
 'use client'
 import { useFormState } from 'react-dom'
-import { resolveFriendlyWithdrawal, type FriendlyWithdrawalResolveState } from '@/lib/friendly-withdrawals/admin-actions'
+import { resolveWalletWithdrawal, type WalletWithdrawalResolveState } from '@/lib/wallet/admin-actions'
 import { formatNaira } from '@/lib/format'
 
-export interface PendingFriendlyWithdrawal {
+export interface PendingWalletWithdrawal {
   id: string
   playerName: string
   amount: number
@@ -12,11 +12,8 @@ export interface PendingFriendlyWithdrawal {
   accountName: string
 }
 
-export function FriendlyWithdrawalQueueRow({ req }: { req: PendingFriendlyWithdrawal }) {
-  const [state, action] = useFormState<FriendlyWithdrawalResolveState, FormData>(
-    resolveFriendlyWithdrawal,
-    undefined,
-  )
+export function WalletWithdrawalQueueRow({ req }: { req: PendingWalletWithdrawal }) {
+  const [state, action] = useFormState<WalletWithdrawalResolveState, FormData>(resolveWalletWithdrawal, undefined)
 
   return (
     <form action={action} className="rounded-2xl border border-slate-800 bg-slate-900 p-4">

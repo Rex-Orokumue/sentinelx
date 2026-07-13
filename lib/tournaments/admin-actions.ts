@@ -25,6 +25,8 @@ function parseForm(formData: FormData) {
     tournamentStart: formData.get('tournamentStart') ?? '',
     tournamentEnd: formData.get('tournamentEnd') ?? '',
     rules: formData.get('rules') ?? '',
+    dataSupportText: formData.get('dataSupportText') ?? '',
+    dataSupportWhatsapp: formData.get('dataSupportWhatsapp') ?? '',
   })
 }
 
@@ -44,6 +46,8 @@ function toRow(d: TournamentInput) {
     tournament_start: orNull(d.tournamentStart),
     tournament_end: orNull(d.tournamentEnd),
     rules: orNull(d.rules),
+    data_support_text: orNull(d.dataSupportText),
+    data_support_whatsapp: orNull(d.dataSupportWhatsapp),
   }
 }
 

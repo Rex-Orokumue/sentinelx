@@ -5,27 +5,33 @@ import { bucketFixtures, type DashboardMatchInput } from '@/lib/dashboard/fixtur
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { FixtureSection } from '@/components/dashboard/FixtureCard'
 import { MyTournaments, type RegistrationRow } from '@/components/dashboard/MyTournaments'
-import { WithdrawalPanel, type WithdrawalRow } from '@/components/dashboard/WithdrawalPanel'
+import { WalletPanel, type WalletRequestRow } from '@/components/dashboard/WalletPanel'
 import { MyListings, type MyListing } from '@/components/dashboard/MyListings'
 import { MyOrders } from '@/components/dashboard/MyOrders'
 import { latestPerListing, type OrderRow } from '@/lib/exchange/orders'
 import { MySales } from '@/components/dashboard/MySales'
 import { ProfileEditForm } from '@/components/dashboard/ProfileEditForm'
-import { ReferralPanel, type ReferralWithdrawalRow } from '@/components/dashboard/ReferralPanel'
+import { ReferralPanel } from '@/components/dashboard/ReferralPanel'
 import { FriendsPanel, type FriendRequestRow, type FriendRow } from '@/components/dashboard/FriendsPanel'
-import { FriendlyWithdrawalPanel, type FriendlyWithdrawalRow } from '@/components/dashboard/FriendlyWithdrawalPanel'
 import { signOut } from '@/lib/auth/actions'
 import { listBanks, type Bank } from '@/lib/paystack/server'
+import { computeDataSupportEligibility } from '@/lib/dashboard/data-support'
+import { DataSupportPanel } from '@/components/dashboard/DataSupportPanel'
 
 export const metadata: Metadata = { title: 'Dashboard · SentinelX Esports' }
 
 type ProfileRef = { id?: string; username: string | null; display_name: string | null } | null
-type TournamentRef = { title: string; slug: string } | { title: string; slug: string }[] | null
+type TournamentRef =
+  | { title: string; slug: string; data_support_text: string | null; data_support_whatsapp: string | null }
+  | { title: string; slug: string; data_support_text: string | null; data_support_whatsapp: string | null }[]
+  | null
 
 function nameOf(p: ProfileRef): string {
   return p?.display_name ?? p?.username ?? 'TBD'
 }
-function firstTournament(t: TournamentRef): { title: string; slug: string } | null {
+function firstTournament(
+  t: TournamentRef,
+): { title: string; slug: string; data_support_text: string | null; data_support_whatsapp: string | null } | null {
   if (Array.isArray(t)) return t[0] ?? null
   return t
 }
@@ -60,17 +66,15 @@ export default async function DashboardPage() {
     matchesRes,
     resultsRes,
     regsRes,
-    wrRes,
+    walletRes,
+    walletRequestsRes,
     listingsRes,
     ordersRes,
     salesRes,
     kycRes,
     banks,
     referralsRes,
-    referralWithdrawalsRes,
     friendsRes,
-    friendlyWinsRes,
-    friendlyWithdrawalsRes,
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -83,7 +87,7 @@ export default async function DashboardPage() {
         'id, status, scheduled_at, round, tournament_id, player_a_id, player_b_id, ' +
           'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
           'player_b:profiles!matches_player_b_id_fkey(id, username, display_name), ' +
-          'tournament:tournaments(title, slug)',
+          'tournament:tournaments(title, slug, data_support_text, data_support_whatsapp)',
       )
       .or(`player_a_id.eq.${user.id},player_b_id.eq.${user.id}`),
     supabase.from('match_results').select('match_id').eq('submitted_by', user.id),
@@ -92,6 +96,7 @@ export default async function DashboardPage() {
       .select('id, payment_status, registered_at, tournament:tournaments(title, slug, status)')
       .eq('player_id', user.id)
       .order('registered_at', { ascending: false }),
+    supabase.from('wallets').select('balance').eq('player_id', user.id).maybeSingle(),
     supabase
       .from('withdrawal_requests')
       .select(
@@ -126,11 +131,6 @@ export default async function DashboardPage() {
       .select('referred:profiles!referrals_referred_id_fkey(username, display_name)')
       .eq('referrer_id', user.id),
     supabase
-      .from('referral_withdrawal_requests')
-      .select('id, amount, status, admin_note, requested_at, resolved_at')
-      .eq('player_id', user.id)
-      .order('requested_at', { ascending: false }),
-    supabase
       .from('friends')
       .select(
         'id, requester_id, recipient_id, status, ' +
@@ -138,17 +138,6 @@ export default async function DashboardPage() {
           'recipient:profiles!friends_recipient_id_fkey(username, display_name)',
       )
       .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`),
-    supabase
-      .from('friendly_matches')
-      .select('stake_amount')
-      .eq('winner_id', user.id)
-      .eq('status', 'completed')
-      .not('stake_amount', 'is', null),
-    supabase
-      .from('friendly_withdrawal_requests')
-      .select('id, amount, status, admin_note, requested_at, resolved_at')
-      .eq('player_id', user.id)
-      .order('requested_at', { ascending: false }),
   ])
 
   const profile = profileRes.data
@@ -221,6 +210,19 @@ export default async function DashboardPage() {
   })
   const fixtures = bucketFixtures(matches, submittedMatchIds, new Date())
 
+  const dataSupportEligibility = computeDataSupportEligibility(
+    rawMatches.map((mm) => {
+      const t = firstTournament(mm.tournament)
+      return {
+        round: mm.round,
+        tournamentId: mm.tournament_id,
+        tournamentTitle: t?.title ?? 'Tournament',
+        dataSupportText: t?.data_support_text ?? null,
+        dataSupportWhatsapp: t?.data_support_whatsapp ?? null,
+      }
+    }),
+  )
+
   const registrations: RegistrationRow[] = ((regsRes.data as unknown[] | null) ?? []).map((raw) => {
     const r = raw as { id: string; payment_status: string; tournament: TournamentRef }
     const t = firstTournament(r.tournament)
@@ -233,8 +235,9 @@ export default async function DashboardPage() {
   })
 
   const kyc = kycRes.data
-  const withdrawals = (wrRes.data ?? []) as WithdrawalRow[]
-  const hasActive = withdrawals.some((w) => w.status === 'pending' || w.status === 'processing')
+  const walletBalance = walletRes.data?.balance ?? 0
+  const walletRequests = (walletRequestsRes.data ?? []) as WalletRequestRow[]
+  const hasActive = walletRequests.some((w) => w.status === 'pending')
   const payoutAccount =
     kyc?.payout_bank_name && kyc?.payout_account_number && kyc?.payout_account_name
       ? {
@@ -249,7 +252,6 @@ export default async function DashboardPage() {
   const referredPlayers = ((referralsRes.data as unknown[] | null) ?? []).map((raw) =>
     referredName((raw as { referred: ReferredRef }).referred),
   )
-  const referralWithdrawals = (referralWithdrawalsRes.data ?? []) as ReferralWithdrawalRow[]
 
   const rawFriends = ((friendsRes.data as unknown[] | null) ?? []) as {
     id: string
@@ -272,11 +274,6 @@ export default async function DashboardPage() {
       const p = friendProfileName(otherIsRequester ? f.requester : f.recipient)
       return { id: f.id, friendName: p.name, friendUsername: p.username }
     })
-
-  const friendlyWins = ((friendlyWinsRes.data ?? []) as { stake_amount: number | null }[]).map((w) => ({
-    stakeAmount: w.stake_amount as number,
-  }))
-  const friendlyWithdrawals = (friendlyWithdrawalsRes.data ?? []) as FriendlyWithdrawalRow[]
 
   return (
     <div className="mx-auto max-w-4xl px-4 pb-20">
@@ -304,25 +301,17 @@ export default async function DashboardPage() {
           bio: profile?.bio ?? null,
         }}
       />
-      <ReferralPanel
-        username={profile?.username ?? ''}
-        referredPlayers={referredPlayers}
-        requests={referralWithdrawals}
-        kycVerified={kyc?.kyc_status === 'verified'}
-      />
+      <ReferralPanel username={profile?.username ?? ''} referredPlayers={referredPlayers} />
+      <DataSupportPanel username={profile?.username ?? ''} eligibility={dataSupportEligibility} />
       <FriendsPanel incoming={incomingRequests} friends={friendsList} />
-      <FriendlyWithdrawalPanel
-        wins={friendlyWins}
-        requests={friendlyWithdrawals}
-        kycVerified={kyc?.kyc_status === 'verified'}
-      />
       <FixtureSection fixtures={fixtures} />
       <MyTournaments registrations={registrations} />
       <MyListings listings={myListings} />
       <MyOrders orders={myOrders} />
       <MySales sales={mySales} />
-      <WithdrawalPanel
-        requests={withdrawals}
+      <WalletPanel
+        balance={walletBalance}
+        requests={walletRequests}
         hasActive={hasActive}
         kycStatus={kyc?.kyc_status ?? 'unverified'}
         kycFailureReason={kyc?.kyc_failure_reason ?? null}

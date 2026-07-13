@@ -17,6 +17,7 @@ import { syncMatchEvents } from '@/lib/scoring/apply'
 import { notify } from '@/lib/notifications/notify'
 import { notifyInApp } from '@/lib/notifications/inbox'
 import { resultKey } from '@/lib/notifications/keys'
+import { creditWallet } from '@/lib/wallet/service'
 
 export type VerifyState = { error?: string; success?: boolean } | undefined
 type Admin = ReturnType<typeof createAdminClient>
@@ -191,7 +192,7 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
   const admin = createAdminClient()
   const { data: m } = await admin
     .from('matches')
-    .select('id, round, group_id, tournament_id, tournament:tournaments(status, slug)')
+    .select('id, round, group_id, tournament_id, player_a_id, player_b_id, tournament:tournaments(status, slug, prize_pool)')
     .eq('id', id)
     .maybeSingle()
   if (!m) return { error: 'Match not found.' }
@@ -208,7 +209,12 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
     .update({ status: 'verified', verified: true, verified_by: ctx.userId, verified_at: new Date().toISOString() })
     .eq('match_id', id)
 
-  const t = firstStr(m.tournament as { status: string; slug: string } | { status: string; slug: string }[] | null)
+  const t = firstStr(
+    m.tournament as
+      | { status: string; slug: string; prize_pool: number }
+      | { status: string; slug: string; prize_pool: number }[]
+      | null,
+  )
   const slug = t?.slug ?? ''
 
   if (!isKnockout && m.group_id) {
@@ -217,6 +223,22 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
     await advanceKnockout(admin, m.tournament_id, m.round)
     if (nextRoundName(m.round) === null) {
       await admin.from('tournaments').update({ status: 'completed' }).eq('id', m.tournament_id)
+
+      // Winner-take-all: the final's winner gets the full prize_pool. No
+      // placement tiers — a runner-up/3rd-place prize, if ever wanted, goes
+      // through the admin manual-credit path (adminCreditWallet), not an
+      // automated split.
+      const winnerId = matchWinnerId({
+        status: 'completed',
+        score_a: scoreA,
+        score_b: scoreB,
+        player_a_id: m.player_a_id,
+        player_b_id: m.player_b_id,
+      })
+      const prizePool = t?.prize_pool ?? 0
+      if (winnerId && prizePool > 0) {
+        await creditWallet(admin, winnerId, prizePool, 'prize', m.tournament_id)
+      }
     }
   }
 
