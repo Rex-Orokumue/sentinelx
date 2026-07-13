@@ -9,6 +9,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: 'Overview', href: '/admin', adminOnly: false },
   { label: 'Tournaments', href: '/admin/tournaments', adminOnly: false },
   { label: 'Results', href: '/admin/results', adminOnly: false },
+  { label: 'Community', href: '/admin/community', adminOnly: false },
   { label: 'TV', href: '/admin/tv', adminOnly: false },
   { label: 'Exchange', href: '/admin/exchange', adminOnly: false },
   { label: 'Withdrawals', href: '/admin/withdrawals', adminOnly: true },

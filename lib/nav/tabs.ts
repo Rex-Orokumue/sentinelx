@@ -12,7 +12,7 @@ export interface TabDef {
 export const PILLAR_TABS: TabDef[] = [
   { key: 'compete', label: 'Compete', href: '/tournaments', feature: null, match: '/tournaments' },
   { key: 'watch', label: 'Watch', href: '/tv', feature: null, match: '/tv' },
-  { key: 'community', label: 'Community', href: '/coming-soon?feature=Community', feature: 'Community', match: null },
+  { key: 'community', label: 'Community', href: '/community', feature: null, match: '/community' },
   { key: 'trade', label: 'Trade', href: '/exchange', feature: null, match: '/exchange' },
 ]
 
