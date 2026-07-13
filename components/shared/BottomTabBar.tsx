@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { Trophy, Play, Users, ShoppingBag, User } from 'lucide-react'
+import { Trophy, Play, Users, ShoppingBag, User, ChevronUp } from 'lucide-react'
 import { PILLAR_TABS, isTabActive } from '@/lib/nav/tabs'
 import { Avatar } from '@/components/shared/Avatar'
 import { signOut } from '@/lib/auth/actions'
@@ -78,7 +78,12 @@ export function BottomTabBar({ session }: { session: NavSession }) {
                 size={20}
                 className={accountActive ? 'ring-2 ring-violet-400' : ''}
               />
-              Account
+              <span className="flex items-center gap-0.5">
+                Account
+                <ChevronUp
+                  className={`h-2.5 w-2.5 transition-transform ${menuOpen ? 'rotate-180' : ''}`}
+                />
+              </span>
             </button>
             {menuOpen && (
               <div className="absolute bottom-full right-0 mb-2 w-40 rounded-xl border border-slate-800 bg-slate-900 py-1 shadow-xl">
