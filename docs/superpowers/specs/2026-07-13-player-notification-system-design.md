@@ -9,7 +9,7 @@
 
 ## 1. Goal
 
-An in-app notification bell, general-purpose from day one: friend requests, exchange listing moderation, prize/referral withdrawal outcomes, match result confirmations, and referral credits all land in one inbox. Five of those six event types already exist in shipped code and get retrofitted with a notification call in this spec; the sixth (friend requests) doesn't exist yet and will call into this system when #26 builds it.
+An in-app notification bell, general-purpose from day one: friend requests, exchange listing moderation, prize/referral withdrawal outcomes, match result confirmations, and referral credits all land in one inbox. Eight of those nine notification types (every one except friend requests — see §3's full list) already exist in shipped code and get retrofitted with a notification call in this spec; `friend_request` doesn't exist yet and will call into this system when #26 builds it.
 
 ## 2. Naming — do not confuse with the existing `notifications` table
 
