@@ -283,53 +283,6 @@ export type Database = {
           },
         ]
       }
-      friendly_withdrawal_requests: {
-        Row: {
-          account_name: string
-          account_number: string
-          admin_note: string | null
-          amount: number
-          bank_name: string
-          id: string
-          player_id: string
-          requested_at: string
-          resolved_at: string | null
-          status: string
-        }
-        Insert: {
-          account_name: string
-          account_number: string
-          admin_note?: string | null
-          amount: number
-          bank_name: string
-          id?: string
-          player_id: string
-          requested_at?: string
-          resolved_at?: string | null
-          status?: string
-        }
-        Update: {
-          account_name?: string
-          account_number?: string
-          admin_note?: string | null
-          amount?: number
-          bank_name?: string
-          id?: string
-          player_id?: string
-          requested_at?: string
-          resolved_at?: string | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "friendly_withdrawal_requests_player_id_fkey"
-            columns: ["player_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       friends: {
         Row: {
           created_at: string
@@ -1061,53 +1014,6 @@ export type Database = {
           },
         ]
       }
-      referral_withdrawal_requests: {
-        Row: {
-          account_name: string
-          account_number: string
-          admin_note: string | null
-          amount: number
-          bank_name: string
-          id: string
-          player_id: string
-          requested_at: string
-          resolved_at: string | null
-          status: string
-        }
-        Insert: {
-          account_name: string
-          account_number: string
-          admin_note?: string | null
-          amount: number
-          bank_name: string
-          id?: string
-          player_id: string
-          requested_at?: string
-          resolved_at?: string | null
-          status?: string
-        }
-        Update: {
-          account_name?: string
-          account_number?: string
-          admin_note?: string | null
-          amount?: number
-          bank_name?: string
-          id?: string
-          player_id?: string
-          requested_at?: string
-          resolved_at?: string | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "referral_withdrawal_requests_player_id_fkey"
-            columns: ["player_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       referrals: {
         Row: {
           created_at: string
@@ -1384,6 +1290,70 @@ export type Database = {
           },
         ]
       }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          player_id: string
+          reference_id: string | null
+          type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          player_id: string
+          reference_id?: string | null
+          type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          player_id?: string
+          reference_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallets: {
+        Row: {
+          balance: number
+          player_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          player_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          player_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallets_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       withdrawal_requests: {
         Row: {
           account_name: string
@@ -1392,8 +1362,6 @@ export type Database = {
           amount: number
           bank_name: string
           id: string
-          paystack_transfer_code: string | null
-          paystack_transfer_reference: string | null
           player_id: string
           requested_at: string
           resolved_at: string | null
@@ -1406,8 +1374,6 @@ export type Database = {
           amount: number
           bank_name: string
           id?: string
-          paystack_transfer_code?: string | null
-          paystack_transfer_reference?: string | null
           player_id: string
           requested_at?: string
           resolved_at?: string | null
@@ -1420,8 +1386,6 @@ export type Database = {
           amount?: number
           bank_name?: string
           id?: string
-          paystack_transfer_code?: string | null
-          paystack_transfer_reference?: string | null
           player_id?: string
           requested_at?: string
           resolved_at?: string | null
