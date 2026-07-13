@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveCallbackRedirect } from '@/lib/auth/redirect'
 import { notifyInApp } from '@/lib/notifications/inbox'
+import { creditWallet } from '@/lib/wallet/service'
+import { REFERRAL_CREDIT_NGN } from '@/lib/referrals/constants'
 
 // Server-side verification for email links (signup confirmation + password
 // recovery). Supabase email templates point here with a token_hash + type;
@@ -43,25 +45,29 @@ async function creditReferralIfAny(userId: string): Promise<void> {
     .maybeSingle()
   if (!profile?.referred_by) return
 
-  const { error } = await admin
+  const { data: referral, error } = await admin
     .from('referrals')
     .insert({ referrer_id: profile.referred_by, referred_id: userId })
-  if (error) {
-    if ((error as { code?: string }).code !== '23505') {
+    .select('id')
+    .single()
+  if (error || !referral) {
+    if ((error as { code?: string })?.code !== '23505') {
       console.error('[auth/confirm] referral credit failed', {
         userId,
-        code: (error as { code?: string }).code,
-        message: error.message,
+        code: (error as { code?: string })?.code,
+        message: error?.message,
       })
     }
     return
   }
 
+  await creditWallet(admin, profile.referred_by, REFERRAL_CREDIT_NGN, 'referral', referral.id)
+
   await notifyInApp({
     playerId: profile.referred_by,
     type: 'referral_credited',
     title: 'Referral credited',
-    body: 'Someone you referred just joined Sentinel X — ₦100 added to your referral balance.',
+    body: 'Someone you referred just joined Sentinel X — ₦100 added to your wallet.',
     link: '/dashboard',
   })
 }
