@@ -47,7 +47,7 @@ export function WithdrawalQueueRow({ req }: { req: PendingWithdrawal }) {
           value="paid"
           className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500"
         >
-          {isFailed ? 'Retry payout' : 'Pay'}
+          Pay
         </button>
         {!isFailed && (
           <button

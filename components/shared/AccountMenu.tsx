@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { ChevronDown } from 'lucide-react'
 import { signOut } from '@/lib/auth/actions'
 import { Avatar } from '@/components/shared/Avatar'
 import type { NavSession } from '@/lib/nav/session'
@@ -35,6 +36,8 @@ export function AccountMenu({ session }: { session: NavSession }) {
     )
   }
 
+  const name = session.displayName ?? session.username ?? 'Account'
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -42,13 +45,17 @@ export function AccountMenu({ session }: { session: NavSession }) {
         onClick={() => setOpen((o) => !o)}
         aria-label="Account menu"
         aria-expanded={open}
-        className="flex items-center rounded-full ring-1 ring-slate-700 transition hover:ring-slate-500"
+        className="flex max-w-[10rem] items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 ring-1 ring-slate-700 transition hover:ring-slate-500"
       >
         <Avatar
           avatarUrl={session.avatarUrl}
           displayName={session.displayName}
           username={session.username}
-          size={30}
+          size={26}
+        />
+        <span className="truncate text-sm font-semibold text-slate-200">{name}</span>
+        <ChevronDown
+          className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
       {open && (
