@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
-import { fromDateTimeLocal } from '@/lib/format'
+import { fromDateTimeLocal, fromDateLocal } from '@/lib/format'
 import { matchEditSchema } from './edit-schema'
 
 export type MatchAdminState = { error?: string; success?: boolean } | undefined
@@ -32,7 +32,9 @@ export async function updateMatch(
   if (!id) return { error: 'Missing match.' }
 
   const parsed = matchEditSchema.safeParse({
+    schedulingMode: formData.get('schedulingMode') ?? 'timed',
     scheduledAt: formData.get('scheduledAt') ?? '',
+    scheduledDate: formData.get('scheduledDate') ?? '',
     streamUrl: formData.get('streamUrl') ?? '',
     replayUrl: formData.get('replayUrl') ?? '',
   })
@@ -46,11 +48,17 @@ export async function updateMatch(
     .maybeSingle()
   if (!m) return { error: 'Match not found.' }
 
+  const isFullDay = parsed.data.schedulingMode === 'full_day'
+  const scheduledAt = isFullDay
+    ? fromDateLocal(parsed.data.scheduledDate)
+    : fromDateTimeLocal(parsed.data.scheduledAt)
+
   const orNull = (v: string) => (v === '' ? null : v)
   const { error } = await supabase
     .from('matches')
     .update({
-      scheduled_at: fromDateTimeLocal(parsed.data.scheduledAt),
+      scheduled_at: scheduledAt,
+      is_full_day: isFullDay,
       youtube_stream_url: orNull(parsed.data.streamUrl),
       replay_url: orNull(parsed.data.replayUrl),
     })
