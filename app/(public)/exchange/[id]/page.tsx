@@ -58,8 +58,17 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 
 export default async function ListingDetailPage({ params }: { params: { id: string } }) {
   const l = await load(params.id)
-  // Only active listings are public (RLS also hides non-active from non-owners).
-  if (!l || l.status !== 'active') notFound()
+  if (!l) notFound()
+
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const isOwner = !!user && user.id === l.seller_id
+
+  // Only active listings are public; the owner can also view their own
+  // pending/removed listing (e.g. right after submitting it for review).
+  if (l.status !== 'active' && !isOwner) notFound()
 
   const images = [...(l.listing_images ?? [])]
     .sort((a, b) => a.display_order - b.display_order)
@@ -67,15 +76,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
   const sellerName = first(l.seller)?.username ?? null
   const game = first(l.games)?.name ?? null
 
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  const viewerState: 'guest' | 'owner' | 'buyable' = !user
-    ? 'guest'
-    : user.id === l.seller_id
-      ? 'owner'
-      : 'buyable'
+  const viewerState: 'guest' | 'owner' | 'buyable' = !user ? 'guest' : isOwner ? 'owner' : 'buyable'
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-20 pt-6">
@@ -85,6 +86,11 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
         <span className="rounded-full bg-slate-800 px-2.5 py-0.5 text-[11px] font-bold uppercase text-slate-300">
           {CATEGORY_LABELS[l.category]}
         </span>
+        {l.status !== 'active' && (
+          <span className="ml-2 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold uppercase text-amber-400">
+            {l.status === 'pending' ? 'Awaiting review' : l.status}
+          </span>
+        )}
         <h1 className="mt-2 text-2xl font-black text-white">{l.title}</h1>
         <p className="mt-1 text-2xl font-black text-violet-400">{formatNaira(l.price)}</p>
         {game && <p className="mt-1 text-sm text-slate-400">{game}</p>}

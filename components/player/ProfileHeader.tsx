@@ -32,6 +32,7 @@ export function ProfileHeader({ profile }: { profile: ProfileView }) {
             {profile.rank != null ? `Ranked #${profile.rank}` : 'Unranked'}
           </span>
         </div>
+        {profile.bio && <p className="mt-3 whitespace-pre-line text-sm text-slate-300">{profile.bio}</p>}
       </div>
     </header>
   )

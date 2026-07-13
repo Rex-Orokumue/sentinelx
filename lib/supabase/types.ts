@@ -56,6 +56,38 @@ export type Database = {
           },
         ]
       }
+      community_post_images: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          image_url: string
+          post_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url: string
+          post_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_post_images_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_posts: {
         Row: {
           author_id: string
@@ -130,38 +162,6 @@ export type Database = {
           },
           {
             foreignKeyName: "community_replies_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "community_posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      community_post_images: {
-        Row: {
-          created_at: string
-          display_order: number
-          id: string
-          image_url: string
-          post_id: string
-        }
-        Insert: {
-          created_at?: string
-          display_order?: number
-          id?: string
-          image_url: string
-          post_id: string
-        }
-        Update: {
-          created_at?: string
-          display_order?: number
-          id?: string
-          image_url?: string
-          post_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_post_images_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "community_posts"
@@ -723,36 +723,36 @@ export type Database = {
         Row: {
           kyc_failure_reason: string | null
           kyc_status: string
-          paystack_customer_code: string | null
-          paystack_recipient_code: string | null
           payout_account_name: string | null
           payout_account_number: string | null
           payout_bank_code: string | null
           payout_bank_name: string | null
+          paystack_customer_code: string | null
+          paystack_recipient_code: string | null
           player_id: string
           updated_at: string
         }
         Insert: {
           kyc_failure_reason?: string | null
           kyc_status?: string
-          paystack_customer_code?: string | null
-          paystack_recipient_code?: string | null
           payout_account_name?: string | null
           payout_account_number?: string | null
           payout_bank_code?: string | null
           payout_bank_name?: string | null
+          paystack_customer_code?: string | null
+          paystack_recipient_code?: string | null
           player_id: string
           updated_at?: string
         }
         Update: {
           kyc_failure_reason?: string | null
           kyc_status?: string
-          paystack_customer_code?: string | null
-          paystack_recipient_code?: string | null
           payout_account_name?: string | null
           payout_account_number?: string | null
           payout_bank_code?: string | null
           payout_bank_name?: string | null
+          paystack_customer_code?: string | null
+          paystack_recipient_code?: string | null
           player_id?: string
           updated_at?: string
         }
@@ -769,6 +769,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           country: string | null
           created_at: string
           display_name: string | null
@@ -789,6 +790,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           country?: string | null
           created_at?: string
           display_name?: string | null
@@ -809,6 +811,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           country?: string | null
           created_at?: string
           display_name?: string | null

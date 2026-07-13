@@ -11,6 +11,7 @@ export interface ProfileView {
   displayName: string | null
   avatarUrl: string | null
   country: string | null
+  bio: string | null
   createdAt: string | null
   sentinelScore: number
   sentinelTier: string | null

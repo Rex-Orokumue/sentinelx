@@ -10,7 +10,7 @@ import { ProfileMatchHistory } from '@/components/player/ProfileMatchHistory'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
 const PROFILE_COLS =
-  'id, username, display_name, avatar_url, country, created_at, sentinel_score, sentinel_tier, ' +
+  'id, username, display_name, avatar_url, country, bio, created_at, sentinel_score, sentinel_tier, ' +
   'total_matches, wins, losses, goals_scored, goals_conceded, total_titles'
 
 type ProfileRow = {
@@ -19,6 +19,7 @@ type ProfileRow = {
   display_name: string | null
   avatar_url: string | null
   country: string | null
+  bio: string | null
   created_at: string | null
   sentinel_score: number
   sentinel_tier: string | null
@@ -166,6 +167,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
     displayName: p.display_name,
     avatarUrl: p.avatar_url,
     country: p.country,
+    bio: p.bio,
     createdAt: p.created_at,
     sentinelScore: p.sentinel_score,
     sentinelTier: p.sentinel_tier,

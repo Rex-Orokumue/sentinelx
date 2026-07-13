@@ -10,6 +10,7 @@ import { MyListings, type MyListing } from '@/components/dashboard/MyListings'
 import { MyOrders } from '@/components/dashboard/MyOrders'
 import { latestPerListing, type OrderRow } from '@/lib/exchange/orders'
 import { MySales } from '@/components/dashboard/MySales'
+import { ProfileEditForm } from '@/components/dashboard/ProfileEditForm'
 import { signOut } from '@/lib/auth/actions'
 import { listBanks, type Bank } from '@/lib/paystack/server'
 
@@ -47,7 +48,7 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('username, display_name, wins, losses, goals_scored')
+      .select('username, display_name, avatar_url, whatsapp_number, country, bio, wins, losses, goals_scored')
       .eq('id', user.id)
       .maybeSingle(),
     supabase
@@ -207,6 +208,16 @@ export default async function DashboardPage() {
           Sign out
         </button>
       </form>
+      <ProfileEditForm
+        profile={{
+          displayName: profile?.display_name ?? null,
+          username: profile?.username ?? null,
+          avatarUrl: profile?.avatar_url ?? null,
+          whatsapp: profile?.whatsapp_number ?? null,
+          country: profile?.country ?? null,
+          bio: profile?.bio ?? null,
+        }}
+      />
       <FixtureSection fixtures={fixtures} />
       <MyTournaments registrations={registrations} />
       <MyListings listings={myListings} />
