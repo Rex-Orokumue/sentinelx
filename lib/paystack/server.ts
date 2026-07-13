@@ -15,6 +15,13 @@ export function buildReference(tournamentId: string, userId: string): string {
   return `sx_${t}_${u}_${rand}`
 }
 
+export function buildFriendlyStakeReference(friendlyMatchId: string, userId: string): string {
+  const m = friendlyMatchId.replace(/-/g, '').slice(0, 8)
+  const u = userId.replace(/-/g, '').slice(0, 8)
+  const rand = Math.random().toString(36).slice(2, 10).padEnd(8, '0')
+  return `sxfm_${m}_${u}_${rand}`
+}
+
 export function verifyWebhookSignature(rawBody: string, signature: string | null): boolean {
   if (!signature) return false
   const expected = createHmac('sha512', secret()).update(rawBody).digest('hex')

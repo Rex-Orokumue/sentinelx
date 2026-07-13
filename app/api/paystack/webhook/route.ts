@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyWebhookSignature } from '@/lib/paystack/server'
 import { confirmRegistration } from '@/lib/tournaments/confirm'
+import { confirmFriendlyStake } from '@/lib/friendly-matches/confirm'
 import { applyIdentificationWebhook } from '@/lib/kyc/webhook'
 import { applyTransferWebhook } from '@/lib/withdrawals/webhook'
 
@@ -34,7 +35,14 @@ export async function POST(req: NextRequest) {
   const type = event.event
 
   if (type === 'charge.success' && event.data?.reference) {
-    await confirmRegistration(event.data.reference)
+    const result = await confirmRegistration(event.data.reference)
+    // Fan-out is gated strictly on this exact return value — never on
+    // catching an exception. confirmRegistration doesn't throw in practice
+    // (every path resolves to a ConfirmResult string); if that ever changes,
+    // a genuine error must still propagate as a 500, not fall through here.
+    if (result === 'not_found') {
+      await confirmFriendlyStake(event.data.reference)
+    }
   } else if (type === 'customeridentification.success' || type === 'customeridentification.failed') {
     const customerCode = event.data?.customer?.customer_code
     if (customerCode) {
