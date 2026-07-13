@@ -66,7 +66,7 @@ CREATE TABLE public.friendly_matches (
 
 ## 5. Result submission — single-sided, no separate results table
 
-The winner submits `score_challenger`/`score_opponent` + a screenshot directly onto the `friendly_matches` row (no dual-submission/bracket-advancement complexity like tournament matches, so no separate `match_results`-equivalent table). Screenshot goes to a new private `friendly-match-evidence` storage bucket, mirroring the existing `match-evidence` bucket's RLS (participant + staff read via signed URL, participant write). Admin confirms or disputes from a new `/admin/friendlies` queue — same manual review pattern as every other admin queue in this codebase.
+The winner submits `score_challenger`/`score_opponent` + a screenshot directly onto the `friendly_matches` row (no dual-submission/bracket-advancement complexity like tournament matches, so no separate `match_results`-equivalent table). Screenshot goes to a new private `friendly-match-evidence` storage bucket, mirroring the existing `match-evidence` bucket's RLS (participant + staff read via signed URL, participant write). Admin confirms or disputes from a new `/admin/friendlies` queue — same manual review pattern as every other admin queue in this codebase. This new page needs its own entry in `lib/admin/nav.ts`'s `ADMIN_NAV` array, `adminOnly: true` (it resolves money, same as `Withdrawals`/`Referrals` — moderators don't touch financial queues) — easy to forget since it's a brand-new admin surface, not an addition to an existing page.
 
 ## 6. Match Room — WhatsApp button, not raw number, matching #25's established pattern
 
@@ -89,6 +89,8 @@ CREATE TABLE public.friendly_withdrawal_requests (
 ```
 
 Structurally identical to `referral_withdrawal_requests` — own table, `is_admin()`-only resolution, manual payout (matching prize/referral withdrawals' current state), notification-wired via `notifyInApp()`. Balance is derived, never stored: sum of `stake_amount * 2` for matches where the player is `winner_id` and `status = 'completed'`, minus non-rejected withdrawal amounts.
+
+**Assumption in that formula, stated explicitly:** `stake_amount` is a single shared column — both players always pay the identical amount (there is no separate `challenger_stake`/`opponent_stake`), so the winner's payout is always exactly the full pot, `stake_amount * 2`, with no asymmetric-stake or partial-refund case to account for. This holds as long as staked friendlies only ever reach `completed` via the normal both-paid-the-same-amount path. A `disputed` match that somehow needed a partial refund would NOT go through this formula at all — disputes are resolved manually by admin (§3, §9) outside the automated balance calculation, so this scenario doesn't arise without a deliberate, separate future change.
 
 **Flag, not fixed here:** this is now the **third** separate withdrawal table (prize, referral, staked-friendly) with near-identical shape and manual-resolution logic duplicated three times. A unified withdrawal system (one table with a `source` discriminator column, or a shared query/UI layer across the three) should be seriously considered before a fourth withdrawal type is ever added — noted for v4.0 planning, not addressed in this spec.
 
