@@ -28,12 +28,27 @@ export async function createPost(input: {
     .insert({ game_id: d.gameId, author_id: user.id, body: d.body })
     .select('id')
     .single()
-  if (error || !post) return { error: 'Could not post. Please try again.' }
+  if (error || !post) {
+    console.error('[createPost] community_posts insert failed', {
+      gameId: d.gameId,
+      authorId: user.id,
+      code: error?.code,
+      message: error?.message,
+    })
+    return { error: 'Could not post. Please try again.' }
+  }
 
   const urls = (input.imageUrls ?? []).slice(0, MAX_IMAGES)
   if (urls.length > 0) {
     const rows = urls.map((url, i) => ({ post_id: post.id, image_url: url, display_order: i }))
-    await supabase.from('community_post_images').insert(rows)
+    const { error: imgErr } = await supabase.from('community_post_images').insert(rows)
+    if (imgErr) {
+      console.error('[createPost] community_post_images insert failed', {
+        postId: post.id,
+        code: imgErr.code,
+        message: imgErr.message,
+      })
+    }
   }
 
   revalidatePath('/community')
@@ -60,12 +75,27 @@ export async function createReply(input: {
     .insert({ post_id: parsed.data.postId, author_id: user.id, body: parsed.data.body })
     .select('id')
     .single()
-  if (error || !reply) return { error: 'Could not post your reply. Please try again.' }
+  if (error || !reply) {
+    console.error('[createReply] community_replies insert failed', {
+      postId: parsed.data.postId,
+      authorId: user.id,
+      code: error?.code,
+      message: error?.message,
+    })
+    return { error: 'Could not post your reply. Please try again.' }
+  }
 
   const urls = (input.imageUrls ?? []).slice(0, MAX_IMAGES)
   if (urls.length > 0) {
     const rows = urls.map((url, i) => ({ reply_id: reply.id, image_url: url, display_order: i }))
-    await supabase.from('community_reply_images').insert(rows)
+    const { error: imgErr } = await supabase.from('community_reply_images').insert(rows)
+    if (imgErr) {
+      console.error('[createReply] community_reply_images insert failed', {
+        replyId: reply.id,
+        code: imgErr.code,
+        message: imgErr.message,
+      })
+    }
   }
 
   revalidatePath('/community')
