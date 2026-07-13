@@ -1153,6 +1153,8 @@ export type Database = {
         Row: {
           banner_url: string | null
           created_at: string
+          data_support_text: string | null
+          data_support_whatsapp: string | null
           description: string | null
           format: string
           game_id: string
@@ -1173,6 +1175,8 @@ export type Database = {
         Insert: {
           banner_url?: string | null
           created_at?: string
+          data_support_text?: string | null
+          data_support_whatsapp?: string | null
           description?: string | null
           format?: string
           game_id: string
@@ -1193,6 +1197,8 @@ export type Database = {
         Update: {
           banner_url?: string | null
           created_at?: string
+          data_support_text?: string | null
+          data_support_whatsapp?: string | null
           description?: string | null
           format?: string
           game_id?: string
