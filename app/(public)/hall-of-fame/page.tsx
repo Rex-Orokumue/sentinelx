@@ -7,6 +7,7 @@ import {
   deriveChampions,
   type ChampionInput,
 } from '@/lib/hall-of-fame/awards'
+import { footballGoalsByPlayer, type GameScopedMatch } from '@/lib/rankings/game-breakdown'
 import type { BracketMatch } from '@/lib/tournaments/bracket'
 import { AwardCard } from '@/components/hall-of-fame/AwardCard'
 import { ChampionCard } from '@/components/hall-of-fame/ChampionCard'
@@ -39,11 +40,21 @@ function firstGameName(games: unknown): string | null {
   return (games as { name?: string } | null)?.name ?? null
 }
 
+type RawGameRef = { name: string; category: string } | { name: string; category: string }[] | null
+type RawTournamentRef = { game: RawGameRef } | { game: RawGameRef }[] | null
+
+function firstGameRef(g: RawGameRef): { name: string; category: string } | null {
+  return Array.isArray(g) ? g[0] ?? null : g
+}
+function firstTournamentRef(t: RawTournamentRef): { game: RawGameRef } | null {
+  return Array.isArray(t) ? t[0] ?? null : t
+}
+
 export default async function HallOfFamePage() {
   const supabase = createClient()
 
   // Awards: eligible profiles. Champions: completed tournaments + their completed finals.
-  const [{ data: profileRows }, { data: tournamentRows }] = await Promise.all([
+  const [{ data: profileRows }, { data: tournamentRows }, { data: matchRows }] = await Promise.all([
     supabase
       .from('profiles')
       .select(
@@ -54,7 +65,36 @@ export default async function HallOfFamePage() {
       .from('tournaments')
       .select('id, slug, title, tournament_end, games(name)')
       .eq('status', 'completed'),
+    supabase
+      .from('matches')
+      .select(
+        'status, score_a, score_b, player_a_id, player_b_id, tournament:tournaments(game:games(name, category))',
+      )
+      .eq('status', 'completed'),
   ])
+
+  const rawMatches = ((matchRows as unknown[] | null) ?? []) as {
+    status: string
+    score_a: number | null
+    score_b: number | null
+    player_a_id: string | null
+    player_b_id: string | null
+    tournament: RawTournamentRef
+  }[]
+  const matches: GameScopedMatch[] = rawMatches.map((m) => {
+    const t = firstTournamentRef(m.tournament)
+    const g = firstGameRef(t?.game ?? null)
+    return {
+      status: m.status,
+      score_a: m.score_a,
+      score_b: m.score_b,
+      player_a_id: m.player_a_id,
+      player_b_id: m.player_b_id,
+      game_name: g?.name ?? 'Unknown',
+      game_category: g?.category ?? 'other',
+    }
+  })
+  const goalsMap = footballGoalsByPlayer(matches)
 
   const players: PlayerStatsInput[] = (profileRows ?? []).map((p) => ({
     id: p.id,
@@ -67,6 +107,9 @@ export default async function HallOfFamePage() {
     totalMatches: p.total_matches,
     goalsScored: p.goals_scored,
     goalsConceded: p.goals_conceded,
+    footballGoalsScored: goalsMap.get(p.id)?.scored ?? 0,
+    footballGoalsConceded: goalsMap.get(p.id)?.conceded ?? 0,
+    winsByGame: [],
     totalTitles: p.total_titles,
     sentinelScore: p.sentinel_score,
     sentinelTier: p.sentinel_tier,
@@ -176,7 +219,7 @@ export default async function HallOfFamePage() {
                     icon="👟"
                     name={goldenBoot.displayName ?? goldenBoot.username ?? 'Anonymous'}
                     metricLabel="goals scored"
-                    metricValue={goldenBoot.goalsScored}
+                    metricValue={goldenBoot.footballGoalsScored}
                   />
                 )}
               </div>
