@@ -51,7 +51,7 @@ export function FixtureCard({ fixture }: { fixture: DashboardFixture }) {
           onClick={(e) => e.stopPropagation()}
           className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[#25D366]/30 px-3 py-1.5 text-xs font-bold text-[#25D366] transition-colors hover:bg-[#25D366]/10"
         >
-          Message opponent
+          Coordinate on WhatsApp
         </a>
       )}
     </div>
