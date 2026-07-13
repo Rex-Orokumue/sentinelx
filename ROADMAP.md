@@ -81,9 +81,10 @@ per-game only (not per-tournament).
 |---|------|--------|
 | 21 | Multi-game support + team/school/state leagues | ⬜ |
 | 22 | Referral program — referral link, ₦100/referral credit, separate referral balance + withdrawal queue | ✅ |
-| 23 | Rankings improvements — per-game wins breakdown, Sentinel Score/Hall of Fame scope audit | ⬜ |
-| 24 | Full-day match scheduling — date-only matches, auto-expire, admin override | ⬜ |
+| 23 | Rankings improvements — per-game wins breakdown, Sentinel Score/Hall of Fame scope audit | ✅ |
+| 24 | Full-day match scheduling — date-only matches, auto-expire (cron), admin override | ✅ |
 | 25 | WhatsApp fixture coordination audit — confirmed already built (#15+session fixture work); button copy aligned to spec | ✅ |
+| — | Player notification system — in-app bell, 8 event types retrofitted (listings/withdrawals/referrals/results/referral credit), unblocks #26+#27 | ✅ |
 | 26 | Friend system + friendly matches (free + staked) | ⬜ |
 | 27 | Admin notifications | ⬜ |
 
