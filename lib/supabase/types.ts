@@ -63,7 +63,6 @@ export type Database = {
           created_at: string
           game_id: string
           id: string
-          image_url: string | null
           updated_at: string
         }
         Insert: {
@@ -72,7 +71,6 @@ export type Database = {
           created_at?: string
           game_id: string
           id?: string
-          image_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -81,7 +79,6 @@ export type Database = {
           created_at?: string
           game_id?: string
           id?: string
-          image_url?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -136,6 +133,70 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_post_images: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          image_url: string
+          post_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url: string
+          post_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_post_images_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_reply_images: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          image_url: string
+          reply_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url: string
+          reply_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          reply_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_reply_images_reply_id_fkey"
+            columns: ["reply_id"]
+            isOneToOne: false
+            referencedRelation: "community_replies"
             referencedColumns: ["id"]
           },
         ]
