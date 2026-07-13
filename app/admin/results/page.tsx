@@ -21,13 +21,13 @@ export default async function AdminResultsPage() {
   const { data } = await supabase
     .from('matches')
     .select(
-      'id, round, status, scheduled_at, tournament_id, ' +
+      'id, round, status, scheduled_at, is_full_day, auto_expired, tournament_id, ' +
         'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
         'player_b:profiles!matches_player_b_id_fkey(id, username, display_name), ' +
         'tournament:tournaments(title, slug), ' +
         'match_results(count)',
     )
-    .in('status', ['scheduled', 'live', 'disputed'])
+    .in('status', ['scheduled', 'live', 'disputed', 'cancelled'])
 
   const rawRows = (data as unknown[] | null) ?? []
   const tournamentIds = Array.from(
@@ -48,6 +48,8 @@ export default async function AdminResultsPage() {
       round: string
       status: string
       scheduled_at: string | null
+      is_full_day: boolean
+      auto_expired: boolean
       tournament_id: string
       player_a: ProfileRef
       player_b: ProfileRef
@@ -59,6 +61,8 @@ export default async function AdminResultsPage() {
       id: m.id,
       status: m.status,
       scheduledAt: m.scheduled_at,
+      isFullDay: m.is_full_day,
+      autoExpired: m.auto_expired,
       submissionCount: m.match_results?.[0]?.count ?? 0,
       round: m.round,
       playerAName: nameOf(m.player_a),
