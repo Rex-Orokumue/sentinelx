@@ -15,6 +15,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: 'Withdrawals', href: '/admin/withdrawals', adminOnly: true },
   { label: 'Referrals', href: '/admin/referrals', adminOnly: true },
   { label: 'Friendlies', href: '/admin/friendlies', adminOnly: true },
+  { label: 'Friendly withdrawals', href: '/admin/friendly-withdrawals', adminOnly: true },
 ]
 
 // Returns items in original order, dropping adminOnly items for non-admins.

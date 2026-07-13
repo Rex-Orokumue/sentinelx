@@ -13,6 +13,7 @@ import { MySales } from '@/components/dashboard/MySales'
 import { ProfileEditForm } from '@/components/dashboard/ProfileEditForm'
 import { ReferralPanel, type ReferralWithdrawalRow } from '@/components/dashboard/ReferralPanel'
 import { FriendsPanel, type FriendRequestRow, type FriendRow } from '@/components/dashboard/FriendsPanel'
+import { FriendlyWithdrawalPanel, type FriendlyWithdrawalRow } from '@/components/dashboard/FriendlyWithdrawalPanel'
 import { signOut } from '@/lib/auth/actions'
 import { listBanks, type Bank } from '@/lib/paystack/server'
 
@@ -68,6 +69,8 @@ export default async function DashboardPage() {
     referralsRes,
     referralWithdrawalsRes,
     friendsRes,
+    friendlyWinsRes,
+    friendlyWithdrawalsRes,
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -135,6 +138,17 @@ export default async function DashboardPage() {
           'recipient:profiles!friends_recipient_id_fkey(username, display_name)',
       )
       .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`),
+    supabase
+      .from('friendly_matches')
+      .select('stake_amount')
+      .eq('winner_id', user.id)
+      .eq('status', 'completed')
+      .not('stake_amount', 'is', null),
+    supabase
+      .from('friendly_withdrawal_requests')
+      .select('id, amount, status, admin_note, requested_at, resolved_at')
+      .eq('player_id', user.id)
+      .order('requested_at', { ascending: false }),
   ])
 
   const profile = profileRes.data
@@ -259,6 +273,11 @@ export default async function DashboardPage() {
       return { id: f.id, friendName: p.name, friendUsername: p.username }
     })
 
+  const friendlyWins = ((friendlyWinsRes.data ?? []) as { stake_amount: number | null }[]).map((w) => ({
+    stakeAmount: w.stake_amount as number,
+  }))
+  const friendlyWithdrawals = (friendlyWithdrawalsRes.data ?? []) as FriendlyWithdrawalRow[]
+
   return (
     <div className="mx-auto max-w-4xl px-4 pb-20">
       <DashboardHeader
@@ -292,6 +311,11 @@ export default async function DashboardPage() {
         kycVerified={kyc?.kyc_status === 'verified'}
       />
       <FriendsPanel incoming={incomingRequests} friends={friendsList} />
+      <FriendlyWithdrawalPanel
+        wins={friendlyWins}
+        requests={friendlyWithdrawals}
+        kycVerified={kyc?.kyc_status === 'verified'}
+      />
       <FixtureSection fixtures={fixtures} />
       <MyTournaments registrations={registrations} />
       <MyListings listings={myListings} />
