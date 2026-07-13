@@ -201,6 +201,174 @@ export type Database = {
           },
         ]
       }
+      friendly_matches: {
+        Row: {
+          admin_note: string | null
+          challenger_id: string
+          challenger_paid: boolean
+          challenger_paystack_reference: string | null
+          completed_at: string | null
+          created_at: string
+          game_code: string | null
+          id: string
+          opponent_id: string
+          opponent_paid: boolean
+          opponent_paystack_reference: string | null
+          score_challenger: number | null
+          score_opponent: number | null
+          screenshot_url: string | null
+          stake_amount: number | null
+          status: string
+          winner_id: string | null
+        }
+        Insert: {
+          admin_note?: string | null
+          challenger_id: string
+          challenger_paid?: boolean
+          challenger_paystack_reference?: string | null
+          completed_at?: string | null
+          created_at?: string
+          game_code?: string | null
+          id?: string
+          opponent_id: string
+          opponent_paid?: boolean
+          opponent_paystack_reference?: string | null
+          score_challenger?: number | null
+          score_opponent?: number | null
+          screenshot_url?: string | null
+          stake_amount?: number | null
+          status?: string
+          winner_id?: string | null
+        }
+        Update: {
+          admin_note?: string | null
+          challenger_id?: string
+          challenger_paid?: boolean
+          challenger_paystack_reference?: string | null
+          completed_at?: string | null
+          created_at?: string
+          game_code?: string | null
+          id?: string
+          opponent_id?: string
+          opponent_paid?: boolean
+          opponent_paystack_reference?: string | null
+          score_challenger?: number | null
+          score_opponent?: number | null
+          screenshot_url?: string | null
+          stake_amount?: number | null
+          status?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendly_matches_challenger_id_fkey"
+            columns: ["challenger_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendly_matches_opponent_id_fkey"
+            columns: ["opponent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendly_matches_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friendly_withdrawal_requests: {
+        Row: {
+          account_name: string
+          account_number: string
+          admin_note: string | null
+          amount: number
+          bank_name: string
+          id: string
+          player_id: string
+          requested_at: string
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          admin_note?: string | null
+          amount: number
+          bank_name: string
+          id?: string
+          player_id: string
+          requested_at?: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          admin_note?: string | null
+          amount?: number
+          bank_name?: string
+          id?: string
+          player_id?: string
+          requested_at?: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendly_withdrawal_requests_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friends: {
+        Row: {
+          created_at: string
+          id: string
+          recipient_id: string
+          requester_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recipient_id: string
+          requester_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recipient_id?: string
+          requester_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friends_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friends_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           active: boolean
