@@ -5,7 +5,6 @@ const body2000 = z.string().trim().min(1, 'Write something first').max(2000, 'Ke
 export const communityPostSchema = z.object({
   gameId: z.string().uuid('Choose a game'),
   body: body2000,
-  imageUrl: z.union([z.literal(''), z.string().trim().url('Invalid image URL')]).optional(),
 })
 export type CommunityPostInput = z.infer<typeof communityPostSchema>
 

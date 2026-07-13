@@ -3,6 +3,7 @@ import { requireStaff } from '@/lib/admin/auth'
 import { createClient } from '@/lib/supabase/server'
 import { AdminCommunityList } from '@/components/admin/AdminCommunityList'
 import type { AdminCommunityPost } from '@/components/admin/AdminCommunityPostRow'
+import { primaryImageUrl } from '@/lib/exchange/images'
 
 export const metadata: Metadata = { title: 'Community · Admin · SentinelX' }
 
@@ -21,9 +22,10 @@ export default async function AdminCommunityPage() {
   const { data } = await supabase
     .from('community_posts')
     .select(
-      'id, body, image_url, created_at, ' +
+      'id, body, created_at, ' +
         'author:profiles!community_posts_author_id_fkey(username), ' +
         'games(name), ' +
+        'community_post_images(image_url, display_order), ' +
         'community_replies(count)',
     )
     .order('created_at', { ascending: false })
@@ -33,16 +35,16 @@ export default async function AdminCommunityPage() {
     const p = raw as {
       id: string
       body: string
-      image_url: string | null
       created_at: string
       author: ProfileRef
       games: GameRef
+      community_post_images: { image_url: string; display_order: number }[]
       community_replies: { count: number }[]
     }
     return {
       id: p.id,
       body: p.body,
-      imageUrl: p.image_url,
+      imageUrl: primaryImageUrl(p.community_post_images ?? []),
       gameName: firstGameName(p.games),
       authorUsername: firstUsername(p.author),
       replyCount: p.community_replies?.[0]?.count ?? 0,

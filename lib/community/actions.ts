@@ -3,14 +3,15 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { communityPostSchema, communityReplySchema } from './schema'
 
-export type ReplyState = { error?: string; success?: boolean } | undefined
 export type DeleteState = { error?: string } | undefined
 
-// Called from the client composer with an already-uploaded image URL (if any).
+const MAX_IMAGES = 8
+
+// Called from the client composer with already-uploaded image URLs (if any).
 export async function createPost(input: {
   gameId: string
   body: string
-  imageUrl?: string
+  imageUrls?: string[]
 }): Promise<{ id?: string; error?: string }> {
   const supabase = createClient()
   const {
@@ -18,36 +19,34 @@ export async function createPost(input: {
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to post.' }
 
-  const parsed = communityPostSchema.safeParse({
-    gameId: input.gameId,
-    body: input.body,
-    imageUrl: input.imageUrl ?? '',
-  })
+  const parsed = communityPostSchema.safeParse({ gameId: input.gameId, body: input.body })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const d = parsed.data
 
   const { data: post, error } = await supabase
     .from('community_posts')
-    .insert({
-      game_id: d.gameId,
-      author_id: user.id,
-      body: d.body,
-      image_url: d.imageUrl || null,
-    })
+    .insert({ game_id: d.gameId, author_id: user.id, body: d.body })
     .select('id')
     .single()
   if (error || !post) return { error: 'Could not post. Please try again.' }
+
+  const urls = (input.imageUrls ?? []).slice(0, MAX_IMAGES)
+  if (urls.length > 0) {
+    const rows = urls.map((url, i) => ({ post_id: post.id, image_url: url, display_order: i }))
+    await supabase.from('community_post_images').insert(rows)
+  }
 
   revalidatePath('/community')
   revalidatePath('/admin/community')
   return { id: post.id }
 }
 
-export async function createReply(_prev: ReplyState, formData: FormData): Promise<ReplyState> {
-  const parsed = communityReplySchema.safeParse({
-    postId: formData.get('postId'),
-    body: formData.get('body'),
-  })
+export async function createReply(input: {
+  postId: string
+  body: string
+  imageUrls?: string[]
+}): Promise<{ id?: string; error?: string }> {
+  const parsed = communityReplySchema.safeParse({ postId: input.postId, body: input.body })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const supabase = createClient()
@@ -56,16 +55,22 @@ export async function createReply(_prev: ReplyState, formData: FormData): Promis
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to reply.' }
 
-  const { error } = await supabase.from('community_replies').insert({
-    post_id: parsed.data.postId,
-    author_id: user.id,
-    body: parsed.data.body,
-  })
-  if (error) return { error: 'Could not post your reply. Please try again.' }
+  const { data: reply, error } = await supabase
+    .from('community_replies')
+    .insert({ post_id: parsed.data.postId, author_id: user.id, body: parsed.data.body })
+    .select('id')
+    .single()
+  if (error || !reply) return { error: 'Could not post your reply. Please try again.' }
+
+  const urls = (input.imageUrls ?? []).slice(0, MAX_IMAGES)
+  if (urls.length > 0) {
+    const rows = urls.map((url, i) => ({ reply_id: reply.id, image_url: url, display_order: i }))
+    await supabase.from('community_reply_images').insert(rows)
+  }
 
   revalidatePath('/community')
   revalidatePath('/admin/community')
-  return { success: true }
+  return { id: reply.id }
 }
 
 export async function deletePost(_prev: DeleteState, formData: FormData): Promise<DeleteState> {

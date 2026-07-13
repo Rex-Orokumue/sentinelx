@@ -4,7 +4,6 @@ import { communityPostSchema, communityReplySchema } from './schema'
 const validPost = {
   gameId: '11111111-1111-4111-8111-111111111111',
   body: 'Anyone up for a friendly before the weekend cup?',
-  imageUrl: '',
 }
 const validReply = {
   postId: '22222222-2222-4222-8222-222222222222',
@@ -12,13 +11,8 @@ const validReply = {
 }
 
 describe('communityPostSchema', () => {
-  it('accepts a valid post with no image', () => {
+  it('accepts a valid post', () => {
     expect(communityPostSchema.safeParse(validPost).success).toBe(true)
-  })
-  it('accepts a valid post with an image URL', () => {
-    expect(
-      communityPostSchema.safeParse({ ...validPost, imageUrl: 'https://x.supabase.co/img.jpg' }).success,
-    ).toBe(true)
   })
   it('rejects an empty body', () => {
     expect(communityPostSchema.safeParse({ ...validPost, body: '   ' }).success).toBe(false)
@@ -31,9 +25,6 @@ describe('communityPostSchema', () => {
   })
   it('rejects a non-uuid gameId', () => {
     expect(communityPostSchema.safeParse({ ...validPost, gameId: 'dls' }).success).toBe(false)
-  })
-  it('rejects a malformed image URL', () => {
-    expect(communityPostSchema.safeParse({ ...validPost, imageUrl: 'not a url' }).success).toBe(false)
   })
 })
 

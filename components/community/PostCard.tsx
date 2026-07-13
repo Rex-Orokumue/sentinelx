@@ -9,6 +9,7 @@ import { ReplyComposer } from './ReplyComposer'
 export interface ReplyView {
   id: string
   body: string
+  imageUrls: string[]
   createdAt: string
   authorUsername: string | null
   authorDisplayName: string | null
@@ -19,13 +20,30 @@ export interface ReplyView {
 export interface PostView {
   id: string
   body: string
-  imageUrl: string | null
+  imageUrls: string[]
   createdAt: string
   authorUsername: string | null
   authorDisplayName: string | null
   authorAvatarUrl: string | null
   canDelete: boolean
   replies: ReplyView[]
+}
+
+function ImageGrid({ urls, className = 'mt-3' }: { urls: string[]; className?: string }) {
+  if (urls.length === 0) return null
+  return (
+    <div className={`flex flex-wrap gap-2 ${className}`}>
+      {urls.map((url) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={url}
+          src={url}
+          alt=""
+          className="h-28 w-28 rounded-lg object-cover sm:h-36 sm:w-36"
+        />
+      ))}
+    </div>
+  )
 }
 
 export function PostCard({ post, canReply }: { post: PostView; canReply: boolean }) {
@@ -59,10 +77,7 @@ export function PostCard({ post, canReply }: { post: PostView; canReply: boolean
       </div>
 
       <p className="mt-3 whitespace-pre-line text-sm text-slate-200">{post.body}</p>
-      {post.imageUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={post.imageUrl} alt="" className="mt-3 max-h-96 w-full rounded-xl object-cover" />
-      )}
+      <ImageGrid urls={post.imageUrls} />
       {delState?.error && <p className="mt-2 text-xs text-red-400">{delState.error}</p>}
 
       <button
@@ -104,6 +119,7 @@ function ReplyRow({ reply }: { reply: ReplyView }) {
             {name} <span className="font-normal text-slate-500">· {formatDateTime(reply.createdAt)}</span>
           </p>
           <p className="mt-0.5 whitespace-pre-line text-xs text-slate-300">{reply.body}</p>
+          <ImageGrid urls={reply.imageUrls} className="mt-2" />
           {delState?.error && <p className="mt-1 text-[11px] text-red-400">{delState.error}</p>}
         </div>
       </div>

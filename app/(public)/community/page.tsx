@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getStaffContext } from '@/lib/admin/auth'
 import { PostComposer } from '@/components/community/PostComposer'
@@ -35,11 +36,13 @@ export default async function CommunityPage({
   searchParams: { game?: string; before?: string }
 }) {
   const supabase = createClient()
-  const [{ data: games }, {
+  const {
     data: { user },
-  }, staff] = await Promise.all([
+  } = await supabase.auth.getUser()
+  if (!user) redirect(`/login?next=/community`)
+
+  const [{ data: games }, staff] = await Promise.all([
     supabase.from('games').select('id, name, slug, icon_url').eq('active', true).order('name'),
-    supabase.auth.getUser(),
     getStaffContext(),
   ])
 
@@ -53,14 +56,18 @@ export default async function CommunityPage({
     let query = supabase
       .from('community_posts')
       .select(
-        'id, body, image_url, created_at, author_id, ' +
+        'id, body, created_at, author_id, ' +
           'author:profiles!community_posts_author_id_fkey(username, display_name, avatar_url), ' +
+          'community_post_images(image_url, display_order), ' +
           'community_replies(id, body, created_at, author_id, ' +
-          'author:profiles!community_replies_author_id_fkey(username, display_name, avatar_url))',
+          'author:profiles!community_replies_author_id_fkey(username, display_name, avatar_url), ' +
+          'community_reply_images(image_url, display_order))',
       )
       .eq('game_id', activeGame.id)
       .order('created_at', { ascending: false })
+      .order('display_order', { ascending: true, foreignTable: 'community_post_images' })
       .order('created_at', { ascending: true, foreignTable: 'community_replies' })
+      .order('display_order', { ascending: true, foreignTable: 'community_reply_images' })
       .limit(PAGE_SIZE)
     if (searchParams.before) query = query.lt('created_at', searchParams.before)
     const { data } = await query
@@ -71,38 +78,40 @@ export default async function CommunityPage({
       const p = raw as {
         id: string
         body: string
-        image_url: string | null
         created_at: string
         author_id: string
         author: ProfileRef
+        community_post_images: { image_url: string; display_order: number }[]
         community_replies: {
           id: string
           body: string
           created_at: string
           author_id: string
           author: ProfileRef
+          community_reply_images: { image_url: string; display_order: number }[]
         }[]
       }
       const author = firstProfile(p.author)
       return {
         id: p.id,
         body: p.body,
-        imageUrl: p.image_url,
+        imageUrls: (p.community_post_images ?? []).map((i) => i.image_url),
         createdAt: p.created_at,
         authorUsername: author?.username ?? null,
         authorDisplayName: author?.display_name ?? null,
         authorAvatarUrl: author?.avatar_url ?? null,
-        canDelete: !!user && (user.id === p.author_id || !!staff?.isStaff),
+        canDelete: user.id === p.author_id || !!staff?.isStaff,
         replies: p.community_replies.map((r) => {
           const rAuthor = firstProfile(r.author)
           return {
             id: r.id,
             body: r.body,
+            imageUrls: (r.community_reply_images ?? []).map((i) => i.image_url),
             createdAt: r.created_at,
             authorUsername: rAuthor?.username ?? null,
             authorDisplayName: rAuthor?.display_name ?? null,
             authorAvatarUrl: rAuthor?.avatar_url ?? null,
-            canDelete: !!user && (user.id === r.author_id || !!staff?.isStaff),
+            canDelete: user.id === r.author_id || !!staff?.isStaff,
           }
         }),
       }
@@ -124,22 +133,14 @@ export default async function CommunityPage({
         <>
           {gameList.length > 1 && <GameFilter games={gameList} active={activeGame.slug} />}
 
-          {user ? (
-            <PostComposer gameId={activeGame.id} />
-          ) : (
-            <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900 p-4 text-center">
-              <Link href="/login?next=/community" className="text-sm font-bold text-violet-400 hover:text-violet-300">
-                Log in to post →
-              </Link>
-            </div>
-          )}
+          <PostComposer gameId={activeGame.id} />
 
           {posts.length === 0 ? (
             <EmptyState icon="💬" title="No posts yet" body="Be the first to say something." />
           ) : (
             <div className="space-y-3">
               {posts.map((p) => (
-                <PostCard key={p.id} post={p} canReply={!!user} />
+                <PostCard key={p.id} post={p} canReply />
               ))}
             </div>
           )}
