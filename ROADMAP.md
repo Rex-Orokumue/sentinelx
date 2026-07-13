@@ -87,6 +87,9 @@ per-game only (not per-tournament).
 | — | Player notification system — in-app bell, 8 event types retrofitted (listings/withdrawals/referrals/results/referral credit), unblocks #26+#27 | ✅ |
 | 26 | Friend system + friendly matches (free + staked) — friend requests, free challenges, staked matches with Paystack escrow, Match Room, Sentinel Score integration, staked balance + withdrawal queue | ✅ |
 | 27 | Admin notifications — live-aggregation bell + sidebar badges + Overview StatCards over existing pending queues, no new table | ✅ |
+| 28 | Player wallet system — unified wallet + ledger replacing the three withdrawal tables (prize/referral/friendly-stake), automatic credit on prize win/referral/staked-friendly win, one withdrawal queue at `/admin/wallet` | ✅ |
+| 29 | Sponsored data support — per-tournament perk (text + WhatsApp), claim button for semi-finalists/finalists | ✅ |
+| 30 | Match recording submission via WhatsApp — button on result submission alongside the existing screenshot/URL fields | ✅ |
 
 ---
 
