@@ -3,7 +3,6 @@ import { verifyWebhookSignature } from '@/lib/paystack/server'
 import { confirmRegistration } from '@/lib/tournaments/confirm'
 import { confirmFriendlyStake } from '@/lib/friendly-matches/confirm'
 import { applyIdentificationWebhook } from '@/lib/kyc/webhook'
-import { applyTransferWebhook } from '@/lib/withdrawals/webhook'
 
 export const runtime = 'nodejs'
 
@@ -48,19 +47,11 @@ export async function POST(req: NextRequest) {
     if (customerCode) {
       await applyIdentificationWebhook(customerCode, type, event.data?.message ?? null)
     }
-  } else if (
-    type === 'transfer.success' ||
-    type === 'transfer.failed' ||
-    type === 'transfer.reversed'
-  ) {
-    if (event.data?.reference) {
-      await applyTransferWebhook(
-        event.data.reference,
-        type,
-        event.data?.reason ?? event.data?.message ?? null,
-      )
-    }
   }
+  // transfer.success/failed/reversed: no longer handled — withdrawal payouts
+  // are manual-only (see docs/superpowers/specs/2026-07-13-player-wallet-system-design.md
+  // §out-of-scope). Re-add this branch alongside re-enabling automated
+  // Paystack Transfer, not before.
 
   // Always 200 on a well-formed, signed request; Paystack retries non-2xx.
   return new NextResponse('ok', { status: 200 })
