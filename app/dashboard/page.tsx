@@ -12,6 +12,7 @@ import { latestPerListing, type OrderRow } from '@/lib/exchange/orders'
 import { MySales } from '@/components/dashboard/MySales'
 import { ProfileEditForm } from '@/components/dashboard/ProfileEditForm'
 import { ReferralPanel, type ReferralWithdrawalRow } from '@/components/dashboard/ReferralPanel'
+import { FriendsPanel, type FriendRequestRow, type FriendRow } from '@/components/dashboard/FriendsPanel'
 import { signOut } from '@/lib/auth/actions'
 import { listBanks, type Bank } from '@/lib/paystack/server'
 
@@ -37,6 +38,15 @@ function referredName(r: ReferredRef): string {
   return p?.display_name ?? p?.username ?? 'Player'
 }
 
+type FriendProfileRef =
+  | { username: string | null; display_name: string | null }
+  | { username: string | null; display_name: string | null }[]
+  | null
+function friendProfileName(p: FriendProfileRef): { name: string; username: string | null } {
+  const r = Array.isArray(p) ? p[0] ?? null : p
+  return { name: r?.display_name ?? r?.username ?? 'Player', username: r?.username ?? null }
+}
+
 export default async function DashboardPage() {
   const supabase = createClient()
   const {
@@ -57,6 +67,7 @@ export default async function DashboardPage() {
     banks,
     referralsRes,
     referralWithdrawalsRes,
+    friendsRes,
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -116,6 +127,14 @@ export default async function DashboardPage() {
       .select('id, amount, status, admin_note, requested_at, resolved_at')
       .eq('player_id', user.id)
       .order('requested_at', { ascending: false }),
+    supabase
+      .from('friends')
+      .select(
+        'id, requester_id, recipient_id, status, ' +
+          'requester:profiles!friends_requester_id_fkey(username, display_name), ' +
+          'recipient:profiles!friends_recipient_id_fkey(username, display_name)',
+      )
+      .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`),
   ])
 
   const profile = profileRes.data
@@ -218,6 +237,28 @@ export default async function DashboardPage() {
   )
   const referralWithdrawals = (referralWithdrawalsRes.data ?? []) as ReferralWithdrawalRow[]
 
+  const rawFriends = ((friendsRes.data as unknown[] | null) ?? []) as {
+    id: string
+    requester_id: string
+    recipient_id: string
+    status: string
+    requester: FriendProfileRef
+    recipient: FriendProfileRef
+  }[]
+  const incomingRequests: FriendRequestRow[] = rawFriends
+    .filter((f) => f.status === 'pending' && f.recipient_id === user.id)
+    .map((f) => {
+      const p = friendProfileName(f.requester)
+      return { id: f.id, requesterName: p.name, requesterUsername: p.username }
+    })
+  const friendsList: FriendRow[] = rawFriends
+    .filter((f) => f.status === 'accepted')
+    .map((f) => {
+      const otherIsRequester = f.recipient_id === user.id
+      const p = friendProfileName(otherIsRequester ? f.requester : f.recipient)
+      return { id: f.id, friendName: p.name, friendUsername: p.username }
+    })
+
   return (
     <div className="mx-auto max-w-4xl px-4 pb-20">
       <DashboardHeader
@@ -250,6 +291,7 @@ export default async function DashboardPage() {
         requests={referralWithdrawals}
         kycVerified={kyc?.kyc_status === 'verified'}
       />
+      <FriendsPanel incoming={incomingRequests} friends={friendsList} />
       <FixtureSection fixtures={fixtures} />
       <MyTournaments registrations={registrations} />
       <MyListings listings={myListings} />
