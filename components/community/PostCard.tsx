@@ -5,6 +5,7 @@ import { Avatar } from '@/components/shared/Avatar'
 import { formatDateTime } from '@/lib/format'
 import { deletePost, deleteReply, type DeleteState } from '@/lib/community/actions'
 import { ReplyComposer } from './ReplyComposer'
+import { ImageLightbox } from './ImageLightbox'
 
 export interface ReplyView {
   id: string
@@ -30,19 +31,33 @@ export interface PostView {
 }
 
 function ImageGrid({ urls, className = 'mt-3' }: { urls: string[]; className?: string }) {
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
   if (urls.length === 0) return null
   return (
-    <div className={`flex flex-wrap gap-2 ${className}`}>
-      {urls.map((url) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={url}
-          src={url}
-          alt=""
-          className="h-28 w-28 rounded-lg object-cover sm:h-36 sm:w-36"
+    <>
+      <div className={`flex flex-wrap gap-2 ${className}`}>
+        {urls.map((url, i) => (
+          <button
+            key={url}
+            type="button"
+            onClick={() => setOpenIndex(i)}
+            aria-label="View image"
+            className="h-28 w-28 overflow-hidden rounded-lg sm:h-36 sm:w-36"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt="" className="h-full w-full object-cover" />
+          </button>
+        ))}
+      </div>
+      {openIndex !== null && (
+        <ImageLightbox
+          urls={urls}
+          index={openIndex}
+          onClose={() => setOpenIndex(null)}
+          onIndexChange={setOpenIndex}
         />
-      ))}
-    </div>
+      )}
+    </>
   )
 }
 

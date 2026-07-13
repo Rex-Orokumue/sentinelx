@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { ImagePlus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 // Multi-image upload to the community-images bucket, shared by the post and
@@ -55,37 +56,43 @@ export function ImageUploader({
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-2">
-        {images.map((url, i) => (
-          <div key={url} className="relative h-20 w-20 overflow-hidden rounded-lg border border-slate-700">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url} alt="" className="h-full w-full object-cover" />
-            <button
-              type="button"
-              onClick={() => remove(i)}
-              aria-label="Remove image"
-              className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-xs text-white"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
-        {images.length < max && (
-          <label className="flex h-20 w-20 cursor-pointer items-center justify-center rounded-lg border border-dashed border-slate-700 text-2xl text-slate-500 hover:border-slate-500">
-            +
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={onFiles}
-              className="hidden"
-              disabled={uploading}
-            />
-          </label>
-        )}
+      {images.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {images.map((url, i) => (
+            <div key={url} className="relative h-16 w-16 overflow-hidden rounded-lg border border-slate-700">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt="" className="h-full w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => remove(i)}
+                aria-label="Remove image"
+                className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/70 text-[10px] text-white"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="flex items-center gap-2">
+        <label
+          className={`flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-slate-800 hover:text-violet-400 ${
+            uploading || images.length >= max ? 'pointer-events-none opacity-40' : 'cursor-pointer'
+          }`}
+        >
+          <ImagePlus className="h-5 w-5" />
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={onFiles}
+            className="hidden"
+            disabled={uploading || images.length >= max}
+          />
+        </label>
+        {uploading && <span className="text-xs text-slate-400">Uploading…</span>}
+        {error && <span className="text-xs text-red-400">{error}</span>}
       </div>
-      {uploading && <p className="text-xs text-slate-400">Uploading…</p>}
-      {error && <p className="text-xs text-red-400">{error}</p>}
     </div>
   )
 }
