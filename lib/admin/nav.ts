@@ -12,10 +12,8 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: 'Community', href: '/admin/community', adminOnly: false },
   { label: 'TV', href: '/admin/tv', adminOnly: false },
   { label: 'Exchange', href: '/admin/exchange', adminOnly: false },
-  { label: 'Withdrawals', href: '/admin/withdrawals', adminOnly: true },
-  { label: 'Referrals', href: '/admin/referrals', adminOnly: true },
+  { label: 'Wallet', href: '/admin/wallet', adminOnly: true },
   { label: 'Friendlies', href: '/admin/friendlies', adminOnly: true },
-  { label: 'Friendly withdrawals', href: '/admin/friendly-withdrawals', adminOnly: true },
 ]
 
 // Returns items in original order, dropping adminOnly items for non-admins.

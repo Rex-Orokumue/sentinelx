@@ -2,9 +2,10 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin/auth'
 import { formatDate, formatNaira } from '@/lib/format'
-import { WithdrawalQueueRow, type PendingWithdrawal } from '@/components/admin/WithdrawalQueueRow'
+import { WalletCreditForm } from '@/components/admin/WalletCreditForm'
+import { WalletWithdrawalQueueRow, type PendingWalletWithdrawal } from '@/components/admin/WalletWithdrawalQueueRow'
 
-export const metadata: Metadata = { title: 'Withdrawals · Admin · SentinelX' }
+export const metadata: Metadata = { title: 'Wallet · Admin · SentinelX' }
 
 type ProfileRef = { username: string | null; display_name: string | null } | null
 function nameOf(p: ProfileRef): string {
@@ -18,21 +19,16 @@ const RESOLVED_STATUS: Record<string, string> = {
   rejected: 'text-red-400',
 }
 
-export default async function AdminWithdrawalsPage() {
+export default async function AdminWalletPage() {
   await requireAdmin()
   const supabase = createClient()
-  const [{ data: queueData }, { data: processingData }, { data: resolvedData }] = await Promise.all([
+  const [{ data: queueData }, { data: resolvedData }] = await Promise.all([
     supabase
       .from('withdrawal_requests')
       .select(
-        'id, amount, bank_name, account_number, account_name, status, admin_note, profiles(username, display_name)',
+        'id, amount, bank_name, account_number, account_name, profiles(username, display_name)',
       )
-      .in('status', ['pending', 'failed'])
-      .order('requested_at', { ascending: true }),
-    supabase
-      .from('withdrawal_requests')
-      .select('id, amount, profiles(username, display_name)')
-      .eq('status', 'processing')
+      .eq('status', 'pending')
       .order('requested_at', { ascending: true }),
     supabase
       .from('withdrawal_requests')
@@ -42,15 +38,13 @@ export default async function AdminWithdrawalsPage() {
       .limit(20),
   ])
 
-  const queue: PendingWithdrawal[] = ((queueData as unknown[] | null) ?? []).map((raw) => {
+  const queue: PendingWalletWithdrawal[] = ((queueData as unknown[] | null) ?? []).map((raw) => {
     const w = raw as {
       id: string
       amount: number
       bank_name: string
       account_number: string
       account_name: string
-      status: 'pending' | 'failed'
-      admin_note: string | null
       profiles: ProfileRef | ProfileRef[]
     }
     return {
@@ -60,18 +54,11 @@ export default async function AdminWithdrawalsPage() {
       bankName: w.bank_name,
       accountNumber: w.account_number,
       accountName: w.account_name,
-      status: w.status,
-      adminNote: w.admin_note,
     }
   })
 
-  const processing = ((processingData as unknown[] | null) ?? []).map((raw) => {
-    const w = raw as { id: string; amount: number; profiles: ProfileRef | ProfileRef[] }
-    return { id: w.id, playerName: nameOf(firstP(w.profiles)), amount: w.amount }
-  })
-
   const resolved = ((resolvedData as unknown[] | null) ?? []).map((raw) => {
-    const w = raw as {
+    const r = raw as {
       id: string
       amount: number
       status: string
@@ -80,17 +67,19 @@ export default async function AdminWithdrawalsPage() {
       profiles: ProfileRef | ProfileRef[]
     }
     return {
-      id: w.id,
-      playerName: nameOf(firstP(w.profiles)),
-      amount: w.amount,
-      status: w.status,
-      adminNote: w.admin_note,
-      resolvedAt: w.resolved_at,
+      id: r.id,
+      playerName: nameOf(firstP(r.profiles)),
+      amount: r.amount,
+      status: r.status,
+      adminNote: r.admin_note,
+      resolvedAt: r.resolved_at,
     }
   })
 
   return (
     <section className="space-y-8">
+      <WalletCreditForm />
+
       <div>
         <h2 className="mb-4 text-base font-bold text-white">Needs action</h2>
         {queue.length === 0 ? (
@@ -100,27 +89,11 @@ export default async function AdminWithdrawalsPage() {
         ) : (
           <div className="space-y-2">
             {queue.map((req) => (
-              <WithdrawalQueueRow key={req.id} req={req} />
+              <WalletWithdrawalQueueRow key={req.id} req={req} />
             ))}
           </div>
         )}
       </div>
-
-      {processing.length > 0 && (
-        <div>
-          <h2 className="mb-4 text-base font-bold text-white">Processing (awaiting confirmation)</h2>
-          <div className="space-y-2">
-            {processing.map((p) => (
-              <div key={p.id} className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="min-w-0 truncate font-bold text-white">{p.playerName}</p>
-                  <p className="shrink-0 text-sm font-semibold text-sky-400">{formatNaira(p.amount)}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {resolved.length > 0 && (
         <div>
