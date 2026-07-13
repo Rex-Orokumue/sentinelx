@@ -22,13 +22,16 @@ export function winsByPlayerAndGame(matches: GameScopedMatch[]): Map<string, Gam
     byGame.set(match.game_name, (byGame.get(match.game_name) ?? 0) + 1)
     counts.set(winnerId, byGame)
   }
+  // .forEach() rather than for...of / Array.from(map.entries()) — this
+  // project's tsconfig has no explicit `target`, which defaults low enough
+  // that native Map iteration needs `downlevelIteration` (not set here);
+  // .forEach() is a plain method call and side-steps that entirely.
   const result = new Map<string, GameWinCount[]>()
-  for (const [playerId, byGame] of counts) {
-    result.set(
-      playerId,
-      Array.from(byGame.entries()).map(([game, wins]) => ({ game, wins })),
-    )
-  }
+  counts.forEach((byGame, playerId) => {
+    const entries: GameWinCount[] = []
+    byGame.forEach((wins, game) => entries.push({ game, wins }))
+    result.set(playerId, entries)
+  })
   return result
 }
 
