@@ -4,22 +4,35 @@ import type { FormEvent } from 'react'
 import { useFormState } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
 import { submitMatchResult, type SubmitResultState } from '@/lib/matches/actions'
+import { buildRecordingWhatsAppUrl } from '@/lib/matches/recording-whatsapp'
 
 export function ResultSubmissionForm({
   matchId,
   playerAName,
   playerBName,
+  username,
+  tournamentTitle,
   initial,
 }: {
   matchId: string
   playerAName: string
   playerBName: string
+  username: string
+  tournamentTitle: string
   initial: { scoreA: number | null; scoreB: number | null; recordingUrl: string | null; hasScreenshot: boolean } | null
 }) {
   const [state, formAction] = useFormState<SubmitResultState, FormData>(submitMatchResult, undefined)
   const [uploading, setUploading] = useState(false)
   const [clientError, setClientError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
+
+  const recordingWhatsAppUrl = buildRecordingWhatsAppUrl({
+    adminWhatsapp: process.env.NEXT_PUBLIC_ADMIN_WHATSAPP ?? null,
+    username,
+    tournamentTitle,
+    playerAName,
+    playerBName,
+  })
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -106,6 +119,22 @@ export function ResultSubmissionForm({
           className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
         />
       </div>
+
+      {recordingWhatsAppUrl && (
+        <div className="space-y-1.5">
+          <p className="text-xs text-slate-500">
+            Prefer to send the full video? Message it to us on WhatsApp.
+          </p>
+          <a
+            href={recordingWhatsAppUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl border border-[#25D366]/30 px-5 py-2.5 text-sm font-bold text-[#25D366] transition-colors hover:bg-[#25D366]/10"
+          >
+            Submit recording via WhatsApp
+          </a>
+        </div>
+      )}
 
       {(clientError || state?.error) && (
         <p className="text-sm text-red-400">{clientError ?? state?.error}</p>

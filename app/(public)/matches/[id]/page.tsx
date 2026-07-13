@@ -76,14 +76,19 @@ export default async function MatchCentrePage({ params }: { params: { id: string
   let myResult:
     | { score_a: number | null; score_b: number | null; recording_url: string | null; screenshot_url: string | null; status: string }
     | null = null
+  let myUsername = ''
   if (isParticipant) {
-    const { data } = await supabase
-      .from('match_results')
-      .select('score_a, score_b, recording_url, screenshot_url, status')
-      .eq('match_id', m.id)
-      .eq('submitted_by', user!.id)
-      .maybeSingle()
+    const [{ data }, { data: myProfile }] = await Promise.all([
+      supabase
+        .from('match_results')
+        .select('score_a, score_b, recording_url, screenshot_url, status')
+        .eq('match_id', m.id)
+        .eq('submitted_by', user!.id)
+        .maybeSingle(),
+      supabase.from('profiles').select('username, display_name').eq('id', user!.id).maybeSingle(),
+    ])
     myResult = data
+    myUsername = myProfile?.username ?? myProfile?.display_name ?? 'Player'
   }
 
   // Signed URL for the participant's own screenshot — generated fresh each load.
@@ -152,6 +157,8 @@ export default async function MatchCentrePage({ params }: { params: { id: string
             matchId={m.id}
             playerAName={nameOf(m.player_a)}
             playerBName={nameOf(m.player_b)}
+            username={myUsername}
+            tournamentTitle={m.tournaments?.title ?? 'Sentinel X'}
             initial={
               myResult
                 ? {
