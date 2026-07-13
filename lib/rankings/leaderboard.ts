@@ -1,3 +1,5 @@
+import type { GameWinCount } from './game-breakdown'
+
 export interface PlayerStatsInput {
   id: string
   username: string | null
@@ -9,6 +11,17 @@ export interface PlayerStatsInput {
   totalMatches: number
   goalsScored: number
   goalsConceded: number
+  // Football-only aggregate, computed live from completed matches (see
+  // lib/rankings/game-breakdown.ts) — NOT the same as goalsScored/goalsConceded
+  // above, which mix every game a player has played. Used by the Goals tab
+  // and Golden Boot only; goalsScored/goalsConceded stay the source of truth
+  // everywhere else (dashboard, player profile page).
+  footballGoalsScored: number
+  footballGoalsConceded: number
+  // Per-game win breakdown for the Wins tab's expand view. Always sums to
+  // `wins` above (both derive from the same completed-matches set via the
+  // same matchWinnerId "who won" logic).
+  winsByGame: GameWinCount[]
   totalTitles: number
   sentinelScore: number
   sentinelTier: string | null
@@ -34,7 +47,9 @@ export type LeaderboardMetric = 'wins' | 'score' | 'goals'
 const METRIC_VALUE: Record<LeaderboardMetric, (p: PlayerStatsInput) => number> = {
   wins: (p) => p.wins,
   score: (p) => p.sentinelScore,
-  goals: (p) => p.goalsScored,
+  // Football-scoped, not the cumulative goalsScored — see PlayerStatsInput's
+  // footballGoalsScored doc comment.
+  goals: (p) => p.footballGoalsScored,
 }
 
 // Sort led by the chosen metric, falling back to the same tie-break cascade

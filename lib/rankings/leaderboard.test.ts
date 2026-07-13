@@ -18,6 +18,9 @@ function p(over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput {
     totalMatches: 0,
     goalsScored: 0,
     goalsConceded: 0,
+    footballGoalsScored: 0,
+    footballGoalsConceded: 0,
+    winsByGame: [],
     totalTitles: 0,
     sentinelScore: 70,
     sentinelTier: null,
@@ -84,11 +87,11 @@ describe('rankPlayersBy', () => {
     expect(r.map((x) => x.id)).toEqual(['b', 'a'])
   })
 
-  it('sorts by goals scored when metric is "goals"', () => {
+  it('sorts by football-scoped goals when metric is "goals"', () => {
     const r = rankPlayersBy(
       [
-        p({ id: 'a', goalsScored: 4, wins: 9 }),
-        p({ id: 'b', goalsScored: 20, wins: 1 }),
+        p({ id: 'a', footballGoalsScored: 4, wins: 9 }),
+        p({ id: 'b', footballGoalsScored: 20, wins: 1 }),
       ],
       'goals',
     )
