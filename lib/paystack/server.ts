@@ -91,6 +91,20 @@ export interface Bank {
   code: string
 }
 
+// Paystack secret keys are prefixed sk_test_ / sk_live_ — this is the one
+// place that distinction matters in the app: surfacing the sandbox-only test
+// bank (see listBanks below) that must never appear once live keys are set.
+export function isTestModeKey(key: string): boolean {
+  return key.startsWith('sk_test_')
+}
+
+// Paystack's real /bank list never includes this — it's a sandbox-only bank
+// (code 001) that resolves any account number to a canned test name without
+// counting against test mode's daily "3 live bank resolves" cap. Injected
+// only in test mode so KYC testing isn't blocked by that cap; isTestModeKey
+// keeps it from ever reaching a live deployment.
+const TEST_BANK: Bank = { name: 'Test Bank (Paystack sandbox)', code: '001' }
+
 export async function listBanks(): Promise<Bank[]> {
   const res = await fetch(`${PAYSTACK_BASE_URL}/bank?country=nigeria&currency=NGN&type=nuban`, {
     headers: { Authorization: `Bearer ${secret()}` },
@@ -98,10 +112,11 @@ export async function listBanks(): Promise<Bank[]> {
   })
   const json = await res.json()
   if (!res.ok || !json.status) throw new Error(json?.message || 'Paystack bank list failed')
-  return (json.data as Array<{ name: string; code: string }>).map((b) => ({
+  const banks = (json.data as Array<{ name: string; code: string }>).map((b) => ({
     name: b.name,
     code: b.code,
   }))
+  return isTestModeKey(secret()) ? [TEST_BANK, ...banks] : banks
 }
 
 export interface ResolvedAccount {

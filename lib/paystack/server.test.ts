@@ -7,6 +7,7 @@ import {
   buildRecipientPayload,
   buildTransferPayload,
   buildTransferReference,
+  isTestModeKey,
 } from './server'
 
 beforeAll(() => {
@@ -99,6 +100,16 @@ describe('buildTransferPayload', () => {
       reason: 'SentinelX prize withdrawal',
       reference: 'sxwd_abc_123',
     })
+  })
+})
+
+describe('isTestModeKey', () => {
+  it('recognizes a test secret key', () => {
+    expect(isTestModeKey('sk_test_abc123')).toBe(true)
+  })
+
+  it('recognizes a live secret key as not test mode', () => {
+    expect(isTestModeKey('sk_live_abc123')).toBe(false)
   })
 })
 
