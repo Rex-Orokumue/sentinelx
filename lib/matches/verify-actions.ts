@@ -15,6 +15,7 @@ import { knockoutRound1 } from '@/lib/tournaments/draw'
 import { sortStandings, type MembershipInput } from '@/lib/tournaments/standings'
 import { syncMatchEvents } from '@/lib/scoring/apply'
 import { notify } from '@/lib/notifications/notify'
+import { notifyInApp } from '@/lib/notifications/inbox'
 import { resultKey } from '@/lib/notifications/keys'
 
 export type VerifyState = { error?: string; success?: boolean } | undefined
@@ -263,6 +264,13 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
         scoreA,
         scoreB,
         tournament: title,
+      })
+      await notifyInApp({
+        playerId: pid,
+        type: 'result_confirmed',
+        title: 'Result confirmed',
+        body: `${a} ${scoreA} – ${scoreB} ${b} — confirmed for ${title}.`,
+        link: `/matches/${id}`,
       })
     }
   }
