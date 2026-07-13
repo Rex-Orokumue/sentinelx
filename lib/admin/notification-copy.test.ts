@@ -55,7 +55,7 @@ describe('resultNotification', () => {
 })
 
 describe('withdrawalNotification', () => {
-  it('builds a prize withdrawal notification with naira formatting', () => {
+  it('builds a withdrawal notification with naira formatting', () => {
     const item = withdrawalNotification({
       type: 'withdrawal_pending',
       username: 'chi_baller',
@@ -64,29 +64,7 @@ describe('withdrawalNotification', () => {
     })
     expect(item.title).toBe('Withdrawal request')
     expect(item.body).toBe('chi_baller — ₦15,000')
-    expect(item.link).toBe('/admin/withdrawals')
-  })
-
-  it('builds a referral withdrawal notification', () => {
-    const item = withdrawalNotification({
-      type: 'referral_withdrawal_pending',
-      username: 'ref_king',
-      amount: 500,
-      createdAt: '2026-07-10T12:00:00Z',
-    })
-    expect(item.title).toBe('Referral withdrawal')
-    expect(item.link).toBe('/admin/referrals')
-  })
-
-  it('builds a friendly withdrawal notification', () => {
-    const item = withdrawalNotification({
-      type: 'friendly_withdrawal_pending',
-      username: 'staker99',
-      amount: 2000,
-      createdAt: '2026-07-10T12:00:00Z',
-    })
-    expect(item.title).toBe('Friendly withdrawal')
-    expect(item.link).toBe('/admin/friendly-withdrawals')
+    expect(item.link).toBe('/admin/wallet')
   })
 })
 

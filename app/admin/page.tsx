@@ -24,8 +24,6 @@ export default async function AdminHomePage() {
   const pendingResults = countOf('result_needs_review') + countOf('result_disputed')
   const pendingListings = countOf('exchange_listing_pending')
   const pendingWithdrawals = countOf('withdrawal_pending')
-  const pendingReferralWithdrawals = countOf('referral_withdrawal_pending')
-  const pendingFriendlyWithdrawals = countOf('friendly_withdrawal_pending')
 
   return (
     <section>
@@ -38,19 +36,7 @@ export default async function AdminHomePage() {
         <StatCard label="Open registrations" count={openRegs.count ?? 0} />
         <StatCard label="Pending listings" count={pendingListings} href="/admin/exchange" />
         {ctx.isAdmin && (
-          <>
-            <StatCard label="Pending withdrawals" count={pendingWithdrawals} href="/admin/withdrawals" />
-            <StatCard
-              label="Pending referral withdrawals"
-              count={pendingReferralWithdrawals}
-              href="/admin/referrals"
-            />
-            <StatCard
-              label="Pending friendly withdrawals"
-              count={pendingFriendlyWithdrawals}
-              href="/admin/friendly-withdrawals"
-            />
-          </>
+          <StatCard label="Pending withdrawals" count={pendingWithdrawals} href="/admin/wallet" />
         )}
       </div>
 

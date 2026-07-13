@@ -19,53 +19,22 @@ function nameOf(p: ProfileRef): string {
   return row?.display_name ?? row?.username ?? 'Player'
 }
 
-// MERGE DEPENDENCY — #28 (feat/28-30-wallet-perks-recordings): when that
-// branch merges:
-//   1. Delete the referral_withdrawal_requests query below and its mapped
-//      items (referral_withdrawal_requests is dropped).
-//   2. Delete the friendly_withdrawal_requests query below and its mapped
-//      items (friendly_withdrawal_requests is dropped).
-//   3. withdrawal_requests survives with the same name but widened scope —
-//      keep its query, but update the link in notification-copy.ts's
-//      TYPE_LINK from '/admin/withdrawals' to '/admin/wallet'.
-// Net effect: 3 withdrawal notification types collapse into 1.
 async function fetchWithdrawalItems(supabase: SupabaseClient): Promise<AdminNotificationItem[]> {
   type Row = { id: string; amount: number; requested_at: string; profiles: ProfileRef }
 
-  const [{ data: w }, { data: r }, { data: f }] = await Promise.all([
-    supabase
-      .from('withdrawal_requests')
-      .select('id, amount, requested_at, profiles(username, display_name)')
-      .in('status', ['pending', 'failed']),
-    supabase
-      .from('referral_withdrawal_requests')
-      .select('id, amount, requested_at, profiles(username, display_name)')
-      .eq('status', 'pending'),
-    supabase
-      .from('friendly_withdrawal_requests')
-      .select('id, amount, requested_at, profiles(username, display_name)')
-      .eq('status', 'pending'),
-  ])
+  const { data: w } = await supabase
+    .from('withdrawal_requests')
+    .select('id, amount, requested_at, profiles(username, display_name)')
+    .eq('status', 'pending')
 
-  function toItems(
-    rows: unknown[] | null,
-    type: 'withdrawal_pending' | 'referral_withdrawal_pending' | 'friendly_withdrawal_pending',
-  ): AdminNotificationItem[] {
-    return ((rows as Row[] | null) ?? []).map((row) =>
-      withdrawalNotification({
-        type,
-        username: nameOf(row.profiles),
-        amount: row.amount,
-        createdAt: row.requested_at,
-      }),
-    )
-  }
-
-  return [
-    ...toItems(w, 'withdrawal_pending'),
-    ...toItems(r, 'referral_withdrawal_pending'),
-    ...toItems(f, 'friendly_withdrawal_pending'),
-  ]
+  return ((w as Row[] | null) ?? []).map((row) =>
+    withdrawalNotification({
+      type: 'withdrawal_pending',
+      username: nameOf(row.profiles),
+      amount: row.amount,
+      createdAt: row.requested_at,
+    }),
+  )
 }
 
 async function fetchExchangeItems(supabase: SupabaseClient): Promise<AdminNotificationItem[]> {

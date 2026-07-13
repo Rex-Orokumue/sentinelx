@@ -5,8 +5,6 @@ export type AdminNotificationType =
   | 'result_needs_review'
   | 'result_disputed'
   | 'withdrawal_pending'
-  | 'referral_withdrawal_pending'
-  | 'friendly_withdrawal_pending'
 
 export interface AdminNotificationItem {
   type: AdminNotificationType
@@ -16,19 +14,11 @@ export interface AdminNotificationItem {
   createdAt: string
 }
 
-// MERGE DEPENDENCY — #28 (feat/28-30-wallet-perks-recordings): when that
-// branch merges, withdrawal_pending's link changes from '/admin/withdrawals'
-// to '/admin/wallet' (withdrawal_requests survives with widened scope), and
-// the referral_withdrawal_pending / friendly_withdrawal_pending entries below
-// are deleted entirely (their source tables are dropped). See
-// lib/admin/notification-queue.ts for the matching query-side change.
 const TYPE_LINK: Record<AdminNotificationType, string> = {
   exchange_listing_pending: '/admin/exchange',
   result_needs_review: '/admin/results',
   result_disputed: '/admin/results',
-  withdrawal_pending: '/admin/withdrawals',
-  referral_withdrawal_pending: '/admin/referrals',
-  friendly_withdrawal_pending: '/admin/friendly-withdrawals',
+  withdrawal_pending: '/admin/wallet',
 }
 
 export function exchangeListingNotification(row: {
@@ -66,17 +56,12 @@ export function resultNotification(row: {
   }
 }
 
-const WITHDRAWAL_TITLE: Record<
-  'withdrawal_pending' | 'referral_withdrawal_pending' | 'friendly_withdrawal_pending',
-  string
-> = {
+const WITHDRAWAL_TITLE: Record<'withdrawal_pending', string> = {
   withdrawal_pending: 'Withdrawal request',
-  referral_withdrawal_pending: 'Referral withdrawal',
-  friendly_withdrawal_pending: 'Friendly withdrawal',
 }
 
 export function withdrawalNotification(row: {
-  type: 'withdrawal_pending' | 'referral_withdrawal_pending' | 'friendly_withdrawal_pending'
+  type: 'withdrawal_pending'
   username: string
   amount: number
   createdAt: string
