@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
 import { StatCard } from '@/components/admin/StatCard'
 import { RecomputeButton } from '@/components/admin/RecomputeButton'
+import { getAdminNotificationQueue, type AdminNotificationType } from '@/lib/admin/notification-queue'
 
 export const metadata: Metadata = { title: 'Admin · SentinelX Esports' }
 
@@ -10,20 +11,21 @@ export default async function AdminHomePage() {
   const ctx = await requireStaff()
   const supabase = createClient()
 
-  const [pendingResults, activeTournaments, openRegs, pendingWithdrawals] = await Promise.all([
-    supabase.from('match_results').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+  const [notifications, activeTournaments, openRegs] = await Promise.all([
+    getAdminNotificationQueue(ctx.isAdmin ? 'admin' : 'moderator'),
     supabase.from('tournaments').select('*', { count: 'exact', head: true }).eq('status', 'active'),
     supabase
       .from('tournaments')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'registration_open'),
-    ctx.isAdmin
-      ? supabase
-          .from('withdrawal_requests')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending')
-      : Promise.resolve({ count: null as number | null }),
   ])
+
+  const countOf = (type: AdminNotificationType) => notifications.filter((n) => n.type === type).length
+  const pendingResults = countOf('result_needs_review') + countOf('result_disputed')
+  const pendingListings = countOf('exchange_listing_pending')
+  const pendingWithdrawals = countOf('withdrawal_pending')
+  const pendingReferralWithdrawals = countOf('referral_withdrawal_pending')
+  const pendingFriendlyWithdrawals = countOf('friendly_withdrawal_pending')
 
   return (
     <section>
@@ -31,11 +33,24 @@ export default async function AdminHomePage() {
         Needs attention
       </h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Pending results" count={pendingResults.count ?? 0} href="/admin/results" />
+        <StatCard label="Pending results" count={pendingResults} href="/admin/results" />
         <StatCard label="Active tournaments" count={activeTournaments.count ?? 0} />
         <StatCard label="Open registrations" count={openRegs.count ?? 0} />
+        <StatCard label="Pending listings" count={pendingListings} href="/admin/exchange" />
         {ctx.isAdmin && (
-          <StatCard label="Pending withdrawals" count={pendingWithdrawals.count ?? 0} href="/admin/withdrawals" />
+          <>
+            <StatCard label="Pending withdrawals" count={pendingWithdrawals} href="/admin/withdrawals" />
+            <StatCard
+              label="Pending referral withdrawals"
+              count={pendingReferralWithdrawals}
+              href="/admin/referrals"
+            />
+            <StatCard
+              label="Pending friendly withdrawals"
+              count={pendingFriendlyWithdrawals}
+              href="/admin/friendly-withdrawals"
+            />
+          </>
         )}
       </div>
 
