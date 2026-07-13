@@ -15,16 +15,23 @@ import { ReferralPanel } from '@/components/dashboard/ReferralPanel'
 import { FriendsPanel, type FriendRequestRow, type FriendRow } from '@/components/dashboard/FriendsPanel'
 import { signOut } from '@/lib/auth/actions'
 import { listBanks, type Bank } from '@/lib/paystack/server'
+import { computeDataSupportEligibility } from '@/lib/dashboard/data-support'
+import { DataSupportPanel } from '@/components/dashboard/DataSupportPanel'
 
 export const metadata: Metadata = { title: 'Dashboard · SentinelX Esports' }
 
 type ProfileRef = { id?: string; username: string | null; display_name: string | null } | null
-type TournamentRef = { title: string; slug: string } | { title: string; slug: string }[] | null
+type TournamentRef =
+  | { title: string; slug: string; data_support_text: string | null; data_support_whatsapp: string | null }
+  | { title: string; slug: string; data_support_text: string | null; data_support_whatsapp: string | null }[]
+  | null
 
 function nameOf(p: ProfileRef): string {
   return p?.display_name ?? p?.username ?? 'TBD'
 }
-function firstTournament(t: TournamentRef): { title: string; slug: string } | null {
+function firstTournament(
+  t: TournamentRef,
+): { title: string; slug: string; data_support_text: string | null; data_support_whatsapp: string | null } | null {
   if (Array.isArray(t)) return t[0] ?? null
   return t
 }
@@ -80,7 +87,7 @@ export default async function DashboardPage() {
         'id, status, scheduled_at, round, tournament_id, player_a_id, player_b_id, ' +
           'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
           'player_b:profiles!matches_player_b_id_fkey(id, username, display_name), ' +
-          'tournament:tournaments(title, slug)',
+          'tournament:tournaments(title, slug, data_support_text, data_support_whatsapp)',
       )
       .or(`player_a_id.eq.${user.id},player_b_id.eq.${user.id}`),
     supabase.from('match_results').select('match_id').eq('submitted_by', user.id),
@@ -203,6 +210,19 @@ export default async function DashboardPage() {
   })
   const fixtures = bucketFixtures(matches, submittedMatchIds, new Date())
 
+  const dataSupportEligibility = computeDataSupportEligibility(
+    rawMatches.map((mm) => {
+      const t = firstTournament(mm.tournament)
+      return {
+        round: mm.round,
+        tournamentId: mm.tournament_id,
+        tournamentTitle: t?.title ?? 'Tournament',
+        dataSupportText: t?.data_support_text ?? null,
+        dataSupportWhatsapp: t?.data_support_whatsapp ?? null,
+      }
+    }),
+  )
+
   const registrations: RegistrationRow[] = ((regsRes.data as unknown[] | null) ?? []).map((raw) => {
     const r = raw as { id: string; payment_status: string; tournament: TournamentRef }
     const t = firstTournament(r.tournament)
@@ -282,6 +302,7 @@ export default async function DashboardPage() {
         }}
       />
       <ReferralPanel username={profile?.username ?? ''} referredPlayers={referredPlayers} />
+      <DataSupportPanel username={profile?.username ?? ''} eligibility={dataSupportEligibility} />
       <FriendsPanel incoming={incomingRequests} friends={friendsList} />
       <FixtureSection fixtures={fixtures} />
       <MyTournaments registrations={registrations} />
