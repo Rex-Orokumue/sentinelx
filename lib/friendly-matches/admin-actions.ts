@@ -5,6 +5,7 @@ import { requireStaff } from '@/lib/admin/auth'
 import { notifyInApp } from '@/lib/notifications/inbox'
 import { friendlyMatchEventsFor } from './scoring'
 import { computeScore } from '@/lib/scoring/score'
+import { creditWallet } from '@/lib/wallet/service'
 
 export type FriendlyAdminState = { error?: string; success?: boolean } | undefined
 
@@ -55,6 +56,8 @@ export async function confirmFriendlyResult(
         .update({ sentinel_score: computeScore(scoreEvents ?? []) })
         .eq('id', playerId)
     }
+
+    await creditWallet(admin, fm.winner_id, fm.stake_amount * 2, 'friendly_stake', fm.id)
   }
 
   for (const playerId of [fm.challenger_id, fm.opponent_id]) {
