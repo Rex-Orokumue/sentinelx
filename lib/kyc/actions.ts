@@ -23,7 +23,8 @@ export async function resolveAccountName(
   try {
     const { accountName } = await resolveAccount(accountNumber, bankCode)
     return { accountName }
-  } catch {
+  } catch (err) {
+    console.error('[kyc] resolveAccountName failed', err)
     return { error: 'Could not verify this account number. Check the details and try again.' }
   }
 }
@@ -61,7 +62,8 @@ export async function submitKyc(_prev: KycState, formData: FormData): Promise<Ky
   let accountName: string
   try {
     ;({ accountName } = await resolveAccount(parsed.data.accountNumber, parsed.data.bankCode))
-  } catch {
+  } catch (err) {
+    console.error('[kyc] submitKyc: resolveAccount failed', err)
     return { error: 'Could not verify this account number. Check the details and try again.' }
   }
 
@@ -71,7 +73,8 @@ export async function submitKyc(_prev: KycState, formData: FormData): Promise<Ky
     const match = banks.find((b) => b.code === parsed.data.bankCode)
     if (!match) return { error: 'Unrecognized bank. Please select your bank again.' }
     bankName = match.name
-  } catch {
+  } catch (err) {
+    console.error('[kyc] submitKyc: listBanks failed', err)
     return { error: GENERIC_ERROR }
   }
 
@@ -80,7 +83,8 @@ export async function submitKyc(_prev: KycState, formData: FormData): Promise<Ky
   if (!customerCode) {
     try {
       customerCode = await createCustomer(user.email, parsed.data.firstName, parsed.data.lastName)
-    } catch {
+    } catch (err) {
+      console.error('[kyc] submitKyc: createCustomer failed', err)
       return { error: 'Could not start identity verification. Please try again.' }
     }
   }
@@ -95,7 +99,8 @@ export async function submitKyc(_prev: KycState, formData: FormData): Promise<Ky
       firstName: parsed.data.firstName,
       lastName: parsed.data.lastName,
     })
-  } catch {
+  } catch (err) {
+    console.error('[kyc] submitKyc: submitBvnIdentification failed', err)
     return { error: GENERIC_ERROR }
   }
 
