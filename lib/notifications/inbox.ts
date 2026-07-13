@@ -5,13 +5,10 @@ export type NotificationType =
   | 'listing_removed'
   | 'withdrawal_paid'
   | 'withdrawal_rejected'
-  | 'referral_withdrawal_paid'
-  | 'referral_withdrawal_rejected'
   | 'result_confirmed'
   | 'referral_credited'
   | 'friend_request'
-  | 'friendly_withdrawal_paid'
-  | 'friendly_withdrawal_rejected'
+  | 'wallet_credited'
 
 // Best-effort — NEVER throws into the caller's primary action, mirroring
 // lib/notifications/notify.ts's WhatsApp helper. A failed in-app notification
