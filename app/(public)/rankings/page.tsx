@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
+import { winsByPlayerAndGame, footballGoalsByPlayer, type GameScopedMatch } from '@/lib/rankings/game-breakdown'
 import { LeaderboardTabs } from '@/components/rankings/LeaderboardTabs'
 import { EmptyState } from '@/components/shared/EmptyState'
 
@@ -18,9 +19,19 @@ export const metadata: Metadata = {
   },
 }
 
+type RawGameRef = { name: string; category: string } | { name: string; category: string }[] | null
+type RawTournamentRef = { game: RawGameRef } | { game: RawGameRef }[] | null
+
+function firstGameRef(g: RawGameRef): { name: string; category: string } | null {
+  return Array.isArray(g) ? g[0] ?? null : g
+}
+function firstTournamentRef(t: RawTournamentRef): { game: RawGameRef } | null {
+  return Array.isArray(t) ? t[0] ?? null : t
+}
+
 export default async function RankingsPage() {
   const supabase = createClient()
-  const [{ data: profiles }, { data: { user } }] = await Promise.all([
+  const [{ data: profiles }, { data: matchRows }, { data: { user } }] = await Promise.all([
     supabase
       .from('profiles')
       .select(
@@ -29,8 +40,40 @@ export default async function RankingsPage() {
       .gte('total_matches', RANKING_MIN_MATCHES)
       .order('wins', { ascending: false })
       .limit(200),
+    // Fetched once and shared by both winsByPlayerAndGame and
+    // footballGoalsByPlayer below — never fetch completed matches twice.
+    supabase
+      .from('matches')
+      .select(
+        'status, score_a, score_b, player_a_id, player_b_id, tournament:tournaments(game:games(name, category))',
+      )
+      .eq('status', 'completed'),
     supabase.auth.getUser(),
   ])
+
+  const rawMatches = ((matchRows as unknown[] | null) ?? []) as {
+    status: string
+    score_a: number | null
+    score_b: number | null
+    player_a_id: string | null
+    player_b_id: string | null
+    tournament: RawTournamentRef
+  }[]
+  const matches: GameScopedMatch[] = rawMatches.map((m) => {
+    const t = firstTournamentRef(m.tournament)
+    const g = firstGameRef(t?.game ?? null)
+    return {
+      status: m.status,
+      score_a: m.score_a,
+      score_b: m.score_b,
+      player_a_id: m.player_a_id,
+      player_b_id: m.player_b_id,
+      game_name: g?.name ?? 'Unknown',
+      game_category: g?.category ?? 'other',
+    }
+  })
+  const winsMap = winsByPlayerAndGame(matches)
+  const goalsMap = footballGoalsByPlayer(matches)
 
   const players: PlayerStatsInput[] = (profiles ?? []).map(
     (p): PlayerStatsInput => ({
@@ -44,6 +87,9 @@ export default async function RankingsPage() {
       totalMatches: p.total_matches,
       goalsScored: p.goals_scored,
       goalsConceded: p.goals_conceded,
+      footballGoalsScored: goalsMap.get(p.id)?.scored ?? 0,
+      footballGoalsConceded: goalsMap.get(p.id)?.conceded ?? 0,
+      winsByGame: winsMap.get(p.id) ?? [],
       totalTitles: p.total_titles,
       sentinelScore: p.sentinel_score,
       sentinelTier: p.sentinel_tier,
