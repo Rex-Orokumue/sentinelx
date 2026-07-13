@@ -1,12 +1,12 @@
 'use client'
 import { useFormState } from 'react-dom'
-import { requestWithdrawal, type WithdrawalState } from '@/lib/withdrawals/actions'
+import { requestWalletWithdrawal, type WalletWithdrawalState } from '@/lib/wallet/actions'
 import { formatDate, formatNaira } from '@/lib/format'
 import { maskAccountNumber, kycPanelMode } from '@/lib/kyc/logic'
 import { KycForm } from './KycForm'
 import { Field } from './FormField'
 
-export interface WithdrawalRow {
+export interface WalletRequestRow {
   id: string
   amount: number
   bank_name: string
@@ -26,13 +26,12 @@ export interface PayoutAccount {
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   pending: { label: 'Pending review', cls: 'text-amber-400' },
-  processing: { label: 'Processing payout', cls: 'text-sky-400' },
   paid: { label: 'Paid', cls: 'text-emerald-400' },
   rejected: { label: 'Rejected', cls: 'text-red-400' },
-  failed: { label: 'Payout failed', cls: 'text-red-400' },
 }
 
-export function WithdrawalPanel({
+export function WalletPanel({
+  balance,
   requests,
   hasActive,
   kycStatus,
@@ -40,7 +39,8 @@ export function WithdrawalPanel({
   banks,
   payoutAccount,
 }: {
-  requests: WithdrawalRow[]
+  balance: number
+  requests: WalletRequestRow[]
   hasActive: boolean
   kycStatus: string
   kycFailureReason: string | null
@@ -51,7 +51,10 @@ export function WithdrawalPanel({
 
   return (
     <section className="mb-10">
-      <h2 className="mb-4 text-base font-bold text-white">Withdrawals</h2>
+      <h2 className="mb-4 text-base font-bold text-white">Wallet</h2>
+      <p className="mb-4 rounded-2xl border border-slate-800 bg-slate-900 p-4 text-2xl font-black text-white">
+        {formatNaira(balance)}
+      </p>
 
       {mode === 'form' && <KycForm banks={banks} failureReason={kycFailureReason} />}
       {mode === 'pending' && (
@@ -60,7 +63,7 @@ export function WithdrawalPanel({
         </div>
       )}
       {mode === 'verified' && payoutAccount && (
-        <VerifiedWithdrawalForm hasActive={hasActive} payoutAccount={payoutAccount} />
+        <VerifiedWithdrawalForm hasActive={hasActive} payoutAccount={payoutAccount} maxAmount={balance} />
       )}
 
       {requests.length > 0 && (
@@ -77,11 +80,13 @@ export function WithdrawalPanel({
 function VerifiedWithdrawalForm({
   hasActive,
   payoutAccount,
+  maxAmount,
 }: {
   hasActive: boolean
   payoutAccount: PayoutAccount
+  maxAmount: number
 }) {
-  const [state, formAction] = useFormState<WithdrawalState, FormData>(requestWithdrawal, undefined)
+  const [state, formAction] = useFormState<WalletWithdrawalState, FormData>(requestWalletWithdrawal, undefined)
 
   return (
     <div className="space-y-3">
@@ -98,7 +103,7 @@ function VerifiedWithdrawalForm({
           action={formAction}
           className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-5"
         >
-          <Field name="amount" label="Amount (₦)" type="number" min={1000} placeholder="1000" />
+          <Field name="amount" label={`Amount (₦, up to ${formatNaira(maxAmount)})`} type="number" min={100} max={maxAmount} placeholder="100" />
           {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
           <button
             type="submit"
@@ -112,7 +117,7 @@ function VerifiedWithdrawalForm({
   )
 }
 
-function RequestRow({ req }: { req: WithdrawalRow }) {
+function RequestRow({ req }: { req: WalletRequestRow }) {
   const s = STATUS[req.status] ?? { label: req.status, cls: 'text-slate-400' }
   const when = formatDate(req.resolved_at ?? req.requested_at) ?? ''
   return (
