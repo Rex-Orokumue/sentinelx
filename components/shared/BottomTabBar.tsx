@@ -62,7 +62,7 @@ export function BottomTabBar({ session }: { session: NavSession }) {
             </Link>
           )
         })}
-        {session.isLoggedIn && session.isStaff ? (
+        {session.isLoggedIn ? (
           <div ref={menuRef} className="relative flex-1">
             <button
               type="button"
@@ -87,8 +87,16 @@ export function BottomTabBar({ session }: { session: NavSession }) {
             </button>
             {menuOpen && (
               <div className="absolute bottom-full right-0 mb-2 w-40 rounded-xl border border-slate-800 bg-slate-900 py-1 shadow-xl">
+                <MenuLink
+                  href={session.username ? `/players/${session.username}` : '/dashboard'}
+                  onNavigate={() => setMenuOpen(false)}
+                >
+                  My Profile
+                </MenuLink>
                 <MenuLink href="/dashboard" onNavigate={() => setMenuOpen(false)}>Dashboard</MenuLink>
-                <MenuLink href="/admin" onNavigate={() => setMenuOpen(false)}>Admin</MenuLink>
+                {session.isStaff && (
+                  <MenuLink href="/admin" onNavigate={() => setMenuOpen(false)}>Admin</MenuLink>
+                )}
                 <form action={signOut}>
                   <button
                     type="submit"
@@ -102,17 +110,7 @@ export function BottomTabBar({ session }: { session: NavSession }) {
           </div>
         ) : (
           <Link href={accountHref} className={cls(accountActive)}>
-            {session.isLoggedIn ? (
-              <Avatar
-                avatarUrl={session.avatarUrl}
-                displayName={session.displayName}
-                username={session.username}
-                size={20}
-                className={accountActive ? 'ring-2 ring-violet-400' : ''}
-              />
-            ) : (
-              <User className="h-5 w-5" />
-            )}
+            <User className="h-5 w-5" />
             Account
           </Link>
         )}
