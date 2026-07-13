@@ -86,7 +86,7 @@ per-game only (not per-tournament).
 | 25 | WhatsApp fixture coordination audit — confirmed already built (#15+session fixture work); button copy aligned to spec | ✅ |
 | — | Player notification system — in-app bell, 8 event types retrofitted (listings/withdrawals/referrals/results/referral credit), unblocks #26+#27 | ✅ |
 | 26 | Friend system + friendly matches (free + staked) — friend requests, free challenges, staked matches with Paystack escrow, Match Room, Sentinel Score integration, staked balance + withdrawal queue | ✅ |
-| 27 | Admin notifications | ⬜ |
+| 27 | Admin notifications — live-aggregation bell + sidebar badges + Overview StatCards over existing pending queues, no new table | ✅ |
 
 ---
 
