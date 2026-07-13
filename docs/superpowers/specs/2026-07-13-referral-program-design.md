@@ -102,6 +102,8 @@ The one structural difference: each pending row also shows the requester's full 
 
 `lib/referrals/admin-actions.ts` mirrors `lib/withdrawals/admin-actions.ts`'s current (manual) shape — no commented-out automated block needed here since there's no prior automated version of this specific flow to preserve.
 
+**Future upgrade path:** prize withdrawals are manual because Paystack Transfer automation is built but blocked pending Paystack support enabling the Transfer API on the account — not a permanent design choice. When that's resolved and prize withdrawals move back to the automated flow, referral withdrawals should be upgraded the same way at the same time, so the two payout types don't drift apart again.
+
 ## 7. Out of scope
 
 - Anti-abuse beyond email verification (e.g. device/IP fingerprinting against multi-account farming) — not addressed; email confirmation is the only bar, matching the platform's existing trust level.
