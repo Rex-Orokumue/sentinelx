@@ -62,6 +62,19 @@ works across registrations, brackets, and results; tournaments can carry
 Markdown rules gated by a registration checkbox; and tournament pages show a
 live countdown to the registration deadline.
 
+## v3.6 — Community pillar
+
+| # | Task | Status |
+|---|------|--------|
+| — | Community pillar v1 — per-game discussion feed, one-level replies, optional post images, admin moderation | ✅ |
+
+**★ v3.6 COMPLETE.** The 🤝 Community pillar is live at `/community` — public
+per-game feed, posts + one-level replies, optional post images, live-then-moderate
+(no approval queue). Known deferred gaps (documented, not bugs): no image
+pre-moderation, no orphaned-image cleanup on delete (same accepted gap as Gaming
+Exchange listing images), no real-time delivery, no nested replies, no editing,
+per-game only (not per-tournament).
+
 ## v4.0 — Scale
 
 | # | Task | Status |
