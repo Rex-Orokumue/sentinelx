@@ -87,3 +87,13 @@ export function fromDateTimeLocal(value: string | null | undefined): string | nu
   const d = new Date(`${value.slice(0, 16)}:00${WAT_OFFSET}`)
   return Number.isNaN(d.getTime()) ? null : d.toISOString()
 }
+
+/**
+ * "YYYY-MM-DD" (from an `<input type="date">`) → UTC ISO instant for
+ * midnight WAT that date, for storage. Returns null for empty/invalid input.
+ */
+export function fromDateLocal(value: string | null | undefined): string | null {
+  if (!value) return null
+  const d = new Date(`${value}T00:00:00${WAT_OFFSET}`)
+  return Number.isNaN(d.getTime()) ? null : d.toISOString()
+}
