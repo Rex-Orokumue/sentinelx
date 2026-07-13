@@ -2,6 +2,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin/auth'
+import { notifyInApp } from '@/lib/notifications/inbox'
+import { formatNaira } from '@/lib/format'
 
 export type ReferralResolveState = { error?: string; success?: boolean } | undefined
 
@@ -25,7 +27,7 @@ export async function resolveReferralWithdrawal(
   const supabase = createClient()
   const { data: wr } = await supabase
     .from('referral_withdrawal_requests')
-    .select('status')
+    .select('status, player_id, amount')
     .eq('id', id)
     .maybeSingle()
   if (!wr) return { error: 'Request not found.' }
@@ -40,6 +42,19 @@ export async function resolveReferralWithdrawal(
     })
     .eq('id', id)
   if (error) return { error: 'Could not resolve the request. Please try again.' }
+
+  await notifyInApp({
+    playerId: wr.player_id,
+    type: action === 'paid' ? 'referral_withdrawal_paid' : 'referral_withdrawal_rejected',
+    title: action === 'paid' ? 'Referral withdrawal paid' : 'Referral withdrawal rejected',
+    body:
+      action === 'paid'
+        ? `Your referral withdrawal of ${formatNaira(wr.amount)} has been paid.`
+        : note
+          ? `Your referral withdrawal was rejected: ${note}`
+          : 'Your referral withdrawal was rejected.',
+    link: '/dashboard',
+  })
 
   revalidatePath('/admin/referrals')
   revalidatePath('/dashboard')
