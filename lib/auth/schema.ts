@@ -18,6 +18,7 @@ export const signupSchema = z.object({
   username: usernameSchema,
   email: z.string().trim().email('Enter a valid email'),
   password: passwordSchema,
+  ref: z.string().trim().optional(),
 })
 
 export const requestResetSchema = z.object({

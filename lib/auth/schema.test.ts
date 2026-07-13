@@ -22,6 +22,14 @@ describe('signupSchema', () => {
     const r = signupSchema.safeParse({ username: 'rex99', email: 'a@b.com', password: 'short' })
     expect(r.success).toBe(false)
   })
+  it('accepts an optional ref code', () => {
+    const r = signupSchema.safeParse({ username: 'rex99', email: 'a@b.com', password: 'password1', ref: 'someone' })
+    expect(r.success).toBe(true)
+  })
+  it('accepts signup with no ref code', () => {
+    const r = signupSchema.safeParse({ username: 'rex99', email: 'a@b.com', password: 'password1' })
+    expect(r.success).toBe(true)
+  })
 })
 
 describe('loginSchema', () => {

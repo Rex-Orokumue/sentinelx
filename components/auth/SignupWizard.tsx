@@ -28,7 +28,7 @@ function SubmitButton() {
   )
 }
 
-export function SignupWizard() {
+export function SignupWizard({ refCode }: { refCode: string | null }) {
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [username, setUsername] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -56,6 +56,7 @@ export function SignupWizard() {
       <Dots step={step} />
       {/* Single source of truth for the submitted username */}
       <input type="hidden" name="username" value={username} />
+      {refCode && <input type="hidden" name="ref" value={refCode} />}
 
       {/* Step 1 — username only */}
       <div className={step === 1 ? 'block' : 'hidden'}>

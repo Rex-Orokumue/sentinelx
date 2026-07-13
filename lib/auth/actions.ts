@@ -37,10 +37,11 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
     username: formData.get('username'),
     email: formData.get('email'),
     password: formData.get('password'),
+    ref: formData.get('ref') || undefined,
   })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
-  const { username, email, password } = parsed.data
+  const { username, email, password, ref } = parsed.data
   const supabase = createClient()
 
   // Precise username-availability check before signUp. `profiles` is
@@ -70,7 +71,7 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
     email,
     password,
     options: {
-      data: { username },
+      data: ref ? { username, ref } : { username },
     },
   })
   if (error) {
