@@ -204,6 +204,7 @@ export type Database = {
       games: {
         Row: {
           active: boolean
+          category: string
           created_at: string
           icon_url: string | null
           id: string
@@ -212,6 +213,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          category?: string
           created_at?: string
           icon_url?: string | null
           id?: string
@@ -220,6 +222,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          category?: string
           created_at?: string
           icon_url?: string | null
           id?: string
@@ -531,10 +534,12 @@ export type Database = {
       matches: {
         Row: {
           admin_note: string | null
+          auto_expired: boolean
           completed_at: string | null
           created_at: string
           group_id: string | null
           id: string
+          is_full_day: boolean
           player_a_id: string | null
           player_b_id: string | null
           replay_url: string | null
@@ -549,10 +554,12 @@ export type Database = {
         }
         Insert: {
           admin_note?: string | null
+          auto_expired?: boolean
           completed_at?: string | null
           created_at?: string
           group_id?: string | null
           id?: string
+          is_full_day?: boolean
           player_a_id?: string | null
           player_b_id?: string | null
           replay_url?: string | null
@@ -567,10 +574,12 @@ export type Database = {
         }
         Update: {
           admin_note?: string | null
+          auto_expired?: boolean
           completed_at?: string | null
           created_at?: string
           group_id?: string | null
           id?: string
+          is_full_day?: boolean
           player_a_id?: string | null
           player_b_id?: string | null
           replay_url?: string | null
@@ -761,6 +770,47 @@ export type Database = {
             foreignKeyName: "player_kyc_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          link: string | null
+          player_id: string
+          read: boolean
+          title: string
+          type: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          player_id: string
+          read?: boolean
+          title: string
+          type: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          link?: string | null
+          player_id?: string
+          read?: boolean
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_notifications_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1224,6 +1274,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      expire_full_day_matches: { Args: never; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
       player_rank: { Args: { uname: string }; Returns: number }
