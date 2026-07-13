@@ -27,6 +27,8 @@ export const tournamentSchema = z.object({
   tournamentStart: localDateTime,
   tournamentEnd: localDateTime,
   rules: optionalText(5000),
+  dataSupportText: optionalText(500),
+  dataSupportWhatsapp: optionalText(20),
 })
 
 export type TournamentInput = z.infer<typeof tournamentSchema>

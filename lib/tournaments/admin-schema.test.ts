@@ -15,6 +15,8 @@ const valid = {
   tournamentStart: '2026-08-01T18:00',
   tournamentEnd: '',
   rules: '',
+  dataSupportText: '',
+  dataSupportWhatsapp: '',
 }
 
 describe('tournamentSchema', () => {
