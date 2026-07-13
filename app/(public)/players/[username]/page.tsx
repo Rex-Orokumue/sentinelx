@@ -136,6 +136,10 @@ export default async function PlayerProfilePage({ params }: { params: { username
   const p = await loadProfile(params.username)
   if (!p) notFound()
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   const [{ data: rankData }, { data: rawMatches }, { data: rawFinals }] = await Promise.all([
     supabase.rpc('player_rank', { uname: p.username }),
     supabase
@@ -228,7 +232,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
   return (
     <div className="mx-auto max-w-2xl px-4 pb-20">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <ProfileHeader profile={profile} />
+      <ProfileHeader profile={profile} viewerId={user?.id ?? null} />
       <ProfileStats profile={profile} />
       <ProfileAchievements titles={titles} />
       <ProfileMatchHistory matches={matches} />

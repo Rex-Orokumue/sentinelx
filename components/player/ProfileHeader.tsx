@@ -1,9 +1,10 @@
 import { Avatar } from '@/components/shared/Avatar'
 import { TierBadge } from '@/components/player/TierBadge'
+import { AddFriendButton } from '@/components/player/AddFriendButton'
 import { formatMonthYear } from '@/lib/format'
 import type { ProfileView } from '@/lib/players/profile'
 
-export function ProfileHeader({ profile }: { profile: ProfileView }) {
+export function ProfileHeader({ profile, viewerId }: { profile: ProfileView; viewerId: string | null }) {
   const name = profile.displayName ?? profile.username
   const since = formatMonthYear(profile.createdAt)
   return (
@@ -33,6 +34,11 @@ export function ProfileHeader({ profile }: { profile: ProfileView }) {
           </span>
         </div>
         {profile.bio && <p className="mt-3 whitespace-pre-line text-sm text-slate-300">{profile.bio}</p>}
+        {viewerId && viewerId !== profile.id && (
+          <div className="mt-3">
+            <AddFriendButton recipientId={profile.id} />
+          </div>
+        )}
       </div>
     </header>
   )
