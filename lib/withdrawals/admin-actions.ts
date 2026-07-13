@@ -2,6 +2,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin/auth'
+import { notifyInApp } from '@/lib/notifications/inbox'
+import { formatNaira } from '@/lib/format'
 // Automatic payout via Paystack Transfer is reverted to manual for now — see
 // the commented block below in the 'paid' branch for how to re-enable it.
 // import { initiateTransfer, buildTransferReference } from '@/lib/paystack/server'
@@ -35,6 +37,13 @@ export async function resolveWithdrawal(
       .update({ status: 'rejected', admin_note: note || null, resolved_at: new Date().toISOString() })
       .eq('id', id)
     if (error) return { error: 'Could not resolve the request. Please try again.' }
+    await notifyInApp({
+      playerId: wr.player_id,
+      type: 'withdrawal_rejected',
+      title: 'Withdrawal rejected',
+      body: note ? `Your withdrawal request was rejected: ${note}` : 'Your withdrawal request was rejected.',
+      link: '/dashboard',
+    })
     revalidatePath('/admin/withdrawals')
     revalidatePath('/dashboard')
     return { success: true }
@@ -90,6 +99,13 @@ export async function resolveWithdrawal(
     .update({ status: 'paid', admin_note: note || null, resolved_at: new Date().toISOString() })
     .eq('id', id)
   if (error) return { error: 'Could not mark this request paid. Please try again.' }
+  await notifyInApp({
+    playerId: wr.player_id,
+    type: 'withdrawal_paid',
+    title: 'Withdrawal paid',
+    body: `Your withdrawal of ${formatNaira(wr.amount)} has been paid.`,
+    link: '/dashboard',
+  })
 
   revalidatePath('/admin/withdrawals')
   revalidatePath('/dashboard')
