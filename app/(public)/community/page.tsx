@@ -67,10 +67,20 @@ export default async function CommunityPage({
       .order('created_at', { ascending: false })
       .order('display_order', { ascending: true, foreignTable: 'community_post_images' })
       .order('created_at', { ascending: true, foreignTable: 'community_replies' })
-      .order('display_order', { ascending: true, foreignTable: 'community_reply_images' })
+      // No foreignTable ordering for community_reply_images — it's nested two
+      // levels deep (post -> replies -> reply_images) and PostgREST doesn't
+      // reliably support ordering a doubly-nested embed; sorted client-side
+      // below instead.
       .limit(PAGE_SIZE)
     if (searchParams.before) query = query.lt('created_at', searchParams.before)
-    const { data } = await query
+    const { data, error } = await query
+    if (error) {
+      console.error('[CommunityPage] community_posts query failed', {
+        gameId: activeGame.id,
+        code: error.code,
+        message: error.message,
+      })
+    }
 
     const rows = (data as unknown[] | null) ?? []
     hasMore = rows.length === PAGE_SIZE
@@ -106,7 +116,9 @@ export default async function CommunityPage({
           return {
             id: r.id,
             body: r.body,
-            imageUrls: (r.community_reply_images ?? []).map((i) => i.image_url),
+            imageUrls: [...(r.community_reply_images ?? [])]
+              .sort((a, b) => a.display_order - b.display_order)
+              .map((i) => i.image_url),
             createdAt: r.created_at,
             authorUsername: rAuthor?.username ?? null,
             authorDisplayName: rAuthor?.display_name ?? null,
