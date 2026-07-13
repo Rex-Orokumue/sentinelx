@@ -6,7 +6,7 @@ import { rankPlayersBy, type PlayerStatsInput, type LeaderboardMetric } from '@/
 const TABS: { key: LeaderboardMetric; label: string }[] = [
   { key: 'wins', label: 'Wins' },
   { key: 'score', label: 'Sentinel Score' },
-  { key: 'goals', label: 'Goals' },
+  { key: 'goals', label: 'Goals (Football)' },
 ]
 
 export function LeaderboardTabs({
