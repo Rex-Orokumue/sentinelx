@@ -31,7 +31,7 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
   const { data } = await supabase
     .from('matches')
     .select(
-      'id, round, group_id, status, scheduled_at, youtube_stream_url, replay_url, ' +
+      'id, round, group_id, status, scheduled_at, is_full_day, youtube_stream_url, replay_url, ' +
         'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
         'player_b:profiles!matches_player_b_id_fkey(username, display_name), ' +
         'groups(name)',
@@ -44,6 +44,7 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
       round: string
       status: string
       scheduled_at: string | null
+      is_full_day: boolean
       youtube_stream_url: string | null
       replay_url: string | null
       player_a: ProfileRef
@@ -59,6 +60,7 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
         playerBName: nameOf(m.player_b),
         status: m.status,
         scheduledAt: toDateTimeLocal(m.scheduled_at),
+        isFullDay: m.is_full_day,
         streamUrl: m.youtube_stream_url ?? '',
         replayUrl: m.replay_url ?? '',
       } as AdminMatchRow,
