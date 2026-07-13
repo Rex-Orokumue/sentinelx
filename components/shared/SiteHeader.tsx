@@ -2,6 +2,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { AccountMenu } from '@/components/shared/AccountMenu'
+import { NotificationBell } from '@/components/shared/NotificationBell'
 import type { NavSession } from '@/lib/nav/session'
 
 const NAV = [
@@ -58,6 +59,14 @@ export function SiteHeader({
             <WhatsAppIcon className="h-3.5 w-3.5" />
             <span>Community</span>
           </a>
+
+          {/* Notifications — every breakpoint, never in the bottom tab bar */}
+          {session.isLoggedIn && (
+            <NotificationBell
+              initialNotifications={session.recentNotifications}
+              initialUnreadCount={session.unreadNotificationCount}
+            />
+          )}
 
           {/* Account — desktop only; mobile uses the bottom tab bar */}
           <div className="hidden sm:block">
