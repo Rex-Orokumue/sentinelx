@@ -779,6 +779,7 @@ export type Database = {
           kyc_verified: boolean
           losses: number
           phone: string | null
+          referred_by: string | null
           sentinel_score: number
           sentinel_tier: string | null
           total_matches: number
@@ -800,6 +801,7 @@ export type Database = {
           kyc_verified?: boolean
           losses?: number
           phone?: string | null
+          referred_by?: string | null
           sentinel_score?: number
           sentinel_tier?: string | null
           total_matches?: number
@@ -821,6 +823,7 @@ export type Database = {
           kyc_verified?: boolean
           losses?: number
           phone?: string | null
+          referred_by?: string | null
           sentinel_score?: number
           sentinel_tier?: string | null
           total_matches?: number
@@ -830,7 +833,98 @@ export type Database = {
           whatsapp_number?: string | null
           wins?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_withdrawal_requests: {
+        Row: {
+          account_name: string
+          account_number: string
+          admin_note: string | null
+          amount: number
+          bank_name: string
+          id: string
+          player_id: string
+          requested_at: string
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          admin_note?: string | null
+          amount: number
+          bank_name: string
+          id?: string
+          player_id: string
+          requested_at?: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          admin_note?: string | null
+          amount?: number
+          bank_name?: string
+          id?: string
+          player_id?: string
+          requested_at?: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_withdrawal_requests_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referred_id: string
+          referrer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sentinel_score_events: {
         Row: {
