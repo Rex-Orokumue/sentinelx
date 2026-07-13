@@ -19,12 +19,14 @@ export function pickMVP(players: PlayerStatsInput[]): PlayerStatsInput | null {
   )[0]
 }
 
-// Golden Boot: most goals scored among eligible players, ties broken by wins.
+// Golden Boot: most FOOTBALL-scoped goals scored among eligible players (not
+// the cumulative goalsScored — see PlayerStatsInput's doc comment), ties
+// broken by wins.
 export function pickGoldenBoot(players: PlayerStatsInput[]): PlayerStatsInput | null {
   const eligible = players.filter(isRankingEligible)
   if (eligible.length === 0) return null
   return [...eligible].sort(
-    (a, b) => b.goalsScored - a.goalsScored || b.wins - a.wins,
+    (a, b) => b.footballGoalsScored - a.footballGoalsScored || b.wins - a.wins,
   )[0]
 }
 

@@ -14,6 +14,9 @@ function p(over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput {
     totalMatches: 0,
     goalsScored: 0,
     goalsConceded: 0,
+    footballGoalsScored: 0,
+    footballGoalsConceded: 0,
+    winsByGame: [],
     totalTitles: 0,
     sentinelScore: 70,
     sentinelTier: null,
@@ -63,21 +66,21 @@ describe('pickMVP', () => {
 describe('pickGoldenBoot', () => {
   it('returns null when no eligible players', () => {
     expect(pickGoldenBoot([])).toBeNull()
-    expect(pickGoldenBoot([p({ id: 'a', totalMatches: 0, goalsScored: 50 })])).toBeNull()
+    expect(pickGoldenBoot([p({ id: 'a', totalMatches: 0, footballGoalsScored: 50 })])).toBeNull()
   })
 
-  it('picks the highest goals scored', () => {
+  it('picks the highest football-scoped goals scored', () => {
     const r = pickGoldenBoot([
-      p({ id: 'a', totalMatches: 3, goalsScored: 12 }),
-      p({ id: 'b', totalMatches: 3, goalsScored: 20 }),
+      p({ id: 'a', totalMatches: 3, footballGoalsScored: 12 }),
+      p({ id: 'b', totalMatches: 3, footballGoalsScored: 20 }),
     ])
     expect(r?.id).toBe('b')
   })
 
   it('breaks a goals tie by wins', () => {
     const r = pickGoldenBoot([
-      p({ id: 'a', totalMatches: 5, goalsScored: 15, wins: 2 }),
-      p({ id: 'b', totalMatches: 5, goalsScored: 15, wins: 4 }),
+      p({ id: 'a', totalMatches: 5, footballGoalsScored: 15, wins: 2 }),
+      p({ id: 'b', totalMatches: 5, footballGoalsScored: 15, wins: 4 }),
     ])
     expect(r?.id).toBe('b')
   })
