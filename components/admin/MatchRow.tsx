@@ -1,5 +1,5 @@
 'use client'
-import type { InputHTMLAttributes } from 'react'
+import { useState, type InputHTMLAttributes } from 'react'
 import { useFormState } from 'react-dom'
 import { updateMatch, toggleMatchLive, type MatchAdminState } from '@/lib/matches/admin-actions'
 
@@ -9,6 +9,7 @@ export interface AdminMatchRow {
   playerBName: string | null // null => bye
   status: string
   scheduledAt: string // datetime-local value ('' if none)
+  isFullDay: boolean
   streamUrl: string
   replayUrl: string
 }
@@ -19,6 +20,7 @@ export function MatchRow({ match }: { match: AdminMatchRow }) {
     toggleMatchLive,
     undefined,
   )
+  const [mode, setMode] = useState<'timed' | 'full_day'>(match.isFullDay ? 'full_day' : 'timed')
 
   if (match.status === 'bye' || match.playerBName === null) {
     return (
@@ -43,7 +45,33 @@ export function MatchRow({ match }: { match: AdminMatchRow }) {
 
       <form action={saveAction} className="grid gap-3 sm:grid-cols-3">
         <input type="hidden" name="id" value={match.id} />
-        <Field label="Schedule" name="scheduledAt" type="datetime-local" defaultValue={match.scheduledAt} />
+        <div className="flex items-center gap-3 text-xs sm:col-span-3">
+          <label className="flex items-center gap-1.5 text-slate-400">
+            <input
+              type="radio"
+              name="schedulingMode"
+              value="timed"
+              checked={mode === 'timed'}
+              onChange={() => setMode('timed')}
+            />
+            Timed
+          </label>
+          <label className="flex items-center gap-1.5 text-slate-400">
+            <input
+              type="radio"
+              name="schedulingMode"
+              value="full_day"
+              checked={mode === 'full_day'}
+              onChange={() => setMode('full_day')}
+            />
+            Full day
+          </label>
+        </div>
+        {mode === 'timed' ? (
+          <Field label="Schedule" name="scheduledAt" type="datetime-local" defaultValue={match.scheduledAt} />
+        ) : (
+          <Field label="Date" name="scheduledDate" type="date" defaultValue={match.scheduledAt.slice(0, 10)} />
+        )}
         <Field label="Stream URL" name="streamUrl" type="url" defaultValue={match.streamUrl} placeholder="YouTube link" />
         <Field label="Replay URL" name="replayUrl" type="url" defaultValue={match.replayUrl} placeholder="YouTube link" />
         <div className="flex items-center gap-2 sm:col-span-3">
