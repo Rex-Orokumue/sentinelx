@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyWebhookSignature } from '@/lib/paystack/server'
 import { confirmRegistration } from '@/lib/tournaments/confirm'
 import { confirmFriendlyStake } from '@/lib/friendly-matches/confirm'
-import { applyIdentificationWebhook } from '@/lib/kyc/webhook'
+import { applyIdentificationWebhook, extractIdentificationCustomerCode } from '@/lib/kyc/webhook'
 
 export const runtime = 'nodejs'
 
@@ -43,7 +43,9 @@ export async function POST(req: NextRequest) {
       await confirmFriendlyStake(event.data.reference)
     }
   } else if (type === 'customeridentification.success' || type === 'customeridentification.failed') {
-    const customerCode = event.data?.customer?.customer_code
+    // data IS the customer object for this event family (customer_code at the
+    // top level) — not a transaction with a nested customer like charge.success.
+    const customerCode = extractIdentificationCustomerCode(event.data)
     if (customerCode) {
       await applyIdentificationWebhook(customerCode, type, event.data?.message ?? null)
     }

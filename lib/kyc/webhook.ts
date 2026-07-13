@@ -11,6 +11,21 @@ export function identificationEventTarget(event: string): 'verified' | 'failed' 
   return null
 }
 
+// customeridentification.success/.failed payloads have `data` AS the customer
+// object itself (customer_code at the top level) — unlike charge.success,
+// where `data` is a transaction with a nested `customer` object. Checking the
+// top level first (with the nested shape as a defensive fallback) is what was
+// missing: the webhook route used to read only `data.customer.customer_code`,
+// which is undefined for identification events, so the route silently
+// no-op'd on every real customeridentification.* delivery.
+export function extractIdentificationCustomerCode(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null
+  const d = data as { customer_code?: unknown; customer?: { customer_code?: unknown } }
+  if (typeof d.customer_code === 'string') return d.customer_code
+  if (typeof d.customer?.customer_code === 'string') return d.customer.customer_code
+  return null
+}
+
 export async function applyIdentificationWebhook(
   customerCode: string,
   event: string,
