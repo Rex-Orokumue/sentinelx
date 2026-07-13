@@ -3,7 +3,13 @@
 **Date:** 2026-07-13
 **Status:** Approved design → ready for implementation plan
 **Depends on:** none functionally, but supersedes the prediction in [player-notification-system-design.md §7](2026-07-13-player-notification-system-design.md) that #27 would become "a staff-filtered view of the same `player_notifications` system." It doesn't — see §2 for why.
-**Known merge dependency:** #28 (wallet/perks/recordings, in progress on `feat/28-30-wallet-perks-recordings`) is expected to replace `withdrawal_requests`, `referral_withdrawal_requests`, and `friendly_withdrawal_requests` with a single unified `withdrawal_requests_v2` table. As of this spec, that branch has no commits ahead of `main` yet — the table doesn't exist. Whoever merges #28 **must** update the three withdrawal sources in `getAdminNotificationQueue()` (§3) to point at the new table, or admin withdrawal notifications will silently break.
+**Known merge dependency:** #28 (wallet/perks/recordings, in progress on `feat/28-30-wallet-perks-recordings`) collapses the three withdrawal tables into one wallet model, not a source swap:
+
+- `referral_withdrawal_requests` is **dropped** → remove the `referral_withdrawal_pending` type and its query from `getAdminNotificationQueue()` (§3) entirely.
+- `friendly_withdrawal_requests` is **dropped** → remove `friendly_withdrawal_pending` and its query entirely.
+- `withdrawal_requests` **survives** (same name, widened scope to cover all wallet withdrawals) → keep `withdrawal_pending`, but update its `link` from `/admin/withdrawals` to `/admin/wallet`.
+
+Net effect: 3 withdrawal notification types collapse into 1. Whoever merges #28 must make this change in `lib/admin/notification-queue.ts`, or admin withdrawal notifications will silently break for two of the three queue types.
 
 ---
 
