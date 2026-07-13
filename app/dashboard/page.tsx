@@ -11,6 +11,7 @@ import { MyOrders } from '@/components/dashboard/MyOrders'
 import { latestPerListing, type OrderRow } from '@/lib/exchange/orders'
 import { MySales } from '@/components/dashboard/MySales'
 import { ProfileEditForm } from '@/components/dashboard/ProfileEditForm'
+import { ReferralPanel, type ReferralWithdrawalRow } from '@/components/dashboard/ReferralPanel'
 import { signOut } from '@/lib/auth/actions'
 import { listBanks, type Bank } from '@/lib/paystack/server'
 
@@ -25,6 +26,15 @@ function nameOf(p: ProfileRef): string {
 function firstTournament(t: TournamentRef): { title: string; slug: string } | null {
   if (Array.isArray(t)) return t[0] ?? null
   return t
+}
+
+type ReferredRef =
+  | { username: string | null; display_name: string | null }
+  | { username: string | null; display_name: string | null }[]
+  | null
+function referredName(r: ReferredRef): string {
+  const p = Array.isArray(r) ? r[0] ?? null : r
+  return p?.display_name ?? p?.username ?? 'Player'
 }
 
 export default async function DashboardPage() {
@@ -45,6 +55,8 @@ export default async function DashboardPage() {
     salesRes,
     kycRes,
     banks,
+    referralsRes,
+    referralWithdrawalsRes,
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -95,6 +107,15 @@ export default async function DashboardPage() {
       .eq('player_id', user.id)
       .maybeSingle(),
     listBanks().catch(() => [] as Bank[]),
+    supabase
+      .from('referrals')
+      .select('referred:profiles!referrals_referred_id_fkey(username, display_name)')
+      .eq('referrer_id', user.id),
+    supabase
+      .from('referral_withdrawal_requests')
+      .select('id, amount, status, admin_note, requested_at, resolved_at')
+      .eq('player_id', user.id)
+      .order('requested_at', { ascending: false }),
   ])
 
   const profile = profileRes.data
@@ -192,6 +213,11 @@ export default async function DashboardPage() {
 
   const displayName = profile?.display_name ?? profile?.username ?? user.email ?? 'Player'
 
+  const referredPlayers = ((referralsRes.data as unknown[] | null) ?? []).map((raw) =>
+    referredName((raw as { referred: ReferredRef }).referred),
+  )
+  const referralWithdrawals = (referralWithdrawalsRes.data ?? []) as ReferralWithdrawalRow[]
+
   return (
     <div className="mx-auto max-w-4xl px-4 pb-20">
       <DashboardHeader
@@ -217,6 +243,12 @@ export default async function DashboardPage() {
           country: profile?.country ?? null,
           bio: profile?.bio ?? null,
         }}
+      />
+      <ReferralPanel
+        username={profile?.username ?? ''}
+        referredPlayers={referredPlayers}
+        requests={referralWithdrawals}
+        kycVerified={kyc?.kyc_status === 'verified'}
       />
       <FixtureSection fixtures={fixtures} />
       <MyTournaments registrations={registrations} />
