@@ -56,6 +56,90 @@ export type Database = {
           },
         ]
       }
+      community_posts: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          game_id: string
+          id: string
+          image_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          game_id: string
+          id?: string
+          image_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          game_id?: string
+          id?: string
+          image_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_posts_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_replies: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          post_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          post_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_replies_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_replies_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           active: boolean
