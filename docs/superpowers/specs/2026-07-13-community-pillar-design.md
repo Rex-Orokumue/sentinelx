@@ -35,7 +35,7 @@ CREATE TABLE public.community_posts (
   id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   game_id    uuid        NOT NULL REFERENCES public.games(id),
   author_id  uuid        NOT NULL REFERENCES public.profiles(id),
-  body       text        NOT NULL,
+  body       text        NOT NULL CHECK (char_length(body) <= 2000),
   image_url  text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -45,7 +45,7 @@ CREATE TABLE public.community_replies (
   id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   post_id    uuid        NOT NULL REFERENCES public.community_posts(id) ON DELETE CASCADE,
   author_id  uuid        NOT NULL REFERENCES public.profiles(id),
-  body       text        NOT NULL,
+  body       text        NOT NULL CHECK (char_length(body) <= 2000),
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -66,6 +66,12 @@ No `updated_at` / edit support on either table for v1 — posts and replies are
 delete-and-repost only. `set_updated_at` is still attached to `community_posts` for
 consistency with every other table in this schema that has the column, even though
 nothing writes an update yet; if editing is added later the trigger is already there.
+
+The `CHECK (char_length(body) <= 2000)` constraint is the backstop; the server
+action's Zod schema (`z.string().trim().min(1).max(2000)`, matching the
+`optionalText`/`title` pattern already used in `lib/tournaments/admin-schema.ts`)
+is what actually produces a friendly error — the DB constraint exists so a bug in
+the app layer can never bypass the limit, not as the primary validation path.
 
 ### RLS
 
@@ -183,3 +189,15 @@ with the same cursor pattern.
 - Sentinel Score integration — no new score events tied to community moderation;
   the existing `admin_flag_conduct` event type already covers a staff response to
   bad behavior if needed, no new event type is being added here.
+- Image pre-moderation — Gaming Exchange listing images go through Samuel's
+  approval queue before going live; community post images do not (there is no
+  pre-moderation step at all in this design — "live immediately, remove after"
+  applies to images the same as text). Acceptable for v1 since staff can delete
+  the whole post, but worth stating explicitly so this isn't mistaken for an
+  oversight later.
+- Orphaned image cleanup on delete — deleting a post does not delete its image
+  from the `community-images` bucket; the file is simply orphaned. Same known,
+  already-accepted gap as Gaming Exchange's listing images (#13a, "orphaned Storage
+  files on delete = known tech debt") — not solved here for the same reason: it's a
+  storage cost, not a data-safety or correctness problem, and cleanup can be added
+  later as a batch job without changing anything about this design.
