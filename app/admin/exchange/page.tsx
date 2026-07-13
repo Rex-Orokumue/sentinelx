@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { Metadata } from 'next'
 import { requireStaff } from '@/lib/admin/auth'
 import { createClient } from '@/lib/supabase/server'
@@ -8,6 +9,8 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import type { ListingCategory } from '@/lib/exchange/schema'
 
 export const metadata: Metadata = { title: 'Exchange · Admin · SentinelX' }
+
+const ORDERS_PAGE_SIZE = 10
 
 type NameRef = { username: string | null } | { username: string | null }[] | null
 function firstUsername(p: NameRef): string | null {
@@ -23,24 +26,31 @@ type Row = {
   listing_images: { image_url: string; display_order: number }[] | null
 }
 
-export default async function AdminExchangePage() {
+export default async function AdminExchangePage({
+  searchParams,
+}: {
+  searchParams: { before?: string }
+}) {
   await requireStaff()
   const supabase = createClient()
+  let ordersQuery = supabase
+    .from('marketplace_orders')
+    .select(
+      'id, listing_title, amount, status, zolarux_order_ref, created_at, ' +
+        'buyer:profiles!marketplace_orders_buyer_id_fkey(username), ' +
+        'seller:profiles!marketplace_orders_seller_id_fkey(username)',
+    )
+    .order('created_at', { ascending: false })
+    .limit(ORDERS_PAGE_SIZE)
+  if (searchParams.before) ordersQuery = ordersQuery.lt('created_at', searchParams.before)
+
   const [{ data }, { data: orderData }] = await Promise.all([
     supabase
       .from('marketplace_listings')
       .select('id, title, price, category, seller:profiles!marketplace_listings_seller_id_fkey(username), listing_images(image_url, display_order)')
       .eq('status', 'pending')
       .order('created_at', { ascending: true }),
-    supabase
-      .from('marketplace_orders')
-      .select(
-        'id, listing_title, amount, status, zolarux_order_ref, created_at, ' +
-          'buyer:profiles!marketplace_orders_buyer_id_fkey(username), ' +
-          'seller:profiles!marketplace_orders_seller_id_fkey(username)',
-      )
-      .order('created_at', { ascending: false })
-      .limit(50),
+    ordersQuery,
   ])
 
   const rows = (data ?? []) as unknown as Row[]
@@ -99,11 +109,23 @@ export default async function AdminExchangePage() {
           No orders yet.
         </p>
       ) : (
-        <div className="space-y-2">
-          {orders.map((o) => (
-            <AdminOrderRow key={o.id} order={o} />
-          ))}
-        </div>
+        <>
+          <div className="space-y-2">
+            {orders.map((o) => (
+              <AdminOrderRow key={o.id} order={o} />
+            ))}
+          </div>
+          {orders.length === ORDERS_PAGE_SIZE && (
+            <div className="mt-4 text-center">
+              <Link
+                href={`/admin/exchange?before=${encodeURIComponent(orders[orders.length - 1].createdAt)}`}
+                className="text-sm text-violet-400 hover:text-violet-300"
+              >
+                Load more →
+              </Link>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
