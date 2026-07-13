@@ -1,6 +1,7 @@
 import { Avatar } from '@/components/shared/Avatar'
 import { TierBadge } from '@/components/player/TierBadge'
 import { AddFriendButton } from '@/components/player/AddFriendButton'
+import { ChallengeButton } from '@/components/player/ChallengeButton'
 import { formatMonthYear } from '@/lib/format'
 import type { ProfileView } from '@/lib/players/profile'
 
@@ -35,8 +36,9 @@ export function ProfileHeader({ profile, viewerId }: { profile: ProfileView; vie
         </div>
         {profile.bio && <p className="mt-3 whitespace-pre-line text-sm text-slate-300">{profile.bio}</p>}
         {viewerId && viewerId !== profile.id && (
-          <div className="mt-3">
+          <div className="mt-3 space-y-2">
             <AddFriendButton recipientId={profile.id} />
+            <ChallengeButton opponentId={profile.id} />
           </div>
         )}
       </div>
