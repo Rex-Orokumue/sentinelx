@@ -21,6 +21,8 @@ const EMPTY: TournamentFormValues = {
   tournamentStart: '',
   tournamentEnd: '',
   rules: '',
+  dataSupportText: '',
+  dataSupportWhatsapp: '',
 }
 
 export default async function NewTournamentPage() {

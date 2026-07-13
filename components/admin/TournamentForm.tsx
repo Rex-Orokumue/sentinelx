@@ -17,6 +17,8 @@ export interface TournamentFormValues {
   tournamentStart: string
   tournamentEnd: string
   rules: string
+  dataSupportText: string
+  dataSupportWhatsapp: string
 }
 
 type Action = (prev: TournamentFormState, fd: FormData) => Promise<TournamentFormState>
@@ -111,6 +113,26 @@ export function TournamentForm({
           Shown to players above the register button. Leave blank to skip the rules step entirely.
         </p>
       </div>
+
+      <div className="space-y-1.5">
+        <label htmlFor="dataSupportText" className="text-sm font-medium text-slate-300">
+          Data support perk <span className="text-slate-500">(optional)</span>
+        </label>
+        <textarea
+          id="dataSupportText"
+          name="dataSupportText"
+          defaultValue={initial.dataSupportText}
+          rows={2}
+          placeholder="e.g. 1GB data for semi-finalists, 2GB for finalists"
+          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
+        />
+      </div>
+
+      <Field
+        label="Data support WhatsApp number"
+        name="dataSupportWhatsapp"
+        defaultValue={initial.dataSupportWhatsapp}
+      />
 
       <Field label="Banner URL" name="bannerUrl" type="url" defaultValue={initial.bannerUrl} />
 
