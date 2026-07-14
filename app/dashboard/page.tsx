@@ -13,6 +13,8 @@ import { MySales } from '@/components/dashboard/MySales'
 import { ProfileEditForm } from '@/components/dashboard/ProfileEditForm'
 import { ReferralPanel } from '@/components/dashboard/ReferralPanel'
 import { FriendsPanel, type FriendRequestRow, type FriendRow } from '@/components/dashboard/FriendsPanel'
+import { FriendliesPanel } from '@/components/dashboard/FriendliesPanel'
+import { bucketFriendlies } from '@/lib/friendly-matches/buckets'
 import { signOut } from '@/lib/auth/actions'
 import { listBanks, type Bank } from '@/lib/paystack/server'
 import { computeDataSupportEligibility } from '@/lib/dashboard/data-support'
@@ -75,6 +77,7 @@ export default async function DashboardPage() {
     banks,
     referralsRes,
     friendsRes,
+    friendliesRes,
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -138,6 +141,10 @@ export default async function DashboardPage() {
           'recipient:profiles!friends_recipient_id_fkey(username, display_name, avatar_url)',
       )
       .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`),
+    supabase
+      .from('friendly_matches')
+      .select('id, status, challenger_id, opponent_id')
+      .or(`challenger_id.eq.${user.id},opponent_id.eq.${user.id}`),
   ])
 
   const profile = profileRes.data
@@ -275,6 +282,12 @@ export default async function DashboardPage() {
       return { id: f.id, friendName: p.name, friendUsername: p.username, friendAvatarUrl: p.avatarUrl }
     })
 
+  const rawFriendlies = ((friendliesRes.data as unknown[] | null) ?? []).map((r) => {
+    const row = r as { id: string; status: string; challenger_id: string; opponent_id: string }
+    return { id: row.id, status: row.status, challengerId: row.challenger_id, opponentId: row.opponent_id }
+  })
+  const friendlyBuckets = bucketFriendlies(rawFriendlies, user.id)
+
   return (
     <div className="mx-auto max-w-4xl px-4 pb-20">
       <DashboardHeader
@@ -304,6 +317,11 @@ export default async function DashboardPage() {
       <ReferralPanel username={profile?.username ?? ''} referredPlayers={referredPlayers} />
       <DataSupportPanel username={profile?.username ?? ''} eligibility={dataSupportEligibility} />
       <FriendsPanel incoming={incomingRequests} friends={friendsList} />
+      <FriendliesPanel
+        pendingCount={friendlyBuckets.pending.length}
+        activeCount={friendlyBuckets.active.length}
+        completedCount={friendlyBuckets.completed.length}
+      />
       <FixtureSection fixtures={fixtures} />
       <MyTournaments registrations={registrations} />
       <MyListings listings={myListings} />
