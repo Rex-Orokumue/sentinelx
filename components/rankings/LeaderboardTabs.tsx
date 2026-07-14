@@ -2,26 +2,33 @@
 import { useState } from 'react'
 import { LeaderboardTable } from './LeaderboardTable'
 import { rankPlayersBy, type PlayerStatsInput, type LeaderboardMetric } from '@/lib/rankings/leaderboard'
+import { CATEGORY_META } from '@/lib/games/categories'
 
-const TABS: { key: LeaderboardMetric; label: string }[] = [
+const BASE_TABS: { key: LeaderboardMetric; label: string }[] = [
   { key: 'wins', label: 'Wins' },
   { key: 'score', label: 'Sentinel Score' },
-  { key: 'goals', label: 'Goals (Football)' },
 ]
 
 export function LeaderboardTabs({
   players,
   currentUserId,
+  activeCategories,
 }: {
   players: PlayerStatsInput[]
   currentUserId: string | null
+  activeCategories: string[]
 }) {
+  const categoryTabs = activeCategories
+    .filter((c) => CATEGORY_META[c] != null)
+    .map((c) => ({ key: c as LeaderboardMetric, label: CATEGORY_META[c].statLabel }))
+  const tabs = [...BASE_TABS, ...categoryTabs]
+
   const [metric, setMetric] = useState<LeaderboardMetric>('wins')
   const ranked = rankPlayersBy(players, metric)
   return (
     <div>
       <div className="mb-4 flex gap-1 rounded-lg border border-slate-800 bg-slate-900 p-1">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setMetric(t.key)}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pickMVP, pickGoldenBoot, deriveChampions, type ChampionInput } from './awards'
+import { pickMVP, pickGoldenBoot, pickCategoryAward, deriveChampions, type ChampionInput } from './awards'
 import type { PlayerStatsInput } from '@/lib/rankings/leaderboard'
 import type { BracketMatch } from '@/lib/tournaments/bracket'
 
@@ -14,8 +14,7 @@ function p(over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput {
     totalMatches: 0,
     goalsScored: 0,
     goalsConceded: 0,
-    footballGoalsScored: 0,
-    footballGoalsConceded: 0,
+    categoryStats: [],
     winsByGame: [],
     totalTitles: 0,
     sentinelScore: 70,
@@ -66,22 +65,41 @@ describe('pickMVP', () => {
 describe('pickGoldenBoot', () => {
   it('returns null when no eligible players', () => {
     expect(pickGoldenBoot([])).toBeNull()
-    expect(pickGoldenBoot([p({ id: 'a', totalMatches: 0, footballGoalsScored: 50 })])).toBeNull()
+    expect(
+      pickGoldenBoot([p({ id: 'a', totalMatches: 0, categoryStats: [{ category: 'football', scored: 50, conceded: 0 }] })]),
+    ).toBeNull()
+  })
+
+  it('returns null when nobody has scored in that category', () => {
+    expect(pickGoldenBoot([p({ id: 'a', totalMatches: 3, wins: 5, categoryStats: [] })])).toBeNull()
   })
 
   it('picks the highest football-scoped goals scored', () => {
     const r = pickGoldenBoot([
-      p({ id: 'a', totalMatches: 3, footballGoalsScored: 12 }),
-      p({ id: 'b', totalMatches: 3, footballGoalsScored: 20 }),
+      p({ id: 'a', totalMatches: 3, categoryStats: [{ category: 'football', scored: 12, conceded: 0 }] }),
+      p({ id: 'b', totalMatches: 3, categoryStats: [{ category: 'football', scored: 20, conceded: 0 }] }),
     ])
     expect(r?.id).toBe('b')
   })
 
   it('breaks a goals tie by wins', () => {
     const r = pickGoldenBoot([
-      p({ id: 'a', totalMatches: 5, footballGoalsScored: 15, wins: 2 }),
-      p({ id: 'b', totalMatches: 5, footballGoalsScored: 15, wins: 4 }),
+      p({ id: 'a', totalMatches: 5, categoryStats: [{ category: 'football', scored: 15, conceded: 0 }], wins: 2 }),
+      p({ id: 'b', totalMatches: 5, categoryStats: [{ category: 'football', scored: 15, conceded: 0 }], wins: 4 }),
     ])
+    expect(r?.id).toBe('b')
+  })
+})
+
+describe('pickCategoryAward', () => {
+  it('works identically for a non-football category', () => {
+    const r = pickCategoryAward(
+      [
+        p({ id: 'a', totalMatches: 3, categoryStats: [{ category: 'shooter', scored: 40, conceded: 0 }] }),
+        p({ id: 'b', totalMatches: 3, categoryStats: [{ category: 'shooter', scored: 55, conceded: 0 }] }),
+      ],
+      'shooter',
+    )
     expect(r?.id).toBe('b')
   })
 })

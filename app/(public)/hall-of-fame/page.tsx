@@ -4,10 +4,12 @@ import { RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leade
 import {
   pickMVP,
   pickGoldenBoot,
+  pickCategoryAward,
   deriveChampions,
   type ChampionInput,
 } from '@/lib/hall-of-fame/awards'
-import { footballGoalsByPlayer, type GameScopedMatch } from '@/lib/rankings/game-breakdown'
+import { scoreStatsByPlayerAndCategory, categoryStat, type GameScopedMatch } from '@/lib/rankings/game-breakdown'
+import { CATEGORY_META } from '@/lib/games/categories'
 import type { BracketMatch } from '@/lib/tournaments/bracket'
 import { AwardCard } from '@/components/hall-of-fame/AwardCard'
 import { ChampionCard } from '@/components/hall-of-fame/ChampionCard'
@@ -54,7 +56,7 @@ export default async function HallOfFamePage() {
   const supabase = createClient()
 
   // Awards: eligible profiles. Champions: completed tournaments + their completed finals.
-  const [{ data: profileRows }, { data: tournamentRows }, { data: matchRows }] = await Promise.all([
+  const [{ data: profileRows }, { data: tournamentRows }, { data: matchRows }, { data: activeGames }] = await Promise.all([
     supabase
       .from('profiles')
       .select(
@@ -71,7 +73,12 @@ export default async function HallOfFamePage() {
         'status, score_a, score_b, player_a_id, player_b_id, tournament:tournaments(game:games(name, category))',
       )
       .eq('status', 'completed'),
+    // Independent of match data — a category can be "active" even with zero
+    // completed matches played in it yet.
+    supabase.from('games').select('category').eq('active', true),
   ])
+
+  const activeCategories = Array.from(new Set((activeGames ?? []).map((g) => g.category)))
 
   const rawMatches = ((matchRows as unknown[] | null) ?? []) as {
     status: string
@@ -94,7 +101,10 @@ export default async function HallOfFamePage() {
       game_category: g?.category ?? 'other',
     }
   })
-  const goalsMap = footballGoalsByPlayer(matches)
+  const categoryMaps = Object.keys(CATEGORY_META).map((category) => ({
+    category,
+    map: scoreStatsByPlayerAndCategory(matches, category),
+  }))
 
   const players: PlayerStatsInput[] = (profileRows ?? []).map((p) => ({
     id: p.id,
@@ -107,8 +117,11 @@ export default async function HallOfFamePage() {
     totalMatches: p.total_matches,
     goalsScored: p.goals_scored,
     goalsConceded: p.goals_conceded,
-    footballGoalsScored: goalsMap.get(p.id)?.scored ?? 0,
-    footballGoalsConceded: goalsMap.get(p.id)?.conceded ?? 0,
+    categoryStats: categoryMaps.map(({ category, map }) => ({
+      category,
+      scored: map.get(p.id)?.scored ?? 0,
+      conceded: map.get(p.id)?.conceded ?? 0,
+    })),
     winsByGame: [],
     totalTitles: p.total_titles,
     sentinelScore: p.sentinel_score,
@@ -117,6 +130,10 @@ export default async function HallOfFamePage() {
 
   const mvp = pickMVP(players)
   const goldenBoot = pickGoldenBoot(players)
+  const categoryAwards = activeCategories
+    .filter((c) => c !== 'football' && CATEGORY_META[c] != null)
+    .map((c) => ({ category: c, meta: CATEGORY_META[c], winner: pickCategoryAward(players, c) }))
+    .filter((a) => a.winner != null)
 
   // Fetch completed final matches for the completed tournaments, then attach to each.
   const tournaments = (tournamentRows ?? []) as unknown as {
@@ -179,7 +196,7 @@ export default async function HallOfFamePage() {
   }))
   const champions = deriveChampions(championInputs)
 
-  const hasAwards = mvp != null || goldenBoot != null
+  const hasAwards = mvp != null || goldenBoot != null || categoryAwards.length > 0
   const hasChampions = champions.length > 0
 
   return (
@@ -219,9 +236,19 @@ export default async function HallOfFamePage() {
                     icon="👟"
                     name={goldenBoot.displayName ?? goldenBoot.username ?? 'Anonymous'}
                     metricLabel="goals scored"
-                    metricValue={goldenBoot.footballGoalsScored}
+                    metricValue={categoryStat(goldenBoot.categoryStats, 'football').scored}
                   />
                 )}
+                {categoryAwards.map(({ category, meta, winner }) => (
+                  <AwardCard
+                    key={category}
+                    label={meta.awardName}
+                    icon={meta.awardEmoji}
+                    name={winner!.displayName ?? winner!.username ?? 'Anonymous'}
+                    metricLabel={meta.statLabel.toLowerCase()}
+                    metricValue={categoryStat(winner!.categoryStats, category).scored}
+                  />
+                ))}
               </div>
             ) : (
               <EmptyState

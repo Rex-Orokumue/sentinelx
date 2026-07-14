@@ -1,4 +1,5 @@
-import type { GameWinCount } from './game-breakdown'
+import type { GameWinCount, CategoryStat } from './game-breakdown'
+import { categoryStat } from './game-breakdown'
 
 export interface PlayerStatsInput {
   id: string
@@ -11,13 +12,12 @@ export interface PlayerStatsInput {
   totalMatches: number
   goalsScored: number
   goalsConceded: number
-  // Football-only aggregate, computed live from completed matches (see
-  // lib/rankings/game-breakdown.ts) — NOT the same as goalsScored/goalsConceded
-  // above, which mix every game a player has played. Used by the Goals tab
-  // and Golden Boot only; goalsScored/goalsConceded stay the source of truth
-  // everywhere else (dashboard, player profile page).
-  footballGoalsScored: number
-  footballGoalsConceded: number
+  // Per-category live aggregate (see lib/rankings/game-breakdown.ts) — NOT the
+  // same as goalsScored/goalsConceded above, which mix every game a player
+  // has played. Used by category-scoped Rankings tabs and Hall of Fame
+  // awards; goalsScored/goalsConceded stay the source of truth for the
+  // (non-per-game) cases that still read them.
+  categoryStats: CategoryStat[]
   // Per-game win breakdown for the Wins tab's expand view. Always sums to
   // `wins` above (both derive from the same completed-matches set via the
   // same matchWinnerId "who won" logic).
@@ -42,14 +42,16 @@ export function isRankingEligible(p: { totalMatches: number }): boolean {
   return p.totalMatches >= RANKING_MIN_MATCHES
 }
 
-export type LeaderboardMetric = 'wins' | 'score' | 'goals'
+// Metric keys for 'football'/'fighting'/'shooter' match their category name
+// directly — tab key = category key everywhere, no separate mapping needed.
+export type LeaderboardMetric = 'wins' | 'score' | 'football' | 'fighting' | 'shooter'
 
 const METRIC_VALUE: Record<LeaderboardMetric, (p: PlayerStatsInput) => number> = {
   wins: (p) => p.wins,
   score: (p) => p.sentinelScore,
-  // Football-scoped, not the cumulative goalsScored — see PlayerStatsInput's
-  // footballGoalsScored doc comment.
-  goals: (p) => p.footballGoalsScored,
+  football: (p) => categoryStat(p.categoryStats, 'football').scored,
+  fighting: (p) => categoryStat(p.categoryStats, 'fighting').scored,
+  shooter: (p) => categoryStat(p.categoryStats, 'shooter').scored,
 }
 
 // Sort led by the chosen metric, falling back to the same tie-break cascade

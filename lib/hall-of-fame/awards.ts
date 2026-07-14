@@ -1,4 +1,5 @@
 import { isRankingEligible, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
+import { categoryStat } from '@/lib/rankings/game-breakdown'
 import { getChampion, type BracketMatch } from '@/lib/tournaments/bracket'
 
 function winRate(p: PlayerStatsInput): number {
@@ -19,15 +20,24 @@ export function pickMVP(players: PlayerStatsInput[]): PlayerStatsInput | null {
   )[0]
 }
 
-// Golden Boot: most FOOTBALL-scoped goals scored among eligible players (not
-// the cumulative goalsScored — see PlayerStatsInput's doc comment), ties
-// broken by wins.
-export function pickGoldenBoot(players: PlayerStatsInput[]): PlayerStatsInput | null {
+// Picks the top scorer in the given category among eligible players, ties
+// broken by wins. Returns null if nobody eligible has scored anything in
+// that category — otherwise a category with an active game but zero
+// completed matches would silently crown an arbitrary non-player (whoever
+// has the most wins) as its award winner.
+export function pickCategoryAward(players: PlayerStatsInput[], category: string): PlayerStatsInput | null {
   const eligible = players.filter(isRankingEligible)
   if (eligible.length === 0) return null
-  return [...eligible].sort(
-    (a, b) => b.footballGoalsScored - a.footballGoalsScored || b.wins - a.wins,
-  )[0]
+  const ranked = [...eligible].sort(
+    (a, b) => categoryStat(b.categoryStats, category).scored - categoryStat(a.categoryStats, category).scored || b.wins - a.wins,
+  )
+  const top = ranked[0]
+  return categoryStat(top.categoryStats, category).scored > 0 ? top : null
+}
+
+// Kept for existing callers/tests — identical to pickCategoryAward(players, 'football').
+export function pickGoldenBoot(players: PlayerStatsInput[]): PlayerStatsInput | null {
+  return pickCategoryAward(players, 'football')
 }
 
 export interface ChampionInput {

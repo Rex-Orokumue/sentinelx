@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
-import { winsByPlayerAndGame, footballGoalsByPlayer, type GameScopedMatch } from '@/lib/rankings/game-breakdown'
+import { winsByPlayerAndGame, scoreStatsByPlayerAndCategory, type GameScopedMatch } from '@/lib/rankings/game-breakdown'
+import { CATEGORY_META } from '@/lib/games/categories'
 import { LeaderboardTabs } from '@/components/rankings/LeaderboardTabs'
 import { EmptyState } from '@/components/shared/EmptyState'
 
@@ -31,7 +32,7 @@ function firstTournamentRef(t: RawTournamentRef): { game: RawGameRef } | null {
 
 export default async function RankingsPage() {
   const supabase = createClient()
-  const [{ data: profiles }, { data: matchRows }, { data: { user } }] = await Promise.all([
+  const [{ data: profiles }, { data: matchRows }, { data: activeGames }, { data: { user } }] = await Promise.all([
     supabase
       .from('profiles')
       .select(
@@ -40,16 +41,21 @@ export default async function RankingsPage() {
       .gte('total_matches', RANKING_MIN_MATCHES)
       .order('wins', { ascending: false })
       .limit(200),
-    // Fetched once and shared by both winsByPlayerAndGame and
-    // footballGoalsByPlayer below — never fetch completed matches twice.
+    // Fetched once and shared by both winsByPlayerAndGame and the per-category
+    // aggregates below — never fetch completed matches twice.
     supabase
       .from('matches')
       .select(
         'status, score_a, score_b, player_a_id, player_b_id, tournament:tournaments(game:games(name, category))',
       )
       .eq('status', 'completed'),
+    // Independent of match data — a category can be "active" (a tab should
+    // show) even with zero completed matches played in it yet.
+    supabase.from('games').select('category').eq('active', true),
     supabase.auth.getUser(),
   ])
+
+  const activeCategories = Array.from(new Set((activeGames ?? []).map((g) => g.category)))
 
   const rawMatches = ((matchRows as unknown[] | null) ?? []) as {
     status: string
@@ -73,7 +79,10 @@ export default async function RankingsPage() {
     }
   })
   const winsMap = winsByPlayerAndGame(matches)
-  const goalsMap = footballGoalsByPlayer(matches)
+  const categoryMaps = Object.keys(CATEGORY_META).map((category) => ({
+    category,
+    map: scoreStatsByPlayerAndCategory(matches, category),
+  }))
 
   const players: PlayerStatsInput[] = (profiles ?? []).map(
     (p): PlayerStatsInput => ({
@@ -87,8 +96,11 @@ export default async function RankingsPage() {
       totalMatches: p.total_matches,
       goalsScored: p.goals_scored,
       goalsConceded: p.goals_conceded,
-      footballGoalsScored: goalsMap.get(p.id)?.scored ?? 0,
-      footballGoalsConceded: goalsMap.get(p.id)?.conceded ?? 0,
+      categoryStats: categoryMaps.map(({ category, map }) => ({
+        category,
+        scored: map.get(p.id)?.scored ?? 0,
+        conceded: map.get(p.id)?.conceded ?? 0,
+      })),
       winsByGame: winsMap.get(p.id) ?? [],
       totalTitles: p.total_titles,
       sentinelScore: p.sentinel_score,
@@ -112,7 +124,7 @@ export default async function RankingsPage() {
           body="Be the first to compete and claim the top spot."
         />
       ) : (
-        <LeaderboardTabs players={players} currentUserId={user?.id ?? null} />
+        <LeaderboardTabs players={players} currentUserId={user?.id ?? null} activeCategories={activeCategories} />
       )}
     </div>
   )

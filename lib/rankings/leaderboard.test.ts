@@ -18,8 +18,7 @@ function p(over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput {
     totalMatches: 0,
     goalsScored: 0,
     goalsConceded: 0,
-    footballGoalsScored: 0,
-    footballGoalsConceded: 0,
+    categoryStats: [],
     winsByGame: [],
     totalTitles: 0,
     sentinelScore: 70,
@@ -87,13 +86,24 @@ describe('rankPlayersBy', () => {
     expect(r.map((x) => x.id)).toEqual(['b', 'a'])
   })
 
-  it('sorts by football-scoped goals when metric is "goals"', () => {
+  it('sorts by category-scoped stat when metric matches a category', () => {
     const r = rankPlayersBy(
       [
-        p({ id: 'a', footballGoalsScored: 4, wins: 9 }),
-        p({ id: 'b', footballGoalsScored: 20, wins: 1 }),
+        p({ id: 'a', categoryStats: [{ category: 'football', scored: 4, conceded: 0 }], wins: 9 }),
+        p({ id: 'b', categoryStats: [{ category: 'football', scored: 20, conceded: 0 }], wins: 1 }),
       ],
-      'goals',
+      'football',
+    )
+    expect(r.map((x) => x.id)).toEqual(['b', 'a'])
+  })
+
+  it('sorts by a different category independently', () => {
+    const r = rankPlayersBy(
+      [
+        p({ id: 'a', categoryStats: [{ category: 'shooter', scored: 30, conceded: 0 }] }),
+        p({ id: 'b', categoryStats: [{ category: 'shooter', scored: 55, conceded: 0 }] }),
+      ],
+      'shooter',
     )
     expect(r.map((x) => x.id)).toEqual(['b', 'a'])
   })

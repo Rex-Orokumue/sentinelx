@@ -3,12 +3,22 @@ import { Fragment, useState } from 'react'
 import Link from 'next/link'
 import { TierBadge } from '@/components/player/TierBadge'
 import type { RankedPlayer, LeaderboardMetric } from '@/lib/rankings/leaderboard'
+import { categoryStat } from '@/lib/rankings/game-breakdown'
+import { CATEGORY_META } from '@/lib/games/categories'
 
-const METRIC_LABEL: Record<LeaderboardMetric, string> = { wins: 'W', score: 'Score', goals: 'Goals' }
+const METRIC_LABEL: Record<LeaderboardMetric, string> = {
+  wins: 'W',
+  score: 'Score',
+  football: CATEGORY_META.football?.statLabel ?? 'Football',
+  fighting: CATEGORY_META.fighting?.statLabel ?? 'Fighting',
+  shooter: CATEGORY_META.shooter?.statLabel ?? 'Shooter',
+}
 const METRIC_VALUE: Record<LeaderboardMetric, (p: RankedPlayer) => number> = {
   wins: (p) => p.wins,
   score: (p) => p.sentinelScore,
-  goals: (p) => p.footballGoalsScored,
+  football: (p) => categoryStat(p.categoryStats, 'football').scored,
+  fighting: (p) => categoryStat(p.categoryStats, 'fighting').scored,
+  shooter: (p) => categoryStat(p.categoryStats, 'shooter').scored,
 }
 
 export function LeaderboardTable({
