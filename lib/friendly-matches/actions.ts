@@ -44,7 +44,7 @@ export async function sendChallenge(
     body: stakeAmount
       ? `You've been challenged to a ₦${stakeAmount} staked friendly.`
       : "You've been challenged to a friendly match.",
-    link: `/dashboard`,
+    link: `/dashboard/friendlies/${created.id}`,
   })
 
   revalidatePath('/dashboard')
