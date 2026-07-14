@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ChevronDown } from 'lucide-react'
 
 export function CollapsibleSection({
@@ -16,6 +16,17 @@ export function CollapsibleSection({
   children: React.ReactNode
 }) {
   const [open, setOpen] = useState(defaultOpen)
+
+  useEffect(() => {
+    if (!id) return
+    function checkHash() {
+      if (window.location.hash === `#${id}`) setOpen(true)
+    }
+    checkHash()
+    window.addEventListener('hashchange', checkHash)
+    return () => window.removeEventListener('hashchange', checkHash)
+  }, [id])
+
   return (
     <section id={id} className="mb-10 scroll-mt-20">
       <button
