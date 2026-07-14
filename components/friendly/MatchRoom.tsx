@@ -228,12 +228,17 @@ function ResultForm({ matchId }: { matchId: string }) {
   const [state, action] = useFormState<FriendlyActionState, FormData>(submitFriendlyResult, undefined)
   const [uploading, setUploading] = useState(false)
   const [screenshotPath, setScreenshotPath] = useState('')
+  const [fileName, setFileName] = useState('')
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
+    // Reset the input so re-selecting the same file still fires onChange —
+    // this also wipes the browser's own filename display back to "No file
+    // chosen", so `fileName` below is what actually confirms the upload.
     e.target.value = ''
     if (!file) return
     setUploading(true)
+    setScreenshotPath('')
     const supabase = createClient()
     const {
       data: { user },
@@ -245,7 +250,10 @@ function ResultForm({ matchId }: { matchId: string }) {
     const ext = (file.name.split('.').pop() ?? 'jpg').replace(/[^a-z0-9]/gi, '')
     const path = `${user.id}/${crypto.randomUUID()}.${ext}`
     const { error } = await supabase.storage.from('friendly-match-evidence').upload(path, file)
-    if (!error) setScreenshotPath(path)
+    if (!error) {
+      setScreenshotPath(path)
+      setFileName(file.name)
+    }
     setUploading(false)
   }
 
@@ -263,6 +271,9 @@ function ResultForm({ matchId }: { matchId: string }) {
       </p>
       <input type="file" accept="image/*" onChange={onFile} className="text-xs text-slate-400" />
       {uploading && <p className="text-xs text-slate-500">Uploading…</p>}
+      {!uploading && screenshotPath && (
+        <p className="text-xs font-semibold text-emerald-400">✓ {fileName} uploaded</p>
+      )}
       {state?.error && <p className="text-xs text-red-400">{state.error}</p>}
       <button
         type="submit"
