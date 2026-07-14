@@ -64,7 +64,7 @@ export async function acceptFriendRequest(
     type: 'friend_request',
     title: 'Friend request accepted',
     body: 'Your friend request was accepted.',
-    link: '/dashboard',
+    link: '/dashboard#friends',
   })
 
   revalidatePath('/dashboard')

@@ -55,7 +55,7 @@ export async function resolveWalletWithdrawal(
         : note
           ? `Your withdrawal request was rejected: ${note}`
           : 'Your withdrawal request was rejected.',
-    link: '/dashboard',
+    link: '/dashboard#wallet',
   })
 
   revalidatePath('/admin/wallet')
@@ -92,7 +92,7 @@ export async function adminCreditWallet(
     type: 'wallet_credited',
     title: 'Wallet credited',
     body: `${formatNaira(amount)} was added to your wallet: ${note}`,
-    link: '/dashboard',
+    link: '/dashboard#wallet',
   })
 
   revalidatePath('/admin/wallet')

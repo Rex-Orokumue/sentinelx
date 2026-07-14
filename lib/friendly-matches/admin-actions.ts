@@ -69,7 +69,7 @@ export async function confirmFriendlyResult(
         playerId === fm.winner_id
           ? 'You won your friendly match — confirmed by admin.'
           : 'Your friendly match result was confirmed by admin.',
-      link: '/dashboard',
+      link: `/dashboard/friendlies/${fm.id}`,
     })
   }
 

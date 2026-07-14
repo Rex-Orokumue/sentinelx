@@ -68,6 +68,6 @@ async function creditReferralIfAny(userId: string): Promise<void> {
     type: 'referral_credited',
     title: 'Referral credited',
     body: 'Someone you referred just joined Sentinel X — ₦100 added to your wallet.',
-    link: '/dashboard',
+    link: '/dashboard#referrals',
   })
 }

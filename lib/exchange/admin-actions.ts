@@ -27,7 +27,7 @@ async function setStatus(id: string, status: 'active' | 'removed'): Promise<Acti
         status === 'active'
           ? `Your listing "${listing.title}" is now live on the Exchange.`
           : `Your listing "${listing.title}" was removed by an admin.`,
-      link: '/dashboard',
+      link: '/exchange',
     })
   }
 
