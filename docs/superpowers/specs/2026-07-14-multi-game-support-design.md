@@ -68,7 +68,9 @@ export const CATEGORY_META: Record<string, {
 
 ### 2. Generalized stat aggregation
 
-`lib/rankings/game-breakdown.ts`'s `footballGoalsByPlayer()` hardcodes `match.game_category !== 'football'`. Generalize to:
+`lib/rankings/game-breakdown.ts`'s `footballGoalsByPlayer()` hardcodes `match.game_category !== 'football'`. It operates on the existing `GameScopedMatch` type, which must carry: `player_a_id`, `player_b_id`, `score_a`, `score_b`, `status`, and `game_category` (derived from the nested `tournament:tournaments(game:games(name, category))` embed on the `matches` query). This type isn't new — it already exists in `lib/rankings/game-breakdown.ts` — but implementation must preserve exactly these fields when extending it; don't under-specify it.
+
+Generalize the aggregation function to:
 
 ```ts
 export function scoreStatsByPlayerAndCategory(
@@ -92,6 +94,8 @@ Same body, `category` becomes a parameter instead of a hardcoded string. `footba
 ### 4. Dynamic Rankings tabs and Hall of Fame awards
 
 Both pages already fetch `matches` with the `tournament:tournaments(game:games(name, category))` embed (confirmed exact current select: `'status, score_a, score_b, player_a_id, player_b_id, tournament:tournaments(game:games(name, category))'` on Rankings). Extend the existing per-category rendering gate (already used for Goals/Golden Boot today) to `fighting`/`shooter` using `CATEGORY_META` for labels, and the generalized `scoreStatsByPlayerAndCategory` for the underlying numbers.
+
+**Which categories to show a tab/award for must NOT be derived from the match embed alone.** If a new `fighting` game is added but no fighting-category matches have been played yet, that category won't appear in any match row, and the Iron Fist tab would never render even though the category is genuinely active. Both pages need one additional, independent query — `supabase.from('games').select('category').eq('active', true)` (or a `DISTINCT category` reduction over the result) — to determine which categories are "live" for tab/award-rendering purposes, decoupled from whether any completed matches exist yet in that category. The match-embed data is still what's aggregated *within* an active category (via `scoreStatsByPlayerAndCategory`); it just isn't the source of *which categories to show*.
 
 ### 5. Profile page fix
 
