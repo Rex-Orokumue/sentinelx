@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { payStake, type PayStakeState } from '@/lib/friendly-matches/pay-actions'
 import { submitFriendlyResult } from '@/lib/friendly-matches/result-actions'
-import type { FriendlyActionState } from '@/lib/friendly-matches/actions'
+import { acceptChallenge, declineChallenge, type FriendlyActionState } from '@/lib/friendly-matches/actions'
 import { createClient } from '@/lib/supabase/client'
 
 export function MatchRoom({
@@ -31,6 +31,10 @@ export function MatchRoom({
 }) {
   const myPaid = isChallenger ? challengerPaid : opponentPaid
   const [payState, payAction] = useFormState<PayStakeState, FormData>(payStake, undefined)
+
+  if (status === 'pending') {
+    return <PendingChallenge matchId={matchId} isChallenger={isChallenger} />
+  }
 
   if (status === 'awaiting_payment') {
     return (
@@ -93,6 +97,42 @@ export function MatchRoom({
   }
 
   return <p className="text-sm text-slate-500">This match is {status}.</p>
+}
+
+function PendingChallenge({ matchId, isChallenger }: { matchId: string; isChallenger: boolean }) {
+  const [acceptState, acceptAction] = useFormState<FriendlyActionState, FormData>(acceptChallenge, undefined)
+  const [declineState, declineAction] = useFormState<FriendlyActionState, FormData>(declineChallenge, undefined)
+
+  if (isChallenger) {
+    return (
+      <p className="rounded-2xl border border-slate-800 bg-slate-900 p-5 text-center text-sm text-slate-300">
+        Waiting for your opponent to respond to the challenge.
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-5 text-center">
+      <p className="text-sm text-slate-300">You&apos;ve been challenged to a friendly match.</p>
+      <div className="flex justify-center gap-3">
+        <form action={acceptAction}>
+          <input type="hidden" name="id" value={matchId} />
+          <button type="submit" className="rounded-xl bg-violet-600 px-6 py-3 text-sm font-bold text-white hover:bg-violet-500">
+            Accept
+          </button>
+        </form>
+        <form action={declineAction}>
+          <input type="hidden" name="id" value={matchId} />
+          <button type="submit" className="rounded-xl border border-slate-700 px-6 py-3 text-sm font-semibold text-slate-300 hover:border-slate-500">
+            Decline
+          </button>
+        </form>
+      </div>
+      {(acceptState?.error || declineState?.error) && (
+        <p className="text-xs text-red-400">{acceptState?.error || declineState?.error}</p>
+      )}
+    </div>
+  )
 }
 
 function GameCodeField({
