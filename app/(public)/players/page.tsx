@@ -2,7 +2,19 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { PlayerCard, type PlayerCardData } from '@/components/player/PlayerCard'
 
-export const metadata: Metadata = { title: 'Players · SentinelX Esports' }
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+
+export const metadata: Metadata = {
+  title: 'Players · SentinelX Esports',
+  description: 'Browse and search Sentinel X players by username or name.',
+  openGraph: {
+    title: 'Players · SentinelX Esports',
+    description: 'Browse and search Sentinel X players by username or name.',
+    url: `${SITE_URL}/players`,
+    siteName: 'SentinelX Esports',
+    type: 'website',
+  },
+}
 
 const PLAYER_COLS = 'username, display_name, avatar_url, sentinel_score, sentinel_tier'
 
@@ -16,9 +28,10 @@ export default async function PlayersPage({ searchParams }: { searchParams: { q?
     .order('sentinel_score', { ascending: false })
     .limit(60)
   if (q) {
-    // Escape ilike wildcards so a literal "%"/"_" in a search term can't
-    // widen the match beyond what the user typed.
-    const escaped = q.replace(/[%_]/g, (c) => `\\${c}`)
+    // Escape ilike wildcards ("%"/"_") plus the characters that are
+    // structural to PostgREST's `.or()` filter-list syntax (",", "(", ")")
+    // so they can't widen the match or break/inject into the filter string.
+    const escaped = q.replace(/[%_,()]/g, (c) => `\\${c}`)
     query = query.or(`username.ilike.%${escaped}%,display_name.ilike.%${escaped}%`)
   }
   const { data } = await query
