@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { winsByPlayerAndGame, footballGoalsByPlayer, type GameScopedMatch } from './game-breakdown'
+import {
+  winsByPlayerAndGame,
+  footballGoalsByPlayer,
+  scoreStatsByPlayerAndCategory,
+  categoryStat,
+  type GameScopedMatch,
+} from './game-breakdown'
 
 function m(over: Partial<GameScopedMatch>): GameScopedMatch {
   return {
@@ -85,5 +91,55 @@ describe('footballGoalsByPlayer', () => {
 
   it('returns an empty map for no matches', () => {
     expect(footballGoalsByPlayer([]).size).toBe(0)
+  })
+})
+
+describe('scoreStatsByPlayerAndCategory', () => {
+  it('sums scored and conceded for both players, scoped to the given category', () => {
+    const r = scoreStatsByPlayerAndCategory(
+      [m({ score_a: 3, score_b: 1, game_category: 'fighting' })],
+      'fighting',
+    )
+    expect(r.get('a')).toEqual({ scored: 3, conceded: 1 })
+    expect(r.get('b')).toEqual({ scored: 1, conceded: 3 })
+  })
+
+  it('excludes matches from a different category', () => {
+    const r = scoreStatsByPlayerAndCategory(
+      [m({ game_category: 'shooter', score_a: 5, score_b: 5 })],
+      'fighting',
+    )
+    expect(r.size).toBe(0)
+  })
+
+  it('excludes non-completed matches', () => {
+    const r = scoreStatsByPlayerAndCategory([m({ status: 'scheduled', game_category: 'shooter' })], 'shooter')
+    expect(r.size).toBe(0)
+  })
+
+  it('works identically for the shooter category', () => {
+    const r = scoreStatsByPlayerAndCategory(
+      [m({ score_a: 10, score_b: 4, game_category: 'shooter' })],
+      'shooter',
+    )
+    expect(r.get('a')).toEqual({ scored: 10, conceded: 4 })
+  })
+
+  it('returns an empty map for no matches', () => {
+    expect(scoreStatsByPlayerAndCategory([], 'football').size).toBe(0)
+  })
+})
+
+describe('categoryStat', () => {
+  it('returns the matching entry', () => {
+    const stats = [
+      { category: 'football', scored: 4, conceded: 2 },
+      { category: 'shooter', scored: 9, conceded: 3 },
+    ]
+    expect(categoryStat(stats, 'shooter')).toEqual({ category: 'shooter', scored: 9, conceded: 3 })
+  })
+
+  it('returns a zero-default when the category is absent', () => {
+    expect(categoryStat([], 'fighting')).toEqual({ category: 'fighting', scored: 0, conceded: 0 })
   })
 })

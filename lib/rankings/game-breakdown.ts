@@ -35,20 +35,25 @@ export function winsByPlayerAndGame(matches: GameScopedMatch[]): Map<string, Gam
   return result
 }
 
-export interface FootballGoals {
+export interface CategoryStat {
+  category: string
   scored: number
   conceded: number
 }
 
-// Sums score_a/score_b from completed matches whose game category is
-// 'football' only. This deliberately does NOT read profiles.goals_scored —
-// that column mixes every game a player has played with no per-game
-// provenance, so it can't be filtered after the fact. See the #23 design
-// spec for why the Goals tab and Golden Boot need this instead.
-export function footballGoalsByPlayer(matches: GameScopedMatch[]): Map<string, FootballGoals> {
-  const result = new Map<string, FootballGoals>()
+// Sums score_a/score_b from completed matches scoped to the given category.
+// Works identically for any category — football goals, fighting rounds
+// won, shooter kills are all just the match's numeric score_a/score_b. This
+// deliberately does NOT read profiles.goals_scored — that column mixes
+// every game a player has played with no per-game provenance, so it can't
+// be filtered after the fact. See the #23/#21a design specs.
+export function scoreStatsByPlayerAndCategory(
+  matches: GameScopedMatch[],
+  category: string,
+): Map<string, { scored: number; conceded: number }> {
+  const result = new Map<string, { scored: number; conceded: number }>()
   for (const match of matches) {
-    if (match.game_category !== 'football') continue
+    if (match.game_category !== category) continue
     if (match.status !== 'completed') continue
     if (match.score_a == null || match.score_b == null) continue
     if (!match.player_a_id || !match.player_b_id) continue
@@ -64,4 +69,14 @@ export function footballGoalsByPlayer(matches: GameScopedMatch[]): Map<string, F
     result.set(match.player_b_id, b)
   }
   return result
+}
+
+// Kept for existing callers/tests — identical to
+// scoreStatsByPlayerAndCategory(matches, 'football').
+export function footballGoalsByPlayer(matches: GameScopedMatch[]): Map<string, { scored: number; conceded: number }> {
+  return scoreStatsByPlayerAndCategory(matches, 'football')
+}
+
+export function categoryStat(stats: CategoryStat[], category: string): CategoryStat {
+  return stats.find((s) => s.category === category) ?? { category, scored: 0, conceded: 0 }
 }
