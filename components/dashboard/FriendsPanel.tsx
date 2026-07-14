@@ -1,21 +1,25 @@
 'use client'
+import Link from 'next/link'
 import { useFormState } from 'react-dom'
 import {
   acceptFriendRequest,
   removeFriend,
   type FriendActionState,
 } from '@/lib/friends/actions'
+import { Avatar } from '@/components/shared/Avatar'
 
 export interface FriendRequestRow {
   id: string
   requesterName: string
   requesterUsername: string | null
+  requesterAvatarUrl: string | null
 }
 
 export interface FriendRow {
   id: string
   friendName: string
   friendUsername: string | null
+  friendAvatarUrl: string | null
 }
 
 export function FriendsPanel({
@@ -53,14 +57,39 @@ export function FriendsPanel({
   )
 }
 
+function ProfileLink({
+  username,
+  avatarUrl,
+  name,
+}: {
+  username: string | null
+  avatarUrl: string | null
+  name: string
+}) {
+  const label = (
+    <>
+      <Avatar avatarUrl={avatarUrl} displayName={name} username={username} size={32} />
+      <p className="min-w-0 truncate text-sm font-semibold text-white">
+        {name} {username ? `(@${username})` : ''}
+      </p>
+    </>
+  )
+  if (!username) {
+    return <div className="flex min-w-0 items-center gap-2">{label}</div>
+  }
+  return (
+    <Link href={`/players/${username}`} className="flex min-w-0 items-center gap-2 hover:opacity-80">
+      {label}
+    </Link>
+  )
+}
+
 function IncomingRequestRow({ req }: { req: FriendRequestRow }) {
   const [state, action] = useFormState<FriendActionState, FormData>(acceptFriendRequest, undefined)
   const [declineState, declineAction] = useFormState<FriendActionState, FormData>(removeFriend, undefined)
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
-      <p className="min-w-0 truncate text-sm font-semibold text-white">
-        {req.requesterName} {req.requesterUsername ? `(@${req.requesterUsername})` : ''}
-      </p>
+      <ProfileLink username={req.requesterUsername} avatarUrl={req.requesterAvatarUrl} name={req.requesterName} />
       <div className="flex shrink-0 gap-2">
         <form action={action}>
           <input type="hidden" name="id" value={req.id} />
@@ -86,9 +115,7 @@ function FriendRow({ friend }: { friend: FriendRow }) {
   const [state, action] = useFormState<FriendActionState, FormData>(removeFriend, undefined)
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
-      <p className="min-w-0 truncate text-sm font-semibold text-white">
-        {friend.friendName} {friend.friendUsername ? `(@${friend.friendUsername})` : ''}
-      </p>
+      <ProfileLink username={friend.friendUsername} avatarUrl={friend.friendAvatarUrl} name={friend.friendName} />
       <form action={action}>
         <input type="hidden" name="id" value={friend.id} />
         <button type="submit" className="shrink-0 text-xs font-semibold text-red-400 hover:text-red-300">

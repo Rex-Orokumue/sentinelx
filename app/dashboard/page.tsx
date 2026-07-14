@@ -46,12 +46,12 @@ function referredName(r: ReferredRef): string {
 }
 
 type FriendProfileRef =
-  | { username: string | null; display_name: string | null }
-  | { username: string | null; display_name: string | null }[]
+  | { username: string | null; display_name: string | null; avatar_url: string | null }
+  | { username: string | null; display_name: string | null; avatar_url: string | null }[]
   | null
-function friendProfileName(p: FriendProfileRef): { name: string; username: string | null } {
+function friendProfileName(p: FriendProfileRef): { name: string; username: string | null; avatarUrl: string | null } {
   const r = Array.isArray(p) ? p[0] ?? null : p
-  return { name: r?.display_name ?? r?.username ?? 'Player', username: r?.username ?? null }
+  return { name: r?.display_name ?? r?.username ?? 'Player', username: r?.username ?? null, avatarUrl: r?.avatar_url ?? null }
 }
 
 export default async function DashboardPage() {
@@ -134,8 +134,8 @@ export default async function DashboardPage() {
       .from('friends')
       .select(
         'id, requester_id, recipient_id, status, ' +
-          'requester:profiles!friends_requester_id_fkey(username, display_name), ' +
-          'recipient:profiles!friends_recipient_id_fkey(username, display_name)',
+          'requester:profiles!friends_requester_id_fkey(username, display_name, avatar_url), ' +
+          'recipient:profiles!friends_recipient_id_fkey(username, display_name, avatar_url)',
       )
       .or(`requester_id.eq.${user.id},recipient_id.eq.${user.id}`),
   ])
@@ -265,14 +265,14 @@ export default async function DashboardPage() {
     .filter((f) => f.status === 'pending' && f.recipient_id === user.id)
     .map((f) => {
       const p = friendProfileName(f.requester)
-      return { id: f.id, requesterName: p.name, requesterUsername: p.username }
+      return { id: f.id, requesterName: p.name, requesterUsername: p.username, requesterAvatarUrl: p.avatarUrl }
     })
   const friendsList: FriendRow[] = rawFriends
     .filter((f) => f.status === 'accepted')
     .map((f) => {
       const otherIsRequester = f.recipient_id === user.id
       const p = friendProfileName(otherIsRequester ? f.requester : f.recipient)
-      return { id: f.id, friendName: p.name, friendUsername: p.username }
+      return { id: f.id, friendName: p.name, friendUsername: p.username, friendAvatarUrl: p.avatarUrl }
     })
 
   return (
