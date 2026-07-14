@@ -9,7 +9,8 @@ export function ReferralPanel({
   referredPlayers: string[]
 }) {
   const [copied, setCopied] = useState(false)
-  const link = `https://sentinelxesports.vercel.app/signup?ref=${username}`
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+  const link = `${siteUrl}/signup?ref=${username}`
   const referralCount = referredPlayers.length
 
   function copyLink() {
