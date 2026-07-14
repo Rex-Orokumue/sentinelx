@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/admin/auth'
 import { kycSchema } from './schema'
-import { resolveAccount, createCustomer, submitBvnIdentification, listBanks } from '@/lib/paystack/server'
+import { resolveAccount, listBanks } from '@/lib/paystack/server'
 
 const GENERIC_ERROR = 'Could not submit your verification. Please try again.'
 
@@ -31,11 +31,16 @@ export async function resolveAccountName(
 
 export type KycState = { error?: string; success?: boolean } | undefined
 
+// BVN identification (Paystack customer creation + submitBvnIdentification)
+// is disabled for now — most players are minors without a BVN, and
+// Paystack's identification API has no NIN alternative. Verification is
+// synchronous and payout-account-only: a resolvable bank account is the
+// only check, since withdrawal payouts are manual (admin pays and marks
+// paid) and already involve a human cross-checking these same details.
 export async function submitKyc(_prev: KycState, formData: FormData): Promise<KycState> {
   const parsed = kycSchema.safeParse({
     bankCode: formData.get('bankCode'),
     accountNumber: formData.get('accountNumber'),
-    bvn: formData.get('bvn'),
     firstName: formData.get('firstName'),
     lastName: formData.get('lastName'),
   })
@@ -45,17 +50,16 @@ export async function submitKyc(_prev: KycState, formData: FormData): Promise<Ky
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user || !user.email) return { error: 'Please log in to verify your identity.' }
+  if (!user) return { error: 'Please log in to add your payout details.' }
 
   // A brand-new player has no player_kyc row yet — maybeSingle() returns null,
   // which is the same as 'unverified' for gating purposes.
   const { data: kyc } = await supabase
     .from('player_kyc')
-    .select('kyc_status, paystack_customer_code')
+    .select('kyc_status')
     .eq('player_id', user.id)
     .maybeSingle()
   if (kyc?.kyc_status === 'verified') return { error: 'You are already verified.' }
-  if (kyc?.kyc_status === 'pending') return { error: 'Verification is already in progress.' }
 
   // account_name is never trusted from the client — resolved server-side here,
   // same as the amount-from-server rule used elsewhere in this codebase.
@@ -79,40 +83,14 @@ export async function submitKyc(_prev: KycState, formData: FormData): Promise<Ky
   }
 
   const admin = createAdminClient()
-  let customerCode = kyc?.paystack_customer_code ?? null
-  if (!customerCode) {
-    try {
-      customerCode = await createCustomer(user.email, parsed.data.firstName, parsed.data.lastName)
-    } catch (err) {
-      console.error('[kyc] submitKyc: createCustomer failed', err)
-      return { error: 'Could not start identity verification. Please try again.' }
-    }
-  }
-
-  try {
-    // BVN is read from parsed.data here and never appears in the update() call
-    // below — it must never be written to any column.
-    await submitBvnIdentification(customerCode, {
-      bvn: parsed.data.bvn,
-      bankCode: parsed.data.bankCode,
-      accountNumber: parsed.data.accountNumber,
-      firstName: parsed.data.firstName,
-      lastName: parsed.data.lastName,
-    })
-  } catch (err) {
-    console.error('[kyc] submitKyc: submitBvnIdentification failed', err)
-    return { error: GENERIC_ERROR }
-  }
-
   // No player_kyc row exists yet on a first attempt (player_id is the PK, not
-  // auto-created) — upsert so both the first attempt and a retry-after-'failed'
-  // go through the same call.
+  // auto-created) — upsert so both the first attempt and a retry go through
+  // the same call.
   await admin.from('player_kyc').upsert(
     {
       player_id: user.id,
-      kyc_status: 'pending',
+      kyc_status: 'verified',
       kyc_failure_reason: null,
-      paystack_customer_code: customerCode,
       payout_bank_code: parsed.data.bankCode,
       payout_bank_name: bankName,
       payout_account_number: parsed.data.accountNumber,
@@ -120,6 +98,7 @@ export async function submitKyc(_prev: KycState, formData: FormData): Promise<Ky
     },
     { onConflict: 'player_id' },
   )
+  await admin.from('profiles').update({ kyc_verified: true }).eq('id', user.id)
 
   revalidatePath('/dashboard')
   return { success: true }

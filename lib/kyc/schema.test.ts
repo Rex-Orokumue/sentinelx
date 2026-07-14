@@ -4,7 +4,6 @@ import { kycSchema } from './schema'
 const valid = {
   bankCode: '058',
   accountNumber: '0123456789',
-  bvn: '12345678901',
   firstName: 'Ada',
   lastName: 'Lovelace',
 }
@@ -21,12 +20,6 @@ describe('kycSchema', () => {
   it('rejects an account number that is not exactly 10 digits', () => {
     expect(kycSchema.safeParse({ ...valid, accountNumber: '123456789' }).success).toBe(false)
     expect(kycSchema.safeParse({ ...valid, accountNumber: '01234567890' }).success).toBe(false)
-  })
-
-  it('rejects a BVN that is not exactly 11 digits', () => {
-    expect(kycSchema.safeParse({ ...valid, bvn: '1234567890' }).success).toBe(false)
-    expect(kycSchema.safeParse({ ...valid, bvn: '123456789012' }).success).toBe(false)
-    expect(kycSchema.safeParse({ ...valid, bvn: '1234567890a' }).success).toBe(false)
   })
 
   it('rejects empty first or last name', () => {

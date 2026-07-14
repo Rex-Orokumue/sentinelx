@@ -32,8 +32,8 @@ export function KycForm({
   return (
     <form action={formAction} className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-5">
       <p className="text-sm text-slate-400">
-        Verify your identity once with your BVN and payout bank account. This account
-        will receive every future prize withdrawal.
+        Add your payout bank account once — this is the account that will receive every
+        future prize withdrawal.
       </p>
       {failureReason && <p className="text-sm text-red-400">{failureReason}</p>}
 
@@ -82,9 +82,8 @@ export function KycForm({
         {resolveError && <p className="text-xs text-red-400">{resolveError}</p>}
       </div>
 
-      <Field name="bvn" label="BVN" inputMode="numeric" maxLength={11} placeholder="11-digit BVN" />
-      <Field name="firstName" label="First name" placeholder="As on your BVN" />
-      <Field name="lastName" label="Last name" placeholder="As on your BVN" />
+      <Field name="firstName" label="First name" placeholder="As on your bank account" />
+      <Field name="lastName" label="Last name" placeholder="As on your bank account" />
 
       {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
       <button
@@ -92,7 +91,7 @@ export function KycForm({
         disabled={!resolvedName}
         className="w-full rounded-xl bg-violet-600 px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        Verify identity
+        Save payout details
       </button>
     </form>
   )
