@@ -20,7 +20,7 @@ export function MatchRoom({
   scoreChallenger,
   scoreOpponent,
   mySubmitted,
-  isWinner,
+  outcome,
 }: {
   matchId: string
   status: string
@@ -33,7 +33,7 @@ export function MatchRoom({
   scoreChallenger: number | null
   scoreOpponent: number | null
   mySubmitted: boolean
-  isWinner: boolean
+  outcome: 'win' | 'loss' | 'draw'
 }) {
   const myPaid = isChallenger ? challengerPaid : opponentPaid
   const [payState, payAction] = useFormState<PayStakeState, FormData>(payStake, undefined)
@@ -101,13 +101,20 @@ export function MatchRoom({
   }
 
   if (status === 'completed') {
-    const shareText = `I ${isWinner ? 'won' : 'played'} my friendly match ${scoreChallenger}–${scoreOpponent} on Sentinel X 🎮 ${SITE_URL}`
+    const shareVerb = outcome === 'win' ? 'won' : outcome === 'draw' ? 'drew' : 'played'
+    const shareText = `I ${shareVerb} my friendly match ${scoreChallenger}–${scoreOpponent} on Sentinel X 🎮 ${SITE_URL}`
+    const cardCls =
+      outcome === 'win'
+        ? 'border-emerald-500/30 bg-emerald-500/10'
+        : outcome === 'draw'
+          ? 'border-amber-500/30 bg-amber-500/10'
+          : 'border-slate-800 bg-slate-900'
+    const textCls = outcome === 'win' ? 'text-emerald-400' : outcome === 'draw' ? 'text-amber-300' : 'text-white'
+    const resultLabel = outcome === 'win' ? '🏆 You Won!' : outcome === 'draw' ? '🤝 Draw' : 'You Lost'
     return (
       <div className="space-y-4 text-center">
-        <div className={`rounded-2xl border p-6 ${isWinner ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-slate-800 bg-slate-900'}`}>
-          <p className={`text-2xl font-black ${isWinner ? 'text-emerald-400' : 'text-white'}`}>
-            {isWinner ? '🏆 You Won!' : 'You Lost'}
-          </p>
+        <div className={`rounded-2xl border p-6 ${cardCls}`}>
+          <p className={`text-2xl font-black ${textCls}`}>{resultLabel}</p>
           <p className="mt-1 text-sm text-slate-400">
             Final score: {scoreChallenger}–{scoreOpponent}
           </p>

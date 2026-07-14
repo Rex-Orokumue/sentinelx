@@ -23,9 +23,6 @@ export async function confirmFriendlyResult(
     scoreOpponent: formData.get('scoreOpponent'),
   })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
-  if (parsed.data.scoreChallenger === parsed.data.scoreOpponent) {
-    return { error: 'A friendly match cannot end in a draw.' }
-  }
 
   const admin = createAdminClient()
   const { data: fm } = await admin
@@ -35,8 +32,18 @@ export async function confirmFriendlyResult(
     .maybeSingle()
   if (!fm) return { error: 'Match not found.' }
   if (fm.status !== 'awaiting_admin_confirmation') return { error: 'This match is not awaiting confirmation.' }
+  // Only staked friendlies need a winner (to receive the pot) — a free
+  // friendly can end in a draw like any casual match.
+  if (fm.stake_amount && parsed.data.scoreChallenger === parsed.data.scoreOpponent) {
+    return { error: 'A staked friendly match cannot end in a draw — dispute it instead.' }
+  }
 
-  const winnerId = parsed.data.scoreChallenger > parsed.data.scoreOpponent ? fm.challenger_id : fm.opponent_id
+  const winnerId =
+    parsed.data.scoreChallenger === parsed.data.scoreOpponent
+      ? null
+      : parsed.data.scoreChallenger > parsed.data.scoreOpponent
+        ? fm.challenger_id
+        : fm.opponent_id
 
   const { error } = await admin
     .from('friendly_matches')
@@ -73,7 +80,9 @@ export async function confirmFriendlyResult(
         .eq('id', playerId)
     }
 
-    await creditWallet(admin, winnerId, fm.stake_amount * 2, 'friendly_stake', fm.id)
+    // winnerId is guaranteed non-null here — a draw on a staked match was
+    // already rejected above, before this block can be reached.
+    await creditWallet(admin, winnerId as string, fm.stake_amount * 2, 'friendly_stake', fm.id)
   }
 
   for (const playerId of [fm.challenger_id, fm.opponent_id]) {
@@ -82,9 +91,11 @@ export async function confirmFriendlyResult(
       type: 'result_confirmed',
       title: 'Friendly match confirmed',
       body:
-        playerId === winnerId
-          ? 'You won your friendly match — confirmed by admin.'
-          : 'Your friendly match result was confirmed by admin.',
+        winnerId === null
+          ? 'Your friendly match ended in a draw — confirmed by admin.'
+          : playerId === winnerId
+            ? 'You won your friendly match — confirmed by admin.'
+            : 'Your friendly match result was confirmed by admin.',
       link: `/dashboard/friendlies/${fm.id}`,
     })
   }

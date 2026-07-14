@@ -61,7 +61,8 @@ export default async function MatchRoomPage({ params }: { params: { id: string }
     .eq('submitted_by', user.id)
     .maybeSingle()
   const mySubmitted = !!myResultRow
-  const isWinner = data.winner_id === user.id
+  const outcome: 'win' | 'loss' | 'draw' =
+    data.winner_id === null ? 'draw' : data.winner_id === user.id ? 'win' : 'loss'
 
   const isChallenger = user.id === data.challenger_id
   const me = isChallenger ? first(data.challenger as ProfileRef) : first(data.opponent as ProfileRef)
@@ -91,7 +92,7 @@ export default async function MatchRoomPage({ params }: { params: { id: string }
         scoreChallenger={data.score_challenger}
         scoreOpponent={data.score_opponent}
         mySubmitted={mySubmitted}
-        isWinner={isWinner}
+        outcome={outcome}
       />
     </div>
   )

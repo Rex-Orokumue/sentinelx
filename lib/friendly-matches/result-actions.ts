@@ -18,9 +18,6 @@ export async function submitFriendlyResult(
     scoreOpponent: formData.get('scoreOpponent'),
   })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
-  if (parsed.data.scoreChallenger === parsed.data.scoreOpponent) {
-    return { error: 'A friendly match cannot end in a draw.' }
-  }
 
   const supabase = createClient()
   const {
@@ -30,7 +27,7 @@ export async function submitFriendlyResult(
 
   const { data: fm } = await supabase
     .from('friendly_matches')
-    .select('challenger_id, opponent_id, status')
+    .select('challenger_id, opponent_id, status, stake_amount')
     .eq('id', id)
     .maybeSingle()
   if (!fm) return { error: 'Match not found.' }
@@ -38,6 +35,11 @@ export async function submitFriendlyResult(
     return { error: 'Only the two players in this match can submit a result.' }
   }
   if (fm.status !== 'active') return { error: 'This match is not active.' }
+  // Only staked friendlies need a winner (to receive the pot) — a free
+  // friendly can end in a draw like any casual match.
+  if (fm.stake_amount && parsed.data.scoreChallenger === parsed.data.scoreOpponent) {
+    return { error: 'A staked friendly match cannot end in a draw.' }
+  }
 
   const { error } = await supabase.from('friendly_match_results').upsert(
     {
