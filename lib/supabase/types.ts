@@ -216,7 +216,6 @@ export type Database = {
           opponent_paystack_reference: string | null
           score_challenger: number | null
           score_opponent: number | null
-          screenshot_url: string | null
           stake_amount: number | null
           status: string
           winner_id: string | null
@@ -235,7 +234,6 @@ export type Database = {
           opponent_paystack_reference?: string | null
           score_challenger?: number | null
           score_opponent?: number | null
-          screenshot_url?: string | null
           stake_amount?: number | null
           status?: string
           winner_id?: string | null
@@ -254,7 +252,6 @@ export type Database = {
           opponent_paystack_reference?: string | null
           score_challenger?: number | null
           score_opponent?: number | null
-          screenshot_url?: string | null
           stake_amount?: number | null
           status?: string
           winner_id?: string | null
@@ -277,6 +274,51 @@ export type Database = {
           {
             foreignKeyName: "friendly_matches_winner_id_fkey"
             columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friendly_match_results: {
+        Row: {
+          created_at: string
+          friendly_match_id: string
+          id: string
+          score_challenger: number
+          score_opponent: number
+          screenshot_url: string
+          submitted_by: string
+        }
+        Insert: {
+          created_at?: string
+          friendly_match_id: string
+          id?: string
+          score_challenger: number
+          score_opponent: number
+          screenshot_url: string
+          submitted_by: string
+        }
+        Update: {
+          created_at?: string
+          friendly_match_id?: string
+          id?: string
+          score_challenger?: number
+          score_opponent?: number
+          screenshot_url?: string
+          submitted_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendly_match_results_friendly_match_id_fkey"
+            columns: ["friendly_match_id"]
+            isOneToOne: false
+            referencedRelation: "friendly_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendly_match_results_submitted_by_fkey"
+            columns: ["submitted_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

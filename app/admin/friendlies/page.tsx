@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireStaff } from '@/lib/admin/auth'
+import { prefillScore } from '@/lib/matches/verify'
 import { FriendlyQueueRow, type PendingFriendlyMatch } from '@/components/admin/FriendlyQueueRow'
 
 export const metadata: Metadata = { title: 'Friendlies · Admin · SentinelX' }
@@ -17,33 +19,63 @@ export default async function AdminFriendliesPage() {
   const { data } = await supabase
     .from('friendly_matches')
     .select(
-      'id, stake_amount, score_challenger, score_opponent, screenshot_url, ' +
+      'id, stake_amount, challenger_id, opponent_id, ' +
         'challenger:profiles!friendly_matches_challenger_id_fkey(username, display_name), ' +
         'opponent:profiles!friendly_matches_opponent_id_fkey(username, display_name)',
     )
     .eq('status', 'awaiting_admin_confirmation')
     .order('created_at', { ascending: true })
 
-  const queue: PendingFriendlyMatch[] = ((data as unknown[] | null) ?? []).map((raw) => {
-    const m = raw as {
-      id: string
-      stake_amount: number | null
-      score_challenger: number | null
-      score_opponent: number | null
-      screenshot_url: string | null
-      challenger: ProfileRef
-      opponent: ProfileRef
-    }
-    return {
-      id: m.id,
-      challengerName: nameOf(m.challenger),
-      opponentName: nameOf(m.opponent),
-      stakeAmount: m.stake_amount,
-      scoreChallenger: m.score_challenger,
-      scoreOpponent: m.score_opponent,
-      screenshotUrl: m.screenshot_url,
-    }
-  })
+  const matches = ((data as unknown[] | null) ?? []) as {
+    id: string
+    stake_amount: number | null
+    challenger_id: string
+    opponent_id: string
+    challenger: ProfileRef
+    opponent: ProfileRef
+  }[]
+
+  const admin = createAdminClient()
+  const queue: PendingFriendlyMatch[] = await Promise.all(
+    matches.map(async (m) => {
+      const { data: subs } = await supabase
+        .from('friendly_match_results')
+        .select('submitted_by, score_challenger, score_opponent, screenshot_url')
+        .eq('friendly_match_id', m.id)
+        .order('created_at')
+      const submissions = (subs ?? []) as {
+        submitted_by: string
+        score_challenger: number
+        score_opponent: number
+        screenshot_url: string
+      }[]
+      const withUrls = await Promise.all(
+        submissions.map(async (s) => {
+          const { data: signed } = await admin.storage
+            .from('friendly-match-evidence')
+            .createSignedUrl(s.screenshot_url, 3600)
+          return {
+            submittedBy: s.submitted_by === m.challenger_id ? ('challenger' as const) : ('opponent' as const),
+            scoreChallenger: s.score_challenger,
+            scoreOpponent: s.score_opponent,
+            signedUrl: signed?.signedUrl ?? null,
+          }
+        }),
+      )
+      const s0 = submissions[0] ? { scoreA: submissions[0].score_challenger, scoreB: submissions[0].score_opponent } : null
+      const s1 = submissions[1] ? { scoreA: submissions[1].score_challenger, scoreB: submissions[1].score_opponent } : null
+      const prefill = prefillScore(s0, s1)
+      return {
+        id: m.id,
+        challengerName: nameOf(m.challenger),
+        opponentName: nameOf(m.opponent),
+        stakeAmount: m.stake_amount,
+        submissions: withUrls,
+        prefillScoreChallenger: prefill?.scoreA ?? null,
+        prefillScoreOpponent: prefill?.scoreB ?? null,
+      }
+    }),
+  )
 
   return (
     <section>

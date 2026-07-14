@@ -54,6 +54,15 @@ export default async function MatchRoomPage({ params }: { params: { id: string }
   }
   if (user.id !== data.challenger_id && user.id !== data.opponent_id) notFound()
 
+  const { data: myResultRow } = await supabase
+    .from('friendly_match_results')
+    .select('id')
+    .eq('friendly_match_id', params.id)
+    .eq('submitted_by', user.id)
+    .maybeSingle()
+  const mySubmitted = !!myResultRow
+  const isWinner = data.winner_id === user.id
+
   const isChallenger = user.id === data.challenger_id
   const me = isChallenger ? first(data.challenger as ProfileRef) : first(data.opponent as ProfileRef)
   const opponent = isChallenger ? first(data.opponent as ProfileRef) : first(data.challenger as ProfileRef)
@@ -81,6 +90,8 @@ export default async function MatchRoomPage({ params }: { params: { id: string }
         opponentWhatsappUrl={opponentWhatsappUrl}
         scoreChallenger={data.score_challenger}
         scoreOpponent={data.score_opponent}
+        mySubmitted={mySubmitted}
+        isWinner={isWinner}
       />
     </div>
   )

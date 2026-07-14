@@ -6,6 +6,7 @@ import { notifyInApp } from '@/lib/notifications/inbox'
 import { friendlyMatchEventsFor } from './scoring'
 import { computeScore } from '@/lib/scoring/score'
 import { creditWallet } from '@/lib/wallet/service'
+import { friendlyResultSchema } from './result-schema'
 
 export type FriendlyAdminState = { error?: string; success?: boolean } | undefined
 
@@ -17,32 +18,47 @@ export async function confirmFriendlyResult(
   const id = String(formData.get('id') ?? '')
   if (!id) return { error: 'Missing match.' }
 
+  const parsed = friendlyResultSchema.safeParse({
+    scoreChallenger: formData.get('scoreChallenger'),
+    scoreOpponent: formData.get('scoreOpponent'),
+  })
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  if (parsed.data.scoreChallenger === parsed.data.scoreOpponent) {
+    return { error: 'A friendly match cannot end in a draw.' }
+  }
+
   const admin = createAdminClient()
   const { data: fm } = await admin
     .from('friendly_matches')
-    .select('id, challenger_id, opponent_id, stake_amount, score_challenger, score_opponent, winner_id, status')
+    .select('id, challenger_id, opponent_id, stake_amount, status')
     .eq('id', id)
     .maybeSingle()
   if (!fm) return { error: 'Match not found.' }
   if (fm.status !== 'awaiting_admin_confirmation') return { error: 'This match is not awaiting confirmation.' }
 
+  const winnerId = parsed.data.scoreChallenger > parsed.data.scoreOpponent ? fm.challenger_id : fm.opponent_id
+
   const { error } = await admin
     .from('friendly_matches')
-    .update({ status: 'completed', completed_at: new Date().toISOString() })
+    .update({
+      score_challenger: parsed.data.scoreChallenger,
+      score_opponent: parsed.data.scoreOpponent,
+      winner_id: winnerId,
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+    })
     .eq('id', id)
   if (error) return { error: 'Could not confirm the result. Please try again.' }
 
   // Staked friendlies only — Sentinel Score events + balance eligibility.
-  // Free friendlies never reach here with a stake_amount, so this whole
-  // block is a no-op for them by construction.
-  if (fm.stake_amount && fm.winner_id) {
+  if (fm.stake_amount) {
     const events = friendlyMatchEventsFor({
       id: fm.id,
       challengerId: fm.challenger_id,
       opponentId: fm.opponent_id,
-      scoreChallenger: fm.score_challenger,
-      scoreOpponent: fm.score_opponent,
-      winnerId: fm.winner_id,
+      scoreChallenger: parsed.data.scoreChallenger,
+      scoreOpponent: parsed.data.scoreOpponent,
+      winnerId,
     })
     await admin.from('sentinel_score_events').insert(events)
 
@@ -57,7 +73,7 @@ export async function confirmFriendlyResult(
         .eq('id', playerId)
     }
 
-    await creditWallet(admin, fm.winner_id, fm.stake_amount * 2, 'friendly_stake', fm.id)
+    await creditWallet(admin, winnerId, fm.stake_amount * 2, 'friendly_stake', fm.id)
   }
 
   for (const playerId of [fm.challenger_id, fm.opponent_id]) {
@@ -66,7 +82,7 @@ export async function confirmFriendlyResult(
       type: 'result_confirmed',
       title: 'Friendly match confirmed',
       body:
-        playerId === fm.winner_id
+        playerId === winnerId
           ? 'You won your friendly match — confirmed by admin.'
           : 'Your friendly match result was confirmed by admin.',
       link: `/dashboard/friendlies/${fm.id}`,

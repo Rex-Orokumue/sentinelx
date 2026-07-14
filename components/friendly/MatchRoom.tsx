@@ -6,6 +6,8 @@ import { submitFriendlyResult } from '@/lib/friendly-matches/result-actions'
 import { acceptChallenge, declineChallenge, type FriendlyActionState } from '@/lib/friendly-matches/actions'
 import { createClient } from '@/lib/supabase/client'
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+
 export function MatchRoom({
   matchId,
   status,
@@ -17,6 +19,8 @@ export function MatchRoom({
   opponentWhatsappUrl,
   scoreChallenger,
   scoreOpponent,
+  mySubmitted,
+  isWinner,
 }: {
   matchId: string
   status: string
@@ -28,6 +32,8 @@ export function MatchRoom({
   opponentWhatsappUrl: string | null
   scoreChallenger: number | null
   scoreOpponent: number | null
+  mySubmitted: boolean
+  isWinner: boolean
 }) {
   const myPaid = isChallenger ? challengerPaid : opponentPaid
   const [payState, payAction] = useFormState<PayStakeState, FormData>(payStake, undefined)
@@ -75,7 +81,13 @@ export function MatchRoom({
           )}
           <GameCodeField matchId={matchId} isChallenger={isChallenger} initialCode={gameCode} />
         </div>
-        <ResultForm matchId={matchId} />
+        {mySubmitted ? (
+          <p className="rounded-2xl border border-slate-800 bg-slate-900 p-5 text-center text-sm text-slate-300">
+            You&apos;ve submitted your result — waiting on your opponent to submit theirs.
+          </p>
+        ) : (
+          <ResultForm matchId={matchId} />
+        )}
       </div>
     )
   }
@@ -89,10 +101,26 @@ export function MatchRoom({
   }
 
   if (status === 'completed') {
+    const shareText = `I ${isWinner ? 'won' : 'played'} my friendly match ${scoreChallenger}–${scoreOpponent} on Sentinel X 🎮 ${SITE_URL}`
     return (
-      <p className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-center text-sm text-emerald-300">
-        Match confirmed: {scoreChallenger}–{scoreOpponent}.
-      </p>
+      <div className="space-y-4 text-center">
+        <div className={`rounded-2xl border p-6 ${isWinner ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-slate-800 bg-slate-900'}`}>
+          <p className={`text-2xl font-black ${isWinner ? 'text-emerald-400' : 'text-white'}`}>
+            {isWinner ? '🏆 You Won!' : 'You Lost'}
+          </p>
+          <p className="mt-1 text-sm text-slate-400">
+            Final score: {scoreChallenger}–{scoreOpponent}
+          </p>
+        </div>
+        <a
+          href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-xl border border-[#25D366]/30 px-6 py-3 text-sm font-bold text-[#25D366] transition-colors hover:bg-[#25D366]/10"
+        >
+          Share on WhatsApp
+        </a>
+      </div>
     )
   }
 
@@ -146,6 +174,7 @@ function GameCodeField({
 }) {
   const [code, setCode] = useState(initialCode ?? '')
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   if (!isChallenger) {
     return (
@@ -157,9 +186,14 @@ function GameCodeField({
 
   async function save() {
     setSaving(true)
+    setSaved(false)
     const supabase = createClient()
-    await supabase.from('friendly_matches').update({ game_code: code }).eq('id', matchId)
+    const { error } = await supabase.from('friendly_matches').update({ game_code: code }).eq('id', matchId)
     setSaving(false)
+    if (!error) {
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    }
   }
 
   return (
@@ -176,8 +210,9 @@ function GameCodeField({
         disabled={saving}
         className="rounded-lg bg-violet-600 px-3 py-2 text-xs font-bold text-white hover:bg-violet-500 disabled:opacity-50"
       >
-        Save
+        {saving ? 'Saving…' : 'Save'}
       </button>
+      {saved && <span className="text-xs font-semibold text-emerald-400">Saved!</span>}
     </div>
   )
 }
@@ -185,7 +220,7 @@ function GameCodeField({
 function ResultForm({ matchId }: { matchId: string }) {
   const [state, action] = useFormState<FriendlyActionState, FormData>(submitFriendlyResult, undefined)
   const [uploading, setUploading] = useState(false)
-  const [screenshotUrl, setScreenshotUrl] = useState('')
+  const [screenshotPath, setScreenshotPath] = useState('')
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -203,28 +238,28 @@ function ResultForm({ matchId }: { matchId: string }) {
     const ext = (file.name.split('.').pop() ?? 'jpg').replace(/[^a-z0-9]/gi, '')
     const path = `${user.id}/${crypto.randomUUID()}.${ext}`
     const { error } = await supabase.storage.from('friendly-match-evidence').upload(path, file)
-    if (!error) {
-      const { data } = supabase.storage.from('friendly-match-evidence').getPublicUrl(path)
-      setScreenshotUrl(data.publicUrl)
-    }
+    if (!error) setScreenshotPath(path)
     setUploading(false)
   }
 
   return (
     <form action={action} className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
       <input type="hidden" name="id" value={matchId} />
-      <input type="hidden" name="screenshotUrl" value={screenshotUrl} />
+      <input type="hidden" name="screenshotPath" value={screenshotPath} />
       <p className="text-sm font-bold text-white">Submit the result</p>
       <div className="flex gap-3">
         <input name="scoreChallenger" type="number" min={0} placeholder="Your score" className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none" />
         <input name="scoreOpponent" type="number" min={0} placeholder="Opponent score" className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none" />
       </div>
+      <p className="text-xs text-slate-400">
+        Upload a clear screenshot of the final score/result screen from your game — this is what the admin will review to confirm the result.
+      </p>
       <input type="file" accept="image/*" onChange={onFile} className="text-xs text-slate-400" />
       {uploading && <p className="text-xs text-slate-500">Uploading…</p>}
       {state?.error && <p className="text-xs text-red-400">{state.error}</p>}
       <button
         type="submit"
-        disabled={uploading || !screenshotUrl}
+        disabled={uploading || !screenshotPath}
         className="w-full rounded-xl bg-violet-600 px-6 py-3 text-sm font-bold text-white hover:bg-violet-500 disabled:opacity-50"
       >
         Submit result

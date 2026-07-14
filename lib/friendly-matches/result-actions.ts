@@ -9,9 +9,9 @@ export async function submitFriendlyResult(
   formData: FormData,
 ): Promise<FriendlyActionState> {
   const id = String(formData.get('id') ?? '')
-  const screenshotUrl = String(formData.get('screenshotUrl') ?? '')
+  const screenshotPath = String(formData.get('screenshotPath') ?? '')
   if (!id) return { error: 'Missing match.' }
-  if (!screenshotUrl) return { error: 'A screenshot is required.' }
+  if (!screenshotPath) return { error: 'A screenshot is required.' }
 
   const parsed = friendlyResultSchema.safeParse({
     scoreChallenger: formData.get('scoreChallenger'),
@@ -39,21 +39,26 @@ export async function submitFriendlyResult(
   }
   if (fm.status !== 'active') return { error: 'This match is not active.' }
 
-  const winnerId =
-    parsed.data.scoreChallenger > parsed.data.scoreOpponent ? fm.challenger_id : fm.opponent_id
-
-  const { error } = await supabase
-    .from('friendly_matches')
-    .update({
+  const { error } = await supabase.from('friendly_match_results').upsert(
+    {
+      friendly_match_id: id,
+      submitted_by: user.id,
       score_challenger: parsed.data.scoreChallenger,
       score_opponent: parsed.data.scoreOpponent,
-      screenshot_url: screenshotUrl,
-      winner_id: winnerId,
-      status: 'awaiting_admin_confirmation',
-    })
-    .eq('id', id)
+      screenshot_url: screenshotPath,
+    },
+    { onConflict: 'friendly_match_id,submitted_by' },
+  )
   if (error) return { error: 'Could not submit your result. Please try again.' }
 
-  revalidatePath('/dashboard')
+  const { count } = await supabase
+    .from('friendly_match_results')
+    .select('id', { count: 'exact', head: true })
+    .eq('friendly_match_id', id)
+  if ((count ?? 0) >= 2) {
+    await supabase.from('friendly_matches').update({ status: 'awaiting_admin_confirmation' }).eq('id', id)
+  }
+
+  revalidatePath(`/dashboard/friendlies/${id}`)
   return { success: true }
 }
