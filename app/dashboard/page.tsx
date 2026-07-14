@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { bucketFixtures, type DashboardMatchInput } from '@/lib/dashboard/fixtures'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
-import { FixtureSection } from '@/components/dashboard/FixtureCard'
+import { ActiveFixtures, CompletedFixtures } from '@/components/dashboard/FixtureCard'
+import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection'
 import { MyTournaments, type RegistrationRow } from '@/components/dashboard/MyTournaments'
 import { WalletPanel, type WalletRequestRow } from '@/components/dashboard/WalletPanel'
 import { MyListings, type MyListing } from '@/components/dashboard/MyListings'
@@ -314,28 +315,65 @@ export default async function DashboardPage() {
           bio: profile?.bio ?? null,
         }}
       />
-      <ReferralPanel username={profile?.username ?? ''} referredPlayers={referredPlayers} />
-      <DataSupportPanel username={profile?.username ?? ''} eligibility={dataSupportEligibility} />
-      <FriendsPanel incoming={incomingRequests} friends={friendsList} />
-      <FriendliesPanel
-        pendingCount={friendlyBuckets.pending.length}
-        activeCount={friendlyBuckets.active.length}
-        completedCount={friendlyBuckets.completed.length}
-      />
-      <FixtureSection fixtures={fixtures} />
+      <CollapsibleSection
+        id="referrals"
+        title="Referrals"
+        defaultOpen={false}
+        summary={`${referredPlayers.length} referral${referredPlayers.length === 1 ? '' : 's'}`}
+      >
+        <ReferralPanel username={profile?.username ?? ''} referredPlayers={referredPlayers} />
+      </CollapsibleSection>
+
+      {dataSupportEligibility.length > 0 && (
+        <CollapsibleSection title="Data support" defaultOpen={false}>
+          <DataSupportPanel username={profile?.username ?? ''} eligibility={dataSupportEligibility} />
+        </CollapsibleSection>
+      )}
+
+      <CollapsibleSection id="friends" title="Friends" defaultOpen={incomingRequests.length > 0}>
+        <FriendsPanel incoming={incomingRequests} friends={friendsList} />
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        id="friendlies"
+        title="Friendlies"
+        defaultOpen={friendlyBuckets.pending.length > 0 || friendlyBuckets.active.length > 0}
+        summary={`${friendlyBuckets.completed.length} completed`}
+      >
+        <FriendliesPanel
+          pendingCount={friendlyBuckets.pending.length}
+          activeCount={friendlyBuckets.active.length}
+          completedCount={friendlyBuckets.completed.length}
+        />
+      </CollapsibleSection>
+
+      <CollapsibleSection id="matches" title="Active matches" defaultOpen>
+        <ActiveFixtures fixtures={{ live: fixtures.live, upcoming: fixtures.upcoming }} />
+      </CollapsibleSection>
+      <CollapsibleSection
+        title="Completed matches"
+        defaultOpen={false}
+        summary={`${fixtures.completed.length} completed`}
+      >
+        <CompletedFixtures fixtures={fixtures.completed} />
+      </CollapsibleSection>
+
       <MyTournaments registrations={registrations} />
       <MyListings listings={myListings} />
       <MyOrders orders={myOrders} />
       <MySales sales={mySales} />
-      <WalletPanel
-        balance={walletBalance}
-        requests={walletRequests}
-        hasActive={hasActive}
-        kycStatus={kyc?.kyc_status ?? 'unverified'}
-        kycFailureReason={kyc?.kyc_failure_reason ?? null}
-        banks={banks}
-        payoutAccount={payoutAccount}
-      />
+
+      <CollapsibleSection id="wallet" title="Wallet" defaultOpen={walletBalance > 0 || hasActive}>
+        <WalletPanel
+          balance={walletBalance}
+          requests={walletRequests}
+          hasActive={hasActive}
+          kycStatus={kyc?.kyc_status ?? 'unverified'}
+          kycFailureReason={kyc?.kyc_failure_reason ?? null}
+          banks={banks}
+          payoutAccount={payoutAccount}
+        />
+      </CollapsibleSection>
     </div>
   )
 }

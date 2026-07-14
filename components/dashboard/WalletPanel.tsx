@@ -50,8 +50,7 @@ export function WalletPanel({
   const mode = kycPanelMode(kycStatus)
 
   return (
-    <section className="mb-10">
-      <h2 className="mb-4 text-base font-bold text-white">Wallet</h2>
+    <>
       <p className="mb-4 rounded-2xl border border-slate-800 bg-slate-900 p-4 text-2xl font-black text-white">
         {formatNaira(balance)}
       </p>
@@ -73,7 +72,7 @@ export function WalletPanel({
           ))}
         </div>
       )}
-    </section>
+    </>
   )
 }
 

@@ -30,9 +30,7 @@ export function FriendsPanel({
   friends: FriendRow[]
 }) {
   return (
-    <section className="mb-10">
-      <h2 className="mb-4 text-base font-bold text-white">Friends</h2>
-
+    <>
       {incoming.length > 0 && (
         <div className="mb-3 space-y-2">
           <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Requests</p>
@@ -53,7 +51,7 @@ export function FriendsPanel({
           ))}
         </div>
       )}
-    </section>
+    </>
   )
 }
 

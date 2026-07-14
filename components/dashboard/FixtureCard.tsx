@@ -58,30 +58,34 @@ export function FixtureCard({ fixture }: { fixture: DashboardFixture }) {
   )
 }
 
-export function FixtureSection({
+export function ActiveFixtures({
   fixtures,
 }: {
-  fixtures: { live: DashboardFixture[]; upcoming: DashboardFixture[]; completed: DashboardFixture[] }
+  fixtures: { live: DashboardFixture[]; upcoming: DashboardFixture[] }
 }) {
-  const total = fixtures.live.length + fixtures.upcoming.length + fixtures.completed.length
+  const total = fixtures.live.length + fixtures.upcoming.length
+  if (total === 0) {
+    return (
+      <EmptyState
+        icon="🎮"
+        title="No active fixtures"
+        body="Register for a tournament and your live/upcoming matches will show up here."
+      />
+    )
+  }
   return (
-    <section className="mb-10">
-      <h2 className="mb-4 text-base font-bold text-white">My fixtures</h2>
-      {total === 0 ? (
-        <EmptyState
-          icon="🎮"
-          title="No fixtures yet"
-          body="Register for a tournament and your matches will show up here."
-        />
-      ) : (
-        <div className="space-y-5">
-          <Group label="Live" items={fixtures.live} />
-          <Group label="Upcoming" items={fixtures.upcoming} />
-          <Group label="Completed" items={fixtures.completed} />
-        </div>
-      )}
-    </section>
+    <div className="space-y-5">
+      <Group label="Live" items={fixtures.live} />
+      <Group label="Upcoming" items={fixtures.upcoming} />
+    </div>
   )
+}
+
+export function CompletedFixtures({ fixtures }: { fixtures: DashboardFixture[] }) {
+  if (fixtures.length === 0) {
+    return <EmptyState icon="🏁" title="No completed matches yet" body="Finished matches will show up here." />
+  }
+  return <Group label="Completed" items={fixtures} />
 }
 
 function Group({ label, items }: { label: string; items: DashboardFixture[] }) {
