@@ -66,6 +66,7 @@ export function AccountMenu({ session }: { session: NavSession }) {
           >
             My Profile
           </MenuLink>
+          <MenuLink href="/players" onNavigate={() => setOpen(false)}>Find Players</MenuLink>
           <MenuLink href="/dashboard" onNavigate={() => setOpen(false)}>Dashboard</MenuLink>
           {session.isStaff && (
             <MenuLink href="/admin" onNavigate={() => setOpen(false)}>Admin</MenuLink>

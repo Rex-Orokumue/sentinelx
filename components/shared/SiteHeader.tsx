@@ -11,6 +11,7 @@ const NAV = [
   { href: '/community', label: 'Community' },
   { href: '/exchange', label: 'Exchange' },
   { href: '/rankings', label: 'Rankings' },
+  { href: '/players', label: 'Players' },
 ]
 
 export function SiteHeader({

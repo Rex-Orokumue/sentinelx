@@ -93,6 +93,7 @@ export function BottomTabBar({ session }: { session: NavSession }) {
                 >
                   My Profile
                 </MenuLink>
+                <MenuLink href="/players" onNavigate={() => setMenuOpen(false)}>Find Players</MenuLink>
                 <MenuLink href="/dashboard" onNavigate={() => setMenuOpen(false)}>Dashboard</MenuLink>
                 {session.isStaff && (
                   <MenuLink href="/admin" onNavigate={() => setMenuOpen(false)}>Admin</MenuLink>
