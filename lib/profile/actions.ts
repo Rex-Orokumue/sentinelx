@@ -43,5 +43,6 @@ export async function updateProfile(
 
   revalidatePath('/dashboard')
   revalidatePath('/players/[username]', 'page')
+  revalidatePath('/', 'layout')
   return { success: true }
 }

@@ -293,6 +293,8 @@ export default async function DashboardPage() {
     <div className="mx-auto max-w-4xl px-4 pb-20">
       <DashboardHeader
         name={displayName}
+        username={profile?.username ?? null}
+        avatarUrl={profile?.avatar_url ?? null}
         wins={profile?.wins ?? 0}
         losses={profile?.losses ?? 0}
         goalsScored={profile?.goals_scored ?? 0}

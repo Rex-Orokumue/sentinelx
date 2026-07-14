@@ -1,20 +1,23 @@
+import { Avatar } from '@/components/shared/Avatar'
+
 export function DashboardHeader({
   name,
+  username,
+  avatarUrl,
   wins,
   losses,
   goalsScored,
 }: {
   name: string
+  username: string | null
+  avatarUrl: string | null
   wins: number
   losses: number
   goalsScored: number
 }) {
-  const initial = (name[0] ?? '?').toUpperCase()
   return (
     <div className="flex items-center gap-4 py-8">
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-slate-700 text-xl font-bold text-white">
-        {initial}
-      </div>
+      <Avatar avatarUrl={avatarUrl} displayName={name} username={username} size={56} className="text-xl" />
       <div className="min-w-0">
         <h1 className="truncate text-2xl font-black text-white">{name}</h1>
         <p className="mt-1 text-sm text-slate-400">
