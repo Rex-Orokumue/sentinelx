@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { NotificationItem } from '@/lib/nav/session'
@@ -17,6 +17,7 @@ export function NotificationBell({
   const [unreadCount, setUnreadCount] = useState(initialUnreadCount)
   const ref = useRef<HTMLDivElement>(null)
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -33,6 +34,51 @@ export function NotificationBell({
     }
   }, [])
 
+  // The bell is mounted once in the root layout and persists across
+  // client-side navigations — its initial props never re-run server-side
+  // on a soft nav, so it must fetch its own fresh count/list on every
+  // pathname change instead of trusting stale initial props.
+  useEffect(() => {
+    let cancelled = false
+    async function refresh() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) return
+      const [{ count }, { data: rows }] = await Promise.all([
+        supabase
+          .from('player_notifications')
+          .select('id', { count: 'exact', head: true })
+          .eq('player_id', user.id)
+          .eq('read', false),
+        supabase
+          .from('player_notifications')
+          .select('id, type, title, body, link, read, created_at')
+          .eq('player_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20),
+      ])
+      if (cancelled) return
+      setUnreadCount(count ?? 0)
+      setNotifications(
+        (rows ?? []).map((n) => ({
+          id: n.id,
+          type: n.type,
+          title: n.title,
+          body: n.body,
+          link: n.link,
+          read: n.read,
+          createdAt: n.created_at,
+        })),
+      )
+    }
+    refresh()
+    return () => {
+      cancelled = true
+    }
+  }, [pathname])
+
   async function onSelect(n: NotificationItem) {
     setOpen(false)
     if (!n.read) {
@@ -40,6 +86,7 @@ export function NotificationBell({
       setUnreadCount((c) => Math.max(0, c - 1))
       const supabase = createClient()
       await supabase.from('player_notifications').update({ read: true }).eq('id', n.id)
+      router.refresh()
     }
     if (n.link) router.push(n.link)
   }
