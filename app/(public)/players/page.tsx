@@ -21,12 +21,16 @@ const PLAYER_COLS = 'username, display_name, avatar_url, sentinel_score, sentine
 export default async function PlayersPage({ searchParams }: { searchParams: { q?: string } }) {
   const q = (searchParams.q ?? '').trim()
   const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
   let query = supabase
     .from('profiles')
     .select(PLAYER_COLS)
     .order('sentinel_score', { ascending: false })
     .limit(60)
+  if (user) query = query.neq('id', user.id)
   if (q) {
     // Escape ilike wildcards ("%"/"_") plus the characters that are
     // structural to PostgREST's `.or()` filter-list syntax (",", "(", ")")
