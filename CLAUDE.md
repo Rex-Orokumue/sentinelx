@@ -142,7 +142,7 @@ Every score change must be logged in `sentinel_score_events`.
 - Store `paystack_reference` on `tournament_registrations`
 - Verify payment via Paystack webhook before confirming registration
 - Prize withdrawal: player requests from Dashboard → Paystack Transfer API → bank account
-- KYC required before first withdrawal (BVN via Paystack, validated against the payout bank account — Paystack's identification API does not support NIN as of this writing)
+- KYC required before first withdrawal — **BVN identification is currently disabled** (most players are minors without a BVN, and Paystack's identification API has no NIN alternative). Verification is synchronous and payout-account-only: a Paystack-resolved bank account is enough to mark a player verified. Withdrawals are paid out manually by admin regardless, so this doesn't remove the check that actually matters. A guardian/NIN-based redesign is a known future need — see `lib/kyc/actions.ts` for what's disabled vs. what remains.
 
 ---
 
