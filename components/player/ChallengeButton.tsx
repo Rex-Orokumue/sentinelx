@@ -12,6 +12,13 @@ export function ChallengeButton({ opponentId }: { opponentId: string }) {
   return (
     <form action={action} className="space-y-2">
       <input type="hidden" name="opponentId" value={opponentId} />
+      <input
+        name="gameCode"
+        type="text"
+        maxLength={100}
+        placeholder="Game code (optional)"
+        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
+      />
       <div className="flex items-center gap-2">
         <label className="flex items-center gap-1.5 text-xs text-slate-400">
           <input type="checkbox" checked={showStake} onChange={(e) => setShowStake(e.target.checked)} />

@@ -13,6 +13,7 @@ export async function sendChallenge(
   const parsed = challengeSchema.safeParse({
     opponentId: formData.get('opponentId') ?? '',
     stakeAmount: formData.get('stakeAmount') ?? '',
+    gameCode: formData.get('gameCode') ?? '',
   })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
@@ -24,6 +25,7 @@ export async function sendChallenge(
   if (user.id === parsed.data.opponentId) return { error: "You can't challenge yourself." }
 
   const stakeAmount = parsed.data.stakeAmount === '' ? null : parsed.data.stakeAmount
+  const gameCode = parsed.data.gameCode === '' ? null : parsed.data.gameCode
 
   const { data: created, error } = await supabase
     .from('friendly_matches')
@@ -31,6 +33,7 @@ export async function sendChallenge(
       challenger_id: user.id,
       opponent_id: parsed.data.opponentId,
       stake_amount: stakeAmount,
+      game_code: gameCode,
       status: 'pending',
     })
     .select('id')

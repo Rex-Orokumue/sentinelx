@@ -6,6 +6,7 @@ export const challengeSchema = z.object({
     z.literal(''),
     z.coerce.number().int().min(100, 'Minimum stake is ₦100'),
   ]),
+  gameCode: z.union([z.literal(''), z.string().trim().max(100)]),
 })
 
 export type ChallengeInput = z.infer<typeof challengeSchema>
