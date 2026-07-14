@@ -79,7 +79,8 @@ per-game only (not per-tournament).
 
 | # | Task | Status |
 |---|------|--------|
-| 21 | Multi-game support + team/school/state leagues | ⬜ |
+| 21a | Multi-game support — admin game management, category taxonomy (football/fighting/shooter), per-category Rankings tabs + Hall of Fame awards, profile/dashboard stats fixed to stop blending stats across games | ✅ |
+| 21b | Team/school/state leagues — teams of players representing a school/state, team-vs-team standings | ⬜ |
 | 22 | Referral program — referral link, ₦100/referral credit, separate referral balance + withdrawal queue | ✅ |
 | 23 | Rankings improvements — per-game wins breakdown, Sentinel Score/Hall of Fame scope audit | ✅ |
 | 24 | Full-day match scheduling — date-only matches, auto-expire (cron), admin override | ✅ |
