@@ -1,3 +1,5 @@
+import type { CategoryStat } from '@/lib/rankings/game-breakdown'
+
 export interface MatchSides {
   player_a_id: string
   player_b_id: string
@@ -21,6 +23,7 @@ export interface ProfileView {
   goalsScored: number
   goalsConceded: number
   totalTitles: number
+  categoryStats: CategoryStat[]
   rank: number | null // null = unranked
 }
 

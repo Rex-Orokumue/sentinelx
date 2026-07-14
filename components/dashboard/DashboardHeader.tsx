@@ -6,14 +6,12 @@ export function DashboardHeader({
   avatarUrl,
   wins,
   losses,
-  goalsScored,
 }: {
   name: string
   username: string | null
   avatarUrl: string | null
   wins: number
   losses: number
-  goalsScored: number
 }) {
   return (
     <div className="flex items-center gap-4 py-8">
@@ -22,8 +20,7 @@ export function DashboardHeader({
         <h1 className="truncate text-2xl font-black text-white">{name}</h1>
         <p className="mt-1 text-sm text-slate-400">
           <span className="font-bold text-emerald-400">{wins}</span> W ·{' '}
-          <span className="font-bold text-red-400">{losses}</span> L ·{' '}
-          <span className="font-bold text-white">{goalsScored}</span> goals
+          <span className="font-bold text-red-400">{losses}</span> L
         </p>
       </div>
     </div>

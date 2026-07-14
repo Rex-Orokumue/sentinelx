@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getChampion, type BracketMatch } from '@/lib/tournaments/bracket'
 import { matchOutcome, type ProfileView, type ProfileMatch, type ProfileTitle } from '@/lib/players/profile'
 import { friendshipStatus, type FriendshipStatus } from '@/lib/friends/list'
+import { scoreStatsByPlayerAndCategory, type GameScopedMatch, type CategoryStat } from '@/lib/rankings/game-breakdown'
+import { CATEGORY_META } from '@/lib/games/categories'
 import { ProfileHeader } from '@/components/player/ProfileHeader'
 import { ProfileStats } from '@/components/player/ProfileStats'
 import { ProfileAchievements } from '@/components/player/ProfileAchievements'
@@ -59,6 +61,15 @@ type TitleRef = { title: string } | { title: string }[] | null
 function firstTitleName(x: TitleRef): string | null {
   const r = Array.isArray(x) ? x[0] ?? null : x
   return r?.title ?? null
+}
+
+type CategoryGameRef = { name: string; category: string } | { name: string; category: string }[] | null
+type CategoryTournamentRef = { game: CategoryGameRef } | { game: CategoryGameRef }[] | null
+function firstCategoryGameRef(g: CategoryGameRef): { name: string; category: string } | null {
+  return Array.isArray(g) ? g[0] ?? null : g
+}
+function firstCategoryTournamentRef(t: CategoryTournamentRef): { game: CategoryGameRef } | null {
+  return Array.isArray(t) ? t[0] ?? null : t
 }
 
 // Explicit row shapes for the embedded selects below — the Supabase type-level
@@ -157,7 +168,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
     }
   }
 
-  const [{ data: rankData }, { data: rawMatches }, { data: rawFinals }] = await Promise.all([
+  const [{ data: rankData }, { data: rawMatches }, { data: rawFinals }, { data: rawCategoryMatches }] = await Promise.all([
     supabase.rpc('player_rank', { uname: p.username }),
     supabase
       .from('matches')
@@ -180,7 +191,40 @@ export default async function PlayerProfilePage({ params }: { params: { username
       .eq('round', 'final')
       .eq('status', 'completed')
       .or(`player_a_id.eq.${p.id},player_b_id.eq.${p.id}`),
+    supabase
+      .from('matches')
+      .select(
+        'score_a, score_b, player_a_id, player_b_id, status, tournament:tournaments(game:games(name, category))',
+      )
+      .eq('status', 'completed')
+      .or(`player_a_id.eq.${p.id},player_b_id.eq.${p.id}`),
   ])
+
+  const categoryMatches: GameScopedMatch[] = ((rawCategoryMatches as unknown[] | null) ?? []).map((raw) => {
+    const m = raw as {
+      score_a: number | null
+      score_b: number | null
+      player_a_id: string | null
+      player_b_id: string | null
+      status: string
+      tournament: CategoryTournamentRef
+    }
+    const t = firstCategoryTournamentRef(m.tournament)
+    const g = firstCategoryGameRef(t?.game ?? null)
+    return {
+      status: m.status,
+      score_a: m.score_a,
+      score_b: m.score_b,
+      player_a_id: m.player_a_id,
+      player_b_id: m.player_b_id,
+      game_name: g?.name ?? 'Unknown',
+      game_category: g?.category ?? 'other',
+    }
+  })
+  const categoryStats: CategoryStat[] = Object.keys(CATEGORY_META).map((category) => {
+    const stat = scoreStatsByPlayerAndCategory(categoryMatches, category).get(p.id) ?? { scored: 0, conceded: 0 }
+    return { category, ...stat }
+  })
 
   const profile: ProfileView = {
     id: p.id,
@@ -198,6 +242,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
     goalsScored: p.goals_scored,
     goalsConceded: p.goals_conceded,
     totalTitles: p.total_titles,
+    categoryStats,
     rank: (rankData as number | null) ?? null,
   }
 

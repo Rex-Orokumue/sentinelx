@@ -297,7 +297,6 @@ export default async function DashboardPage() {
         avatarUrl={profile?.avatar_url ?? null}
         wins={profile?.wins ?? 0}
         losses={profile?.losses ?? 0}
-        goalsScored={profile?.goals_scored ?? 0}
       />
       <form action={signOut} className="mb-4">
         <button
