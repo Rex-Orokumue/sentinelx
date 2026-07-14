@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getChampion, type BracketMatch } from '@/lib/tournaments/bracket'
 import { matchOutcome, type ProfileView, type ProfileMatch, type ProfileTitle } from '@/lib/players/profile'
+import { friendshipStatus, type FriendshipStatus } from '@/lib/friends/list'
 import { ProfileHeader } from '@/components/player/ProfileHeader'
 import { ProfileStats } from '@/components/player/ProfileStats'
 import { ProfileAchievements } from '@/components/player/ProfileAchievements'
@@ -140,6 +141,22 @@ export default async function PlayerProfilePage({ params }: { params: { username
     data: { user },
   } = await supabase.auth.getUser()
 
+  let friendship: FriendshipStatus = 'none'
+  if (user && user.id !== p.id) {
+    const { data: friendRow } = await supabase
+      .from('friends')
+      .select('requester_id, recipient_id, status')
+      .or(`and(requester_id.eq.${user.id},recipient_id.eq.${p.id}),and(requester_id.eq.${p.id},recipient_id.eq.${user.id})`)
+      .maybeSingle()
+    if (friendRow) {
+      friendship = friendshipStatus(
+        [{ requesterId: friendRow.requester_id, recipientId: friendRow.recipient_id, status: friendRow.status }],
+        user.id,
+        p.id,
+      )
+    }
+  }
+
   const [{ data: rankData }, { data: rawMatches }, { data: rawFinals }] = await Promise.all([
     supabase.rpc('player_rank', { uname: p.username }),
     supabase
@@ -232,7 +249,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
   return (
     <div className="mx-auto max-w-2xl px-4 pb-20">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <ProfileHeader profile={profile} viewerId={user?.id ?? null} />
+      <ProfileHeader profile={profile} viewerId={user?.id ?? null} friendshipStatus={friendship} />
       <ProfileStats profile={profile} />
       <ProfileAchievements titles={titles} />
       <ProfileMatchHistory matches={matches} />

@@ -4,8 +4,17 @@ import { AddFriendButton } from '@/components/player/AddFriendButton'
 import { ChallengeButton } from '@/components/player/ChallengeButton'
 import { formatMonthYear } from '@/lib/format'
 import type { ProfileView } from '@/lib/players/profile'
+import type { FriendshipStatus } from '@/lib/friends/list'
 
-export function ProfileHeader({ profile, viewerId }: { profile: ProfileView; viewerId: string | null }) {
+export function ProfileHeader({
+  profile,
+  viewerId,
+  friendshipStatus,
+}: {
+  profile: ProfileView
+  viewerId: string | null
+  friendshipStatus: FriendshipStatus
+}) {
   const name = profile.displayName ?? profile.username
   const since = formatMonthYear(profile.createdAt)
   return (
@@ -37,11 +46,24 @@ export function ProfileHeader({ profile, viewerId }: { profile: ProfileView; vie
         {profile.bio && <p className="mt-3 whitespace-pre-line text-sm text-slate-300">{profile.bio}</p>}
         {viewerId && viewerId !== profile.id && (
           <div className="mt-3 space-y-2">
-            <AddFriendButton recipientId={profile.id} />
+            <FriendStatusAction status={friendshipStatus} profileId={profile.id} />
             <ChallengeButton opponentId={profile.id} />
           </div>
         )}
       </div>
     </header>
   )
+}
+
+function FriendStatusAction({ status, profileId }: { status: FriendshipStatus; profileId: string }) {
+  if (status === 'friends') {
+    return <p className="text-sm font-semibold text-emerald-400">✓ Friends</p>
+  }
+  if (status === 'pending_sent') {
+    return <p className="text-sm text-slate-400">Friend request sent</p>
+  }
+  if (status === 'pending_received') {
+    return <p className="text-sm text-slate-400">They sent you a friend request — check your dashboard</p>
+  }
+  return <AddFriendButton recipientId={profileId} />
 }

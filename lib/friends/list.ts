@@ -20,3 +20,16 @@ export function sortFriendsFirst<T extends { id: string }>(players: T[], friendI
   const others = players.filter((p) => !friendIds.has(p.id))
   return [...friends, ...others]
 }
+
+export type FriendshipStatus = 'none' | 'pending_sent' | 'pending_received' | 'friends'
+
+export function friendshipStatus(rows: FriendshipRow[], viewerId: string, otherId: string): FriendshipStatus {
+  const row = rows.find(
+    (r) =>
+      (r.requesterId === viewerId && r.recipientId === otherId) ||
+      (r.requesterId === otherId && r.recipientId === viewerId),
+  )
+  if (!row) return 'none'
+  if (row.status === 'accepted') return 'friends'
+  return row.requesterId === viewerId ? 'pending_sent' : 'pending_received'
+}
