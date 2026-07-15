@@ -14,6 +14,11 @@ export function GameRow({
   const [confirming, setConfirming] = useState(false)
   const nextActive = !game.active
 
+  // Reset after a successful submit — must not happen via the submit button's
+  // own onClick, which unmounts the <form> mid-submission ("Form submission
+  // canceled because the form is not connected") and silently drops the request.
+  if (state?.success && confirming) setConfirming(false)
+
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
       <div className="flex items-center justify-between gap-3">
@@ -39,7 +44,6 @@ export function GameRow({
             <input type="hidden" name="nextActive" value={String(nextActive)} />
             <button
               type="submit"
-              onClick={() => setConfirming(false)}
               className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-500"
             >
               {game.active

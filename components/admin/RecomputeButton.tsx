@@ -7,6 +7,11 @@ export function RecomputeButton() {
   const [state, action] = useFormState<RecomputeState, FormData>(recomputeAllAction, undefined)
   const [confirming, setConfirming] = useState(false)
 
+  // Reset after a successful submit — must not happen via the submit button's
+  // own onClick, which unmounts the <form> mid-submission ("Form submission
+  // canceled because the form is not connected") and silently drops the request.
+  if (state?.players != null && confirming) setConfirming(false)
+
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
       <p className="font-bold text-white">Recompute all scores &amp; stats</p>
@@ -31,7 +36,6 @@ export function RecomputeButton() {
           <div className="flex gap-2">
             <button
               type="submit"
-              onClick={() => setConfirming(false)}
               className="rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-500"
             >
               Yes, recompute all players
