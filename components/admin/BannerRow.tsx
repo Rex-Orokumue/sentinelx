@@ -1,6 +1,8 @@
 'use client'
+import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { toggleBannerActive, deleteBanner, type BannerFormState } from '@/lib/banners/admin-actions'
+import { BannerForm } from '@/components/admin/BannerForm'
 
 export interface AdminBanner {
   id: string
@@ -11,8 +13,23 @@ export interface AdminBanner {
 }
 
 export function BannerRow({ banner }: { banner: AdminBanner }) {
+  const [editing, setEditing] = useState(false)
   const [toggleState, toggleAction] = useFormState<BannerFormState, FormData>(toggleBannerActive, undefined)
   const [deleteState, deleteAction] = useFormState<BannerFormState, FormData>(deleteBanner, undefined)
+
+  if (editing) {
+    return (
+      <div className="space-y-2">
+        <BannerForm
+          defaults={{ id: banner.id, title: banner.title, imageUrl: banner.imageUrl, linkUrl: banner.linkUrl }}
+          onDone={() => setEditing(false)}
+        />
+        <button type="button" onClick={() => setEditing(false)} className="text-xs text-slate-400 hover:text-white">
+          Cancel edit
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -28,6 +45,13 @@ export function BannerRow({ banner }: { banner: AdminBanner }) {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-slate-500"
+        >
+          Edit
+        </button>
         <form action={toggleAction}>
           <input type="hidden" name="id" value={banner.id} />
           <input type="hidden" name="active" value={String(banner.active)} />

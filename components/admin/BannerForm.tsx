@@ -1,12 +1,21 @@
 'use client'
 import { useState } from 'react'
 import { useFormState } from 'react-dom'
-import { addBanner, type BannerFormState } from '@/lib/banners/admin-actions'
+import { addBanner, updateBanner, type BannerFormState } from '@/lib/banners/admin-actions'
 import { createClient } from '@/lib/supabase/client'
 
-export function BannerForm({ onDone }: { onDone?: () => void }) {
-  const [state, formAction] = useFormState<BannerFormState, FormData>(addBanner, undefined)
-  const [imageUrl, setImageUrl] = useState('')
+export interface BannerDefaults {
+  id?: string
+  title?: string
+  imageUrl?: string
+  linkUrl?: string
+}
+
+export function BannerForm({ defaults, onDone }: { defaults?: BannerDefaults; onDone?: () => void }) {
+  const editing = Boolean(defaults?.id)
+  const action = editing ? updateBanner : addBanner
+  const [state, formAction] = useFormState<BannerFormState, FormData>(action, undefined)
+  const [imageUrl, setImageUrl] = useState(defaults?.imageUrl ?? '')
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   if (state?.success && onDone) onDone()
@@ -33,6 +42,7 @@ export function BannerForm({ onDone }: { onDone?: () => void }) {
 
   return (
     <form action={formAction} className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
+      {editing && <input type="hidden" name="id" value={defaults!.id} />}
       <div className="space-y-1.5">
         <label htmlFor="title" className="text-xs font-medium text-slate-400">
           Internal title
@@ -41,6 +51,7 @@ export function BannerForm({ onDone }: { onDone?: () => void }) {
           id="title"
           name="title"
           type="text"
+          defaultValue={defaults?.title}
           placeholder="e.g. DLS 26 Season 2 announcement"
           required
           className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
@@ -72,8 +83,9 @@ export function BannerForm({ onDone }: { onDone?: () => void }) {
         <input
           id="linkUrl"
           name="linkUrl"
-          type="url"
-          placeholder="https://…/tournaments/…"
+          type="text"
+          defaultValue={defaults?.linkUrl}
+          placeholder="/tournaments/… or https://…"
           required
           className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
         />
@@ -85,7 +97,7 @@ export function BannerForm({ onDone }: { onDone?: () => void }) {
           disabled={!imageUrl || uploading}
           className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500 disabled:opacity-40"
         >
-          Add banner
+          {editing ? 'Save changes' : 'Add banner'}
         </button>
         {state?.success && <span className="text-xs text-emerald-400">Saved.</span>}
         {state?.error && <span className="text-xs text-red-400">{state.error}</span>}

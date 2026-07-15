@@ -35,6 +35,23 @@ export async function addBanner(_prev: BannerFormState, formData: FormData): Pro
   return { success: true }
 }
 
+export async function updateBanner(_prev: BannerFormState, formData: FormData): Promise<BannerFormState> {
+  await requireStaff()
+  const id = String(formData.get('id') ?? '')
+  if (!id) return { error: 'Missing banner.' }
+  const parsed = parseForm(formData)
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  const d = parsed.data
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('homepage_banners')
+    .update({ title: d.title, image_url: d.imageUrl, link_url: d.linkUrl })
+    .eq('id', id)
+  if (error) return { error: 'Could not save changes.' }
+  revalidate()
+  return { success: true }
+}
+
 export async function toggleBannerActive(
   _prev: BannerFormState,
   formData: FormData,
