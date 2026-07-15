@@ -3,6 +3,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from './types'
 
 const PROTECTED = ['/dashboard', '/admin']
+// Exact-match only — '/players/[username]' profile pages stay public (SEO,
+// WhatsApp link previews per CLAUDE.md), just the '/players' directory/search
+// listing requires login.
+const PROTECTED_EXACT = ['/players']
 const AUTH_PAGES = ['/login', '/signup']
 
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
@@ -30,7 +34,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
 
-  if (!user && PROTECTED.some((p) => path.startsWith(p))) {
+  if (!user && (PROTECTED.some((p) => path.startsWith(p)) || PROTECTED_EXACT.includes(path))) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.search = ''
