@@ -5,6 +5,7 @@ import { TournamentCard } from '@/components/tournament/TournamentCard'
 import type { TournamentCardData } from '@/components/tournament/TournamentCard'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { TierBadge } from '@/components/player/TierBadge'
+import { PromoBanner } from '@/components/home/PromoBanner'
 
 const WHATSAPP_COMMUNITY = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL ?? '#'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
@@ -12,7 +13,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
 export default async function HomePage() {
   const supabase = createClient()
 
-  const [{ data: rawTournaments }, { data: players }] = await Promise.all([
+  const [{ data: rawTournaments }, { data: players }, { data: rawBanner }] = await Promise.all([
     supabase
       .from('tournaments')
       .select(
@@ -27,7 +28,18 @@ export default async function HomePage() {
       .order('wins', { ascending: false })
       .gt('total_matches', 0)
       .limit(5),
+    supabase
+      .from('homepage_banners')
+      .select('title, image_url, link_url')
+      .eq('active', true)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
+
+  const banner = rawBanner
+    ? { title: rawBanner.title, imageUrl: rawBanner.image_url, linkUrl: rawBanner.link_url }
+    : null
 
   // Ensure any 'active' tournament shows first as featured
   const tournaments = [...(rawTournaments ?? [])].sort((a, b) =>
@@ -75,6 +87,8 @@ export default async function HomePage() {
           </a>
         </div>
       </section>
+
+      <PromoBanner banner={banner} />
 
       {/* ── Featured / Active Tournament ─────────────────────── */}
       <section className="mb-10">

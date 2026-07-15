@@ -8,6 +8,7 @@ export interface AdminNavItem {
 export const ADMIN_NAV: AdminNavItem[] = [
   { label: 'Overview', href: '/admin', adminOnly: false },
   { label: 'Tournaments', href: '/admin/tournaments', adminOnly: false },
+  { label: 'Banner', href: '/admin/banners', adminOnly: false },
   { label: 'Games', href: '/admin/games', adminOnly: false },
   { label: 'Results', href: '/admin/results', adminOnly: false },
   { label: 'Community', href: '/admin/community', adminOnly: false },

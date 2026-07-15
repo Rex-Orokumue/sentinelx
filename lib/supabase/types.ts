@@ -201,6 +201,51 @@ export type Database = {
           },
         ]
       }
+      friendly_match_results: {
+        Row: {
+          created_at: string
+          friendly_match_id: string
+          id: string
+          score_challenger: number
+          score_opponent: number
+          screenshot_url: string
+          submitted_by: string
+        }
+        Insert: {
+          created_at?: string
+          friendly_match_id: string
+          id?: string
+          score_challenger: number
+          score_opponent: number
+          screenshot_url: string
+          submitted_by: string
+        }
+        Update: {
+          created_at?: string
+          friendly_match_id?: string
+          id?: string
+          score_challenger?: number
+          score_opponent?: number
+          screenshot_url?: string
+          submitted_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendly_match_results_friendly_match_id_fkey"
+            columns: ["friendly_match_id"]
+            isOneToOne: false
+            referencedRelation: "friendly_matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendly_match_results_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       friendly_matches: {
         Row: {
           admin_note: string | null
@@ -274,51 +319,6 @@ export type Database = {
           {
             foreignKeyName: "friendly_matches_winner_id_fkey"
             columns: ["winner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      friendly_match_results: {
-        Row: {
-          created_at: string
-          friendly_match_id: string
-          id: string
-          score_challenger: number
-          score_opponent: number
-          screenshot_url: string
-          submitted_by: string
-        }
-        Insert: {
-          created_at?: string
-          friendly_match_id: string
-          id?: string
-          score_challenger: number
-          score_opponent: number
-          screenshot_url: string
-          submitted_by: string
-        }
-        Update: {
-          created_at?: string
-          friendly_match_id?: string
-          id?: string
-          score_challenger?: number
-          score_opponent?: number
-          screenshot_url?: string
-          submitted_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "friendly_match_results_friendly_match_id_fkey"
-            columns: ["friendly_match_id"]
-            isOneToOne: false
-            referencedRelation: "friendly_matches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "friendly_match_results_submitted_by_fkey"
-            columns: ["submitted_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -470,6 +470,44 @@ export type Database = {
             columns: ["tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      homepage_banners: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string
+          id: string
+          image_url: string
+          link_url: string
+          title: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by: string
+          id?: string
+          image_url: string
+          link_url: string
+          title: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string
+          id?: string
+          image_url?: string
+          link_url?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homepage_banners_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
