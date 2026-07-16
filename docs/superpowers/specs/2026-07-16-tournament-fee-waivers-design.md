@@ -61,7 +61,23 @@ On the tournament registration page, `registerForTournament`:
 1. Runs its existing validation (auth, tournament status, capacity, rules agreement) — unchanged.
 2. **New step:** looks up `tournament_fee_waivers` for `(tournament_id, user.id)` where `redeemed_at IS NULL`.
    - **No live waiver:** unchanged existing behavior — insert `pending` registration, initialize Paystack transaction, redirect to Paystack.
-   - **Live waiver found:** insert the registration directly with `payment_status = 'paid'`, `fee_waived = true`, `paystack_reference = null`; stamp `redeemed_at = now()` on the waiver row (same transaction/sequence, guarded so a raced second attempt can't redeem twice); redirect straight to a confirmation state (no Paystack).
+   - **Live waiver found:** redeem it with a conditional UPDATE **before** inserting the registration — the same atomic-guard pattern as `debitWallet` (`lib/wallet/service.ts`), not a check-then-update:
+
+     ```ts
+     const { data: redeemed } = await admin
+       .from('tournament_fee_waivers')
+       .update({ redeemed_at: new Date().toISOString() })
+       .eq('id', waiverId)
+       .is('redeemed_at', null)
+       .select('id')
+     if (!redeemed || redeemed.length === 0) {
+       // Someone else already redeemed it (or it was revoked between the
+       // lookup and here) — abort. Do NOT create the registration.
+       return { error: 'This free-entry grant is no longer available. Please try again or contact an admin.' }
+     }
+     ```
+
+     Only after this UPDATE returns a matched row does the code insert the registration with `payment_status = 'paid'`, `fee_waived = true`, `paystack_reference = null`, then redirect straight to a confirmation state (no Paystack). The `.is('redeemed_at', null)` clause is what makes this safe under concurrent requests — PostgREST translates it into the UPDATE's own WHERE clause, so only one of two simultaneous redemption attempts can ever get a non-empty `RETURNING`.
 
 No changes to the registration details form itself (`registrationDetailsSchema`, the UI) — a waiver only changes what happens after the form is submitted.
 

@@ -140,7 +140,12 @@ function RegisterForm({
         placeholder="+234…"
       />
       <Field name="clubName" label="Club name" placeholder="Your in-game club/team" />
-      <Field name="ignTag" label="In-game player ID / tag" placeholder="Your IGN or player tag" />
+      <Field
+        name="ignTag"
+        label="In-game player ID / tag (optional)"
+        placeholder="Your IGN or player tag"
+        required={false}
+      />
       {hasRules && (
         <label className="flex items-start gap-2 text-xs text-slate-400">
           <input type="checkbox" name="agreedToRules" value="true" required className="mt-0.5 accent-violet-600" />

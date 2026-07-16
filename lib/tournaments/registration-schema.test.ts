@@ -21,8 +21,12 @@ describe('registrationDetailsSchema', () => {
     expect(registrationDetailsSchema.safeParse({ ...valid, clubName: '' }).success).toBe(false)
   })
 
-  it('requires ignTag', () => {
-    expect(registrationDetailsSchema.safeParse({ ...valid, ignTag: '' }).success).toBe(false)
+  it('allows an empty ignTag (optional field)', () => {
+    expect(registrationDetailsSchema.safeParse({ ...valid, ignTag: '' }).success).toBe(true)
+  })
+
+  it('rejects an ignTag that is too long', () => {
+    expect(registrationDetailsSchema.safeParse({ ...valid, ignTag: 'x'.repeat(61) }).success).toBe(false)
   })
 
   it('requires a plausible WhatsApp number', () => {

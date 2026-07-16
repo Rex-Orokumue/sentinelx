@@ -79,7 +79,7 @@ export async function registerForTournament(
     reg_display_name: parsed.data.displayName,
     reg_whatsapp: parsed.data.whatsapp,
     reg_club_name: parsed.data.clubName,
-    reg_ign_tag: parsed.data.ignTag,
+    reg_ign_tag: parsed.data.ignTag || null,
   }
 
   // Player has no self-UPDATE RLS policy on tournament_registrations (staff-only,
