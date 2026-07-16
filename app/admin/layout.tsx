@@ -1,9 +1,11 @@
+import type { Metadata } from 'next'
 import { requireStaff } from '@/lib/admin/auth'
 import { ADMIN_NAV, visibleNav } from '@/lib/admin/nav'
 import { AdminSidebar } from '@/components/admin/AdminSidebar'
 import { getAdminNotificationQueue } from '@/lib/admin/notification-queue'
 
 export const dynamic = 'force-dynamic'
+export const metadata: Metadata = { robots: { index: false, follow: false } }
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const ctx = await requireStaff()

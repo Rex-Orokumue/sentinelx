@@ -4,7 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 import { MatchRoom } from '@/components/friendly/MatchRoom'
 import { toWhatsAppNumber } from '@/lib/dashboard/fixtures'
 
-export const metadata: Metadata = { title: 'Match Room · SentinelX' }
+export const metadata: Metadata = {
+  title: 'Match Room · SentinelX',
+  robots: { index: false, follow: false },
+}
 
 type ProfileRef =
   | { username: string | null; display_name: string | null; whatsapp_number: string | null }

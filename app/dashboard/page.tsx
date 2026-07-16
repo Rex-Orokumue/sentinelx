@@ -21,7 +21,10 @@ import { listBanks, type Bank } from '@/lib/paystack/server'
 import { computeDataSupportEligibility } from '@/lib/dashboard/data-support'
 import { DataSupportPanel } from '@/components/dashboard/DataSupportPanel'
 
-export const metadata: Metadata = { title: 'Dashboard · SentinelX Esports' }
+export const metadata: Metadata = {
+  title: 'Dashboard · SentinelX Esports',
+  robots: { index: false, follow: false },
+}
 
 type ProfileRef = { id?: string; username: string | null; display_name: string | null } | null
 type TournamentRef =

@@ -4,7 +4,10 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { bucketFriendlies, type FriendlyMatchRow } from '@/lib/friendly-matches/buckets'
 
-export const metadata: Metadata = { title: 'Friendlies · SentinelX Esports' }
+export const metadata: Metadata = {
+  title: 'Friendlies · SentinelX Esports',
+  robots: { index: false, follow: false },
+}
 
 type ProfileRef =
   | { username: string | null; display_name: string | null }
