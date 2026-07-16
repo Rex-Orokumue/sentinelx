@@ -1,4 +1,3 @@
-import { REGISTRATION_FEE_NGN } from '@/lib/paystack'
 import { verifyTransaction } from '@/lib/paystack/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notify } from '@/lib/notifications/notify'
@@ -6,13 +5,14 @@ import { regKey } from '@/lib/notifications/keys'
 
 export type ConfirmResult = 'confirmed' | 'already_paid' | 'not_found' | 'not_successful'
 
-const EXPECTED_KOBO = REGISTRATION_FEE_NGN * 100
-
 // Pure decision: given the current row status and Paystack's verify result,
-// decide the outcome. No IO — unit tested directly.
+// decide the outcome. No IO — unit tested directly. expectedKobo comes from
+// the tournament's own registration_fee (per-tournament, admin-configurable),
+// never a hardcoded platform-wide figure.
 export function decideConfirmation(args: {
   existing: { payment_status: string } | null
   verify: { status: string; amountKobo: number } | null
+  expectedKobo: number
 }): ConfirmResult {
   if (!args.existing) return 'not_found'
   if (args.existing.payment_status === 'paid') return 'already_paid'
@@ -21,8 +21,8 @@ export function decideConfirmation(args: {
   // Reject underpayment (partial/tampered), but not overpayment — Paystack
   // adds its own transaction fee on top of the requested amount when the
   // account is configured for the customer to bear fees, so a successful
-  // payment can legitimately verify at more than EXPECTED_KOBO.
-  if (args.verify.amountKobo < EXPECTED_KOBO) return 'not_successful'
+  // payment can legitimately verify at more than expectedKobo.
+  if (args.verify.amountKobo < args.expectedKobo) return 'not_successful'
   return 'confirmed'
 }
 
@@ -32,12 +32,19 @@ export async function confirmRegistration(reference: string): Promise<ConfirmRes
 
   const { data: existing } = await db
     .from('tournament_registrations')
-    .select('id, payment_status, player_id, tournament:tournaments(title)')
+    .select('id, payment_status, player_id, tournament:tournaments(title, registration_fee)')
     .eq('paystack_reference', reference)
     .maybeSingle()
 
   if (!existing) return 'not_found'
   if (existing.payment_status === 'paid') return 'already_paid'
+
+  const tv = existing.tournament as
+    | { title: string; registration_fee: number }
+    | { title: string; registration_fee: number }[]
+    | null
+  const tournamentInfo = Array.isArray(tv) ? tv[0] : tv
+  const expectedKobo = (tournamentInfo?.registration_fee ?? 0) * 100
 
   let verify: { status: string; amountKobo: number } | null = null
   try {
@@ -52,7 +59,7 @@ export async function confirmRegistration(reference: string): Promise<ConfirmRes
     verify = null
   }
 
-  const decision = decideConfirmation({ existing, verify })
+  const decision = decideConfirmation({ existing, verify, expectedKobo })
   // already_paid is an expected, benign no-op — both the webhook and this
   // callback call confirmRegistration for the same reference by design.
   if (decision === 'not_successful') {
@@ -70,8 +77,7 @@ export async function confirmRegistration(reference: string): Promise<ConfirmRes
     .eq('id', existing.id)
     .eq('payment_status', 'pending')
 
-  const tv = existing.tournament as { title: string } | { title: string }[] | null
-  const tournamentTitle = (Array.isArray(tv) ? tv[0]?.title : tv?.title) ?? 'the tournament'
+  const tournamentTitle = tournamentInfo?.title ?? 'the tournament'
   await notify({
     type: 'registration_confirmed',
     playerId: existing.player_id,

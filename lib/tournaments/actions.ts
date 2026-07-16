@@ -3,7 +3,6 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { initializeTransaction, buildReference } from '@/lib/paystack/server'
-import { REGISTRATION_FEE_NGN } from '@/lib/paystack'
 import { checkCanRegister } from './guard'
 import { registrationDetailsSchema } from './registration-schema'
 
@@ -35,7 +34,7 @@ export async function registerForTournament(
   // Re-fetch server-side; never trust the client for status, capacity, or rules.
   const { data: tournament } = await supabase
     .from('tournaments')
-    .select('id, slug, status, max_players, rules')
+    .select('id, slug, status, max_players, rules, registration_fee')
     .eq('id', tournamentId)
     .maybeSingle()
   if (!tournament) return { error: 'Tournament not found.' }
@@ -115,7 +114,7 @@ export async function registerForTournament(
   try {
     authorizationUrl = await initializeTransaction({
       email: user.email!,
-      amountKobo: REGISTRATION_FEE_NGN * 100,
+      amountKobo: tournament.registration_fee * 100,
       reference,
       callbackUrl: `${SITE_URL}/api/paystack/callback`,
       metadata: { tournament_id: tournamentId, player_id: user.id, slug: tournament.slug },
