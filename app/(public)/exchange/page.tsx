@@ -1,24 +1,16 @@
-import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { ListingCard, type ListingCardData } from '@/components/exchange/ListingCard'
 import { primaryImageUrl } from '@/lib/exchange/images'
 import { LISTING_CATEGORIES, CATEGORY_LABELS, type ListingCategory } from '@/lib/exchange/schema'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { buildMetadata } from '@/lib/seo/metadata'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
-
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: 'Gaming Exchange — SentinelX Esports',
   description: 'Buy and sell gaming accounts, coins, and gear on Sentinel X — protected by Zolarux escrow.',
-  openGraph: {
-    title: 'Gaming Exchange — SentinelX Esports',
-    description: 'Buy and sell gaming accounts, coins, and gear — protected by escrow.',
-    url: `${SITE_URL}/exchange`,
-    siteName: 'SentinelX Esports',
-    type: 'website',
-  },
-}
+  path: '/exchange', // canonical intentionally omits the `category` filter param
+})
 
 type SearchParams = { category?: string }
 

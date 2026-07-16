@@ -1,26 +1,19 @@
 import Link from 'next/link'
-import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { TournamentCard } from '@/components/tournament/TournamentCard'
 import type { TournamentCardData } from '@/components/tournament/TournamentCard'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { buildMetadata } from '@/lib/seo/metadata'
+import { SITE_URL } from '@/lib/seo/site'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
 const PAST_LIMIT = 10
 
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: 'Tournaments — SentinelX Esports',
   description:
     'Browse live, open, and upcoming mobile esports tournaments on SentinelX Esports — Nigeria\'s Home of Mobile Esports. Compete. Win. Level Up!',
-  openGraph: {
-    title: 'Tournaments — SentinelX Esports',
-    description:
-      'Browse live, open, and upcoming mobile esports tournaments on SentinelX Esports.',
-    url: `${SITE_URL}/tournaments`,
-    siteName: 'SentinelX Esports',
-    type: 'website',
-  },
-}
+  path: '/tournaments', // canonical intentionally omits filter params (game/past) — see plan §Global Constraints
+})
 
 const SELECT_COLS =
   'id, title, slug, prize_pool, registration_fee, status, tournament_start, registration_end, tournament_end, max_players'

@@ -1,4 +1,3 @@
-import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
 import {
@@ -14,21 +13,13 @@ import type { BracketMatch } from '@/lib/tournaments/bracket'
 import { AwardCard } from '@/components/hall-of-fame/AwardCard'
 import { ChampionCard } from '@/components/hall-of-fame/ChampionCard'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { buildMetadata } from '@/lib/seo/metadata'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
-
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: 'Hall of Fame — Sentinel X',
-  description:
-    "Sentinel X champions, MVP, and Golden Boot — the all-time honors of Nigeria's home of mobile esports.",
-  openGraph: {
-    title: 'Hall of Fame — Sentinel X',
-    description: 'Champions, MVP, and Golden Boot — the all-time honors of Sentinel X.',
-    url: `${SITE_URL}/hall-of-fame`,
-    siteName: 'Sentinel X',
-    type: 'website',
-  },
-}
+  description: "Sentinel X champions, MVP, and Golden Boot — the all-time honors of Nigeria's home of mobile esports.",
+  path: '/hall-of-fame',
+})
 
 type ProfileRef = { id?: string; username: string | null; display_name: string | null } | null
 

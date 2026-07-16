@@ -1,24 +1,16 @@
-import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
 import { winsByPlayerAndGame, scoreStatsByPlayerAndCategory, type GameScopedMatch } from '@/lib/rankings/game-breakdown'
 import { CATEGORY_META } from '@/lib/games/categories'
 import { LeaderboardTabs } from '@/components/rankings/LeaderboardTabs'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { buildMetadata } from '@/lib/seo/metadata'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
-
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: 'Rankings — Sentinel X',
   description: "Nigeria's top mobile esports players on Sentinel X, ranked by wins.",
-  openGraph: {
-    title: 'Rankings — Sentinel X',
-    description: "Nigeria's top mobile esports players, ranked by wins.",
-    url: `${SITE_URL}/rankings`,
-    siteName: 'Sentinel X',
-    type: 'website',
-  },
-}
+  path: '/rankings',
+})
 
 type RawGameRef = { name: string; category: string } | { name: string; category: string }[] | null
 type RawTournamentRef = { game: RawGameRef } | { game: RawGameRef }[] | null

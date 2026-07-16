@@ -1,20 +1,12 @@
-import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { PlayerCard, type PlayerCardData } from '@/components/player/PlayerCard'
+import { buildMetadata } from '@/lib/seo/metadata'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
-
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: 'Players · SentinelX Esports',
   description: 'Browse and search Sentinel X players by username or name.',
-  openGraph: {
-    title: 'Players · SentinelX Esports',
-    description: 'Browse and search Sentinel X players by username or name.',
-    url: `${SITE_URL}/players`,
-    siteName: 'SentinelX Esports',
-    type: 'website',
-  },
-}
+  path: '/players', // canonical intentionally omits the `q` filter param
+})
 
 const PLAYER_COLS = 'username, display_name, avatar_url, sentinel_score, sentinel_tier'
 

@@ -1,26 +1,19 @@
 import Link from 'next/link'
-import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getStaffContext } from '@/lib/admin/auth'
 import { PostComposer } from '@/components/community/PostComposer'
 import { PostCard, type PostView } from '@/components/community/PostCard'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { buildMetadata } from '@/lib/seo/metadata'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
 const PAGE_SIZE = 30
 
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: 'Community — Sentinel X',
   description: "Discuss, share, and connect with Nigeria's mobile esports community on Sentinel X.",
-  openGraph: {
-    title: 'Community — Sentinel X',
-    description: "Discuss, share, and connect with Nigeria's mobile esports community.",
-    url: `${SITE_URL}/community`,
-    siteName: 'Sentinel X',
-    type: 'website',
-  },
-}
+  path: '/community',
+})
 
 type ProfileRef =
   | { username: string | null; display_name: string | null; avatar_url: string | null }
