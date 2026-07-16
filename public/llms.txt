@@ -1,0 +1,30 @@
+# Sentinel X
+
+> Nigeria's Home of Mobile Esports — where gamers compete, connect, and transact safely.
+
+Sentinel X is a mobile esports platform built for competitive mobile gamers in Nigeria, starting with Dream League Soccer and expanding to other mobile games over time.
+
+## What you can do on Sentinel X
+
+- Compete — Register for tournaments, get placed into groups or a knockout bracket, and play scheduled matches. Winners submit proof of results for admin verification before standings update.
+- Watch — Sentinel X TV streams live matches and hosts highlights, finals, and replays.
+- Community — Discuss, share, and connect with other Nigerian mobile esports players.
+- Trade — Buy and sell gaming accounts, coins, and gear on the Gaming Exchange, protected by Zolarux escrow.
+
+## Key pages
+
+- /tournaments — browse live, open, and upcoming tournaments
+- /rankings — the Sentinel X leaderboard
+- /hall-of-fame — season champions and award winners
+- /tv — live streams, highlights, and replays
+- /exchange — the Gaming Exchange marketplace
+- /community — player discussions and announcements
+- /players/{username} — individual player profiles and stats
+
+## Player reputation: Sentinel Score
+
+Every player has a Sentinel Score from 0-100 (starting at 70) that reflects match conduct and reliability, shown on their profile with a tier badge — Elite, Trusted, Developing, or At Risk.
+
+## Contact
+
+Sentinel X is based in Nigeria. A link to the Sentinel X WhatsApp community is in the site header.
