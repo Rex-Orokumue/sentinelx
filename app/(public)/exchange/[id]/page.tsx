@@ -7,8 +7,10 @@ import { BuyButton } from '@/components/exchange/BuyButton'
 import { formatNaira } from '@/lib/format'
 import { CATEGORY_LABELS, type ListingCategory } from '@/lib/exchange/schema'
 import { primaryImageUrl } from '@/lib/exchange/images'
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+import { buildMetadata } from '@/lib/seo/metadata'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildListingJsonLd } from '@/lib/seo/schema/listing'
+import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 
 type NameRef = { username: string | null } | { username: string | null }[] | null
 type GameRef = { name: string } | { name: string }[] | null
@@ -43,17 +45,12 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   if (!l) return { title: 'Listing not found — SentinelX Esports' }
   const title = `${l.title} — ${formatNaira(l.price)} · Gaming Exchange`
   const image = primaryImageUrl(l.listing_images ?? [])
-  return {
+  return buildMetadata({
     title,
     description: l.description ?? 'On the Sentinel X Gaming Exchange.',
-    openGraph: {
-      title,
-      url: `${SITE_URL}/exchange/${l.id}`,
-      siteName: 'SentinelX Esports',
-      type: 'website',
-      ...(image ? { images: [image] } : {}),
-    },
-  }
+    path: `/exchange/${l.id}`,
+    image: image ?? undefined,
+  })
 }
 
 export default async function ListingDetailPage({ params }: { params: { id: string } }) {
@@ -80,6 +77,22 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-20 pt-6">
+      <JsonLd
+        data={buildListingJsonLd({
+          id: l.id,
+          title: l.title,
+          description: l.description,
+          price: l.price,
+          image: primaryImageUrl(l.listing_images ?? []),
+          status: l.status,
+        })}
+      />
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: 'Gaming Exchange', path: '/exchange' },
+          { name: l.title, path: `/exchange/${l.id}` },
+        ])}
+      />
       <ImageGallery images={images} title={l.title} />
 
       <div className="mt-5">
