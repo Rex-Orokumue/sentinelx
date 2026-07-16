@@ -10,8 +10,11 @@ import { ProfileHeader } from '@/components/player/ProfileHeader'
 import { ProfileStats } from '@/components/player/ProfileStats'
 import { ProfileAchievements } from '@/components/player/ProfileAchievements'
 import { ProfileMatchHistory } from '@/components/player/ProfileMatchHistory'
+import { buildMetadata } from '@/lib/seo/metadata'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildPlayerJsonLd } from '@/lib/seo/schema/player'
+import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
 const PROFILE_COLS =
   'id, username, display_name, avatar_url, country, bio, created_at, sentinel_score, sentinel_tier, ' +
   'total_matches, wins, losses, goals_scored, goals_conceded, total_titles'
@@ -108,17 +111,7 @@ export async function generateMetadata({ params }: { params: { username: string 
   const name = p.display_name ?? p.username
   const title = `${name} (@${p.username}) — SentinelX Esports`
   const description = `Sentinel Score ${p.sentinel_score} · ${p.wins}W–${p.losses}L · ${p.total_titles} titles on Sentinel X.`
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      url: `${SITE_URL}/players/${p.username}`,
-      siteName: 'SentinelX Esports',
-      type: 'profile',
-    },
-  }
+  return buildMetadata({ title, description, path: `/players/${p.username}` })
 }
 
 function toBracketFinal(f: {
@@ -280,20 +273,24 @@ export default async function PlayerProfilePage({ params }: { params: { username
       }
     })
 
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'ProfilePage',
-    mainEntity: {
-      '@type': 'Person',
-      name: p.display_name ?? p.username,
-      alternateName: p.username,
-      url: `${SITE_URL}/players/${p.username}`,
-    },
-  }
-
   return (
     <div className="mx-auto max-w-2xl px-4 pb-20">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd
+        data={buildPlayerJsonLd({
+          username: p.username,
+          displayName: p.display_name,
+          wins: p.wins,
+          totalMatches: p.total_matches,
+          sentinelScore: p.sentinel_score,
+          sentinelTier: p.sentinel_tier,
+        })}
+      />
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: 'Players', path: '/players' },
+          { name: p.display_name ?? p.username, path: `/players/${p.username}` },
+        ])}
+      />
       <ProfileHeader profile={profile} viewerId={user?.id ?? null} friendshipStatus={friendship} />
       <ProfileStats profile={profile} />
       <ProfileAchievements titles={titles} />
