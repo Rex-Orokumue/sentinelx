@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE } from './site'
+import { SITE_URL, SITE_NAME } from './site'
 
 export type BuildMetadataInput = {
   title: string
@@ -10,9 +10,12 @@ export type BuildMetadataInput = {
   type?: 'website' | 'article'
 }
 
+// `image` is omitted from openGraph/twitter when not given (rather than defaulting
+// to a constant) so Next's own opengraph-image.tsx file-convention resolution can
+// fill it in — a segment's own dynamic image, falling back to the root default.
+// An explicit `image` (e.g. a tournament banner) always overrides that cascade.
 export function buildMetadata({ title, description, path, image, type = 'website' }: BuildMetadataInput): Metadata {
   const url = `${SITE_URL}${path}`
-  const ogImage = image ?? DEFAULT_OG_IMAGE
   return {
     title,
     description,
@@ -23,13 +26,13 @@ export function buildMetadata({ title, description, path, image, type = 'website
       url,
       siteName: SITE_NAME,
       type,
-      images: [ogImage],
+      ...(image ? { images: [image] } : {}),
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: [ogImage],
+      ...(image ? { images: [image] } : {}),
     },
   }
 }

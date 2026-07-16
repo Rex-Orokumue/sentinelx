@@ -4,15 +4,19 @@ import { TournamentCard } from '@/components/tournament/TournamentCard'
 import type { TournamentCardData } from '@/components/tournament/TournamentCard'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { buildMetadata } from '@/lib/seo/metadata'
-import { SITE_URL } from '@/lib/seo/site'
+import { SITE_URL, DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 
 const PAST_LIMIT = 10
 
+// image is explicit: this page has no same-segment opengraph-image.tsx, and Next
+// does not cascade the root's file-convention image into a segment that returns
+// its own openGraph object (see lib/seo/metadata.ts).
 export const metadata = buildMetadata({
   title: 'Tournaments — SentinelX Esports',
   description:
     'Browse live, open, and upcoming mobile esports tournaments on SentinelX Esports — Nigeria\'s Home of Mobile Esports. Compete. Win. Level Up!',
   path: '/tournaments', // canonical intentionally omits filter params (game/past) — see plan §Global Constraints
+  image: DEFAULT_OG_IMAGE,
 })
 
 const SELECT_COLS =

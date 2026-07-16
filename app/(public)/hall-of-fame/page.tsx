@@ -14,11 +14,13 @@ import { AwardCard } from '@/components/hall-of-fame/AwardCard'
 import { ChampionCard } from '@/components/hall-of-fame/ChampionCard'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { buildMetadata } from '@/lib/seo/metadata'
+import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 
 export const metadata = buildMetadata({
   title: 'Hall of Fame — Sentinel X',
   description: "Sentinel X champions, MVP, and Golden Boot — the all-time honors of Nigeria's home of mobile esports.",
   path: '/hall-of-fame',
+  image: DEFAULT_OG_IMAGE,
 })
 
 type ProfileRef = { id?: string; username: string | null; display_name: string | null } | null

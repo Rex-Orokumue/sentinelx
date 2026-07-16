@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { buildMetadata } from './metadata'
-import { SITE_URL, SITE_NAME, DEFAULT_OG_IMAGE } from './site'
+import { SITE_URL, SITE_NAME } from './site'
 
 describe('buildMetadata', () => {
   it('builds canonical url, OG, and twitter fields from path', () => {
@@ -17,16 +17,24 @@ describe('buildMetadata', () => {
       url: `${SITE_URL}/rankings`,
       siteName: SITE_NAME,
       type: 'website',
-      images: [DEFAULT_OG_IMAGE],
     })
     expect(result.twitter).toMatchObject({
       card: 'summary_large_image',
       title: 'Rankings — Sentinel X',
-      images: [DEFAULT_OG_IMAGE],
     })
   })
 
-  it('uses an explicit image over the default', () => {
+  it('omits images when none is given, so Next\'s opengraph-image file convention can fill it in', () => {
+    const result = buildMetadata({
+      title: 'Rankings — Sentinel X',
+      description: "Nigeria's top mobile esports players.",
+      path: '/rankings',
+    })
+    expect(result.openGraph).not.toHaveProperty('images')
+    expect(result.twitter).not.toHaveProperty('images')
+  })
+
+  it('uses an explicit image when given', () => {
     const result = buildMetadata({
       title: 'DLS 26 Championship',
       description: 'Prize pool and registration.',

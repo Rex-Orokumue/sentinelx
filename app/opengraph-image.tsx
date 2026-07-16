@@ -1,6 +1,7 @@
 import { renderOgImage, OG_SIZE } from '@/lib/og/template'
 import { SITE_TAGLINE } from '@/lib/seo/site'
 
+export const runtime = 'edge'
 export const size = OG_SIZE
 export const contentType = 'image/png'
 

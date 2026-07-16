@@ -7,6 +7,7 @@ import { MatchVideoCard, type MatchVideo } from '@/components/tv/MatchVideoCard'
 import { youtubeThumbnail } from '@/lib/tv/thumbnail'
 import type { TvCategory } from '@/lib/tv/schema'
 import { buildMetadata } from '@/lib/seo/metadata'
+import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildVideoJsonLd } from '@/lib/seo/schema/video'
 import { parseYouTubeId } from '@/lib/matches/youtube'
@@ -15,6 +16,7 @@ export const metadata = buildMetadata({
   title: 'Sentinel X TV — Live, Highlights & Replays',
   description: 'Watch live mobile esports, highlights, finals, and match replays on Sentinel X TV.',
   path: '/tv',
+  image: DEFAULT_OG_IMAGE,
 })
 
 const MATCH_COLS =

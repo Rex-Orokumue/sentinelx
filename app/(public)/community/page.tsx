@@ -6,6 +6,7 @@ import { PostComposer } from '@/components/community/PostComposer'
 import { PostCard, type PostView } from '@/components/community/PostCard'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { buildMetadata } from '@/lib/seo/metadata'
+import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 
 const PAGE_SIZE = 30
 
@@ -13,6 +14,7 @@ export const metadata = buildMetadata({
   title: 'Community — Sentinel X',
   description: "Discuss, share, and connect with Nigeria's mobile esports community on Sentinel X.",
   path: '/community',
+  image: DEFAULT_OG_IMAGE,
 })
 
 type ProfileRef =

@@ -1,11 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { PlayerCard, type PlayerCardData } from '@/components/player/PlayerCard'
 import { buildMetadata } from '@/lib/seo/metadata'
+import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 
 export const metadata = buildMetadata({
   title: 'Players · SentinelX Esports',
   description: 'Browse and search Sentinel X players by username or name.',
   path: '/players', // canonical intentionally omits the `q` filter param
+  image: DEFAULT_OG_IMAGE,
 })
 
 const PLAYER_COLS = 'username, display_name, avatar_url, sentinel_score, sentinel_tier'

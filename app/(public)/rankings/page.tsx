@@ -5,11 +5,13 @@ import { CATEGORY_META } from '@/lib/games/categories'
 import { LeaderboardTabs } from '@/components/rankings/LeaderboardTabs'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { buildMetadata } from '@/lib/seo/metadata'
+import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 
 export const metadata = buildMetadata({
   title: 'Rankings — Sentinel X',
   description: "Nigeria's top mobile esports players on Sentinel X, ranked by wins.",
   path: '/rankings',
+  image: DEFAULT_OG_IMAGE,
 })
 
 type RawGameRef = { name: string; category: string } | { name: string; category: string }[] | null

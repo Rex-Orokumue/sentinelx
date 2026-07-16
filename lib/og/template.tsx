@@ -3,11 +3,11 @@ import { SITE_TAGLINE } from '@/lib/seo/site'
 
 export const OG_SIZE = { width: 1200, height: 630 }
 
+// No custom font is loaded here: the brand fonts (GeistVF, Rajdhani) are variable
+// fonts, and @vercel/og's Satori renderer can't parse the fvar (variation axis)
+// table in variable fonts — it throws regardless of platform. Satori's built-in
+// default font renders reliably instead.
 export async function renderOgImage({ title, subtitle }: { title: string; subtitle?: string }) {
-  const geistBold = await fetch(new URL('../../app/fonts/GeistVF.woff', import.meta.url)).then((res) =>
-    res.arrayBuffer(),
-  )
-
   return new ImageResponse(
     (
       <div
@@ -20,7 +20,6 @@ export async function renderOgImage({ title, subtitle }: { title: string; subtit
           justifyContent: 'center',
           backgroundColor: '#020617',
           color: '#ffffff',
-          fontFamily: 'Geist',
           padding: '80px',
           textAlign: 'center',
         }}
@@ -30,9 +29,6 @@ export async function renderOgImage({ title, subtitle }: { title: string; subtit
         <div style={{ fontSize: 32, marginTop: 20, color: '#94a3b8' }}>{subtitle ?? SITE_TAGLINE}</div>
       </div>
     ),
-    {
-      ...OG_SIZE,
-      fonts: [{ name: 'Geist', data: geistBold, weight: 700 }],
-    },
+    OG_SIZE,
   )
 }

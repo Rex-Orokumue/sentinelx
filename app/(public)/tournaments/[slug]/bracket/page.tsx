@@ -7,6 +7,7 @@ import { loadBracketView } from '@/lib/tournaments/bracket-view'
 import { GroupStage } from '@/components/bracket/GroupStage'
 import { KnockoutBracket } from '@/components/bracket/KnockoutBracket'
 import { buildMetadata } from '@/lib/seo/metadata'
+import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 
@@ -32,6 +33,7 @@ export async function generateMetadata({
     title: `Bracket — ${t.title} | Sentinel X`,
     description: `Group standings and knockout bracket for ${t.title} on Sentinel X.`,
     path: `/tournaments/${t.slug}/bracket`,
+    image: DEFAULT_OG_IMAGE,
   })
 }
 
