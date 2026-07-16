@@ -7,8 +7,11 @@ import { RegistrationPanel } from '@/components/tournament/RegistrationPanel'
 import { formatDate, formatNaira } from '@/lib/format'
 import ReactMarkdown from 'react-markdown'
 import { RegistrationCountdown } from '@/components/tournament/RegistrationCountdown'
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+import { buildMetadata } from '@/lib/seo/metadata'
+import { SITE_URL } from '@/lib/seo/site'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildTournamentJsonLd } from '@/lib/seo/schema/event'
+import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   active:              { label: 'LIVE',        cls: 'bg-red-500/20 text-red-400 border-red-500/30' },
@@ -22,7 +25,7 @@ async function getTournament(slug: string) {
   const { data } = await supabase
     .from('tournaments')
     .select(
-      'id, title, slug, description, banner_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, rules, games(name, icon_url, slug)',
+      'id, title, slug, description, banner_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, tournament_end, rules, games(name, icon_url, slug)',
     )
     .eq('slug', slug)
     .maybeSingle()
@@ -40,18 +43,12 @@ export async function generateMetadata({
   const description =
     t.description?.slice(0, 160) ??
     `${formatNaira(t.prize_pool)} prize pool. Entry ${formatNaira(t.registration_fee)}. Compete on Sentinel X.`
-  return {
+  return buildMetadata({
     title,
     description,
-    openGraph: {
-      title,
-      description,
-      url: `${SITE_URL}/tournaments/${t.slug}`,
-      siteName: 'Sentinel X',
-      type: 'website',
-      images: t.banner_url ? [t.banner_url] : undefined,
-    },
-  }
+    path: `/tournaments/${t.slug}`,
+    image: t.banner_url ?? undefined,
+  })
 }
 
 export default async function TournamentDetailPage({
@@ -105,6 +102,23 @@ export default async function TournamentDetailPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-20">
+      <JsonLd
+        data={buildTournamentJsonLd({
+          title: t.title,
+          slug: t.slug,
+          description: t.description,
+          status: t.status,
+          tournamentStart: t.tournament_start,
+          tournamentEnd: t.tournament_end,
+          registrationFee: t.registration_fee,
+        })}
+      />
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: 'Tournaments', path: '/tournaments' },
+          { name: t.title, path: `/tournaments/${t.slug}` },
+        ])}
+      />
       <Link
         href="/tournaments"
         className="mt-6 mb-4 inline-block text-sm text-violet-400 hover:text-violet-300"

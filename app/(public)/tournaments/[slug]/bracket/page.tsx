@@ -6,8 +6,9 @@ import { getStaffContext } from '@/lib/admin/auth'
 import { loadBracketView } from '@/lib/tournaments/bracket-view'
 import { GroupStage } from '@/components/bracket/GroupStage'
 import { KnockoutBracket } from '@/components/bracket/KnockoutBracket'
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+import { buildMetadata } from '@/lib/seo/metadata'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 
 async function getTournament(slug: string) {
   const supabase = createClient()
@@ -27,19 +28,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const t = await getTournament(params.slug)
   if (!t) return { title: 'Bracket — Sentinel X' }
-  const title = `Bracket — ${t.title} | Sentinel X`
-  const description = `Group standings and knockout bracket for ${t.title} on Sentinel X.`
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      url: `${SITE_URL}/tournaments/${t.slug}/bracket`,
-      siteName: 'Sentinel X',
-      type: 'website',
-    },
-  }
+  return buildMetadata({
+    title: `Bracket — ${t.title} | Sentinel X`,
+    description: `Group standings and knockout bracket for ${t.title} on Sentinel X.`,
+    path: `/tournaments/${t.slug}/bracket`,
+  })
 }
 
 export default async function BracketPage({ params }: { params: { slug: string } }) {
@@ -78,6 +71,13 @@ export default async function BracketPage({ params }: { params: { slug: string }
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-20">
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: 'Tournaments', path: '/tournaments' },
+          { name: t.title, path: `/tournaments/${t.slug}` },
+          { name: 'Bracket', path: `/tournaments/${t.slug}/bracket` },
+        ])}
+      />
       <Link
         href={`/tournaments/${t.slug}`}
         className="mt-6 mb-4 inline-block text-sm text-violet-400 hover:text-violet-300"
