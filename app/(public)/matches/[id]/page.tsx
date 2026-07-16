@@ -5,8 +5,10 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { VideoEmbed } from '@/components/match/VideoEmbed'
 import { ResultSubmissionForm } from '@/components/match/ResultSubmissionForm'
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+import { buildMetadata } from '@/lib/seo/metadata'
+import { SITE_URL } from '@/lib/seo/site'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildMatchJsonLd } from '@/lib/seo/schema/event'
 
 type ProfileRef = { username: string | null; display_name: string | null } | null
 
@@ -55,11 +57,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   if (!m) return { title: 'Match — Sentinel X' }
   const title = `${nameOf(m.player_a)} vs ${nameOf(m.player_b)} — Sentinel X`
   const description = m.tournaments ? `${m.tournaments.title} on Sentinel X.` : 'Mobile esports match on Sentinel X.'
-  return {
-    title,
-    description,
-    openGraph: { title, description, url: `${SITE_URL}/matches/${m.id}`, siteName: 'Sentinel X', type: 'website' },
-  }
+  return buildMetadata({ title, description, path: `/matches/${m.id}` })
 }
 
 export default async function MatchCentrePage({ params }: { params: { id: string } }) {
@@ -112,6 +110,18 @@ export default async function MatchCentrePage({ params }: { params: { id: string
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-20">
+      <JsonLd
+        data={buildMatchJsonLd({
+          id: m.id,
+          playerAName: nameOf(m.player_a),
+          playerBName: nameOf(m.player_b),
+          status: m.status,
+          scoreA: m.score_a,
+          scoreB: m.score_b,
+          tournamentTitle: m.tournaments?.title ?? null,
+          tournamentSlug: m.tournaments?.slug ?? null,
+        })}
+      />
       {m.tournaments && (
         <Link
           href={`/tournaments/${m.tournaments.slug}`}
