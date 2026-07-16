@@ -1175,8 +1175,61 @@ export type Database = {
           },
         ]
       }
+      tournament_fee_waivers: {
+        Row: {
+          granted_at: string
+          granted_by: string
+          id: string
+          player_id: string
+          reason: string | null
+          redeemed_at: string | null
+          tournament_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by: string
+          id?: string
+          player_id: string
+          reason?: string | null
+          redeemed_at?: string | null
+          tournament_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string
+          id?: string
+          player_id?: string
+          reason?: string | null
+          redeemed_at?: string | null
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_fee_waivers_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_fee_waivers_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_fee_waivers_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_registrations: {
         Row: {
+          fee_waived: boolean
           id: string
           payment_status: string
           paystack_reference: string | null
@@ -1189,6 +1242,7 @@ export type Database = {
           tournament_id: string
         }
         Insert: {
+          fee_waived?: boolean
           id?: string
           payment_status?: string
           paystack_reference?: string | null
@@ -1201,6 +1255,7 @@ export type Database = {
           tournament_id: string
         }
         Update: {
+          fee_waived?: boolean
           id?: string
           payment_status?: string
           paystack_reference?: string | null
