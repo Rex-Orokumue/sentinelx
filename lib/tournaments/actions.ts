@@ -88,6 +88,49 @@ export async function registerForTournament(
   // (auth, tournament state, input schema) is the trust boundary.
   const admin = createAdminClient()
 
+  // A live (unredeemed) waiver skips Paystack entirely. Redeem it with a
+  // conditional UPDATE — never check-then-update — so a raced double submit
+  // can't redeem the same waiver twice.
+  const { data: waiver } = await admin
+    .from('tournament_fee_waivers')
+    .select('id')
+    .eq('tournament_id', tournamentId)
+    .eq('player_id', user.id)
+    .is('redeemed_at', null)
+    .maybeSingle()
+
+  if (waiver) {
+    const { data: redeemed } = await admin
+      .from('tournament_fee_waivers')
+      .update({ redeemed_at: new Date().toISOString() })
+      .eq('id', waiver.id)
+      .is('redeemed_at', null)
+      .select('id')
+    if (!redeemed || redeemed.length === 0) {
+      return { error: 'This free-entry grant is no longer available. Please try again or contact an admin.' }
+    }
+
+    const freeRegRow = {
+      tournament_id: tournamentId,
+      player_id: user.id,
+      payment_status: 'paid',
+      fee_waived: true,
+      paystack_reference: null,
+      ...regFields,
+    }
+    if (!existing) {
+      const { error: insertErr } = await admin.from('tournament_registrations').insert(freeRegRow)
+      if (insertErr) return { error: 'Could not complete registration. Please try again.' }
+    } else {
+      await admin
+        .from('tournament_registrations')
+        .update({ payment_status: 'paid', fee_waived: true, paystack_reference: null, ...regFields })
+        .eq('id', existing.id)
+    }
+
+    redirect(`/tournaments/${tournament.slug}?paid=1`)
+  }
+
   // Always mint a fresh reference for this attempt. Paystack rejects
   // /transaction/initialize with a reference it has already seen — even if
   // that prior attempt was abandoned and never paid — with "Duplicate
