@@ -1,14 +1,34 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { TournamentCard } from '@/components/tournament/TournamentCard'
 import type { TournamentCardData } from '@/components/tournament/TournamentCard'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { TierBadge } from '@/components/player/TierBadge'
 import { PromoBanner } from '@/components/home/PromoBanner'
+import { buildMetadata } from '@/lib/seo/metadata'
+import { homepageDescription } from '@/lib/seo/homepage-description'
 
 const WHATSAPP_COMMUNITY = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL ?? '#'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+
+export async function generateMetadata(): Promise<Metadata> {
+  const supabase = createClient()
+  const { data: liveTournament } = await supabase
+    .from('tournaments')
+    .select('title')
+    .in('status', ['active', 'registration_open'])
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  return buildMetadata({
+    title: 'SentinelX Esports — Home',
+    description: homepageDescription(liveTournament?.title ?? null),
+    path: '/',
+  })
+}
 
 export default async function HomePage() {
   const supabase = createClient()
