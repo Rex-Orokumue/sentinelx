@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
 import { RegistrationsTable, type AdminRegistrationRow } from '@/components/admin/RegistrationsTable'
+import { WaiverForm } from '@/components/admin/WaiverForm'
+import { WaiverRow, type AdminWaiver } from '@/components/admin/WaiverRow'
 
 export const metadata: Metadata = { title: 'Registrations · Admin · SentinelX' }
 
@@ -13,7 +15,7 @@ function firstUsername(p: ProfileRef): string | null {
 }
 
 export default async function AdminRegistrationsPage({ params }: { params: { id: string } }) {
-  await requireStaff()
+  const ctx = await requireStaff()
   const supabase = createClient()
   const { data: t } = await supabase
     .from('tournaments')
@@ -22,13 +24,20 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
     .maybeSingle()
   if (!t) notFound()
 
-  const { data } = await supabase
-    .from('tournament_registrations')
-    .select(
-      'id, payment_status, registered_at, reg_display_name, reg_whatsapp, reg_club_name, reg_ign_tag, profiles(username)',
-    )
-    .eq('tournament_id', t.id)
-    .order('registered_at', { ascending: false })
+  const [{ data }, { data: waiverRows }] = await Promise.all([
+    supabase
+      .from('tournament_registrations')
+      .select(
+        'id, payment_status, registered_at, reg_display_name, reg_whatsapp, reg_club_name, reg_ign_tag, profiles(username)',
+      )
+      .eq('tournament_id', t.id)
+      .order('registered_at', { ascending: false }),
+    supabase
+      .from('tournament_fee_waivers')
+      .select('id, reason, granted_at, redeemed_at, profiles!tournament_fee_waivers_player_id_fkey(username)')
+      .eq('tournament_id', t.id)
+      .order('granted_at', { ascending: false }),
+  ])
 
   const rows: AdminRegistrationRow[] = ((data as unknown[] | null) ?? []).map((raw) => {
     const r = raw as {
@@ -53,12 +62,43 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
     }
   })
 
+  const waivers: AdminWaiver[] = ((waiverRows as unknown[] | null) ?? []).map((raw) => {
+    const w = raw as {
+      id: string
+      reason: string | null
+      granted_at: string
+      redeemed_at: string | null
+      profiles: ProfileRef
+    }
+    return {
+      id: w.id,
+      username: firstUsername(w.profiles),
+      reason: w.reason,
+      grantedAt: w.granted_at,
+      redeemedAt: w.redeemed_at,
+    }
+  })
+
   return (
     <section>
       <Link href="/admin/tournaments" className="text-sm text-violet-400 hover:text-violet-300">
         ← Tournaments
       </Link>
       <h2 className="mb-4 mt-2 text-base font-bold text-white">{t.title} · Registrations</h2>
+
+      {(ctx.isAdmin || waivers.length > 0) && (
+        <div className="mb-6 space-y-3">
+          {ctx.isAdmin && <WaiverForm tournamentId={t.id} />}
+          {waivers.length > 0 && (
+            <div className="space-y-2">
+              {waivers.map((w) => (
+                <WaiverRow key={w.id} waiver={w} tournamentId={t.id} canRevoke={ctx.isAdmin} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {rows.length === 0 ? (
         <p className="rounded-2xl border border-slate-800 bg-slate-900/50 p-8 text-center text-sm text-slate-500">
           No registrations yet.
