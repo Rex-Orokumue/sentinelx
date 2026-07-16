@@ -1,4 +1,3 @@
-import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { VideoEmbed } from '@/components/match/VideoEmbed'
@@ -7,20 +6,16 @@ import { VideoCard, type CuratedVideo } from '@/components/tv/VideoCard'
 import { MatchVideoCard, type MatchVideo } from '@/components/tv/MatchVideoCard'
 import { youtubeThumbnail } from '@/lib/tv/thumbnail'
 import type { TvCategory } from '@/lib/tv/schema'
+import { buildMetadata } from '@/lib/seo/metadata'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildVideoJsonLd } from '@/lib/seo/schema/video'
+import { parseYouTubeId } from '@/lib/matches/youtube'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
-
-export const metadata: Metadata = {
+export const metadata = buildMetadata({
   title: 'Sentinel X TV — Live, Highlights & Replays',
   description: 'Watch live mobile esports, highlights, finals, and match replays on Sentinel X TV.',
-  openGraph: {
-    title: 'Sentinel X TV',
-    description: 'Live mobile esports, highlights, finals, and replays.',
-    url: `${SITE_URL}/tv`,
-    siteName: 'SentinelX Esports',
-    type: 'website',
-  },
-}
+  path: '/tv',
+})
 
 const MATCH_COLS =
   'id, status, round, score_a, score_b, youtube_stream_url, replay_url, completed_at, ' +
@@ -90,7 +85,7 @@ export default async function TvPage() {
         .order('updated_at', { ascending: false }),
       supabase
         .from('tv_videos')
-        .select('id, title, youtube_url, category, thumbnail_url')
+        .select('id, title, youtube_url, category, thumbnail_url, published_at')
         .eq('active', true)
         .order('published_at', { ascending: false }),
       supabase
@@ -118,14 +113,43 @@ export default async function TvPage() {
     category: v.category as TvCategory,
     youtubeUrl: v.youtube_url,
     thumbnailUrl: v.thumbnail_url,
+    publishedAt: v.published_at,
   }))
 
   const hero = live[0] ?? null
   const isEmpty =
     live.length === 0 && curated.length === 0 && finals.length === 0 && replays.length === 0
 
+  const videoJsonLdEntries = [
+    ...curated.map((v) => {
+      const id = parseYouTubeId(v.youtubeUrl)
+      if (!id) return null
+      return buildVideoJsonLd({
+        name: v.title,
+        description: null,
+        thumbnailUrl: v.thumbnailUrl ?? youtubeThumbnail(v.youtubeUrl),
+        embedUrl: `https://www.youtube.com/embed/${id}`,
+        uploadDate: v.publishedAt,
+      })
+    }),
+    ...finals.map((m) => {
+      const id = parseYouTubeId(m.replay_url)
+      if (!id || !m.completed_at) return null
+      return buildVideoJsonLd({
+        name: `${nameOf(m.player_a)} vs ${nameOf(m.player_b)}`,
+        description: `Final — ${titleOf(m.tournament) ?? 'Sentinel X'}.`,
+        thumbnailUrl: youtubeThumbnail(m.replay_url),
+        embedUrl: `https://www.youtube.com/embed/${id}`,
+        uploadDate: m.completed_at,
+      })
+    }),
+  ].filter((v): v is NonNullable<typeof v> => v !== null)
+
   return (
     <div className="mx-auto max-w-4xl px-4 pb-20">
+      {videoJsonLdEntries.map((data, i) => (
+        <JsonLd key={i} data={data} />
+      ))}
       <div className="py-8">
         <h1 className="text-2xl font-black text-white">Sentinel X TV</h1>
         <p className="mt-1 text-sm text-slate-400">Live matches, highlights, finals, and replays.</p>

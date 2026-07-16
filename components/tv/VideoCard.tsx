@@ -12,6 +12,7 @@ export interface CuratedVideo {
   category: TvCategory
   youtubeUrl: string
   thumbnailUrl: string | null
+  publishedAt: string
 }
 
 export function VideoCard({ video }: { video: CuratedVideo }) {
