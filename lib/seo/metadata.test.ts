@@ -44,6 +44,6 @@ describe('buildMetadata', () => {
       path: '/community',
       type: 'article',
     })
-    expect(result.openGraph?.type).toBe('article')
+    expect((result.openGraph as { type?: string } | null)?.type).toBe('article')
   })
 })

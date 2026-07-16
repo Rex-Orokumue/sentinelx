@@ -6,6 +6,9 @@ import { Analytics } from '@vercel/analytics/next'
 import { SiteHeader } from '@/components/shared/SiteHeader'
 import { BottomTabBar } from '@/components/shared/BottomTabBar'
 import { getNavSession } from '@/lib/nav/session'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildOrganizationJsonLd, buildWebsiteJsonLd } from '@/lib/seo/schema/site'
+import { SITE_URL, SITE_NAME, SITE_SHORT_NAME, SITE_DESCRIPTION, DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import './globals.css'
 
 const geistSans = localFont({
@@ -27,8 +30,26 @@ const rajdhani = Rajdhani({
 })
 
 export const metadata: Metadata = {
-  title: 'SentinelX Esports',
-  description: "Nigeria's Home of Mobile Esports — Where Gamers Unite. Champions Rise.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${SITE_SHORT_NAME} Esports — Nigeria's Home of Mobile Esports`,
+    template: `%s — ${SITE_SHORT_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: `${SITE_SHORT_NAME} Esports`,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    type: 'website',
+    images: [DEFAULT_OG_IMAGE],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${SITE_SHORT_NAME} Esports`,
+    description: SITE_DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE],
+  },
 }
 
 const WHATSAPP_COMMUNITY = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL ?? '#'
@@ -56,6 +77,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <BottomTabBar session={navSession} />
         </Suspense>
         <Analytics />
+        <JsonLd data={buildOrganizationJsonLd()} />
+        <JsonLd data={buildWebsiteJsonLd()} />
       </body>
     </html>
   )
