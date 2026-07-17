@@ -9,6 +9,10 @@ import { TierBadge } from '@/components/player/TierBadge'
 import { PromoBanner } from '@/components/home/PromoBanner'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { homepageDescription } from '@/lib/seo/homepage-description'
+import { FaqSection } from '@/components/home/FaqSection'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildFaqJsonLd } from '@/lib/seo/schema/faq'
+import { HOMEPAGE_FAQS } from '@/lib/seo/faq-content'
 
 const WHATSAPP_COMMUNITY = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL ?? '#'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
@@ -238,6 +242,9 @@ export default async function HomePage() {
           </a>
         </div>
       </section>
+
+      <FaqSection items={HOMEPAGE_FAQS} />
+      <JsonLd data={buildFaqJsonLd(HOMEPAGE_FAQS)} />
     </div>
   )
 }
