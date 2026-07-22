@@ -6,6 +6,7 @@ import { requireStaff, requireAdmin } from '@/lib/admin/auth'
 import { tournamentSchema, type TournamentInput } from './admin-schema'
 import { slugify } from './slug'
 import { missingForPublish } from './readiness'
+import { manualCreditWallet } from '@/lib/admin/wallet-actions'
 
 export type TournamentFormState = { error?: string; success?: boolean } | undefined
 export type PublishState = { error?: string; fieldErrors?: string[]; success?: boolean } | undefined
@@ -220,5 +221,47 @@ export async function cancelTournament(
 
   revalidatePath('/admin/tournaments')
   revalidatePath(`/admin/tournaments/${id}/registrations`)
+  return { success: true }
+}
+
+export type RefundState = { error?: string; success?: boolean } | undefined
+
+export async function refundRegistration(
+  _prev: RefundState,
+  formData: FormData,
+): Promise<RefundState> {
+  await requireAdmin()
+  const registrationId = String(formData.get('registrationId') ?? '')
+  const tournamentId = String(formData.get('tournamentId') ?? '')
+  const playerId = String(formData.get('playerId') ?? '')
+  const amount = Number(formData.get('amount'))
+  const reason = String(formData.get('reason') ?? '')
+  if (!registrationId || !playerId) return { error: 'Missing registration.' }
+  if (!Number.isInteger(amount) || amount <= 0) return { error: 'Invalid refund amount.' }
+  if (!reason.trim()) return { error: 'Missing refund reason.' }
+
+  const supabase = createClient()
+
+  // Atomic conditional update — same non-race pattern as waiver redemption.
+  // If no row comes back, someone already refunded this registration.
+  const { data: claimed } = await supabase
+    .from('tournament_registrations')
+    .update({ payment_status: 'refunded' })
+    .eq('id', registrationId)
+    .eq('payment_status', 'paid')
+    .select('id')
+  if (!claimed || claimed.length === 0) {
+    return { error: 'This registration has already been refunded or is not paid.' }
+  }
+
+  const result = await manualCreditWallet(playerId, amount, reason.trim())
+  if ('error' in result) {
+    // Roll back the claim so the row is refundable again — a failed wallet
+    // credit must never leave a registration marked refunded with no credit.
+    await supabase.from('tournament_registrations').update({ payment_status: 'paid' }).eq('id', registrationId)
+    return { error: `Refund could not be completed: ${result.error}` }
+  }
+
+  revalidatePath(`/admin/tournaments/${tournamentId}/registrations`)
   return { success: true }
 }
