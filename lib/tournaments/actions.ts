@@ -131,6 +131,32 @@ export async function registerForTournament(
     redirect(`/tournaments/${tournament.slug}?paid=1`)
   }
 
+  // A zero-fee tournament (e.g. a free community event) needs no payment at
+  // all. This is distinct from a waiver, which comps an existing fee for one
+  // specific player — a ₦0 tournament has no fee to waive, so fee_waived
+  // stays false and this never touches tournament_fee_waivers.
+  if (tournament.registration_fee === 0) {
+    const freeRegRow = {
+      tournament_id: tournamentId,
+      player_id: user.id,
+      payment_status: 'paid',
+      fee_waived: false,
+      paystack_reference: null,
+      ...regFields,
+    }
+    if (!existing) {
+      const { error: insertErr } = await admin.from('tournament_registrations').insert(freeRegRow)
+      if (insertErr) return { error: 'Could not complete registration. Please try again.' }
+    } else {
+      await admin
+        .from('tournament_registrations')
+        .update({ payment_status: 'paid', fee_waived: false, paystack_reference: null, ...regFields })
+        .eq('id', existing.id)
+    }
+
+    redirect(`/tournaments/${tournament.slug}?paid=1`)
+  }
+
   // Always mint a fresh reference for this attempt. Paystack rejects
   // /transaction/initialize with a reference it has already seen — even if
   // that prior attempt was abandoned and never paid — with "Duplicate
