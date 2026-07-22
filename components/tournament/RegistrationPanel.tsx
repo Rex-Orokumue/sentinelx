@@ -47,7 +47,7 @@ export function RegistrationPanel({
           href={loginHref}
           className="block w-full rounded-xl bg-violet-600 px-7 py-3.5 text-center text-sm font-bold text-white transition-colors hover:bg-violet-500"
         >
-          Register — {formatNaira(fee)}
+          {fee === 0 ? 'Register — Free' : `Register — ${formatNaira(fee)}`}
         </Link>
         <p className="mt-2 text-center text-xs text-slate-500">Log in to register and pay.</p>
       </div>
@@ -59,14 +59,21 @@ export function RegistrationPanel({
       <div className={box}>
         <RegisterForm
           tournamentId={tournamentId}
+          fee={fee}
           prefill={prefill}
           hasRules={hasRules}
           label={
-            view === 'complete_payment' ? 'Complete payment →' : `Register — ${formatNaira(fee)}`
+            view === 'complete_payment'
+              ? 'Complete payment →'
+              : fee === 0
+                ? 'Register — Free'
+                : `Register — ${formatNaira(fee)}`
           }
         />
         <p className="mt-2 text-center text-xs text-slate-500">
-          Secure payment via Paystack. Entry fee {formatNaira(fee)}.
+          {fee === 0
+            ? 'Free entry — no payment required.'
+            : `Secure payment via Paystack. Entry fee ${formatNaira(fee)}.`}
         </p>
       </div>
     )
@@ -119,11 +126,13 @@ export function RegistrationPanel({
 function RegisterForm({
   tournamentId,
   label,
+  fee,
   prefill,
   hasRules,
 }: {
   tournamentId: string
   label: string
+  fee: number
   prefill: { displayName: string; whatsapp: string }
   hasRules: boolean
 }) {
@@ -153,7 +162,7 @@ function RegisterForm({
         </label>
       )}
       {state?.error && <p className="text-center text-sm text-red-400">{state.error}</p>}
-      <SubmitButton label={label} pendingLabel="Redirecting to payment…" />
+      <SubmitButton label={label} pendingLabel={fee === 0 ? 'Registering…' : 'Redirecting to payment…'} />
     </form>
   )
 }
