@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin/auth'
 import { formatDate, formatNaira } from '@/lib/format'
 import { WalletCreditForm } from '@/components/admin/WalletCreditForm'
+import { WalletListRow, type AdminWalletRow } from '@/components/admin/WalletListRow'
 import { WalletWithdrawalQueueRow, type PendingWalletWithdrawal } from '@/components/admin/WalletWithdrawalQueueRow'
 
 export const metadata: Metadata = { title: 'Wallet · Admin · SentinelX' }
@@ -22,7 +23,11 @@ const RESOLVED_STATUS: Record<string, string> = {
 export default async function AdminWalletPage() {
   await requireAdmin()
   const supabase = createClient()
-  const [{ data: queueData }, { data: resolvedData }] = await Promise.all([
+  const [{ data: walletsData }, { data: queueData }, { data: resolvedData }] = await Promise.all([
+    supabase
+      .from('wallets')
+      .select('player_id, balance, updated_at, profiles(username, display_name)')
+      .order('balance', { ascending: false }),
     supabase
       .from('withdrawal_requests')
       .select(
@@ -37,6 +42,23 @@ export default async function AdminWalletPage() {
       .order('resolved_at', { ascending: false })
       .limit(20),
   ])
+
+  const wallets: AdminWalletRow[] = ((walletsData as unknown[] | null) ?? []).map((raw) => {
+    const w = raw as {
+      player_id: string
+      balance: number
+      updated_at: string
+      profiles: ProfileRef | ProfileRef[]
+    }
+    const profile = firstP(w.profiles)
+    return {
+      playerId: w.player_id,
+      name: nameOf(profile),
+      username: profile?.username ?? null,
+      balance: w.balance,
+      updatedAt: w.updated_at,
+    }
+  })
 
   const queue: PendingWalletWithdrawal[] = ((queueData as unknown[] | null) ?? []).map((raw) => {
     const w = raw as {
@@ -78,6 +100,21 @@ export default async function AdminWalletPage() {
 
   return (
     <section className="space-y-8">
+      <div>
+        <h2 className="mb-4 text-base font-bold text-white">All wallets</h2>
+        {wallets.length === 0 ? (
+          <p className="rounded-2xl border border-slate-800 bg-slate-900/50 p-8 text-center text-sm text-slate-500">
+            No wallets yet.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {wallets.map((w) => (
+              <WalletListRow key={w.playerId} wallet={w} />
+            ))}
+          </div>
+        )}
+      </div>
+
       <WalletCreditForm />
 
       <div>
