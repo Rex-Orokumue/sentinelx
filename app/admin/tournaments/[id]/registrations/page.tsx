@@ -19,7 +19,7 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
   const supabase = createClient()
   const { data: t } = await supabase
     .from('tournaments')
-    .select('id, title')
+    .select('id, title, status, registration_fee')
     .eq('id', params.id)
     .maybeSingle()
   if (!t) notFound()
@@ -28,7 +28,7 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
     supabase
       .from('tournament_registrations')
       .select(
-        'id, payment_status, registered_at, reg_display_name, reg_whatsapp, reg_club_name, reg_ign_tag, profiles(username)',
+        'id, player_id, payment_status, registered_at, reg_display_name, reg_whatsapp, reg_club_name, reg_ign_tag, profiles(username)',
       )
       .eq('tournament_id', t.id)
       .order('registered_at', { ascending: false }),
@@ -42,6 +42,7 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
   const rows: AdminRegistrationRow[] = ((data as unknown[] | null) ?? []).map((raw) => {
     const r = raw as {
       id: string
+      player_id: string
       payment_status: string
       registered_at: string
       reg_display_name: string | null
@@ -52,6 +53,7 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
     }
     return {
       id: r.id,
+      playerId: r.player_id,
       username: firstUsername(r.profiles),
       regDisplayName: r.reg_display_name,
       regWhatsapp: r.reg_whatsapp,
@@ -104,7 +106,12 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
           No registrations yet.
         </p>
       ) : (
-        <RegistrationsTable rows={rows} />
+        <RegistrationsTable
+          rows={rows}
+          tournamentId={t.id}
+          tournamentStatus={t.status}
+          registrationFee={t.registration_fee}
+        />
       )}
     </section>
   )

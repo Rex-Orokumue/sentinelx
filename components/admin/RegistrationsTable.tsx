@@ -3,9 +3,11 @@ import { useState } from 'react'
 import { matchesPlayerQuery } from '@/lib/admin/search'
 import { PlayerSearch } from './PlayerSearch'
 import { formatDateTime } from '@/lib/format'
+import { RefundButton } from './RefundButton'
 
 export interface AdminRegistrationRow {
   id: string
+  playerId: string
   username: string | null
   regDisplayName: string | null
   regWhatsapp: string | null
@@ -15,7 +17,17 @@ export interface AdminRegistrationRow {
   registeredAt: string
 }
 
-export function RegistrationsTable({ rows }: { rows: AdminRegistrationRow[] }) {
+export function RegistrationsTable({
+  rows,
+  tournamentId,
+  tournamentStatus,
+  registrationFee,
+}: {
+  rows: AdminRegistrationRow[]
+  tournamentId: string
+  tournamentStatus: string
+  registrationFee: number
+}) {
   const [query, setQuery] = useState('')
   const filtered = rows.filter((r) =>
     matchesPlayerQuery(
@@ -23,6 +35,7 @@ export function RegistrationsTable({ rows }: { rows: AdminRegistrationRow[] }) {
       query,
     ),
   )
+  const showRefunds = tournamentStatus === 'cancelled'
 
   return (
     <div>
@@ -42,6 +55,7 @@ export function RegistrationsTable({ rows }: { rows: AdminRegistrationRow[] }) {
                 <th className="px-2 py-2.5 text-left">IGN / Tag</th>
                 <th className="px-2 py-2.5 text-left">Payment</th>
                 <th className="px-3 py-2.5 text-left">Registered</th>
+                {showRefunds && <th className="px-3 py-2.5 text-left">Refund</th>}
               </tr>
             </thead>
             <tbody>
@@ -55,6 +69,23 @@ export function RegistrationsTable({ rows }: { rows: AdminRegistrationRow[] }) {
                   <td className="px-2 py-2.5 text-slate-300">{r.regIgnTag ?? '—'}</td>
                   <td className="px-2 py-2.5 capitalize text-slate-300">{r.paymentStatus}</td>
                   <td className="px-3 py-2.5 text-slate-400">{formatDateTime(r.registeredAt)}</td>
+                  {showRefunds && (
+                    <td className="px-3 py-2.5">
+                      {r.paymentStatus === 'refunded' ? (
+                        <span className="text-xs font-bold text-emerald-400">Refunded ✓</span>
+                      ) : r.paymentStatus === 'paid' ? (
+                        <RefundButton
+                          registrationId={r.id}
+                          tournamentId={tournamentId}
+                          playerId={r.playerId}
+                          amount={registrationFee}
+                          reason="Season 2 registration refund"
+                        />
+                      ) : (
+                        <span className="text-xs text-slate-600">—</span>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
