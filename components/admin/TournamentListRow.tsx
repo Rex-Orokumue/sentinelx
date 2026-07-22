@@ -7,6 +7,7 @@ import {
   type TournamentFormState,
   type PublishState,
 } from '@/lib/tournaments/admin-actions'
+import { CancelTournamentButton } from './CancelTournamentButton'
 
 export interface AdminTournamentRow {
   id: string
@@ -15,6 +16,7 @@ export interface AdminTournamentRow {
   status: string
   gameName: string | null
   publishBlockers: string[] // from missingForPublish; only meaningful when status === 'draft'
+  paidRegistrations: number
 }
 
 const STATUS: Record<string, string> = {
@@ -33,6 +35,7 @@ export function TournamentListRow({ t, isAdmin }: { t: AdminTournamentRow; isAdm
   )
   const isDraft = t.status === 'draft'
   const canPublish = isDraft && t.publishBlockers.length === 0
+  const canCancel = isAdmin && ['registration_open', 'registration_closed', 'active'].includes(t.status)
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
@@ -93,6 +96,9 @@ export function TournamentListRow({ t, isAdmin }: { t: AdminTournamentRow; isAdm
                 Delete
               </button>
             </form>
+          )}
+          {canCancel && (
+            <CancelTournamentButton id={t.id} title={t.title} paidRegistrations={t.paidRegistrations} />
           )}
         </div>
       </div>

@@ -16,12 +16,20 @@ function gameName(g: GameRef): string | null {
 export default async function AdminTournamentsPage() {
   const ctx = await requireStaff()
   const supabase = createClient()
-  const { data } = await supabase
-    .from('tournaments')
-    .select(
-      'id, title, slug, status, game_id, max_players, registration_fee, prize_pool, registration_start, registration_end, tournament_start, tournament_end, games(name)',
-    )
-    .order('created_at', { ascending: false })
+  const [{ data }, { data: paidRegs }] = await Promise.all([
+    supabase
+      .from('tournaments')
+      .select(
+        'id, title, slug, status, game_id, max_players, registration_fee, prize_pool, registration_start, registration_end, tournament_start, tournament_end, games(name)',
+      )
+      .order('created_at', { ascending: false }),
+    supabase.from('tournament_registrations').select('tournament_id').eq('payment_status', 'paid'),
+  ])
+
+  const paidCountByTournament = new Map<string, number>()
+  for (const r of (paidRegs as { tournament_id: string }[] | null) ?? []) {
+    paidCountByTournament.set(r.tournament_id, (paidCountByTournament.get(r.tournament_id) ?? 0) + 1)
+  }
 
   const rows: AdminTournamentRow[] = ((data as unknown[] | null) ?? []).map((raw) => {
     const t = raw as {
@@ -57,6 +65,7 @@ export default async function AdminTournamentsPage() {
           t.tournament_end,
         ],
       }),
+      paidRegistrations: paidCountByTournament.get(t.id) ?? 0,
     }
   })
 

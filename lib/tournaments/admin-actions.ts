@@ -199,3 +199,26 @@ export async function openRegistration(
   revalidatePath('/tournaments')
   return { success: true }
 }
+
+export async function cancelTournament(
+  _prev: TournamentFormState,
+  formData: FormData,
+): Promise<TournamentFormState> {
+  await requireAdmin()
+  const id = String(formData.get('id') ?? '')
+  if (!id) return { error: 'Missing tournament.' }
+
+  const supabase = createClient()
+  const { data: current } = await supabase.from('tournaments').select('status').eq('id', id).maybeSingle()
+  if (!current) return { error: 'Tournament not found.' }
+  if (!['registration_open', 'registration_closed', 'active'].includes(current.status)) {
+    return { error: 'Only a live or announced tournament can be cancelled.' }
+  }
+
+  const { error: cancelErr } = await supabase.from('tournaments').update({ status: 'cancelled' }).eq('id', id)
+  if (cancelErr) return { error: 'Could not cancel the tournament.' }
+
+  revalidatePath('/admin/tournaments')
+  revalidatePath(`/admin/tournaments/${id}/registrations`)
+  return { success: true }
+}
