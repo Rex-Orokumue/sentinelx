@@ -131,6 +131,7 @@ function toBracketFinal(f: {
     score_a: f.score_a,
     score_b: f.score_b,
     scheduled_at: null,
+    is_full_day: false,
     playerA: { id: f.player_a_id ?? '', name: '' },
     playerB: { id: f.player_b_id ?? '', name: '' },
   }

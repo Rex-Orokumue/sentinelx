@@ -49,7 +49,7 @@ export async function loadBracketView(
     supabase
       .from('matches')
       .select(
-        'id, round, group_id, status, score_a, score_b, scheduled_at, ' +
+        'id, round, group_id, status, score_a, score_b, scheduled_at, is_full_day, ' +
           'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
           'player_b:profiles!matches_player_b_id_fkey(id, username, display_name)',
       )
@@ -73,6 +73,7 @@ export async function loadBracketView(
       score_a: number | null
       score_b: number | null
       scheduled_at: string | null
+      is_full_day: boolean
       player_a: ProfileRef
       player_b: ProfileRef
     }
@@ -85,6 +86,7 @@ export async function loadBracketView(
       score_a: m.score_a,
       score_b: m.score_b,
       scheduled_at: m.scheduled_at,
+      is_full_day: m.is_full_day,
       playerA: { id: m.player_a?.id ?? '', name: nameOf(m.player_a) },
       playerB: { id: m.player_b?.id ?? '', name: nameOf(m.player_b) },
     }

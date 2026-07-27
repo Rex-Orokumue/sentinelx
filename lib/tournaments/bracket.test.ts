@@ -3,6 +3,7 @@ import {
   splitFixturesByState,
   orderKnockoutRounds,
   getChampion,
+  groupFixturesByDate,
   type BracketMatch,
 } from './bracket'
 
@@ -15,6 +16,7 @@ function match(over: Partial<BracketMatch> & { id: string }): BracketMatch {
     score_a: null,
     score_b: null,
     scheduled_at: null,
+    is_full_day: false,
     playerA: { id: 'pa', name: 'A' },
     playerB: { id: 'pb', name: 'B' },
     ...over,
@@ -43,6 +45,25 @@ describe('splitFixturesByState', () => {
       match({ id: 'early', status: 'scheduled', scheduled_at: '2026-07-10T15:00:00Z' }),
     ])
     expect(res.upcoming.map((m) => m.id)).toEqual(['early', 'late', 'none'])
+  })
+})
+
+describe('groupFixturesByDate', () => {
+  it('groups by WAT calendar date, ascending, Date TBD last', () => {
+    const groups = groupFixturesByDate([
+      match({ id: 'tbd', scheduled_at: null }),
+      match({ id: 'a', scheduled_at: '2026-08-02T10:00:00Z' }),
+      match({ id: 'b', scheduled_at: '2026-08-01T09:00:00Z' }),
+      match({ id: 'c', scheduled_at: '2026-08-01T18:00:00Z' }),
+    ])
+    expect(groups.map((g) => g.dateLabel)).toEqual(['1 Aug 2026', '2 Aug 2026', 'Date TBD'])
+    expect(groups[0].matches.map((m) => m.id)).toEqual(['b', 'c'])
+    expect(groups[1].matches.map((m) => m.id)).toEqual(['a'])
+    expect(groups[2].matches.map((m) => m.id)).toEqual(['tbd'])
+  })
+
+  it('returns no groups for an empty list', () => {
+    expect(groupFixturesByDate([])).toEqual([])
   })
 })
 

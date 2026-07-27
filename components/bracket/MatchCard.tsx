@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { BracketMatch } from '@/lib/tournaments/bracket'
+import { formatFixtureDate } from '@/lib/format'
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   live:      { label: 'LIVE',      cls: 'bg-red-500/20 text-red-400 border-red-500/30' },
@@ -14,6 +15,7 @@ export function MatchCard({ match, showGroup = false }: { match: BracketMatch; s
   const hasScore = match.score_a != null && match.score_b != null
   const aWon = hasScore && match.score_a! > match.score_b!
   const bWon = hasScore && match.score_b! > match.score_a!
+  const dateLabel = formatFixtureDate(match.scheduled_at, match.is_full_day)
 
   return (
     <Link
@@ -33,6 +35,7 @@ export function MatchCard({ match, showGroup = false }: { match: BracketMatch; s
           </span>
         )}
       </div>
+      {dateLabel && <p className="mb-1.5 text-[11px] font-medium text-slate-500">{dateLabel}</p>}
       <PlayerRow name={match.playerA.name} score={match.score_a} win={aWon} />
       <PlayerRow name={match.playerB.name} score={match.score_b} win={bWon} />
     </Link>

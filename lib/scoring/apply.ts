@@ -36,6 +36,7 @@ function toBracketFinal(m: {
     score_a: m.score_a,
     score_b: m.score_b,
     scheduled_at: null,
+    is_full_day: false,
     playerA: { id: m.player_a_id ?? '', name: '' },
     playerB: { id: m.player_b_id ?? '', name: '' },
   }

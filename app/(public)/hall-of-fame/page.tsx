@@ -174,6 +174,7 @@ export default async function HallOfFamePage() {
       score_a: m.score_a,
       score_b: m.score_b,
       scheduled_at: null,
+      is_full_day: false,
       playerA: { id: m.player_a?.id ?? '', name: nameOf(m.player_a) },
       playerB: { id: m.player_b?.id ?? '', name: nameOf(m.player_b) },
     })

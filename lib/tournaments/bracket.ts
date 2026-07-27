@@ -1,3 +1,5 @@
+import { toDateTimeLocal, formatDate } from '@/lib/format'
+
 export interface BracketMatch {
   id: string
   round: string
@@ -7,6 +9,7 @@ export interface BracketMatch {
   score_a: number | null
   score_b: number | null
   scheduled_at: string | null
+  is_full_day: boolean
   playerA: { id: string; name: string }
   playerB: { id: string; name: string }
 }
@@ -52,6 +55,32 @@ export function splitFixturesByState(matches: BracketMatch[]): {
       return a.scheduled_at.localeCompare(b.scheduled_at)
     })
   return { live, upcoming, completed, disputedOrCancelled }
+}
+
+export interface FixtureDateGroup {
+  dateLabel: string
+  matches: BracketMatch[]
+}
+
+// Groups by WAT calendar date, ascending; a "Date TBD" group (unscheduled
+// matches) always sorts last regardless of input order.
+export function groupFixturesByDate(matches: BracketMatch[]): FixtureDateGroup[] {
+  const byKey = new Map<string, BracketMatch[]>()
+  for (const m of matches) {
+    const key = m.scheduled_at ? toDateTimeLocal(m.scheduled_at).slice(0, 10) : ''
+    const group = byKey.get(key)
+    if (group) group.push(m)
+    else byKey.set(key, [m])
+  }
+  const keys = Array.from(byKey.keys()).sort((a, b) => {
+    if (a === '') return b === '' ? 0 : 1
+    if (b === '') return -1
+    return a.localeCompare(b)
+  })
+  return keys.map((key) => ({
+    dateLabel: key === '' ? 'Date TBD' : (formatDate(byKey.get(key)![0].scheduled_at) as string),
+    matches: byKey.get(key)!,
+  }))
 }
 
 export function orderKnockoutRounds(matches: BracketMatch[]): {

@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { StandingRow } from '@/lib/tournaments/standings'
-import type { BracketMatch } from '@/lib/tournaments/bracket'
+import { groupFixturesByDate, type BracketMatch, type FixtureDateGroup } from '@/lib/tournaments/bracket'
 import { StandingsTable } from './StandingsTable'
 import { MatchCard } from './MatchCard'
 
@@ -50,11 +50,11 @@ export function GroupStage({
               {fixtures.live.map((m) => <MatchCard key={m.id} match={m} showGroup />)}
             </FixtureGroup>
           )}
-          {fixtures.upcoming.length > 0 && (
-            <FixtureGroup title="⏳ Upcoming">
-              {fixtures.upcoming.map((m) => <MatchCard key={m.id} match={m} showGroup />)}
+          {groupFixturesByDate(fixtures.upcoming).map((g: FixtureDateGroup) => (
+            <FixtureGroup key={g.dateLabel} title={`⏳ ${g.dateLabel}`}>
+              {g.matches.map((m) => <MatchCard key={m.id} match={m} showGroup />)}
             </FixtureGroup>
-          )}
+          ))}
           {fixtures.completed.length > 0 && (
             <div>
               <button

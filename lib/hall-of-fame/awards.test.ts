@@ -114,6 +114,7 @@ function finalMatch(over: Partial<BracketMatch>): BracketMatch {
     score_a: 2,
     score_b: 1,
     scheduled_at: null,
+    is_full_day: false,
     playerA: { id: 'pa', name: 'Ada' },
     playerB: { id: 'pb', name: 'Bill' },
     ...over,
