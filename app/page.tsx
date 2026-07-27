@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
@@ -7,6 +6,11 @@ import type { TournamentCardData } from '@/components/tournament/TournamentCard'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { TierBadge } from '@/components/player/TierBadge'
 import { PromoBanner } from '@/components/home/PromoBanner'
+import { Hero } from '@/components/home/Hero'
+import { TrustedByStrip } from '@/components/home/TrustedByStrip'
+import { FeatureGrid } from '@/components/home/FeatureGrid'
+import { StatsBar } from '@/components/home/StatsBar'
+import { dedupeGamesByName } from '@/lib/games/dedupe'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { homepageDescription } from '@/lib/seo/homepage-description'
 import { FaqSection } from '@/components/home/FaqSection'
@@ -37,7 +41,17 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function HomePage() {
   const supabase = createClient()
 
-  const [{ data: rawTournaments }, { data: players }, { data: rawBanner }] = await Promise.all([
+  const [
+    { data: rawTournaments },
+    { data: players },
+    { data: rawBanner },
+    { data: rawGames },
+    { count: playerCount },
+    { count: tournamentCount },
+    {
+      data: { user },
+    },
+  ] = await Promise.all([
     supabase
       .from('tournaments')
       .select(
@@ -59,7 +73,13 @@ export default async function HomePage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase.from('games').select('name, slug, icon_url, active, created_at'),
+    supabase.from('profiles').select('*', { count: 'exact', head: true }),
+    supabase.from('tournaments').select('*', { count: 'exact', head: true }).neq('status', 'draft'),
+    supabase.auth.getUser(),
   ])
+
+  const games = dedupeGamesByName(rawGames ?? [])
 
   const banner = rawBanner
     ? { title: rawBanner.title, imageUrl: rawBanner.image_url, linkUrl: rawBanner.link_url }
@@ -81,36 +101,17 @@ export default async function HomePage() {
   return (
     <div className="mx-auto max-w-5xl px-4 pb-20">
 
-      {/* ── Hero ─────────────────────────────────────────────── */}
-      <section className="py-12 text-center">
-        <div className="mx-auto mb-6 flex justify-center">
-          <Image
-            src="/logo-full.png"
-            alt="SentinelX Esports — Where Gamers Unite. Champions Rise."
-            width={340}
-            height={220}
-            priority
-            className="w-64 sm:w-80"
-          />
-        </div>
-        <p className="mb-8 text-sm text-slate-400">Nigeria's Home of Mobile Esports</p>
-        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <Link
-            href="/tournaments"
-            className="w-full max-w-xs rounded-xl bg-violet-600 px-7 py-3.5 text-sm font-bold text-white transition-colors hover:bg-violet-500 sm:w-auto"
-          >
-            Browse Tournaments
-          </Link>
-          <a
-            href={WHATSAPP_COMMUNITY}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full max-w-xs rounded-xl border border-slate-700 px-7 py-3.5 text-sm font-bold text-white transition-colors hover:border-slate-500 sm:w-auto"
-          >
-            Join Community
-          </a>
-        </div>
-      </section>
+      <Hero isLoggedIn={!!user} whatsappUrl={WHATSAPP_COMMUNITY} />
+
+      <TrustedByStrip games={games} />
+
+      <FeatureGrid />
+
+      <StatsBar
+        playerCount={playerCount ?? 0}
+        tournamentCount={tournamentCount ?? 0}
+        gameCount={games.length}
+      />
 
       <PromoBanner banner={banner} />
 
