@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireStaff } from '@/lib/admin/auth'
-import { groupCountFor, snakeDistribute, roundRobinPairs, knockoutRound1 } from './draw'
+import { resolveGroupCount, snakeDistribute, roundRobinPairs, knockoutRound1 } from './draw'
 
 export type BracketState = { error?: string; success?: boolean } | undefined
 
@@ -31,9 +31,13 @@ async function clearBracket(admin: Admin, tournamentId: string): Promise<void> {
   await admin.from('matches').delete().eq('tournament_id', tournamentId).is('group_id', null)
 }
 
-async function generate(admin: Admin, tournamentId: string, seeded: string[]): Promise<void> {
+async function generate(
+  admin: Admin,
+  tournamentId: string,
+  seeded: string[],
+  g: number,
+): Promise<void> {
   await clearBracket(admin, tournamentId)
-  const g = groupCountFor(seeded.length)
 
   if (g === 0) {
     const { round, matches, byePlayerIds } = knockoutRound1(seeded)
@@ -86,6 +90,13 @@ async function generate(admin: Admin, tournamentId: string, seeded: string[]): P
   }
 }
 
+function parseGroupsField(formData: FormData): number | undefined {
+  const raw = formData.get('groups')
+  if (typeof raw !== 'string' || raw === '') return undefined
+  const n = Number(raw)
+  return Number.isFinite(n) ? n : undefined
+}
+
 function revalidateAdmin(tournamentId: string): void {
   revalidatePath(`/admin/tournaments/${tournamentId}/bracket`)
   revalidatePath('/admin/tournaments')
@@ -108,8 +119,9 @@ export async function closeRegistration(
   if (seeded.length < 2) return { error: 'Need at least 2 paid players to close registration.' }
   if (seeded.length > 64) return { error: 'At most 64 players are supported.' }
 
+  const g = resolveGroupCount(parseGroupsField(formData), seeded.length)
   await admin.from('tournaments').update({ status: 'registration_closed' }).eq('id', id)
-  await generate(admin, id, seeded)
+  await generate(admin, id, seeded, g)
   revalidateAdmin(id)
   return { success: true }
 }
@@ -131,7 +143,8 @@ export async function generateBracket(
   if (seeded.length < 2) return { error: 'Need at least 2 paid players.' }
   if (seeded.length > 64) return { error: 'At most 64 players are supported.' }
 
-  await generate(admin, id, seeded)
+  const g = resolveGroupCount(parseGroupsField(formData), seeded.length)
+  await generate(admin, id, seeded, g)
   revalidateAdmin(id)
   return { success: true }
 }
