@@ -107,7 +107,7 @@ export default async function DashboardPage() {
     supabase
       .from('matches')
       .select(
-        'id, status, scheduled_at, round, tournament_id, player_a_id, player_b_id, ' +
+        'id, status, scheduled_at, is_full_day, round, tournament_id, player_a_id, player_b_id, ' +
           'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
           'player_b:profiles!matches_player_b_id_fkey(id, username, display_name), ' +
           'tournament:tournaments(title, slug, status, data_support_text, data_support_whatsapp)',
@@ -198,6 +198,7 @@ export default async function DashboardPage() {
     id: string
     status: string
     scheduled_at: string | null
+    is_full_day: boolean
     round: string
     tournament_id: string
     player_a_id: string
@@ -233,6 +234,7 @@ export default async function DashboardPage() {
       id: mm.id,
       status: mm.status,
       scheduledAt: mm.scheduled_at,
+      isFullDay: mm.is_full_day,
       round: mm.round,
       opponentName: nameOf(opponent),
       opponentWhatsapp: whatsappByKey.get(`${mm.tournament_id}:${opponentId}`) ?? null,
