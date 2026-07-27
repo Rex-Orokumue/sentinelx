@@ -1,5 +1,5 @@
 'use client'
-import { useFormState } from 'react-dom'
+import { useFormState, useFormStatus } from 'react-dom'
 import {
   closeRegistration,
   generateBracket,
@@ -7,6 +7,23 @@ import {
   type BracketState,
 } from '@/lib/tournaments/bracket-admin-actions'
 import { groupCountFor, validGroupCounts } from '@/lib/tournaments/draw'
+
+function SubmitButton({
+  pendingLabel,
+  className,
+  children,
+}: {
+  pendingLabel: string
+  className: string
+  children: React.ReactNode
+}) {
+  const { pending } = useFormStatus()
+  return (
+    <button type="submit" disabled={pending} className={`${className} disabled:cursor-wait disabled:opacity-60`}>
+      {pending ? pendingLabel : children}
+    </button>
+  )
+}
 
 export function BracketActions({
   tournamentId,
@@ -24,6 +41,11 @@ export function BracketActions({
   const [rollState, rollAction] = useFormState<BracketState, FormData>(generateBracket, undefined)
   const [pubState, pubAction] = useFormState<BracketState, FormData>(publishBracket, undefined)
   const err = closeState?.error || rollState?.error || pubState?.error
+  const success =
+    (closeState?.success && 'Registration closed and bracket generated.') ||
+    (rollState?.success && 'Draw re-rolled — new fixtures are ready below.') ||
+    (pubState?.success && 'Bracket published — it is now public.') ||
+    null
 
   const groupOptions = validGroupCounts(paidCount)
   const defaultGroups = groupCountFor(paidCount)
@@ -50,34 +72,42 @@ export function BracketActions({
         <form action={closeAction} className="flex flex-wrap items-center gap-3">
           <input type="hidden" name="id" value={tournamentId} />
           {groupPicker}
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Generating…"
             className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold text-white hover:bg-violet-500"
           >
             Close registration & generate bracket
-          </button>
+          </SubmitButton>
         </form>
       )}
       {status === 'registration_closed' && (
         <div className="flex flex-wrap items-center gap-2">
-          <form action={rollAction} className="flex flex-wrap items-center gap-3">
+          <form
+            action={rollAction}
+            className="flex flex-wrap items-center gap-3"
+            onSubmit={(e) => {
+              if (!window.confirm('Re-roll the draw? This discards the current groupings and generates a new random draw.')) {
+                e.preventDefault()
+              }
+            }}
+          >
             <input type="hidden" name="id" value={tournamentId} />
             {groupPicker}
-            <button
-              type="submit"
+            <SubmitButton
+              pendingLabel="Rolling…"
               className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-bold text-slate-200 hover:border-slate-500"
             >
               Re-roll draw
-            </button>
+            </SubmitButton>
           </form>
           <form action={pubAction}>
             <input type="hidden" name="id" value={tournamentId} />
-            <button
-              type="submit"
+            <SubmitButton
+              pendingLabel="Publishing…"
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500"
             >
               Publish bracket
-            </button>
+            </SubmitButton>
           </form>
           <p className="w-full text-xs text-slate-500">
             Preview below is staff-only until you publish.
@@ -88,6 +118,7 @@ export function BracketActions({
         <p className="text-sm font-semibold text-slate-400">Bracket is live — locked.</p>
       )}
       {err && <p className="mt-2 text-sm text-red-400">{err}</p>}
+      {!err && success && <p className="mt-2 text-sm text-emerald-400">{success}</p>}
     </div>
   )
 }
