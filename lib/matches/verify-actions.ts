@@ -18,6 +18,7 @@ import { syncMatchEvents } from '@/lib/scoring/apply'
 import { notify } from '@/lib/notifications/notify'
 import { notifyInApp } from '@/lib/notifications/inbox'
 import { resultKey } from '@/lib/notifications/keys'
+import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 import { creditWallet } from '@/lib/wallet/service'
 
 export type VerifyState = { error?: string; success?: boolean } | undefined
@@ -140,7 +141,23 @@ async function recomputeGroupAndMaybeAdvance(
       ...schedule,
     })),
   ]
-  if (rows.length > 0) await admin.from('matches').insert(rows)
+  if (rows.length > 0) {
+    const { data: inserted } = await admin
+      .from('matches')
+      .insert(rows)
+      .select('id, player_a_id, player_b_id, scheduled_at, is_full_day')
+    await notifyNewFixtures(
+      admin,
+      (inserted ?? []).map((m) => ({
+        id: m.id,
+        tournamentId,
+        playerAId: m.player_a_id as string,
+        playerBId: m.player_b_id,
+        scheduledAt: m.scheduled_at,
+        isFullDay: m.is_full_day,
+      })),
+    )
+  }
 }
 
 // Create the next knockout round once the current round is fully resolved.
@@ -173,15 +190,29 @@ async function advanceKnockout(admin: Admin, tournamentId: string, round: string
   if (pairs.length === 0) return
   const roundDate = await nextRoundScheduledAt(admin, tournamentId)
   const schedule = roundDate ? { scheduled_at: roundDate, is_full_day: true } : {}
-  await admin.from('matches').insert(
-    pairs.map(([a, b]) => ({
-      tournament_id: tournamentId,
-      round: nr,
-      group_id: null,
-      player_a_id: a,
-      player_b_id: b,
-      status: 'scheduled',
-      ...schedule,
+  const { data: inserted } = await admin
+    .from('matches')
+    .insert(
+      pairs.map(([a, b]) => ({
+        tournament_id: tournamentId,
+        round: nr,
+        group_id: null,
+        player_a_id: a,
+        player_b_id: b,
+        status: 'scheduled',
+        ...schedule,
+      })),
+    )
+    .select('id, player_a_id, player_b_id, scheduled_at, is_full_day')
+  await notifyNewFixtures(
+    admin,
+    (inserted ?? []).map((m) => ({
+      id: m.id,
+      tournamentId,
+      playerAId: m.player_a_id as string,
+      playerBId: m.player_b_id,
+      scheduledAt: m.scheduled_at,
+      isFullDay: m.is_full_day,
     })),
   )
 }
