@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
 import { bucketReviewQueue, type ReviewMatchInput } from '@/lib/matches/review-queue'
+import { hasScoreMismatch } from '@/lib/matches/verify'
 import { AdminResultsQueue } from '@/components/admin/AdminResultsQueue'
 
 export const metadata: Metadata = { title: 'Results · Admin · SentinelX' }
@@ -25,7 +26,7 @@ export default async function AdminResultsPage() {
         'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
         'player_b:profiles!matches_player_b_id_fkey(id, username, display_name), ' +
         'tournament:tournaments(title, slug), ' +
-        'match_results(count)',
+        'match_results(score_a, score_b)',
     )
     .in('status', ['scheduled', 'live', 'disputed', 'cancelled'])
 
@@ -54,16 +55,18 @@ export default async function AdminResultsPage() {
       player_a: ProfileRef
       player_b: ProfileRef
       tournament: TournamentRef
-      match_results: { count: number }[]
+      match_results: { score_a: number; score_b: number }[]
     }
     const t = firstT(m.tournament)
+    const submissions = m.match_results ?? []
     return {
       id: m.id,
       status: m.status,
       scheduledAt: m.scheduled_at,
       isFullDay: m.is_full_day,
       autoExpired: m.auto_expired,
-      submissionCount: m.match_results?.[0]?.count ?? 0,
+      submissionCount: submissions.length,
+      hasMismatch: hasScoreMismatch(submissions.map((s) => ({ scoreA: s.score_a, scoreB: s.score_b }))),
       round: m.round,
       playerAName: nameOf(m.player_a),
       playerBName: nameOf(m.player_b),

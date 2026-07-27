@@ -5,6 +5,7 @@ export interface ReviewMatchInput {
   isFullDay: boolean
   autoExpired: boolean
   submissionCount: number
+  hasMismatch: boolean
   round: string
   playerAName: string
   playerBName: string

@@ -99,6 +99,7 @@ async function fetchResultItems(supabase: SupabaseClient): Promise<AdminNotifica
       isFullDay: m.is_full_day,
       autoExpired: m.auto_expired,
       submissionCount: m.match_results?.[0]?.count ?? 0,
+      hasMismatch: false, // this call site only counts for the notification bell, never displays the flag
       round: m.round,
       playerAName: nameOf(m.player_a),
       playerBName: nameOf(m.player_b),

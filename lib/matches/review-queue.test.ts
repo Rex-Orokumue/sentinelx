@@ -10,6 +10,7 @@ function m(over: Partial<ReviewMatchInput> & { id: string }): ReviewMatchInput {
     isFullDay: false,
     autoExpired: false,
     submissionCount: 0,
+    hasMismatch: false,
     round: 'group',
     playerAName: 'A',
     playerBName: 'B',
