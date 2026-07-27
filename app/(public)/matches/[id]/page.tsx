@@ -9,6 +9,7 @@ import { buildMetadata } from '@/lib/seo/metadata'
 import { SITE_URL } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildMatchJsonLd } from '@/lib/seo/schema/event'
+import { formatFixtureDate } from '@/lib/format'
 
 type ProfileRef = { username: string | null; display_name: string | null } | null
 
@@ -26,7 +27,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 }
 
 const MATCH_SELECT =
-  'id, round, status, score_a, score_b, youtube_stream_url, replay_url, player_a_id, player_b_id, ' +
+  'id, round, status, score_a, score_b, scheduled_at, is_full_day, youtube_stream_url, replay_url, player_a_id, player_b_id, ' +
   'tournaments(title, slug), ' +
   'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
   'player_b:profiles!matches_player_b_id_fkey(username, display_name)'
@@ -37,6 +38,8 @@ type MatchRow = {
   status: string
   score_a: number | null
   score_b: number | null
+  scheduled_at: string | null
+  is_full_day: boolean
   youtube_stream_url: string | null
   replay_url: string | null
   player_a_id: string | null
@@ -136,6 +139,11 @@ export default async function MatchCentrePage({ params }: { params: { id: string
         <div className="mb-3 flex justify-center">
           <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${status.cls}`}>{status.label}</span>
         </div>
+        {formatFixtureDate(m.scheduled_at, m.is_full_day) && (
+          <p className="mb-3 text-center text-xs font-semibold text-slate-400">
+            {formatFixtureDate(m.scheduled_at, m.is_full_day)}
+          </p>
+        )}
         <div className="flex items-center justify-between gap-4">
           <p className="flex-1 text-right text-lg font-bold text-white">{nameOf(m.player_a)}</p>
           <p className="shrink-0 text-2xl font-black tabular-nums text-white">
