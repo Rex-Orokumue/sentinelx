@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   bucketFixtures,
+  groupFixturesByDate,
   isTournamentPublished,
   toWhatsAppNumber,
   buildOpponentWhatsAppUrl,
@@ -13,6 +14,7 @@ function m(over: Partial<DashboardMatchInput> & { id: string }): DashboardMatchI
   return {
     status: 'scheduled',
     scheduledAt: null,
+    isFullDay: false,
     round: 'group',
     opponentName: 'Opp',
     tournamentTitle: 'Cup',
@@ -109,6 +111,66 @@ describe('bucketFixtures — awaitingMyResult', () => {
       NOW,
     )
     expect(r.completed[0].awaitingMyResult).toBe(false)
+  })
+})
+
+describe('bucketFixtures — matchDayReached', () => {
+  it('is true once scheduledAt has passed', () => {
+    const r = bucketFixtures(
+      [m({ id: 'p', status: 'scheduled', scheduledAt: '2026-07-01T10:00:00Z' })],
+      new Set(),
+      NOW,
+    )
+    expect(r.upcoming[0].matchDayReached).toBe(true)
+  })
+
+  it('is false for a future scheduledAt', () => {
+    const r = bucketFixtures(
+      [m({ id: 'f', status: 'scheduled', scheduledAt: '2026-08-01T10:00:00Z' })],
+      new Set(),
+      NOW,
+    )
+    expect(r.upcoming[0].matchDayReached).toBe(false)
+  })
+
+  it('is false for a null scheduledAt', () => {
+    const r = bucketFixtures([m({ id: 'n', status: 'scheduled', scheduledAt: null })], new Set(), NOW)
+    expect(r.upcoming[0].matchDayReached).toBe(false)
+  })
+})
+
+describe('groupFixturesByDate', () => {
+  it('groups fixtures by WAT calendar date, ascending', () => {
+    const r = bucketFixtures(
+      [
+        m({ id: 'a', scheduledAt: '2026-08-02T10:00:00Z' }),
+        m({ id: 'b', scheduledAt: '2026-08-01T09:00:00Z' }),
+        m({ id: 'c', scheduledAt: '2026-08-01T18:00:00Z' }),
+      ],
+      new Set(),
+      NOW,
+    )
+    const groups = groupFixturesByDate(r.upcoming)
+    expect(groups.map((g) => g.dateLabel)).toEqual(['1 Aug 2026', '2 Aug 2026'])
+    expect(groups[0].fixtures.map((f) => f.id)).toEqual(['b', 'c'])
+    expect(groups[1].fixtures.map((f) => f.id)).toEqual(['a'])
+  })
+
+  it('puts a Date TBD group last regardless of input order', () => {
+    const r = bucketFixtures(
+      [
+        m({ id: 'tbd', scheduledAt: null }),
+        m({ id: 'dated', scheduledAt: '2026-08-01T09:00:00Z' }),
+      ],
+      new Set(),
+      NOW,
+    )
+    const groups = groupFixturesByDate(r.upcoming)
+    expect(groups.map((g) => g.dateLabel)).toEqual(['1 Aug 2026', 'Date TBD'])
+  })
+
+  it('returns no groups for an empty list', () => {
+    expect(groupFixturesByDate([])).toEqual([])
   })
 })
 
