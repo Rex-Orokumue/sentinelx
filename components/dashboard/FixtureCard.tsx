@@ -32,7 +32,7 @@ export function FixtureCard({ fixture }: { fixture: DashboardFixture }) {
     <div
       className={`rounded-2xl border p-4 transition-colors ${
         fixture.status === 'scheduled' && !fixture.matchDayReached
-          ? 'border-slate-800/60 bg-slate-900/60 opacity-60'
+          ? 'border-slate-800/60 bg-slate-900/60'
           : 'border-slate-800 bg-slate-900 hover:border-slate-600'
       }`}
     >
