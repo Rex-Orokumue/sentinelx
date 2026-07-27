@@ -20,6 +20,11 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
   if (!t) notFound()
 
   const view = await loadBracketView(supabase, t.id)
+  const { count: paidCount } = await supabase
+    .from('tournament_registrations')
+    .select('*', { count: 'exact', head: true })
+    .eq('tournament_id', t.id)
+    .eq('payment_status', 'paid')
 
   return (
     <section>
@@ -38,7 +43,7 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
         {t.title} · <span className="text-slate-400">{t.status.replace(/_/g, ' ')}</span>
       </h2>
 
-      <BracketActions tournamentId={t.id} status={t.status} />
+      <BracketActions tournamentId={t.id} status={t.status} paidCount={paidCount ?? 0} />
 
       {!view.hasGroups && !view.hasKnockout ? (
         <p className="rounded-2xl border border-slate-800 bg-slate-900/50 p-8 text-center text-sm text-slate-500">
