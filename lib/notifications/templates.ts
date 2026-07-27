@@ -1,6 +1,7 @@
 export type TemplateInput =
   | { type: 'registration_confirmed'; tournament: string }
   | { type: 'fixture_reminder'; playerA: string; playerB: string; tournament: string; matchUrl: string }
+  | { type: 'fixture_assigned'; playerA: string; playerB: string; tournament: string; matchUrl: string; whenLabel: string | null }
   | { type: 'result_confirmed'; playerA: string; playerB: string; scoreA: number; scoreB: number; tournament: string }
   | { type: 'prize_credited'; amount: string }
   | { type: 'escrow_sale'; title: string }
@@ -23,6 +24,13 @@ export function renderTemplate(input: TemplateInput): RenderedTemplate {
       return {
         templateName: 'fixture_reminder',
         body: `⏰ Your Sentinel X match starts in ~1 hour: ${input.playerA} vs ${input.playerB} (${input.tournament}). Get ready → ${input.matchUrl}`,
+      }
+    case 'fixture_assigned':
+      return {
+        templateName: 'fixture_assigned',
+        body: `📅 New Sentinel X fixture: ${input.playerA} vs ${input.playerB} (${input.tournament})${
+          input.whenLabel ? ` — ${input.whenLabel}` : ''
+        }. ${input.matchUrl}`,
       }
     case 'result_confirmed':
       return {
