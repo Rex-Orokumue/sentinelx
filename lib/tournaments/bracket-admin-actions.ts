@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireStaff } from '@/lib/admin/auth'
 import { resolveGroupCount, snakeDistribute, roundRobinPairs, knockoutRound1 } from './draw'
 import { nextRoundScheduledAt } from './round-schedule'
+import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 
 export type BracketState = { error?: string; success?: boolean } | undefined
 
@@ -219,6 +220,23 @@ export async function publishBracket(
   if (!count) return { error: 'Generate a bracket before publishing.' }
 
   await admin.from('tournaments').update({ status: 'active' }).eq('id', id)
+
+  const { data: publishedMatches } = await admin
+    .from('matches')
+    .select('id, player_a_id, player_b_id, scheduled_at, is_full_day')
+    .eq('tournament_id', id)
+  await notifyNewFixtures(
+    admin,
+    (publishedMatches ?? []).map((m) => ({
+      id: m.id,
+      tournamentId: id,
+      playerAId: m.player_a_id as string,
+      playerBId: m.player_b_id,
+      scheduledAt: m.scheduled_at,
+      isFullDay: m.is_full_day,
+    })),
+  )
+
   revalidateAdmin(id)
   revalidatePath(`/tournaments/${t.slug}`)
   revalidatePath(`/tournaments/${t.slug}/bracket`)
