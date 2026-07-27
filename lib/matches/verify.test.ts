@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { prefillScore } from './verify'
+import { prefillScore, hasScoreMismatch } from './verify'
 
 describe('prefillScore', () => {
   it('pre-fills when both submissions agree', () => {
@@ -14,5 +14,23 @@ describe('prefillScore', () => {
   })
   it('returns null when there are no submissions', () => {
     expect(prefillScore(null, null)).toBeNull()
+  })
+})
+
+describe('hasScoreMismatch', () => {
+  it('is false when both submissions agree', () => {
+    expect(hasScoreMismatch([{ scoreA: 2, scoreB: 1 }, { scoreA: 2, scoreB: 1 }])).toBe(false)
+  })
+
+  it('is true when submissions disagree', () => {
+    expect(hasScoreMismatch([{ scoreA: 2, scoreB: 1 }, { scoreA: 1, scoreB: 1 }])).toBe(true)
+  })
+
+  it('is false with only one submission', () => {
+    expect(hasScoreMismatch([{ scoreA: 3, scoreB: 0 }])).toBe(false)
+  })
+
+  it('is false with no submissions', () => {
+    expect(hasScoreMismatch([])).toBe(false)
   })
 })
