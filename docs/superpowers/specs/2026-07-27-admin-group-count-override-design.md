@@ -28,8 +28,9 @@ Returns every group count that keeps each group within the documented 4–8-play
 - `n <= 8` → `[0]` (straight knockout only; no group-stage option).
 - `n > 8` → integers from `ceil(n/8)` to `floor(n/4)` inclusive.
 
-Worked cases: n=9 → `[2]` (ceil(9/8)=2, floor(9/4)=2). n=16 → `[2]`. n=17 → `[3,4]`. n=32 →
-`[4,5,6,7,8]`. n=33 → `[5,6,7,8]`. n=64 → `[8,9,10,11,12,13,14,15,16]` (the 4–8-per-group rule
+Worked cases: n=9 → `[2]` (ceil(9/8)=2, floor(9/4)=2). n=16 → `[2,3,4]` (ceil(16/8)=2,
+floor(16/4)=4). n=17 → `[3,4]`. n=32 → `[4,5,6,7,8]`. n=33 → `[5,6,7,8]`. n=64 →
+`[8,9,10,11,12,13,14,15,16]` (the 4–8-per-group rule
 applied uniformly extends past the documented 8-group tier at this size — not artificially capped,
 since the knockout stage already handles an arbitrary advancer count via byes, see
 `collectAdvancers`/`knockoutRound1`).
@@ -74,7 +75,7 @@ The publish form is unaffected — group count is fixed once generated/re-rolled
 ## Testing
 
 Vitest on `lib/tournaments/draw.ts`:
-- `validGroupCounts` boundaries: 8→`[0]`, 9→`[2]`, 16→`[2]`, 17→`[3,4]`, 32→`[4,5,6,7,8]`,
+- `validGroupCounts` boundaries: 8→`[0]`, 9→`[2]`, 16→`[2,3,4]`, 17→`[3,4]`, 32→`[4,5,6,7,8]`,
   33→`[5,6,7,8]`, 64→`[8,9,10,11,12,13,14,15,16]`.
 
 Vitest (or equivalent) on the resolution logic in `bracket-admin-actions.ts`:
