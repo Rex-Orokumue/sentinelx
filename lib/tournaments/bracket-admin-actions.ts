@@ -26,9 +26,14 @@ async function seededPaidPlayers(admin: Admin, tournamentId: string): Promise<st
 }
 
 async function clearBracket(admin: Admin, tournamentId: string): Promise<void> {
-  // Groups cascade to memberships + group matches; then remove knockout matches.
-  await admin.from('groups').delete().eq('tournament_id', tournamentId)
-  await admin.from('matches').delete().eq('tournament_id', tournamentId).is('group_id', null)
+  // Matches must go first: matches.group_id has no ON DELETE CASCADE, so deleting
+  // groups while matches still reference them fails the FK constraint. Deleting all
+  // matches (group-stage and knockout) up front makes the groups delete safe — groups
+  // cascade to group_memberships on their own.
+  const { error: matchesErr } = await admin.from('matches').delete().eq('tournament_id', tournamentId)
+  if (matchesErr) throw new Error(`Failed to clear existing matches: ${matchesErr.message}`)
+  const { error: groupsErr } = await admin.from('groups').delete().eq('tournament_id', tournamentId)
+  if (groupsErr) throw new Error(`Failed to clear existing groups: ${groupsErr.message}`)
 }
 
 async function generate(
@@ -121,7 +126,11 @@ export async function closeRegistration(
 
   const g = resolveGroupCount(parseGroupsField(formData), seeded.length)
   await admin.from('tournaments').update({ status: 'registration_closed' }).eq('id', id)
-  await generate(admin, id, seeded, g)
+  try {
+    await generate(admin, id, seeded, g)
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to generate the bracket.' }
+  }
   revalidateAdmin(id)
   return { success: true }
 }
@@ -144,7 +153,11 @@ export async function generateBracket(
   if (seeded.length > 64) return { error: 'At most 64 players are supported.' }
 
   const g = resolveGroupCount(parseGroupsField(formData), seeded.length)
-  await generate(admin, id, seeded, g)
+  try {
+    await generate(admin, id, seeded, g)
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to generate the bracket.' }
+  }
   revalidateAdmin(id)
   return { success: true }
 }
