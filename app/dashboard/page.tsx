@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { bucketFixtures, isTournamentPublished, type DashboardMatchInput } from '@/lib/dashboard/fixtures'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { ActiveFixtures, CompletedFixtures } from '@/components/dashboard/FixtureCard'
@@ -214,15 +215,22 @@ export default async function DashboardPage() {
   const visibleMatches = rawMatches.filter((mm) => isTournamentPublished(firstTournament(mm.tournament)?.status))
 
   // Opponent WhatsApp numbers are per-tournament registration data, not
-  // profile data — fetch every registration for the tournaments this player
-  // has matches in, then look each opponent up by (tournament_id, player_id).
+  // profile data. tournament_registrations RLS only lets a player read their
+  // OWN row (auth.uid() = player_id) — an opponent's number is invisible to
+  // the regular client, so this narrow lookup uses the service-role client,
+  // scoped to exactly the opponents in this player's own visible matches
+  // (never a blanket read of every registration).
   const matchTournamentIds = Array.from(new Set(visibleMatches.map((mm) => mm.tournament_id)))
+  const opponentIds = Array.from(
+    new Set(visibleMatches.map((mm) => (mm.player_a_id === user.id ? mm.player_b_id : mm.player_a_id))),
+  )
   const { data: regRows } =
-    matchTournamentIds.length > 0
-      ? await supabase
+    matchTournamentIds.length > 0 && opponentIds.length > 0
+      ? await createAdminClient()
           .from('tournament_registrations')
           .select('tournament_id, player_id, reg_whatsapp')
           .in('tournament_id', matchTournamentIds)
+          .in('player_id', opponentIds)
       : { data: [] as { tournament_id: string; player_id: string; reg_whatsapp: string | null }[] }
   const whatsappByKey = new Map((regRows ?? []).map((r) => [`${r.tournament_id}:${r.player_id}`, r.reg_whatsapp]))
 
