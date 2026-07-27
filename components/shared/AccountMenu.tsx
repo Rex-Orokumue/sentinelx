@@ -27,12 +27,20 @@ export function AccountMenu({ session }: { session: NavSession }) {
 
   if (!session.isLoggedIn) {
     return (
-      <Link
-        href="/login"
-        className="rounded-lg px-3 py-1.5 text-sm text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-      >
-        Log in
-      </Link>
+      <div className="flex items-center gap-2">
+        <Link
+          href="/login"
+          className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm font-bold text-slate-200 transition-colors hover:border-slate-500"
+        >
+          Login
+        </Link>
+        <Link
+          href="/signup"
+          className="rounded-lg bg-violet-600 px-3 py-1.5 text-sm font-bold text-white transition-colors hover:bg-violet-500"
+        >
+          Register
+        </Link>
+      </div>
     )
   }
 
