@@ -1,7 +1,12 @@
 import Link from 'next/link'
-import { buildOpponentWhatsAppUrl, type DashboardFixture } from '@/lib/dashboard/fixtures'
+import {
+  buildOpponentWhatsAppUrl,
+  groupFixturesByDate,
+  type DashboardFixture,
+  type FixtureDateGroup,
+} from '@/lib/dashboard/fixtures'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { formatDateTime } from '@/lib/format'
+import { formatFixtureDate } from '@/lib/format'
 import { ROUND_LABELS } from '@/lib/tournaments/bracket'
 
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -24,14 +29,20 @@ export function FixtureCard({ fixture }: { fixture: DashboardFixture }) {
     : null
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4 transition-colors hover:border-slate-600">
+    <div
+      className={`rounded-2xl border p-4 transition-colors ${
+        fixture.status === 'scheduled' && !fixture.matchDayReached
+          ? 'border-slate-800/60 bg-slate-900/60 opacity-60'
+          : 'border-slate-800 bg-slate-900 hover:border-slate-600'
+      }`}
+    >
       <Link href={`/matches/${fixture.id}`} className="block">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate font-bold text-white">vs {fixture.opponentName}</p>
             <p className="mt-0.5 truncate text-xs text-slate-500">
               {fixture.tournamentTitle} · {ROUND_LABELS[fixture.round] ?? fixture.round} ·{' '}
-              {formatDateTime(fixture.scheduledAt) ?? 'Time TBD'}
+              {formatFixtureDate(fixture.scheduledAt, fixture.isFullDay) ?? 'Time TBD'}
             </p>
           </div>
           {fixture.awaitingMyResult ? (
@@ -73,10 +84,13 @@ export function ActiveFixtures({
       />
     )
   }
+  const upcomingGroups = groupFixturesByDate(fixtures.upcoming)
   return (
     <div className="space-y-5">
       <Group label="Live" items={fixtures.live} />
-      <Group label="Upcoming" items={fixtures.upcoming} />
+      {upcomingGroups.map((g: FixtureDateGroup) => (
+        <Group key={g.dateLabel} label={g.dateLabel} items={g.fixtures} />
+      ))}
     </div>
   )
 }
