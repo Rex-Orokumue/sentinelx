@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { bucketFixtures, type DashboardMatchInput } from '@/lib/dashboard/fixtures'
+import { bucketFixtures, isTournamentPublished, type DashboardMatchInput } from '@/lib/dashboard/fixtures'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { ActiveFixtures, CompletedFixtures } from '@/components/dashboard/FixtureCard'
 import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection'
@@ -28,16 +28,32 @@ export const metadata: Metadata = {
 
 type ProfileRef = { id?: string; username: string | null; display_name: string | null } | null
 type TournamentRef =
-  | { title: string; slug: string; data_support_text: string | null; data_support_whatsapp: string | null }
-  | { title: string; slug: string; data_support_text: string | null; data_support_whatsapp: string | null }[]
+  | {
+      title: string
+      slug: string
+      status: string
+      data_support_text: string | null
+      data_support_whatsapp: string | null
+    }
+  | {
+      title: string
+      slug: string
+      status: string
+      data_support_text: string | null
+      data_support_whatsapp: string | null
+    }[]
   | null
 
 function nameOf(p: ProfileRef): string {
   return p?.display_name ?? p?.username ?? 'TBD'
 }
-function firstTournament(
-  t: TournamentRef,
-): { title: string; slug: string; data_support_text: string | null; data_support_whatsapp: string | null } | null {
+function firstTournament(t: TournamentRef): {
+  title: string
+  slug: string
+  status: string
+  data_support_text: string | null
+  data_support_whatsapp: string | null
+} | null {
   if (Array.isArray(t)) return t[0] ?? null
   return t
 }
@@ -94,7 +110,7 @@ export default async function DashboardPage() {
         'id, status, scheduled_at, round, tournament_id, player_a_id, player_b_id, ' +
           'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
           'player_b:profiles!matches_player_b_id_fkey(id, username, display_name), ' +
-          'tournament:tournaments(title, slug, data_support_text, data_support_whatsapp)',
+          'tournament:tournaments(title, slug, status, data_support_text, data_support_whatsapp)',
       )
       .or(`player_a_id.eq.${user.id},player_b_id.eq.${user.id}`),
     supabase.from('match_results').select('match_id').eq('submitted_by', user.id),
@@ -191,10 +207,15 @@ export default async function DashboardPage() {
     tournament: TournamentRef
   }[]
 
+  // A bracket generated at registration close (status 'registration_closed') is a
+  // staff-only preview until admin publishes it — hide those fixtures from the player
+  // dashboard the same way the public bracket page hides them from the public.
+  const visibleMatches = rawMatches.filter((mm) => isTournamentPublished(firstTournament(mm.tournament)?.status))
+
   // Opponent WhatsApp numbers are per-tournament registration data, not
   // profile data — fetch every registration for the tournaments this player
   // has matches in, then look each opponent up by (tournament_id, player_id).
-  const matchTournamentIds = Array.from(new Set(rawMatches.map((mm) => mm.tournament_id)))
+  const matchTournamentIds = Array.from(new Set(visibleMatches.map((mm) => mm.tournament_id)))
   const { data: regRows } =
     matchTournamentIds.length > 0
       ? await supabase
@@ -204,7 +225,7 @@ export default async function DashboardPage() {
       : { data: [] as { tournament_id: string; player_id: string; reg_whatsapp: string | null }[] }
   const whatsappByKey = new Map((regRows ?? []).map((r) => [`${r.tournament_id}:${r.player_id}`, r.reg_whatsapp]))
 
-  const matches: DashboardMatchInput[] = rawMatches.map((mm) => {
+  const matches: DashboardMatchInput[] = visibleMatches.map((mm) => {
     const opponentId = mm.player_a_id === user.id ? mm.player_b_id : mm.player_a_id
     const opponent = mm.player_a_id === user.id ? mm.player_b : mm.player_a
     const t = firstTournament(mm.tournament)
@@ -222,7 +243,7 @@ export default async function DashboardPage() {
   const fixtures = bucketFixtures(matches, submittedMatchIds, new Date())
 
   const dataSupportEligibility = computeDataSupportEligibility(
-    rawMatches.map((mm) => {
+    visibleMatches.map((mm) => {
       const t = firstTournament(mm.tournament)
       return {
         round: mm.round,

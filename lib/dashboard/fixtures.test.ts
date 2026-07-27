@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { bucketFixtures, toWhatsAppNumber, buildOpponentWhatsAppUrl, type DashboardMatchInput } from './fixtures'
+import {
+  bucketFixtures,
+  isTournamentPublished,
+  toWhatsAppNumber,
+  buildOpponentWhatsAppUrl,
+  type DashboardMatchInput,
+} from './fixtures'
 
 const NOW = new Date('2026-07-07T12:00:00Z')
 
@@ -103,6 +109,26 @@ describe('bucketFixtures — awaitingMyResult', () => {
       NOW,
     )
     expect(r.completed[0].awaitingMyResult).toBe(false)
+  })
+})
+
+describe('isTournamentPublished', () => {
+  it('hides a generated-but-unpublished bracket (registration_closed preview)', () => {
+    expect(isTournamentPublished('registration_closed')).toBe(false)
+  })
+  it('hides tournaments with no bracket yet', () => {
+    expect(isTournamentPublished('draft')).toBe(false)
+    expect(isTournamentPublished('registration_open')).toBe(false)
+  })
+  it('shows an active tournament', () => {
+    expect(isTournamentPublished('active')).toBe(true)
+  })
+  it('shows a completed tournament', () => {
+    expect(isTournamentPublished('completed')).toBe(true)
+  })
+  it('hides when the tournament reference is missing', () => {
+    expect(isTournamentPublished(null)).toBe(false)
+    expect(isTournamentPublished(undefined)).toBe(false)
   })
 })
 

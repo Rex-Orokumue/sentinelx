@@ -17,6 +17,14 @@ export interface DashboardFixture extends DashboardMatchInput {
 // ('verified' is a match_results status, kept here defensively.)
 const RESOLVED = new Set(['completed', 'verified', 'cancelled', 'disputed', 'bye'])
 
+// Mirrors the staff-only preview gate on the public bracket page: a bracket generated
+// at registration close (status 'registration_closed') is a staff-only preview until
+// admin publishes it (status 'active'/'completed'). A player's own fixtures must stay
+// hidden until then too, or re-rolling the draw pre-publish leaks matchups early.
+export function isTournamentPublished(status: string | null | undefined): boolean {
+  return status === 'active' || status === 'completed'
+}
+
 function awaitingMyResult(
   m: DashboardMatchInput,
   submitted: Set<string>,
