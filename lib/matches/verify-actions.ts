@@ -12,6 +12,7 @@ import {
   type AdvanceMatch,
 } from '@/lib/tournaments/advancement'
 import { knockoutRound1 } from '@/lib/tournaments/draw'
+import { nextRoundScheduledAt } from '@/lib/tournaments/round-schedule'
 import { sortStandings, type MembershipInput } from '@/lib/tournaments/standings'
 import { syncMatchEvents } from '@/lib/scoring/apply'
 import { notify } from '@/lib/notifications/notify'
@@ -117,6 +118,8 @@ async function recomputeGroupAndMaybeAdvance(
   const advancers = collectAdvancers(standingsPerGroup)
   if (advancers.length < 2) return
   const { round, matches, byePlayerIds } = knockoutRound1(advancers)
+  const roundDate = await nextRoundScheduledAt(admin, tournamentId)
+  const schedule = roundDate ? { scheduled_at: roundDate, is_full_day: true } : {}
   const rows = [
     ...matches.map(([a, b]) => ({
       tournament_id: tournamentId,
@@ -125,6 +128,7 @@ async function recomputeGroupAndMaybeAdvance(
       player_a_id: a,
       player_b_id: b,
       status: 'scheduled',
+      ...schedule,
     })),
     ...byePlayerIds.map((pid) => ({
       tournament_id: tournamentId,
@@ -133,6 +137,7 @@ async function recomputeGroupAndMaybeAdvance(
       player_a_id: pid,
       player_b_id: null,
       status: 'bye',
+      ...schedule,
     })),
   ]
   if (rows.length > 0) await admin.from('matches').insert(rows)
@@ -166,6 +171,8 @@ async function advanceKnockout(admin: Admin, tournamentId: string, round: string
     .filter(Boolean) as string[]
   const pairs = pairWinners(byeWinners, matchWinners)
   if (pairs.length === 0) return
+  const roundDate = await nextRoundScheduledAt(admin, tournamentId)
+  const schedule = roundDate ? { scheduled_at: roundDate, is_full_day: true } : {}
   await admin.from('matches').insert(
     pairs.map(([a, b]) => ({
       tournament_id: tournamentId,
@@ -174,6 +181,7 @@ async function advanceKnockout(admin: Admin, tournamentId: string, round: string
       player_a_id: a,
       player_b_id: b,
       status: 'scheduled',
+      ...schedule,
     })),
   )
 }
