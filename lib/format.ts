@@ -97,3 +97,8 @@ export function fromDateLocal(value: string | null | undefined): string | null {
   const d = new Date(`${value}T00:00:00${WAT_OFFSET}`)
   return Number.isNaN(d.getTime()) ? null : d.toISOString()
 }
+
+/** Today's date in WAT as "YYYY-MM-DD", for defaulting a date input. */
+export function todayDateLocal(): string {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: TZ })
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatNaira, fromDateLocal } from './format'
+import { formatNaira, fromDateLocal, todayDateLocal } from './format'
 
 describe('formatNaira', () => {
   it('prepends ₦ and groups thousands', () => {
@@ -23,5 +23,11 @@ describe('fromDateLocal', () => {
 
   it('returns null for invalid input', () => {
     expect(fromDateLocal('not-a-date')).toBeNull()
+  })
+})
+
+describe('todayDateLocal', () => {
+  it('returns a YYYY-MM-DD string', () => {
+    expect(todayDateLocal()).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 })

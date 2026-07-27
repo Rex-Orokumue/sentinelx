@@ -14,7 +14,7 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
   const supabase = createClient()
   const { data: t } = await supabase
     .from('tournaments')
-    .select('id, title, status')
+    .select('id, title, status, round_start_date, round_gap_days')
     .eq('id', params.id)
     .maybeSingle()
   if (!t) notFound()
@@ -43,7 +43,13 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
         {t.title} · <span className="text-slate-400">{t.status.replace(/_/g, ' ')}</span>
       </h2>
 
-      <BracketActions tournamentId={t.id} status={t.status} paidCount={paidCount ?? 0} />
+      <BracketActions
+        tournamentId={t.id}
+        status={t.status}
+        paidCount={paidCount ?? 0}
+        roundStartDate={t.round_start_date}
+        roundGapDays={t.round_gap_days}
+      />
 
       {!view.hasGroups && !view.hasKnockout ? (
         <p className="rounded-2xl border border-slate-800 bg-slate-900/50 p-8 text-center text-sm text-slate-500">
