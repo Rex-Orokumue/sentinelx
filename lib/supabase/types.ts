@@ -1299,6 +1299,8 @@ export type Database = {
           registration_end: string | null
           registration_fee: number
           registration_start: string | null
+          round_gap_days: number
+          round_start_date: string | null
           rules: string | null
           slug: string
           status: string
@@ -1321,6 +1323,8 @@ export type Database = {
           registration_end?: string | null
           registration_fee?: number
           registration_start?: string | null
+          round_gap_days?: number
+          round_start_date?: string | null
           rules?: string | null
           slug: string
           status?: string
@@ -1343,6 +1347,8 @@ export type Database = {
           registration_end?: string | null
           registration_fee?: number
           registration_start?: string | null
+          round_gap_days?: number
+          round_start_date?: string | null
           rules?: string | null
           slug?: string
           status?: string
