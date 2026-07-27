@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatNaira, fromDateLocal, todayDateLocal } from './format'
+import { formatNaira, fromDateLocal, todayDateLocal, formatFixtureDate } from './format'
 
 describe('formatNaira', () => {
   it('prepends ₦ and groups thousands', () => {
@@ -29,5 +29,21 @@ describe('fromDateLocal', () => {
 describe('todayDateLocal', () => {
   it('returns a YYYY-MM-DD string', () => {
     expect(todayDateLocal()).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+})
+
+describe('formatFixtureDate', () => {
+  it('returns date-only for a full-day match', () => {
+    expect(formatFixtureDate('2026-07-27T23:00:00.000Z', true)).toBe('28 Jul 2026')
+  })
+
+  it('returns date + time for a timed match', () => {
+    expect(formatFixtureDate('2026-07-08T19:00:00.000Z', false)).toBe('8 Jul, 20:00')
+  })
+
+  it('returns null for missing input regardless of isFullDay', () => {
+    expect(formatFixtureDate(null, true)).toBeNull()
+    expect(formatFixtureDate(null, false)).toBeNull()
+    expect(formatFixtureDate(undefined, true)).toBeNull()
   })
 })

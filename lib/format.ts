@@ -102,3 +102,15 @@ export function fromDateLocal(value: string | null | undefined): string | null {
 export function todayDateLocal(): string {
   return new Date().toLocaleDateString('sv-SE', { timeZone: TZ })
 }
+
+/**
+ * A fixture's display date: date-only for a full-day match ("28 Jul 2026"),
+ * date + time for a timed one ("8 Jul, 20:00"). Returns null for missing/
+ * invalid input — callers fall back to their own "Time TBD" copy.
+ */
+export function formatFixtureDate(
+  scheduledAt: string | null | undefined,
+  isFullDay: boolean,
+): string | null {
+  return isFullDay ? formatDate(scheduledAt) : formatDateTime(scheduledAt)
+}
