@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireStaff } from '@/lib/admin/auth'
-import { prefillScore } from '@/lib/matches/verify'
+import { prefillScore, hasScoreMismatch } from '@/lib/matches/verify'
 import { ResultReviewForms } from '@/components/admin/ResultReviewForms'
 
 export const metadata: Metadata = { title: 'Review · Admin · SentinelX' }
@@ -66,6 +66,7 @@ export default async function ReviewMatchPage({ params }: { params: { id: string
   const s0 = submissions[0] ? { scoreA: submissions[0].score_a, scoreB: submissions[0].score_b } : null
   const s1 = submissions[1] ? { scoreA: submissions[1].score_a, scoreB: submissions[1].score_b } : null
   const prefill = prefillScore(s0, s1)
+  const mismatch = hasScoreMismatch(submissions.map((s) => ({ scoreA: s.score_a, scoreB: s.score_b })))
 
   const playerA = nameOf(m.player_a)
   const playerB = nameOf(m.player_b)
@@ -83,6 +84,12 @@ export default async function ReviewMatchPage({ params }: { params: { id: string
       {m.admin_note && (
         <p className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
           Dispute note: {m.admin_note}
+        </p>
+      )}
+
+      {mismatch && (
+        <p className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm font-semibold text-amber-300">
+          ⚠️ Players reported different scores — review the evidence carefully before confirming.
         </p>
       )}
 
