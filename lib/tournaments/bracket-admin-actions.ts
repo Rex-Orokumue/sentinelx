@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireStaff } from '@/lib/admin/auth'
 import { resolveGroupCount, snakeDistribute, roundRobinPairs, knockoutRound1 } from './draw'
+import { nextRoundScheduledAt } from './round-schedule'
 
 export type BracketState = { error?: string; success?: boolean } | undefined
 
@@ -43,6 +44,8 @@ async function generate(
   g: number,
 ): Promise<void> {
   await clearBracket(admin, tournamentId)
+  const roundDate = await nextRoundScheduledAt(admin, tournamentId)
+  const schedule = roundDate ? { scheduled_at: roundDate, is_full_day: true } : {}
 
   if (g === 0) {
     const { round, matches, byePlayerIds } = knockoutRound1(seeded)
@@ -54,6 +57,7 @@ async function generate(
         player_a_id: a,
         player_b_id: b,
         status: 'scheduled',
+        ...schedule,
       })),
       ...byePlayerIds.map((pid) => ({
         tournament_id: tournamentId,
@@ -62,6 +66,7 @@ async function generate(
         player_a_id: pid,
         player_b_id: null,
         status: 'bye',
+        ...schedule,
       })),
     ]
     if (rows.length > 0) await admin.from('matches').insert(rows)
@@ -89,6 +94,7 @@ async function generate(
           player_a_id: a,
           player_b_id: b,
           status: 'scheduled',
+          ...schedule,
         })),
       )
     }
@@ -100,6 +106,17 @@ function parseGroupsField(formData: FormData): number | undefined {
   if (typeof raw !== 'string' || raw === '') return undefined
   const n = Number(raw)
   return Number.isFinite(n) ? n : undefined
+}
+
+function parseRoundStartDate(formData: FormData): string | null {
+  const raw = formData.get('roundStartDate')
+  return typeof raw === 'string' && raw !== '' ? raw : null
+}
+
+function parseRoundGapDays(formData: FormData): number {
+  const raw = formData.get('roundGapDays')
+  const n = typeof raw === 'string' ? Number(raw) : NaN
+  return Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1
 }
 
 function revalidateAdmin(tournamentId: string): void {
@@ -125,7 +142,16 @@ export async function closeRegistration(
   if (seeded.length > 64) return { error: 'At most 64 players are supported.' }
 
   const g = resolveGroupCount(parseGroupsField(formData), seeded.length)
-  await admin.from('tournaments').update({ status: 'registration_closed' }).eq('id', id)
+  const roundStartDate = parseRoundStartDate(formData)
+  const roundGapDays = parseRoundGapDays(formData)
+  await admin
+    .from('tournaments')
+    .update({
+      status: 'registration_closed',
+      round_start_date: roundStartDate,
+      round_gap_days: roundGapDays,
+    })
+    .eq('id', id)
   try {
     await generate(admin, id, seeded, g)
   } catch (e) {
@@ -153,6 +179,12 @@ export async function generateBracket(
   if (seeded.length > 64) return { error: 'At most 64 players are supported.' }
 
   const g = resolveGroupCount(parseGroupsField(formData), seeded.length)
+  const roundStartDate = parseRoundStartDate(formData)
+  const roundGapDays = parseRoundGapDays(formData)
+  await admin
+    .from('tournaments')
+    .update({ round_start_date: roundStartDate, round_gap_days: roundGapDays })
+    .eq('id', id)
   try {
     await generate(admin, id, seeded, g)
   } catch (e) {
