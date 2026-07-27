@@ -6,6 +6,27 @@ export function groupCountFor(n: number): 0 | 2 | 4 | 8 {
   return 8 // 33–64
 }
 
+// Every group count that keeps each group within the documented 4-8 players/group rule.
+// n<=8 -> [0] (straight knockout only, no group-stage option).
+export function validGroupCounts(n: number): number[] {
+  if (n <= 8) return [0]
+  const min = Math.ceil(n / 8)
+  const max = Math.floor(n / 4)
+  const out: number[] = []
+  for (let g = min; g <= max; g++) out.push(g)
+  return out
+}
+
+// An admin-submitted override wins if it's within the valid range for the seeded count;
+// otherwise fall back to the documented default tier. Never trust `requested` unchecked.
+export function resolveGroupCount(
+  requested: number | null | undefined,
+  seededCount: number,
+): number {
+  if (requested != null && validGroupCounts(seededCount).includes(requested)) return requested
+  return groupCountFor(seededCount)
+}
+
 // Snake draft: row 0 fills groups left→right, row 1 right→left, etc.
 export function snakeDistribute(orderedPlayerIds: string[], groups: number): string[][] {
   const out: string[][] = Array.from({ length: groups }, () => [])

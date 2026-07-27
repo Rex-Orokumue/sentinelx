@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { groupCountFor, snakeDistribute, roundRobinPairs, knockoutRound1 } from './draw'
+import {
+  groupCountFor,
+  validGroupCounts,
+  resolveGroupCount,
+  snakeDistribute,
+  roundRobinPairs,
+  knockoutRound1,
+} from './draw'
 
 describe('groupCountFor', () => {
   it('maps registered count to group count per the table', () => {
@@ -11,6 +18,33 @@ describe('groupCountFor', () => {
     expect(groupCountFor(32)).toBe(4)
     expect(groupCountFor(33)).toBe(8)
     expect(groupCountFor(64)).toBe(8)
+  })
+})
+
+describe('validGroupCounts', () => {
+  it('returns every group count that keeps groups within 4-8 players', () => {
+    expect(validGroupCounts(8)).toEqual([0])
+    expect(validGroupCounts(9)).toEqual([2])
+    expect(validGroupCounts(16)).toEqual([2, 3, 4])
+    expect(validGroupCounts(17)).toEqual([3, 4])
+    expect(validGroupCounts(32)).toEqual([4, 5, 6, 7, 8])
+    expect(validGroupCounts(33)).toEqual([5, 6, 7, 8])
+    expect(validGroupCounts(64)).toEqual([8, 9, 10, 11, 12, 13, 14, 15, 16])
+  })
+})
+
+describe('resolveGroupCount', () => {
+  it('uses a valid submitted override', () => {
+    expect(resolveGroupCount(8, 32)).toBe(8)
+    expect(resolveGroupCount(5, 32)).toBe(5)
+  })
+  it('falls back to the default tier when the override is out of range', () => {
+    expect(resolveGroupCount(3, 32)).toBe(4)
+    expect(resolveGroupCount(100, 32)).toBe(4)
+  })
+  it('falls back to the default tier when no override is submitted', () => {
+    expect(resolveGroupCount(undefined, 32)).toBe(4)
+    expect(resolveGroupCount(null, 32)).toBe(4)
   })
 })
 
