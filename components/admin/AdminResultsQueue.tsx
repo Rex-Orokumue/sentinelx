@@ -59,11 +59,20 @@ function Bucket({ title, items }: { title: string; items: ReviewMatchInput[] }) 
           <Link
             key={m.id}
             href={`/admin/matches/${m.id}/review`}
-            className="block rounded-2xl border border-slate-800 bg-slate-900 p-4 transition-colors hover:border-slate-600"
+            className={`block rounded-2xl border p-4 transition-colors hover:border-slate-600 ${
+              m.hasMismatch ? 'border-amber-500/40 bg-amber-500/[0.06]' : 'border-slate-800 bg-slate-900'
+            }`}
           >
-            <p className="truncate font-bold text-white">
-              {m.playerAName} <span className="text-slate-500">vs</span> {m.playerBName}
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="truncate font-bold text-white">
+                {m.playerAName} <span className="text-slate-500">vs</span> {m.playerBName}
+              </p>
+              {m.hasMismatch && (
+                <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-400">
+                  ⚠️ Mismatch
+                </span>
+              )}
+            </div>
             <p className="mt-0.5 truncate text-xs text-slate-500">
               {m.tournamentTitle} · {m.round.replace(/_/g, ' ')}
             </p>
