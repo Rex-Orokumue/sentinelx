@@ -103,12 +103,23 @@ export default async function MatchCentrePage({ params }: { params: { id: string
   const status = STATUS[m.status] ?? STATUS.scheduled
   const resultConfirmed = m.status === 'completed'
   const showScore = m.score_a != null && m.score_b != null
+  // Mirrors lib/dashboard/fixtures.ts's matchDayReached: an unset date is
+  // treated as "not reached" — nothing to compare against yet.
+  const dayReached = m.scheduled_at != null && new Date(m.scheduled_at).getTime() <= Date.now()
   const canSubmit =
     isParticipant &&
+    dayReached &&
     m.status !== 'cancelled' &&
     m.status !== 'bye' &&
     !resultConfirmed &&
     (!myResult || myResult.status === 'pending')
+  const waitingForMatchDay =
+    isParticipant &&
+    !dayReached &&
+    m.status !== 'cancelled' &&
+    m.status !== 'bye' &&
+    !resultConfirmed &&
+    !myResult
   const shareText = `${nameOf(m.player_a)} vs ${nameOf(m.player_b)} on Sentinel X 🎮 ${SITE_URL}/matches/${m.id}`
 
   return (
@@ -188,6 +199,17 @@ export default async function MatchCentrePage({ params }: { params: { id: string
                 : null
             }
           />
+        </div>
+      )}
+
+      {waitingForMatchDay && (
+        <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900 p-5 text-center">
+          <p className="text-sm font-bold text-white">This match hasn&apos;t started yet</p>
+          <p className="mt-1 text-sm text-slate-400">
+            {formatFixtureDate(m.scheduled_at, m.is_full_day) ??
+              "The date hasn't been set yet"}{' '}
+            — check back then to submit your result.
+          </p>
         </div>
       )}
 
