@@ -13,9 +13,10 @@ interface MatchRow {
   score_a: number | null
   score_b: number | null
   status: string
+  resolution: string | null
 }
 
-const MATCH_COLS = 'id, player_a_id, player_b_id, score_a, score_b, status'
+const MATCH_COLS = 'id, player_a_id, player_b_id, score_a, score_b, status, resolution'
 
 // Reuse getChampion's winner rule by shaping a raw final row into a BracketMatch.
 // Only ids are compared, so names are irrelevant.
@@ -118,7 +119,7 @@ export async function recomputeAllScoring(admin: Admin): Promise<{ players: numb
   const { data: matches } = await admin
     .from('matches')
     .select(MATCH_COLS)
-    .eq('status', 'completed')
+    .in('status', ['completed', 'forfeited'])
   for (const m of matches ?? []) {
     const events = matchEventsFor(m)
     if (events.length > 0) await admin.from('sentinel_score_events').insert(events)

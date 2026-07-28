@@ -4,3 +4,4 @@ export const reminderKey = (matchId: string, playerId: string) => `reminder:${ma
 export const fixtureKey = (matchId: string, playerId: string) => `fixture:${matchId}:${playerId}`
 export const resultKey = (matchId: string, playerId: string) => `result:${matchId}:${playerId}`
 export const prizeKey = (withdrawalId: string) => `prize:${withdrawalId}`
+export const disqualifyKey = (registrationId: string) => `disqualify:${registrationId}`
