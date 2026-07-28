@@ -28,7 +28,7 @@ function firstStr<T>(x: T | T[] | null): T | null {
   return Array.isArray(x) ? x[0] ?? null : x
 }
 
-function revalidateAll(tournamentId: string, slug: string, matchId: string): void {
+export function revalidateAll(tournamentId: string, slug: string, matchId: string): void {
   revalidatePath('/admin/results')
   revalidatePath(`/admin/matches/${matchId}/review`)
   revalidatePath(`/admin/tournaments/${tournamentId}/bracket`)
@@ -40,7 +40,7 @@ function revalidateAll(tournamentId: string, slug: string, matchId: string): voi
 }
 
 // Recompute one group's standings, then generate the knockout stage if the group stage is done.
-async function recomputeGroupAndMaybeAdvance(
+export async function recomputeGroupAndMaybeAdvance(
   admin: Admin,
   tournamentId: string,
   groupId: string,
@@ -161,7 +161,7 @@ async function recomputeGroupAndMaybeAdvance(
 }
 
 // Create the next knockout round once the current round is fully resolved.
-async function advanceKnockout(admin: Admin, tournamentId: string, round: string): Promise<void> {
+export async function advanceKnockout(admin: Admin, tournamentId: string, round: string): Promise<void> {
   const { data: roundMatches } = await admin
     .from('matches')
     .select('status, score_a, score_b, player_a_id, player_b_id')
@@ -186,22 +186,37 @@ async function advanceKnockout(admin: Admin, tournamentId: string, round: string
     .filter((m) => m.status === 'completed')
     .map((m) => matchWinnerId(m))
     .filter(Boolean) as string[]
-  const pairs = pairWinners(byeWinners, matchWinners)
-  if (pairs.length === 0) return
+  const { pairs, leftover } = pairWinners(byeWinners, matchWinners)
+  if (pairs.length === 0 && !leftover) return
   const roundDate = await nextRoundScheduledAt(admin, tournamentId)
   const schedule = roundDate ? { scheduled_at: roundDate, is_full_day: true } : {}
   const { data: inserted } = await admin
     .from('matches')
     .insert(
-      pairs.map(([a, b]) => ({
-        tournament_id: tournamentId,
-        round: nr,
-        group_id: null,
-        player_a_id: a,
-        player_b_id: b,
-        status: 'scheduled',
-        ...schedule,
-      })),
+      [
+        ...pairs.map(([a, b]) => ({
+          tournament_id: tournamentId,
+          round: nr,
+          group_id: null,
+          player_a_id: a,
+          player_b_id: b,
+          status: 'scheduled',
+          ...schedule,
+        })),
+        ...(leftover
+          ? [
+              {
+                tournament_id: tournamentId,
+                round: nr,
+                group_id: null,
+                player_a_id: leftover,
+                player_b_id: null,
+                status: 'bye',
+                ...schedule,
+              },
+            ]
+          : []),
+      ],
     )
     .select('id, player_a_id, player_b_id, scheduled_at, is_full_day')
   await notifyNewFixtures(
