@@ -102,7 +102,9 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase
       .from('profiles')
-      .select('username, display_name, avatar_url, whatsapp_number, country, bio, wins, losses, goals_scored')
+      .select(
+        'username, display_name, avatar_url, whatsapp_number, country, bio, wins, losses, goals_scored, phone_verified_at',
+      )
       .eq('id', user.id)
       .maybeSingle(),
     supabase
@@ -348,6 +350,7 @@ export default async function DashboardPage() {
           whatsapp: profile?.whatsapp_number ?? null,
           country: profile?.country ?? null,
           bio: profile?.bio ?? null,
+          phoneVerifiedAt: profile?.phone_verified_at ?? null,
         }}
       />
       <CollapsibleSection

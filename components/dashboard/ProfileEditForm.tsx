@@ -4,6 +4,7 @@ import { useFormState } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
 import { updateProfile, type ProfileEditState } from '@/lib/profile/actions'
 import { Avatar } from '@/components/shared/Avatar'
+import { PhoneVerifyForm } from '@/components/onboarding/PhoneVerifyForm'
 
 export interface EditableProfile {
   displayName: string | null
@@ -12,6 +13,7 @@ export interface EditableProfile {
   whatsapp: string | null
   country: string | null
   bio: string | null
+  phoneVerifiedAt: string | null
 }
 
 export function ProfileEditForm({ profile }: { profile: EditableProfile }) {
@@ -127,6 +129,20 @@ export function ProfileEditForm({ profile }: { profile: EditableProfile }) {
           Save changes
         </button>
       </form>
+
+      <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900 p-4">
+        <h3 className="mb-1 text-sm font-bold text-white">Phone verification</h3>
+        {profile.phoneVerifiedAt ? (
+          <p className="text-sm text-emerald-400">✓ Verified</p>
+        ) : (
+          <>
+            <p className="mb-3 text-sm text-slate-400">
+              Verify a phone number over WhatsApp — helps us reach you about fixtures and results.
+            </p>
+            <PhoneVerifyForm />
+          </>
+        )}
+      </div>
     </section>
   )
 }
