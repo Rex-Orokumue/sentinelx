@@ -1,5 +1,4 @@
 'use server'
-import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireStaff } from '@/lib/admin/auth'
 import { confirmScoreSchema } from './verify-schema'
@@ -20,23 +19,13 @@ import { notifyInApp } from '@/lib/notifications/inbox'
 import { resultKey } from '@/lib/notifications/keys'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 import { creditWallet } from '@/lib/wallet/service'
+import { revalidateAll } from './revalidate'
 
 export type VerifyState = { error?: string; success?: boolean } | undefined
 type Admin = ReturnType<typeof createAdminClient>
 
 function firstStr<T>(x: T | T[] | null): T | null {
   return Array.isArray(x) ? x[0] ?? null : x
-}
-
-export function revalidateAll(tournamentId: string, slug: string, matchId: string): void {
-  revalidatePath('/admin/results')
-  revalidatePath(`/admin/matches/${matchId}/review`)
-  revalidatePath(`/admin/tournaments/${tournamentId}/bracket`)
-  revalidatePath(`/matches/${matchId}`)
-  if (slug) {
-    revalidatePath(`/tournaments/${slug}`)
-    revalidatePath(`/tournaments/${slug}/bracket`)
-  }
 }
 
 // Recompute one group's standings, then generate the knockout stage if the group stage is done.

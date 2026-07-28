@@ -6,10 +6,11 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireStaff } from '@/lib/admin/auth'
 import { prefillScore, hasScoreMismatch } from '@/lib/matches/verify'
 import { ResultReviewForms } from '@/components/admin/ResultReviewForms'
+import { DeclareNoShowWinnerForm } from '@/components/admin/DeclareNoShowWinnerForm'
 
 export const metadata: Metadata = { title: 'Review · Admin · SentinelX' }
 
-type ProfileRef = { username: string | null; display_name: string | null } | null
+type ProfileRef = { id: string; username: string | null; display_name: string | null } | null
 function nameOf(p: ProfileRef): string {
   return p?.display_name ?? p?.username ?? 'TBD'
 }
@@ -20,9 +21,9 @@ export default async function ReviewMatchPage({ params }: { params: { id: string
   const { data: mRaw } = await supabase
     .from('matches')
     .select(
-      'id, status, admin_note, ' +
-        'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
-        'player_b:profiles!matches_player_b_id_fkey(username, display_name)',
+      'id, status, resolution, admin_note, ' +
+        'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
+        'player_b:profiles!matches_player_b_id_fkey(id, username, display_name)',
     )
     .eq('id', params.id)
     .maybeSingle()
@@ -30,6 +31,7 @@ export default async function ReviewMatchPage({ params }: { params: { id: string
   const m = mRaw as unknown as {
     id: string
     status: string
+    resolution: string | null
     admin_note: string | null
     player_a: ProfileRef
     player_b: ProfileRef
@@ -126,6 +128,18 @@ export default async function ReviewMatchPage({ params }: { params: { id: string
       </div>
 
       <ResultReviewForms matchId={m.id} playerAName={playerA} playerBName={playerB} prefill={prefill} />
+
+      {!(m.status === 'completed' && m.resolution === null) && (
+        <div className="mt-4">
+          <DeclareNoShowWinnerForm
+            matchId={m.id}
+            playerAId={m.player_a?.id ?? ''}
+            playerAName={playerA}
+            playerBId={m.player_b?.id ?? ''}
+            playerBName={playerB}
+          />
+        </div>
+      )}
     </section>
   )
 }
