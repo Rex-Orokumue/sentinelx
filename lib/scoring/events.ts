@@ -1,11 +1,12 @@
 // The only event types this engine generates automatically from a match result.
 // Used as the delete/regenerate discriminator so authored events (ratings, flags,
 // disputes) are never touched — even when they carry the same match_id.
-export const AUTO_MATCH_EVENT_TYPES = ['match_completed', 'win_no_dispute'] as const
+export const AUTO_MATCH_EVENT_TYPES = ['match_completed', 'win_no_dispute', 'no_show'] as const
 export type AutoMatchEventType = (typeof AUTO_MATCH_EVENT_TYPES)[number]
 
 export const MATCH_COMPLETED_DELTA = 2
 export const WIN_DELTA = 1
+export const NO_SHOW_DELTA = -10
 
 export interface NewMatchEvent {
   player_id: string
@@ -22,13 +23,35 @@ interface MatchInput {
   score_a: number | null
   score_b: number | null
   status: string
+  resolution: string | null
 }
 
 export function matchEventsFor(match: MatchInput): NewMatchEvent[] {
-  if (match.status !== 'completed') return []
-  const { id, player_a_id, player_b_id, score_a, score_b } = match
+  const { id, player_a_id, player_b_id, score_a, score_b, status, resolution } = match
+
+  // Knockout double-forfeit: both players no-showed, no score, both penalized.
+  if (status === 'forfeited') {
+    if (!player_a_id || !player_b_id) return []
+    return [noShowEvent(player_a_id, id), noShowEvent(player_b_id, id)]
+  }
+
+  if (status !== 'completed') return []
   // A completed match must have both players and both scores; a bye never does.
   if (!player_a_id || !player_b_id || score_a == null || score_b == null) return []
+
+  // Single no-show, admin-declared winner: the loser was penalized, not credited.
+  if (resolution === 'walkover') {
+    if (score_a === score_b) return []
+    const winnerId = score_a > score_b ? player_a_id : player_b_id
+    const loserId = score_a > score_b ? player_b_id : player_a_id
+    return [completedEvent(winnerId, id), noShowEvent(loserId, id)]
+  }
+
+  // Group double-no-show: recorded as a 0-0 draw for standings, but both
+  // players are penalized for not showing up, not credited for completing.
+  if (resolution === 'no_show_draw') {
+    return [noShowEvent(player_a_id, id), noShowEvent(player_b_id, id)]
+  }
 
   const events: NewMatchEvent[] = [completedEvent(player_a_id, id), completedEvent(player_b_id, id)]
 
@@ -51,6 +74,16 @@ function completedEvent(playerId: string, matchId: string): NewMatchEvent {
     match_id: matchId,
     event_type: 'match_completed',
     points_delta: MATCH_COMPLETED_DELTA,
+    note: null,
+  }
+}
+
+function noShowEvent(playerId: string, matchId: string): NewMatchEvent {
+  return {
+    player_id: playerId,
+    match_id: matchId,
+    event_type: 'no_show',
+    points_delta: NO_SHOW_DELTA,
     note: null,
   }
 }
