@@ -932,6 +932,44 @@ export type Database = {
           },
         ]
       }
+      phone_verifications: {
+        Row: {
+          attempts: number
+          code_hash: string
+          created_at: string
+          expires_at: string
+          id: string
+          phone: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          phone: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "phone_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_kyc: {
         Row: {
           kyc_failure_reason: string | null
@@ -1033,6 +1071,7 @@ export type Database = {
           kyc_verified: boolean
           losses: number
           phone: string | null
+          phone_verified_at: string | null
           referred_by: string | null
           sentinel_score: number
           sentinel_tier: string | null
@@ -1055,6 +1094,7 @@ export type Database = {
           kyc_verified?: boolean
           losses?: number
           phone?: string | null
+          phone_verified_at?: string | null
           referred_by?: string | null
           sentinel_score?: number
           sentinel_tier?: string | null
@@ -1077,6 +1117,7 @@ export type Database = {
           kyc_verified?: boolean
           losses?: number
           phone?: string | null
+          phone_verified_at?: string | null
           referred_by?: string | null
           sentinel_score?: number
           sentinel_tier?: string | null
