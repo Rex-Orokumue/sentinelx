@@ -77,8 +77,12 @@ knockout advance / `syncMatchEvents` / notify — factored into a shared helper 
 actions don't duplicate that pipeline.
 
 Available any time before the deadline cron would otherwise resolve the match. If proof
-arrives after the cron already ran (see below), admin uses the same action — it works on
-`forfeited`/`no_show_draw` matches too, overwriting the auto-resolution.
+arrives after the cron already ran, admin uses the same action to overwrite the
+auto-resolution — but this override is only safe for group-stage `no_show_draw` matches
+(update the match, re-run `recomputeGroupAndMaybeAdvance`, done) or a knockout `forfeited`
+match that **hasn't yet produced a next-round bye row**. Once `advanceKnockout` has run and
+inserted that bye, the match is locked — see the knockout override note below and the scope
+boundaries.
 
 ### Double no-show — group stage
 
@@ -108,6 +112,19 @@ one round deeper and knocks out a player who actually showed up. Two changes req
 Known, accepted edge case: if the *two* matches that would have paired into the same next-round
 slot are **both** forfeited, there are zero advancers for that slot and no automated fallback —
 admin resolves manually. Expected to happen approximately never; not worth engineering around.
+
+**Overriding a forfeit after the bye exists is out of scope.** `advanceKnockout` runs
+synchronously as part of resolving the round, so by the time late WhatsApp proof shows up, the
+leftover player's bye into the next round may already have been inserted. Reversing that
+cleanly means cancelling the orphaned bye row *and* re-triggering advancement from that point —
+correcting one match would otherwise leave two players credited with the same bracket slot.
+Given how rare this is, "Declare no-show winner" is simply **disabled once a knockout
+`forfeited` match's next-round bye row exists** (checked by looking for a `bye` row in the next
+round referencing the surviving player from the paired forfeit). Admin resolves the rare
+collision by hand: cancel the incorrect bye match, then re-run "Resolve pending matches" (or
+`confirmResult`) to regenerate advancement correctly. Group-stage `no_show_draw` overrides have
+no such lock — a group draw never generates downstream matches by itself, so it's always safe
+to correct.
 
 ### Sentinel Score wiring
 
@@ -207,7 +224,9 @@ disqualification notification.
 **Out:** in-app tracking of "contact attempts" (stays WhatsApp + admin judgment, per explicit
 decision); reopening a *normally* confirmed/reviewed match (only no-show-resolved matches are
 amendable via "Declare no-show winner"); automated resolution of the double-adjacent-forfeit
-dead end; a waitlist/queue of pre-vetted substitutes (admin picks any existing profile);
-non-full-day / time-slotted match deadline handling beyond the Lagos calendar-day rule (all
-generated matches are `is_full_day=true` today per `nextRoundScheduledAt` usage, so this covers
-the actual fixture set).
+dead end; **overriding a knockout `forfeited` match once its next-round bye row already
+exists** — locked, admin resolves by hand (cancel the bye, re-run advancement) rather than the
+system reconciling it automatically; a waitlist/queue of pre-vetted substitutes (admin picks
+any existing profile); non-full-day / time-slotted match deadline handling beyond the Lagos
+calendar-day rule (all generated matches are `is_full_day=true` today per
+`nextRoundScheduledAt` usage, so this covers the actual fixture set).
