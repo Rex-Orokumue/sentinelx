@@ -8,6 +8,7 @@ import { useUsernameAvailability } from '@/hooks/useUsernameAvailability'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { GoogleSignInButton } from './GoogleSignInButton'
 
 function Dots({ step }: { step: 1 | 2 | 3 }) {
   return (
@@ -90,6 +91,14 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
           Already have an account?{' '}
           <Link href="/login" className="text-violet-400 hover:text-violet-300">Log in</Link>
         </p>
+        <div className="mt-4 flex items-center gap-3">
+          <div className="h-px flex-1 bg-slate-800" />
+          <span className="text-xs text-slate-500">OR</span>
+          <div className="h-px flex-1 bg-slate-800" />
+        </div>
+        <div className="mt-4">
+          <GoogleSignInButton next="/dashboard" />
+        </div>
       </div>
 
       {/* Step 2 — email + password */}
