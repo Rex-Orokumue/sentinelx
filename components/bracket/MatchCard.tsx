@@ -8,6 +8,7 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   completed: { label: 'FT',        cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
   disputed:  { label: 'DISPUTED',  cls: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
   cancelled: { label: 'CANCELLED', cls: 'bg-slate-700/40 text-slate-500 border-slate-700/50' },
+  forfeited: { label: 'FORFEITED', cls: 'bg-slate-700/40 text-slate-400 border-slate-700/50' },
 }
 
 export function MatchCard({ match, showGroup = false }: { match: BracketMatch; showGroup?: boolean }) {
