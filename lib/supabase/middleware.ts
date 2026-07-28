@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from './types'
+import { resolveOnboardingGate } from '@/lib/onboarding/gate'
 
 const PROTECTED = ['/dashboard', '/admin']
 // Exact-match only — '/players/[username]' profile pages stay public (SEO,
@@ -47,6 +48,21 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     url.pathname = '/dashboard'
     url.search = ''
     return NextResponse.redirect(url)
+  }
+
+  if (user && path.startsWith('/dashboard')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', user.id)
+      .maybeSingle()
+    const gate = resolveOnboardingGate({ username: profile?.username ?? null })
+    if (gate) {
+      const url = request.nextUrl.clone()
+      url.pathname = gate
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
   }
 
   return response
