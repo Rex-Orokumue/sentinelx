@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
 import { ROUND_ORDER, ROUND_LABELS } from '@/lib/tournaments/bracket'
 import { MatchRow, type AdminMatchRow } from '@/components/admin/MatchRow'
+import { ResolvePendingMatchesButton } from '@/components/admin/ResolvePendingMatchesButton'
 import { toDateTimeLocal } from '@/lib/format'
 
 export const metadata: Metadata = { title: 'Matches · Admin · SentinelX' }
@@ -86,7 +87,10 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
       <Link href="/admin/tournaments" className="text-sm text-violet-400 hover:text-violet-300">
         ← Tournaments
       </Link>
-      <h2 className="mb-4 mt-2 text-base font-bold text-white">{t.title} · Matches</h2>
+      <div className="mb-4 mt-2 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-base font-bold text-white">{t.title} · Matches</h2>
+        <ResolvePendingMatchesButton tournamentId={t.id} />
+      </div>
 
       {sections.length === 0 ? (
         <p className="rounded-2xl border border-slate-800 bg-slate-900/50 p-8 text-center text-sm text-slate-500">
