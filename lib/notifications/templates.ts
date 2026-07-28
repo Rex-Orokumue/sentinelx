@@ -7,6 +7,7 @@ export type TemplateInput =
   | { type: 'escrow_sale'; title: string }
   | { type: 'escrow_completed'; title: string }
   | { type: 'escrow_refunded'; title: string }
+  | { type: 'player_disqualified'; tournament: string; reason: string }
 
 export interface RenderedTemplate {
   templateName: string
@@ -56,6 +57,11 @@ export function renderTemplate(input: TemplateInput): RenderedTemplate {
       return {
         templateName: 'escrow_refunded',
         body: `↩️ Your Sentinel X escrow order for "${input.title}" has been refunded. The money is on its way back to you.`,
+      }
+    case 'player_disqualified':
+      return {
+        templateName: 'player_disqualified',
+        body: `🚫 You've been removed from ${input.tournament} on Sentinel X. Reason: ${input.reason} If you think this is a mistake, reach out to support.`,
       }
   }
 }

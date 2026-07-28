@@ -22,4 +22,14 @@ describe('renderTemplate', () => {
     const r = renderTemplate({ type: 'prize_credited', amount: '₦10,000' })
     expect(r.body).toContain('₦10,000')
   })
+  it('renders player_disqualified', () => {
+    const r = renderTemplate({
+      type: 'player_disqualified',
+      tournament: 'Season 2 Cup',
+      reason: 'Repeated no-shows across group stage matches.',
+    })
+    expect(r.templateName).toBe('player_disqualified')
+    expect(r.body).toContain('Season 2 Cup')
+    expect(r.body).toContain('Repeated no-shows')
+  })
 })
