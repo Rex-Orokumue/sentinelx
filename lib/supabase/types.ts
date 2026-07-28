@@ -744,6 +744,7 @@ export type Database = {
           player_a_id: string | null
           player_b_id: string | null
           replay_url: string | null
+          resolution: string | null
           round: string
           scheduled_at: string | null
           score_a: number | null
@@ -764,6 +765,7 @@ export type Database = {
           player_a_id?: string | null
           player_b_id?: string | null
           replay_url?: string | null
+          resolution?: string | null
           round: string
           scheduled_at?: string | null
           score_a?: number | null
@@ -784,6 +786,7 @@ export type Database = {
           player_a_id?: string | null
           player_b_id?: string | null
           replay_url?: string | null
+          resolution?: string | null
           round?: string
           scheduled_at?: string | null
           score_a?: number | null
@@ -1229,6 +1232,8 @@ export type Database = {
       }
       tournament_registrations: {
         Row: {
+          disqualification_note: string | null
+          disqualified_at: string | null
           fee_waived: boolean
           id: string
           payment_status: string
@@ -1239,9 +1244,13 @@ export type Database = {
           reg_ign_tag: string | null
           reg_whatsapp: string | null
           registered_at: string
+          replaces_registration_id: string | null
+          status: string
           tournament_id: string
         }
         Insert: {
+          disqualification_note?: string | null
+          disqualified_at?: string | null
           fee_waived?: boolean
           id?: string
           payment_status?: string
@@ -1252,9 +1261,13 @@ export type Database = {
           reg_ign_tag?: string | null
           reg_whatsapp?: string | null
           registered_at?: string
+          replaces_registration_id?: string | null
+          status?: string
           tournament_id: string
         }
         Update: {
+          disqualification_note?: string | null
+          disqualified_at?: string | null
           fee_waived?: boolean
           id?: string
           payment_status?: string
@@ -1265,6 +1278,8 @@ export type Database = {
           reg_ign_tag?: string | null
           reg_whatsapp?: string | null
           registered_at?: string
+          replaces_registration_id?: string | null
+          status?: string
           tournament_id?: string
         }
         Relationships: [
@@ -1273,6 +1288,13 @@ export type Database = {
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_registrations_replaces_registration_id_fkey"
+            columns: ["replaces_registration_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_registrations"
             referencedColumns: ["id"]
           },
           {
