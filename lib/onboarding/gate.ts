@@ -1,7 +1,10 @@
-export type OnboardingGate = '/onboarding/username' | null
+export type OnboardingGate = '/onboarding/username' | '/onboarding/phone' | null
 
-// Extended in the phone-verification plan to also check phone_verified_at —
-// see docs/superpowers/plans/2026-07-28-phone-whatsapp-verification.md.
-export function resolveOnboardingGate(profile: { username: string | null }): OnboardingGate {
-  return profile.username === null ? '/onboarding/username' : null
+export function resolveOnboardingGate(profile: {
+  username: string | null
+  phoneVerifiedAt: string | null
+}): OnboardingGate {
+  if (profile.username === null) return '/onboarding/username'
+  if (profile.phoneVerifiedAt === null) return '/onboarding/phone'
+  return null
 }

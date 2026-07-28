@@ -53,10 +53,13 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   if (user && path.startsWith('/dashboard')) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('username')
+      .select('username, phone_verified_at')
       .eq('id', user.id)
       .maybeSingle()
-    const gate = resolveOnboardingGate({ username: profile?.username ?? null })
+    const gate = resolveOnboardingGate({
+      username: profile?.username ?? null,
+      phoneVerifiedAt: profile?.phone_verified_at ?? null,
+    })
     if (gate) {
       const url = request.nextUrl.clone()
       url.pathname = gate
