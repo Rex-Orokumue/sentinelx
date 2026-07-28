@@ -150,8 +150,23 @@ New `app/api/cron/resolve-noshow-matches/route.ts`, same bearer-secret pattern a
 `app/api/cron/fixture-reminders/route.ts:32-36`. Finds `matches` where `status IN ('scheduled',
 'live')` and the Africa/Lagos calendar date of `scheduled_at` has fully elapsed, and applies the
 group-draw or knockout-forfeit rule per match. Scheduled via `pg_cron`/`pg_net` the same
-out-of-band way as `fixture-reminders` (`docs/superpowers/specs/2026-07-10-whatsapp-notifications-design.md:101-113`),
-daily at `05 23 * * *` UTC (00:05 WAT, no DST in Nigeria).
+out-of-band way as `fixture-reminders` (`docs/superpowers/specs/2026-07-10-whatsapp-notifications-design.md:101-113`).
+
+**Runs hourly (`0 * * * *`), not daily as originally scoped.** Implementation discovered a
+pre-existing `pg_cron` job, `expire-full-day-matches` (also hourly), calling a Postgres function
+that sets `matches.status='cancelled', auto_expired=true` for any full-day match still
+`scheduled` a day past `scheduled_at` — missed during this spec's research. Running the new
+sweep only once daily would have let that hourly job win the race every time, flipping matches
+to `cancelled` before the sweep ever saw them as `scheduled`/`live`, silently defeating the
+feature. Resolved by retiring `expire-full-day-matches` (unscheduled; the function itself is
+left in place, just unused) and running `resolve-noshow-matches` hourly in its place — one
+mechanism now owns "what happens to a stale match," applying real rules (draw/forfeit/walkover)
+instead of a blank cancellation. `auto_expired` is read by `lib/matches/review-queue.ts` /
+`lib/admin/notification-queue.ts` / `app/admin/results/page.tsx` to route no-submission
+full-day matches into an admin "needs review" queue; no change was needed there, since the new
+sweep now resolves those matches directly and definitively before they'd ever need manual
+review — the queue simply stops receiving new entries via that path going forward, and
+historical rows are unaffected.
 
 Also exposed as a **"Resolve pending matches"** button on the tournament-scoped
 `app/admin/tournaments/[id]/matches/page.tsx` (not a global admin dashboard action — admin

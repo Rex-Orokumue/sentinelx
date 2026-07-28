@@ -955,14 +955,22 @@ git commit -m "feat: daily cron endpoint for no-show deadline resolution"
 
 **Files:** none (SQL run once via the Supabase MCP `execute_sql` tool or `psql`, not committed as a migration — mirrors how `fixture-reminders` was scheduled, `docs/superpowers/specs/2026-07-10-whatsapp-notifications-design.md:101-113`).
 
-- [ ] **Step 1: Run the scheduling SQL against the linked Supabase project**
+**Deviation discovered during execution:** the daily-cadence design above assumed no other mechanism was racing to touch stale matches. In practice there was already a live, hourly `pg_cron` job (`expire-full-day-matches`, `0 * * * *`) calling a Postgres function that sets `matches.status='cancelled', auto_expired=true` for any full-day match still `scheduled` a day past its `scheduled_at` — a pre-existing mechanism this plan's research (and the design spec) missed. Since it ran hourly and the new sweep was designed to run once daily, the old job would always win the race and flip matches to `cancelled` before `resolvePendingNoShowMatches` ever saw them as `scheduled`/`live` — silently defeating the whole feature. Resolved (user decision): retire `expire-full-day-matches` (unscheduled, function left in place but unused) and run `resolve-noshow-matches` on the same hourly cadence in its place — one mechanism now owns "what happens to a stale match," and it applies real rules (draw/forfeit/walkover) instead of a blank cancellation. Confirmed `auto_expired` is read by `lib/matches/review-queue.ts` / `lib/admin/notification-queue.ts` / `app/admin/results/page.tsx` to route no-submission full-day matches into an admin "needs review" queue — no code change needed there, since the new sweep now resolves those matches directly (to `completed`/`forfeited`) before they'd ever need manual review; the queue simply stops receiving new entries via that path (historical rows are unaffected).
 
-Substitute the real `CRON_SECRET` and deployed site URL:
+Also discovered: `CRON_SECRET` did not exist in Vercel at all — meaning the existing `fixture-reminders` cron (if ever scheduled) was 401ing on every call. A new secret was generated and added to Vercel (Production) by the user, who redeployed before scheduling.
+
+- [x] **Step 1: Unschedule the superseded job**
+
+```sql
+select cron.unschedule('expire-full-day-matches');
+```
+
+- [x] **Step 2: Run the scheduling SQL against the linked Supabase project** (hourly, not daily — see deviation above)
 
 ```sql
 select cron.schedule(
   'resolve-noshow-matches',
-  '5 23 * * *', -- 23:05 UTC = 00:05 WAT daily, no DST in Nigeria
+  '0 * * * *', -- hourly, replacing the retired expire-full-day-matches job
   $$
     select net.http_post(
       url := 'https://sentinelxesports.vercel.app/api/cron/resolve-noshow-matches',
@@ -972,12 +980,12 @@ select cron.schedule(
 );
 ```
 
-- [ ] **Step 2: Verify the job registered**
+- [x] **Step 3: Verify the job registered**
 
 Run: `select * from cron.job where jobname = 'resolve-noshow-matches';`
-Expected: one row, `schedule = '5 23 * * *'`, `active = true`.
+Confirmed: one row, `schedule = '0 * * * *'`, `active = true` (jobid 2).
 
-(No commit — this step is infrastructure configuration, not a code change.)
+(No commit for the SQL itself — infrastructure configuration, not a code change. The deviation and its reasoning are captured here and should be folded back into the design spec's Section B.)
 
 ---
 
