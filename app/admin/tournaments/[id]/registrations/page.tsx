@@ -28,7 +28,7 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
     supabase
       .from('tournament_registrations')
       .select(
-        'id, player_id, payment_status, registered_at, reg_display_name, reg_whatsapp, reg_club_name, reg_ign_tag, profiles(username)',
+        'id, player_id, payment_status, registered_at, reg_display_name, reg_whatsapp, reg_club_name, reg_ign_tag, status, replaces_registration_id, profiles(username)',
       )
       .eq('tournament_id', t.id)
       .order('registered_at', { ascending: false }),
@@ -49,6 +49,8 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
       reg_whatsapp: string | null
       reg_club_name: string | null
       reg_ign_tag: string | null
+      status: string
+      replaces_registration_id: string | null
       profiles: ProfileRef
     }
     return {
@@ -61,6 +63,8 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
       regIgnTag: r.reg_ign_tag,
       paymentStatus: r.payment_status,
       registeredAt: r.registered_at,
+      status: r.status,
+      replacesRegistrationId: r.replaces_registration_id,
     }
   })
 
@@ -110,7 +114,9 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
           rows={rows}
           tournamentId={t.id}
           tournamentStatus={t.status}
+          tournamentTitle={t.title}
           registrationFee={t.registration_fee}
+          isAdmin={ctx.isAdmin}
         />
       )}
     </section>

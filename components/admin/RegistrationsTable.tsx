@@ -4,6 +4,8 @@ import { matchesPlayerQuery } from '@/lib/admin/search'
 import { PlayerSearch } from './PlayerSearch'
 import { formatDateTime } from '@/lib/format'
 import { RefundButton } from './RefundButton'
+import { DisqualifyButton } from './DisqualifyButton'
+import { SubstituteForm } from './SubstituteForm'
 
 export interface AdminRegistrationRow {
   id: string
@@ -15,18 +17,24 @@ export interface AdminRegistrationRow {
   regIgnTag: string | null
   paymentStatus: string
   registeredAt: string
+  status: string
+  replacesRegistrationId: string | null
 }
 
 export function RegistrationsTable({
   rows,
   tournamentId,
   tournamentStatus,
+  tournamentTitle,
   registrationFee,
+  isAdmin,
 }: {
   rows: AdminRegistrationRow[]
   tournamentId: string
   tournamentStatus: string
+  tournamentTitle: string
   registrationFee: number
+  isAdmin: boolean
 }) {
   const [query, setQuery] = useState('')
   const filtered = rows.filter((r) =>
@@ -36,6 +44,7 @@ export function RegistrationsTable({
     ),
   )
   const showRefunds = tournamentStatus === 'cancelled'
+  const substitutedIds = new Set(rows.map((r) => r.replacesRegistrationId).filter(Boolean) as string[])
 
   return (
     <div>
@@ -54,6 +63,7 @@ export function RegistrationsTable({
                 <th className="px-2 py-2.5 text-left">Club</th>
                 <th className="px-2 py-2.5 text-left">IGN / Tag</th>
                 <th className="px-2 py-2.5 text-left">Payment</th>
+                <th className="px-2 py-2.5 text-left">Status</th>
                 <th className="px-3 py-2.5 text-left">Registered</th>
                 {showRefunds && <th className="px-3 py-2.5 text-left">Refund</th>}
               </tr>
@@ -68,6 +78,25 @@ export function RegistrationsTable({
                   <td className="px-2 py-2.5 text-slate-300">{r.regClubName ?? '—'}</td>
                   <td className="px-2 py-2.5 text-slate-300">{r.regIgnTag ?? '—'}</td>
                   <td className="px-2 py-2.5 capitalize text-slate-300">{r.paymentStatus}</td>
+                  <td className="px-2 py-2.5">
+                    {r.status === 'disqualified' ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-bold text-red-400">Disqualified</span>
+                        {isAdmin && !substitutedIds.has(r.id) && (
+                          <SubstituteForm tournamentId={tournamentId} disqualifiedRegistrationId={r.id} />
+                        )}
+                      </div>
+                    ) : isAdmin ? (
+                      <DisqualifyButton
+                        registrationId={r.id}
+                        tournamentId={tournamentId}
+                        playerId={r.playerId}
+                        tournamentTitle={tournamentTitle}
+                      />
+                    ) : (
+                      <span className="text-xs capitalize text-slate-400">{r.status}</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2.5 text-slate-400">{formatDateTime(r.registeredAt)}</td>
                   {showRefunds && (
                     <td className="px-3 py-2.5">
