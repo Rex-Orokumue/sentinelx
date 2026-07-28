@@ -60,7 +60,9 @@ Extend `updateSession()` in `lib/supabase/middleware.ts`. Immediately after the 
 
 `/onboarding/username` and `/onboarding/phone` are excluded from this check (otherwise it loops). Both pages are server components that check for a session at the top and `redirect('/login?next=...')` server-side if absent — a logged-out user hitting either URL directly is bounced before any form renders, no client-side flash.
 
-This gate applies to **every** authenticated player on their next visit to `/dashboard`, including pre-existing accounts created before this feature shipped — not just new signups. Accepted tradeoff: a player mid-tournament may see the phone-verification screen before their fixtures on their next login.
+**Existing players are grandfathered, not retroactively gated.** With an active community tournament running, forcing every existing player through a phone-verification wall on their next login — before they can see fixtures or submit a result — would be a real mid-tournament disruption for a requirement that didn't exist when they signed up. The migration in Section 4.1 backfills `phone_verified_at = now()` for every pre-existing `profiles` row, so the gate's `phone_verified_at IS NULL` check only ever fires for accounts created after this feature ships. Existing players are unaffected by the gate; they can add and verify a number voluntarily from Dashboard Settings (Section 4.4) whenever they choose.
+
+The username gate (`username IS NULL`) is unaffected by this and still applies to anyone with a null username, including retroactively — but in practice this is a Google-sign-in-only condition (every existing account already has a username from the current wizard), so no existing player is actually hit by it.
 
 ---
 
@@ -73,6 +75,11 @@ New migration, adding to `profiles`:
 ALTER TABLE public.profiles ADD COLUMN phone_verified_at timestamptz;
 -- profiles.phone already exists (text, currently unused by app code) —
 -- repurposed here to hold the verified, normalized number.
+
+-- Grandfather every account that exists before this feature ships — see
+-- Section 3. Only signups created AFTER this migration runs have a null
+-- phone_verified_at and are routed through the onboarding gate.
+UPDATE public.profiles SET phone_verified_at = now() WHERE phone_verified_at IS NULL;
 ```
 
 New table `phone_verifications` (ephemeral — one in-flight code per user, not permanent profile data):
@@ -125,8 +132,8 @@ Genuinely free per-message within Meta's Cloud API allowance — no Termii cost.
 
 ### 4.4 UI
 
-- **`/onboarding/phone`** — reached via the shared gate (Section 3), for both new Google/email signups and existing pre-feature accounts. Phone input → "Send code" → 6-digit input → "Verify".
-- **Dashboard Settings** — a matching "Phone number" field using the same request/confirm actions, for a player changing a previously-verified number later. Not gated — optional at that point since they already passed onboarding.
+- **`/onboarding/phone`** — reached via the shared gate (Section 3), for new signups (Google or email) created after this feature ships. Phone input → "Send code" → 6-digit input → "Verify".
+- **Dashboard Settings** — a matching "Phone number" field using the same request/confirm actions. This is the *only* path for grandfathered existing players to add/verify a number (entirely voluntary), and also how any player changes a previously-verified number later.
 - The signup wizard itself (`components/auth/SignupWizard.tsx`) is **unchanged** — phone verification cannot happen pre-email-confirmation because there's no verified identity yet to attach the number to. It happens post-confirmation, via the gate.
 
 ---
