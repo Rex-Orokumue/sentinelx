@@ -14,7 +14,7 @@ export function ResolvePendingMatchesButton({ tournamentId }: { tournamentId: st
         onClick={() => setConfirming(true)}
         className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-300 hover:border-slate-500"
       >
-        Resolve pending matches
+        Check for no-shows now
       </button>
     )
   }
@@ -22,7 +22,8 @@ export function ResolvePendingMatchesButton({ tournamentId }: { tournamentId: st
     <form action={action} className="flex flex-col items-start gap-1.5">
       <input type="hidden" name="tournamentId" value={tournamentId} />
       <p className="text-xs text-amber-400">
-        Auto-resolves any match past its deadline with no submitted result (group → 0-0 draw, knockout → forfeit). Continue?
+        Flags any match past its deadline with no confirmed result for your review — nothing is scored
+        automatically. Continue?
       </p>
       <div className="flex gap-1.5">
         <button
@@ -39,7 +40,7 @@ export function ResolvePendingMatchesButton({ tournamentId }: { tournamentId: st
           Cancel
         </button>
       </div>
-      {state?.success && <span className="text-xs text-emerald-400">Resolved {state.resolved} match(es).</span>}
+      {state?.success && <span className="text-xs text-emerald-400">Flagged {state.flagged} match(es) for review.</span>}
       {state?.error && <span className="text-xs text-red-400">{state.error}</span>}
     </form>
   )
