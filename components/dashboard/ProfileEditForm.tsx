@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { updateProfile, type ProfileEditState } from '@/lib/profile/actions'
 import { Avatar } from '@/components/shared/Avatar'
 import { PhoneVerifyForm } from '@/components/onboarding/PhoneVerifyForm'
+import { ENFORCE_PHONE_VERIFICATION } from '@/lib/onboarding/gate'
 
 export interface EditableProfile {
   displayName: string | null
@@ -130,19 +131,21 @@ export function ProfileEditForm({ profile }: { profile: EditableProfile }) {
         </button>
       </form>
 
-      <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900 p-4">
-        <h3 className="mb-1 text-sm font-bold text-white">Phone verification</h3>
-        {profile.phoneVerifiedAt ? (
-          <p className="text-sm text-emerald-400">✓ Verified</p>
-        ) : (
-          <>
-            <p className="mb-3 text-sm text-slate-400">
-              Verify a phone number over WhatsApp — helps us reach you about fixtures and results.
-            </p>
-            <PhoneVerifyForm />
-          </>
-        )}
-      </div>
+      {ENFORCE_PHONE_VERIFICATION && (
+        <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900 p-4">
+          <h3 className="mb-1 text-sm font-bold text-white">Phone verification</h3>
+          {profile.phoneVerifiedAt ? (
+            <p className="text-sm text-emerald-400">✓ Verified</p>
+          ) : (
+            <>
+              <p className="mb-3 text-sm text-slate-400">
+                Verify a phone number over WhatsApp — helps us reach you about fixtures and results.
+              </p>
+              <PhoneVerifyForm />
+            </>
+          )}
+        </div>
+      )}
     </section>
   )
 }
