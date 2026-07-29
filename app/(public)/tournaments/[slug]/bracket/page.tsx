@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getStaffContext } from '@/lib/admin/auth'
 import { loadBracketView } from '@/lib/tournaments/bracket-view'
 import { GroupStage } from '@/components/bracket/GroupStage'
-import { KnockoutBracket } from '@/components/bracket/KnockoutBracket'
+import { BracketTree } from '@/components/bracket/BracketTree'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
@@ -106,7 +106,7 @@ export default async function BracketPage({ params }: { params: { slug: string }
       ) : (
         <>
           {view.hasGroups && <GroupStage standings={view.standings} fixtures={view.fixtures} />}
-          {view.hasKnockout && <KnockoutBracket rounds={view.rounds} />}
+          {view.hasKnockout && <BracketTree rounds={view.rounds} />}
         </>
       )}
     </div>
