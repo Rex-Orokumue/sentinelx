@@ -75,8 +75,23 @@ Rewrite `resolvePendingNoShowMatches` in `lib/matches/noshow-actions.ts`:
 - Return `{ flagged: number }` (replaces `{ drawn, forfeited }`).
 
 The cron route (`app/api/cron/resolve-noshow-matches/route.ts`) and the `pg_cron` schedule stay
-exactly as wired (same path, same hourly cadence, same bearer-secret auth) — only the function
-body's effect changes, from "resolve" to "flag and alert."
+exactly as wired (same path, same bearer-secret auth) — only the function body's effect changes,
+from "resolve" to "flag and alert." Confirmed live against `cron.job` on 2026-07-29: the schedule
+is `0 * * * *` (hourly), matching the deviation documented in the original
+`2026-07-28-noshow-resolution-and-player-substitution-design.md` (Task 10 there retired a
+conflicting hourly `expire-full-day-matches` job and moved this sweep into its slot) — this spec
+doesn't change cadence, it inherits it.
+
+**Return-shape change — two callers to update:**
+`resolvePendingNoShowMatches`'s return changes from `{ drawn, forfeited }` to `{ flagged }`. Both
+existing callers destructure the old shape and need updating in the same change:
+- `app/api/cron/resolve-noshow-matches/route.ts:11` — `const { drawn, forfeited } = await
+  resolvePendingNoShowMatches(admin)` → `const { flagged } = ...`, response body becomes `{
+  flagged }`.
+- `triggerResolvePendingMatches` (`lib/matches/noshow-actions.ts:186`) — same destructure, and
+  its return shape `{ success: true, resolved: drawn + forfeited }` becomes `{ success: true,
+  flagged }`. `ResolvePendingMatchesButton`'s success copy needs to read "N matches flagged for
+  review" instead of implying anything was resolved.
 
 The admin "Resolve pending matches" button (`components/admin/ResolvePendingMatchesButton.tsx`)
 is relabeled **"Check for no-shows now"** — same underlying call, tournament-scoped, useful right
@@ -101,7 +116,13 @@ For the genuine rare case: both players confirmed silent, admin has tried to rea
 substitute makes sense (or none available yet).
 
 - New action alongside the existing `declareNoShowWinner` on `/admin/matches/[id]/review`,
-  usable only when `matches.noshow_flagged_at IS NOT NULL` and `status IN ('scheduled','live')`.
+  usable only when `matches.noshow_flagged_at IS NOT NULL`, `status IN ('scheduled','live')`,
+  **and no `match_results` row exists for this match**. Unlike `declareNoShowWinner` (which is
+  safe to run regardless of what either player submitted, since it always credits a specific
+  player), writing a *mutual* no-show when someone actually submitted a result would silently
+  discard real evidence and wrongly penalize the player who showed up — exactly the failure mode
+  this whole spec exists to prevent. If a submission exists, the action returns an error pointing
+  admin at "Declare no-show winner" or the normal confirm-result flow instead.
 - Required reason (same pattern as `declareNoShowWinner`'s reason field).
 - Writes exactly what the old automatic sweep used to write — group: `status='completed'`,
   `resolution='no_show_draw'`, `score_a=0, score_b=0`; knockout: `status='forfeited'` — then
@@ -136,7 +157,9 @@ and none are past deadline yet. No corrective/undo migration is needed for exist
 - `lib/matches/noshow-actions.ts` tests (new/updated) — the rewritten
   `resolvePendingNoShowMatches` asserts: `noshow_flagged_at` is set, `status`/`score_a`/`score_b`
   are untouched, and a `notify`/`notifyInApp` call fires per staff profile. A new
-  `markBothNoShow` action gets the same integration-test treatment as `declareNoShowWinner`.
+  `markBothNoShow` action gets the same integration-test treatment as `declareNoShowWinner`,
+  plus an explicit case asserting it's rejected with no mutation when a `match_results` row
+  exists for the match.
 - `lib/notifications/keys.test.ts` / `templates.test.ts` — add cases for `noshowKey` and
   `noshow_needs_decision` rendering, following the existing per-type pattern.
 - Cron route manual verification: stage a past-deadline match, POST to the route, confirm
