@@ -741,6 +741,7 @@ export type Database = {
           group_id: string | null
           id: string
           is_full_day: boolean
+          noshow_flagged_at: string | null
           player_a_id: string | null
           player_b_id: string | null
           replay_url: string | null
@@ -762,6 +763,7 @@ export type Database = {
           group_id?: string | null
           id?: string
           is_full_day?: boolean
+          noshow_flagged_at?: string | null
           player_a_id?: string | null
           player_b_id?: string | null
           replay_url?: string | null
@@ -783,6 +785,7 @@ export type Database = {
           group_id?: string | null
           id?: string
           is_full_day?: boolean
+          noshow_flagged_at?: string | null
           player_a_id?: string | null
           player_b_id?: string | null
           replay_url?: string | null
