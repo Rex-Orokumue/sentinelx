@@ -244,7 +244,17 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
 
   const { error: upErr } = await admin
     .from('matches')
-    .update({ score_a: scoreA, score_b: scoreB, status: 'completed', completed_at: new Date().toISOString() })
+    // resolution: null clears any prior 'walkover'/'no_show_draw' tag — a
+    // normally confirmed result supersedes it. Without this, matchEventsFor
+    // (lib/scoring/events.ts) keeps branching on the stale resolution and
+    // penalizes both players -10 regardless of the real score just entered.
+    .update({
+      score_a: scoreA,
+      score_b: scoreB,
+      status: 'completed',
+      resolution: null,
+      completed_at: new Date().toISOString(),
+    })
     .eq('id', id)
   if (upErr) return { error: 'Could not save the result. Please try again.' }
   await admin
