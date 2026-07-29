@@ -6,6 +6,7 @@ import { requireStaff } from '@/lib/admin/auth'
 import { ROUND_ORDER, ROUND_LABELS } from '@/lib/tournaments/bracket'
 import { MatchRow, type AdminMatchRow } from '@/components/admin/MatchRow'
 import { ResolvePendingMatchesButton } from '@/components/admin/ResolvePendingMatchesButton'
+import { NoShowBanner, type FlaggedMatchRow } from '@/components/admin/NoShowBanner'
 import { toDateTimeLocal } from '@/lib/format'
 
 export const metadata: Metadata = { title: 'Matches · Admin · SentinelX' }
@@ -68,6 +69,27 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
     }
   })
 
+  const { data: flaggedRaw } = await supabase
+    .from('matches')
+    .select(
+      'id, round, ' +
+        'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
+        'player_b:profiles!matches_player_b_id_fkey(username, display_name)',
+    )
+    .eq('tournament_id', t.id)
+    .not('noshow_flagged_at', 'is', null)
+    .in('status', ['scheduled', 'live'])
+
+  const flagged: FlaggedMatchRow[] = ((flaggedRaw as unknown[] | null) ?? []).map((raw) => {
+    const m = raw as { id: string; round: string; player_a: ProfileRef; player_b: ProfileRef }
+    return {
+      id: m.id,
+      playerAName: nameOf(m.player_a) ?? 'TBD',
+      playerBName: nameOf(m.player_b) ?? 'TBD',
+      round: m.round,
+    }
+  })
+
   const groupMatches = all.filter((x) => x.round === 'group')
   const groupNames = Array.from(
     new Set(groupMatches.map((x) => x.groupName).filter(Boolean)),
@@ -91,6 +113,8 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
         <h2 className="text-base font-bold text-white">{t.title} · Matches</h2>
         <ResolvePendingMatchesButton tournamentId={t.id} />
       </div>
+
+      <NoShowBanner matches={flagged} />
 
       {sections.length === 0 ? (
         <p className="rounded-2xl border border-slate-800 bg-slate-900/50 p-8 text-center text-sm text-slate-500">
