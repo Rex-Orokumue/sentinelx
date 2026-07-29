@@ -203,14 +203,28 @@ export default async function TournamentDetailPage({
         </div>
       )}
 
-      <a
-        href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 rounded-xl border border-[#25D366]/30 px-6 py-3 text-sm font-bold text-[#25D366] transition-colors hover:bg-[#25D366]/10"
-      >
-        Share on WhatsApp
-      </a>
+      <div className="flex flex-wrap gap-3">
+        <a
+          href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-xl border border-[#25D366]/30 px-6 py-3 text-sm font-bold text-[#25D366] transition-colors hover:bg-[#25D366]/10"
+        >
+          Share on WhatsApp
+        </a>
+        <Link
+          href={`/tournaments/${t.slug}/results`}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-6 py-3 text-sm font-bold text-slate-300 transition-colors hover:border-slate-500"
+        >
+          Results
+        </Link>
+        <Link
+          href={`/tournaments/${t.slug}/bracket`}
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-6 py-3 text-sm font-bold text-slate-300 transition-colors hover:border-slate-500"
+        >
+          Bracket
+        </Link>
+      </div>
     </div>
   )
 }
