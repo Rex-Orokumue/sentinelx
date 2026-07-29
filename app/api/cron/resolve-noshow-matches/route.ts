@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   }
 
   const admin = createAdminClient()
-  const { drawn, forfeited } = await resolvePendingNoShowMatches(admin)
+  const { flagged } = await resolvePendingNoShowMatches(admin)
 
-  return Response.json({ drawn, forfeited })
+  return Response.json({ flagged })
 }
