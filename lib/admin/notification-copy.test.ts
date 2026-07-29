@@ -3,6 +3,7 @@ import {
   exchangeListingNotification,
   resultNotification,
   withdrawalNotification,
+  noSubmissionNotification,
   sortByCreatedAtDesc,
   countByHref,
   type AdminNotificationItem,
@@ -51,6 +52,21 @@ describe('resultNotification', () => {
     expect(item.title).toBe('Result disputed')
     expect(item.link).toBe('/admin/results')
     expect(item.type).toBe('result_disputed')
+  })
+})
+
+describe('noSubmissionNotification', () => {
+  it('labels a no-submission match and links to the results queue', () => {
+    const item = noSubmissionNotification({
+      tournamentTitle: 'Lagos Cup',
+      playerAName: 'Ade',
+      playerBName: 'Bola',
+      createdAt: '2026-07-10T11:00:00Z',
+    })
+    expect(item.title).toBe('No result submitted')
+    expect(item.body).toBe('Lagos Cup — Ade vs Bola')
+    expect(item.link).toBe('/admin/results')
+    expect(item.type).toBe('result_no_submission')
   })
 })
 

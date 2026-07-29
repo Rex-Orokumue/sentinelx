@@ -4,6 +4,7 @@ export type AdminNotificationType =
   | 'exchange_listing_pending'
   | 'result_needs_review'
   | 'result_disputed'
+  | 'result_no_submission'
   | 'withdrawal_pending'
 
 export interface AdminNotificationItem {
@@ -18,6 +19,7 @@ const TYPE_LINK: Record<AdminNotificationType, string> = {
   exchange_listing_pending: '/admin/exchange',
   result_needs_review: '/admin/results',
   result_disputed: '/admin/results',
+  result_no_submission: '/admin/results',
   withdrawal_pending: '/admin/wallet',
 }
 
@@ -52,6 +54,21 @@ export function resultNotification(row: {
     title: RESULT_TITLE[row.type],
     body: `${row.tournamentTitle} — ${row.playerAName} vs ${row.playerBName}`,
     link: TYPE_LINK[row.type],
+    createdAt: row.createdAt,
+  }
+}
+
+export function noSubmissionNotification(row: {
+  tournamentTitle: string
+  playerAName: string
+  playerBName: string
+  createdAt: string
+}): AdminNotificationItem {
+  return {
+    type: 'result_no_submission',
+    title: 'No result submitted',
+    body: `${row.tournamentTitle} — ${row.playerAName} vs ${row.playerBName}`,
+    link: TYPE_LINK.result_no_submission,
     createdAt: row.createdAt,
   }
 }

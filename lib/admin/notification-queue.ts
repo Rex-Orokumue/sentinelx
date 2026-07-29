@@ -4,6 +4,7 @@ import {
   exchangeListingNotification,
   resultNotification,
   withdrawalNotification,
+  noSubmissionNotification,
   sortByCreatedAtDesc,
   type AdminNotificationItem,
 } from './notification-copy'
@@ -70,6 +71,7 @@ async function fetchResultItems(supabase: SupabaseClient): Promise<AdminNotifica
     scheduled_at: string | null
     is_full_day: boolean
     auto_expired: boolean
+    noshow_flagged_at: string | null
     created_at: string
     player_a: NameRef
     player_b: NameRef
@@ -80,7 +82,7 @@ async function fetchResultItems(supabase: SupabaseClient): Promise<AdminNotifica
   const { data } = await supabase
     .from('matches')
     .select(
-      'id, round, status, scheduled_at, is_full_day, auto_expired, created_at, ' +
+      'id, round, status, scheduled_at, is_full_day, auto_expired, noshow_flagged_at, created_at, ' +
         'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
         'player_b:profiles!matches_player_b_id_fkey(username, display_name), ' +
         'tournament:tournaments(title), match_results(count)',
@@ -105,15 +107,24 @@ async function fetchResultItems(supabase: SupabaseClient): Promise<AdminNotifica
       playerBName: nameOf(m.player_b),
       tournamentTitle: t?.title ?? 'Tournament',
       tournamentSlug: '',
+      noshowFlaggedAt: m.noshow_flagged_at,
     }
   })
 
-  const { needsReview, disputed } = bucketReviewQueue(reviewInputs, new Date())
+  const { needsReview, noSubmission, disputed } = bucketReviewQueue(reviewInputs, new Date())
 
   return [
     ...needsReview.map((m) =>
       resultNotification({
         type: 'result_needs_review',
+        tournamentTitle: m.tournamentTitle,
+        playerAName: m.playerAName,
+        playerBName: m.playerBName,
+        createdAt: createdAtById.get(m.id) ?? new Date().toISOString(),
+      }),
+    ),
+    ...noSubmission.map((m) =>
+      noSubmissionNotification({
         tournamentTitle: m.tournamentTitle,
         playerAName: m.playerAName,
         playerBName: m.playerBName,
