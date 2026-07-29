@@ -32,4 +32,17 @@ describe('renderTemplate', () => {
     expect(r.body).toContain('Season 2 Cup')
     expect(r.body).toContain('Repeated no-shows')
   })
+  it('renders noshow_needs_decision', () => {
+    const r = renderTemplate({
+      type: 'noshow_needs_decision',
+      tournament: 'Lagos Cup',
+      round: 'group',
+      playerA: 'Ade',
+      playerB: 'Bola',
+    })
+    expect(r.templateName).toBe('noshow_needs_decision')
+    expect(r.body).toContain('Lagos Cup')
+    expect(r.body).toContain('Ade')
+    expect(r.body).toContain('Bola')
+  })
 })

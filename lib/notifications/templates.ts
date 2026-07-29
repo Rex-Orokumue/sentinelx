@@ -8,6 +8,7 @@ export type TemplateInput =
   | { type: 'escrow_completed'; title: string }
   | { type: 'escrow_refunded'; title: string }
   | { type: 'player_disqualified'; tournament: string; reason: string }
+  | { type: 'noshow_needs_decision'; tournament: string; round: string; playerA: string; playerB: string }
 
 export interface RenderedTemplate {
   templateName: string
@@ -62,6 +63,11 @@ export function renderTemplate(input: TemplateInput): RenderedTemplate {
       return {
         templateName: 'player_disqualified',
         body: `🚫 You've been removed from ${input.tournament} on Sentinel X. Reason: ${input.reason} If you think this is a mistake, reach out to support.`,
+      }
+    case 'noshow_needs_decision':
+      return {
+        templateName: 'noshow_needs_decision',
+        body: `⚠️ No-show needs a decision: ${input.playerA} vs ${input.playerB} (${input.tournament}, ${input.round.replace(/_/g, ' ')}) passed its deadline with no confirmed result. Review it on the Sentinel X admin dashboard.`,
       }
   }
 }

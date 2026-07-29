@@ -5,3 +5,4 @@ export const fixtureKey = (matchId: string, playerId: string) => `fixture:${matc
 export const resultKey = (matchId: string, playerId: string) => `result:${matchId}:${playerId}`
 export const prizeKey = (withdrawalId: string) => `prize:${withdrawalId}`
 export const disqualifyKey = (registrationId: string) => `disqualify:${registrationId}`
+export const noshowKey = (matchId: string, staffId: string) => `noshow:${matchId}:${staffId}`

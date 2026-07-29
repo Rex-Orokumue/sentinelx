@@ -11,6 +11,7 @@ export type NotificationType =
   | 'wallet_credited'
   | 'fixture_assigned'
   | 'player_disqualified'
+  | 'noshow_needs_decision'
 
 // Best-effort — NEVER throws into the caller's primary action, mirroring
 // lib/notifications/notify.ts's WhatsApp helper. A failed in-app notification

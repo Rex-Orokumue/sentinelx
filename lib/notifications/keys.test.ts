@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { regKey, reminderKey, resultKey, prizeKey, disqualifyKey } from './keys'
+import { regKey, reminderKey, resultKey, prizeKey, disqualifyKey, noshowKey } from './keys'
 
 describe('dedupe keys', () => {
   it('formats each key type', () => {
@@ -8,5 +8,6 @@ describe('dedupe keys', () => {
     expect(resultKey('m1', 'p1')).toBe('result:m1:p1')
     expect(prizeKey('w1')).toBe('prize:w1')
     expect(disqualifyKey('reg1')).toBe('disqualify:reg1')
+    expect(noshowKey('m1', 'staff1')).toBe('noshow:m1:staff1')
   })
 })
