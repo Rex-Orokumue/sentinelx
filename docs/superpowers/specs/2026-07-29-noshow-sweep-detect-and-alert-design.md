@@ -57,6 +57,19 @@ no-show/substitution feature):
 - `lib/notifications/templates.ts`: new `TemplateInput` case `{ type: 'noshow_needs_decision';
   tournament: string; round: string; playerA: string; playerB: string }`.
 - `lib/notifications/keys.ts`: `noshowKey(matchId: string, staffId: string)`.
+
+**Deviation discovered during implementation:** the plan's Task 2 didn't account for two DB
+CHECK constraints gating these inserts — `player_notifications_type_check` and (a second,
+separate one on the WhatsApp send-log table) `notifications_type_check`. Without extending both,
+`notifyInApp()`/`notify()`'s inserts for `noshow_needs_decision` would fail the constraint and be
+silently swallowed by their existing best-effort `try/catch`, leaving no alert and no audit row —
+defeating the entire "you get told" requirement. Two additive migrations were added to cover
+this: `037_noshow_flagged_at.sql` → `038_noshow_needs_decision_notification_type.sql` (extends
+`player_notifications_type_check`) → `039_noshow_needs_decision_whatsapp_type.sql` (extends
+`notifications_type_check`). Confirmed via manual verification against an isolated throwaway
+match/tournament (created and fully cleaned up afterward) that both inserts succeed with these in
+place. Note in passing: `notifications_type_check` was already missing `player_disqualified` and
+`fixture_assigned` from earlier work — pre-existing, out of scope for this fix, not touched here.
 - `lib/notifications/inbox.ts`: add `'noshow_needs_decision'` to `NotificationType`.
 
 ## B. The sweep becomes detect-only
