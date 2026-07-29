@@ -1,16 +1,18 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import type { EmailOtpType } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveCallbackRedirect } from '@/lib/auth/redirect'
-import { notifyInApp } from '@/lib/notifications/inbox'
-import { creditWallet } from '@/lib/wallet/service'
-import { REFERRAL_CREDIT_NGN } from '@/lib/referrals/constants'
 
 // Server-side verification for email links (signup confirmation + password
 // recovery). Supabase email templates point here with a token_hash + type;
 // verifyOtp establishes the session via cookies — no URL fragment, no PKCE
 // code_verifier, no same-browser requirement.
+//
+// Referral credit deliberately does NOT fire here. It used to, which made a
+// confirmed email address alone worth ₦100 — farmable with throwaway inboxes,
+// and paid out even when the referred player only ever entered free
+// tournaments. It now fires from confirmRegistration (lib/tournaments/confirm.ts)
+// when the referred player actually pays to enter a tournament.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const token_hash = searchParams.get('token_hash')
@@ -19,55 +21,10 @@ export async function GET(request: NextRequest) {
 
   if (token_hash && type) {
     const supabase = createClient()
-    const { data, error } = await supabase.auth.verifyOtp({ type, token_hash })
+    const { error } = await supabase.auth.verifyOtp({ type, token_hash })
     if (!error) {
-      if (type === 'signup' && data.user) {
-        await creditReferralIfAny(data.user.id)
-      }
       return NextResponse.redirect(`${origin}${resolveCallbackRedirect({ type, next })}`)
     }
   }
   return NextResponse.redirect(`${origin}/login?error=auth`)
-}
-
-// The ₦100 referral credit fires here — at confirmed email, not raw signup
-// — so an abandoned/unverified signup never credits anyone. Uses the
-// service-role client since referrals has no client INSERT policy at all.
-// Idempotent via referrals.referred_id's UNIQUE constraint: a 23505 here
-// means this user was already credited (e.g. confirm route hit twice) and
-// is safe to ignore.
-async function creditReferralIfAny(userId: string): Promise<void> {
-  const admin = createAdminClient()
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('referred_by')
-    .eq('id', userId)
-    .maybeSingle()
-  if (!profile?.referred_by) return
-
-  const { data: referral, error } = await admin
-    .from('referrals')
-    .insert({ referrer_id: profile.referred_by, referred_id: userId })
-    .select('id')
-    .single()
-  if (error || !referral) {
-    if ((error as { code?: string })?.code !== '23505') {
-      console.error('[auth/confirm] referral credit failed', {
-        userId,
-        code: (error as { code?: string })?.code,
-        message: error?.message,
-      })
-    }
-    return
-  }
-
-  await creditWallet(admin, profile.referred_by, REFERRAL_CREDIT_NGN, 'referral', referral.id)
-
-  await notifyInApp({
-    playerId: profile.referred_by,
-    type: 'referral_credited',
-    title: 'Referral credited',
-    body: 'Someone you referred just joined Sentinel X — ₦100 added to your wallet.',
-    link: '/dashboard#referrals',
-  })
 }

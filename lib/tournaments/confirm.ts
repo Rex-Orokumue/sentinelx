@@ -2,6 +2,7 @@ import { verifyTransaction } from '@/lib/paystack/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notify } from '@/lib/notifications/notify'
 import { regKey } from '@/lib/notifications/keys'
+import { creditReferralForPaidEntry } from '@/lib/referrals/credit'
 
 export type ConfirmResult = 'confirmed' | 'already_paid' | 'not_found' | 'not_successful'
 
@@ -32,7 +33,7 @@ export async function confirmRegistration(reference: string): Promise<ConfirmRes
 
   const { data: existing } = await db
     .from('tournament_registrations')
-    .select('id, payment_status, player_id, tournament:tournaments(title, registration_fee)')
+    .select('id, payment_status, player_id, fee_waived, tournament:tournaments(title, registration_fee)')
     .eq('paystack_reference', reference)
     .maybeSingle()
 
@@ -71,11 +72,22 @@ export async function confirmRegistration(reference: string): Promise<ConfirmRes
   if (decision !== 'confirmed') return decision
 
   // Guard against races: only the pending → paid transition writes.
-  await db
+  const { data: claimed } = await db
     .from('tournament_registrations')
     .update({ payment_status: 'paid' })
     .eq('id', existing.id)
     .eq('payment_status', 'pending')
+    .select('id')
+
+  // Referral credit rides on the same claim, so only the call that actually
+  // flipped the row pays out — the callback and the webhook both land here for
+  // the same reference by design.
+  if (claimed && claimed.length > 0) {
+    await creditReferralForPaidEntry(db, existing.player_id, {
+      registrationFee: tournamentInfo?.registration_fee ?? 0,
+      feeWaived: existing.fee_waived ?? false,
+    })
+  }
 
   const tournamentTitle = tournamentInfo?.title ?? 'the tournament'
   await notify({

@@ -34,7 +34,10 @@ export function ReferralPanel({
       </div>
 
       <p className="mt-4 text-sm text-slate-300">
-        {referralCount} referral{referralCount === 1 ? '' : 's'} — each one adds ₦100 to your wallet.
+        {referralCount} referral{referralCount === 1 ? '' : 's'} earned — ₦100 each.
+      </p>
+      <p className="mt-1 text-xs text-slate-500">
+        You earn ₦100 when someone you referred pays to enter a tournament. Free entries don&apos;t count.
       </p>
 
       {referredPlayers.length > 0 && (
