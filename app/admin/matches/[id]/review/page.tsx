@@ -10,6 +10,7 @@ import { DeclareNoShowWinnerForm } from '@/components/admin/DeclareNoShowWinnerF
 import { MarkBothNoShowForm } from '@/components/admin/MarkBothNoShowForm'
 import { canMarkBothNoShow } from '@/lib/matches/noshow-eligibility'
 import { resolveBackLink } from '@/lib/nav/back-link'
+import { checkInVerdict, soleAttendee } from '@/lib/matches/check-in'
 
 export const metadata: Metadata = { title: 'Review · Admin · SentinelX' }
 
@@ -100,6 +101,22 @@ export default async function ReviewMatchPage({
 
   const playerA = nameOf(m.player_a)
   const playerB = nameOf(m.player_b)
+
+  // Who marked themselves present. The decisive evidence when exactly one
+  // player turned up — the case that used to be indistinguishable from a
+  // mutual no-show.
+  const { data: checkInRows } = await supabase
+    .from('match_check_ins')
+    .select('player_id, checked_in_at')
+    .eq('match_id', params.id)
+  const checkIns = (checkInRows ?? []) as { player_id: string; checked_in_at: string }[]
+  const checkInState = {
+    playerACheckedIn: checkIns.some((c) => c.player_id === m.player_a?.id),
+    playerBCheckedIn: checkIns.some((c) => c.player_id === m.player_b?.id),
+  }
+  const verdict = checkInVerdict(checkInState)
+  const attendee = soleAttendee(checkInState, m.player_a?.id ?? null, m.player_b?.id ?? null)
+  const attendeeName = attendee === m.player_a?.id ? playerA : attendee === m.player_b?.id ? playerB : null
   const eligibleForMutualNoShow = canMarkBothNoShow({
     status: m.status,
     noshowFlaggedAt: m.noshow_flagged_at,
@@ -127,6 +144,28 @@ export default async function ReviewMatchPage({
           ⚠️ Players reported different scores — review the evidence carefully before confirming.
         </p>
       )}
+
+      <div
+        className={`mb-4 rounded-xl border p-3 text-sm ${
+          verdict === 'one'
+            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+            : 'border-slate-800 bg-slate-900 text-slate-400'
+        }`}
+      >
+        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Check-in</p>
+        <p className="mt-1">
+          {verdict === 'one' ? (
+            <>
+              Only <span className="font-bold">{attendeeName}</span> checked in — their opponent never
+              marked themselves present.
+            </>
+          ) : verdict === 'both' ? (
+            'Both players checked in.'
+          ) : (
+            'Neither player checked in.'
+          )}
+        </p>
+      </div>
 
       <h3 className="mb-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">
         Submissions ({withUrls.length})

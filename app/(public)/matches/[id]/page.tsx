@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { VideoEmbed } from '@/components/match/VideoEmbed'
 import { ResultSubmissionForm } from '@/components/match/ResultSubmissionForm'
+import { CheckInPanel } from '@/components/match/CheckInPanel'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { SITE_URL } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
@@ -127,6 +128,21 @@ export default async function MatchCentrePage({
     m.status !== 'bye' &&
     !resultConfirmed &&
     !myResult
+  // Check-in evidence: who turned up. Public read, so the panel can show a
+  // participant whether their opponent has appeared.
+  const { data: checkInRows } = await supabase
+    .from('match_check_ins')
+    .select('player_id')
+    .eq('match_id', m.id)
+  const checkedInIds = new Set(((checkInRows ?? []) as { player_id: string }[]).map((r) => r.player_id))
+  const iCheckedIn = !!user && checkedInIds.has(user.id)
+  const opponentId = user?.id === m.player_a_id ? m.player_b_id : m.player_a_id
+  const opponentCheckedIn = !!opponentId && checkedInIds.has(opponentId)
+  // Shown while the match is still open — once it's resolved there's nothing
+  // left to be present for.
+  const showCheckIn =
+    isParticipant && dayReached && (m.status === 'scheduled' || m.status === 'live')
+
   const shareText = `${nameOf(m.player_a)} vs ${nameOf(m.player_b)} on Sentinel X 🎮 ${SITE_URL}/matches/${m.id}`
 
   // This page is entered from the bracket, the dashboard, a player profile and
@@ -202,6 +218,16 @@ export default async function MatchCentrePage({
         <div className="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-center text-sm font-semibold text-emerald-400">
           ✅ Result confirmed by an admin.
         </div>
+      )}
+
+      {/* Participant: presence, before any result exists to submit */}
+      {showCheckIn && (
+        <CheckInPanel
+          matchId={m.id}
+          alreadyCheckedIn={iCheckedIn}
+          opponentCheckedIn={opponentCheckedIn}
+          opponentName={user!.id === m.player_a_id ? nameOf(m.player_b) : nameOf(m.player_a)}
+        />
       )}
 
       {/* Participant: submission form or locked status */}

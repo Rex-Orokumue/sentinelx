@@ -665,6 +665,42 @@ export type Database = {
           },
         ]
       }
+      match_check_ins: {
+        Row: {
+          checked_in_at: string
+          id: string
+          match_id: string
+          player_id: string
+        }
+        Insert: {
+          checked_in_at?: string
+          id?: string
+          match_id: string
+          player_id: string
+        }
+        Update: {
+          checked_in_at?: string
+          id?: string
+          match_id?: string
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_check_ins_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_check_ins_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_results: {
         Row: {
           created_at: string
