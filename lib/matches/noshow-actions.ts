@@ -9,7 +9,8 @@ import { revalidateAll } from './revalidate'
 import { syncMatchEvents } from '@/lib/scoring/apply'
 import { notify } from '@/lib/notifications/notify'
 import { notifyInApp } from '@/lib/notifications/inbox'
-import { resultKey } from '@/lib/notifications/keys'
+import { resultKey, noshowKey } from '@/lib/notifications/keys'
+import { getNotifiableStaffIds } from '@/lib/admin/staff'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -19,61 +20,83 @@ interface PendingMatch {
   round: string
   group_id: string | null
   scheduled_at: string | null
+  player_a:
+    | { display_name: string | null; username: string | null }
+    | { display_name: string | null; username: string | null }[]
+    | null
+  player_b:
+    | { display_name: string | null; username: string | null }
+    | { display_name: string | null; username: string | null }[]
+    | null
+  tournament: { title: string } | { title: string }[] | null
 }
 
-// The deadline sweep: any scheduled/live match whose WAT day has fully
-// elapsed gets auto-resolved — a group match becomes a 0-0 no_show_draw,
-// a knockout match becomes 'forfeited' (both players eliminated, no
-// advancer — see advanceKnockout's leftover-to-bye handling). Called by
-// both the daily cron and the admin "Resolve pending matches" button —
-// the system must never depend on the cron alone.
+function firstOf<T>(x: T | T[] | null): T | null {
+  return Array.isArray(x) ? x[0] ?? null : x
+}
+
+function nameOf(p: PendingMatch['player_a']): string {
+  const row = firstOf(p)
+  return row?.display_name ?? row?.username ?? 'TBD'
+}
+
+// The deadline sweep: flags any scheduled/live match whose WAT day has fully
+// elapsed and alerts staff. It NEVER writes a score or status — every
+// resolution (walkover, mutual no-show, or leaving it alone) is now an
+// explicit admin action (declareNoShowWinner / markBothNoShow). Called by
+// both the hourly cron (unchanged cadence) and the admin "Check for
+// no-shows now" button — the system must never depend on the cron alone.
 export async function resolvePendingNoShowMatches(
   admin: Admin,
   tournamentId?: string,
-): Promise<{ drawn: number; forfeited: number }> {
+): Promise<{ flagged: number }> {
   const now = new Date()
   let query = admin
     .from('matches')
-    .select('id, tournament_id, round, group_id, scheduled_at')
+    .select(
+      'id, tournament_id, round, group_id, scheduled_at, ' +
+        'player_a:profiles!matches_player_a_id_fkey(display_name, username), ' +
+        'player_b:profiles!matches_player_b_id_fkey(display_name, username), ' +
+        'tournament:tournaments(title)',
+    )
     .in('status', ['scheduled', 'live'])
     .not('scheduled_at', 'is', null)
+    .is('noshow_flagged_at', null)
   if (tournamentId) query = query.eq('tournament_id', tournamentId)
   const { data } = await query
 
-  let drawn = 0
-  let forfeited = 0
-  for (const m of (data ?? []) as PendingMatch[]) {
-    if (!noShowDeadlinePassed(m.scheduled_at, now)) continue
-    if (m.round === 'group') {
-      await admin
-        .from('matches')
-        .update({
-          status: 'completed',
-          resolution: 'no_show_draw',
-          score_a: 0,
-          score_b: 0,
-          completed_at: now.toISOString(),
-          admin_note: 'Auto-resolved: no result submitted by the match deadline.',
-        })
-        .eq('id', m.id)
-      if (m.group_id) await recomputeGroupAndMaybeAdvance(admin, m.tournament_id, m.group_id)
-      await syncMatchEvents(admin, m.id)
-      drawn += 1
-    } else {
-      await admin
-        .from('matches')
-        .update({
-          status: 'forfeited',
-          completed_at: now.toISOString(),
-          admin_note: 'Auto-resolved: no result submitted by the match deadline — both players forfeit.',
-        })
-        .eq('id', m.id)
-      await advanceKnockout(admin, m.tournament_id, m.round)
-      await syncMatchEvents(admin, m.id)
-      forfeited += 1
+  const pending = ((data as unknown[] | null) ?? []) as PendingMatch[]
+  const due = pending.filter((m) => noShowDeadlinePassed(m.scheduled_at, now))
+  if (due.length === 0) return { flagged: 0 }
+
+  const staffIds = await getNotifiableStaffIds(admin)
+
+  for (const m of due) {
+    await admin.from('matches').update({ noshow_flagged_at: now.toISOString() }).eq('id', m.id)
+
+    const tournamentTitle = firstOf(m.tournament)?.title ?? 'Tournament'
+    const playerA = nameOf(m.player_a)
+    const playerB = nameOf(m.player_b)
+    for (const staffId of staffIds) {
+      await notify({
+        type: 'noshow_needs_decision',
+        playerId: staffId,
+        dedupeKey: noshowKey(m.id, staffId),
+        tournament: tournamentTitle,
+        round: m.round,
+        playerA,
+        playerB,
+      })
+      await notifyInApp({
+        playerId: staffId,
+        type: 'noshow_needs_decision',
+        title: 'No-show needs a decision',
+        body: `${tournamentTitle} — ${playerA} vs ${playerB} passed its deadline with no confirmed result.`,
+        link: `/admin/matches/${m.id}/review`,
+      })
     }
   }
-  return { drawn, forfeited }
+  return { flagged: due.length }
 }
 
 export type NoShowState = { error?: string; success?: boolean } | undefined
@@ -173,19 +196,20 @@ export async function declareNoShowWinner(_prev: NoShowState, formData: FormData
   return { success: true }
 }
 
-export type ResolveState = { error?: string; success?: boolean; resolved?: number } | undefined
+export type ResolveState = { error?: string; success?: boolean; flagged?: number } | undefined
 
-// Manual fallback for the daily cron — the system must not depend on the
-// cron alone. Scoped to one tournament via the admin matches page.
+// Manual fallback for the hourly cron — "the system shouldn't fail" per the
+// design spec. Scoped to one tournament via the admin matches page. Only
+// flags stale matches for review; never resolves anything itself.
 export async function triggerResolvePendingMatches(_prev: ResolveState, formData: FormData): Promise<ResolveState> {
   await requireStaff()
   const tournamentId = String(formData.get('tournamentId') ?? '')
   if (!tournamentId) return { error: 'Missing tournament.' }
 
   const admin = createAdminClient()
-  const { drawn, forfeited } = await resolvePendingNoShowMatches(admin, tournamentId)
+  const { flagged } = await resolvePendingNoShowMatches(admin, tournamentId)
 
   revalidatePath(`/admin/tournaments/${tournamentId}/matches`)
-  revalidatePath(`/admin/tournaments/${tournamentId}/bracket`)
-  return { success: true, resolved: drawn + forfeited }
+  revalidatePath('/admin/results')
+  return { success: true, flagged }
 }
