@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
 import { RegistrationsTable, type AdminRegistrationRow } from '@/components/admin/RegistrationsTable'
+import { WaitlistPanel } from '@/components/admin/WaitlistPanel'
 import { WaiverForm } from '@/components/admin/WaiverForm'
 import { WaiverRow, type AdminWaiver } from '@/components/admin/WaiverRow'
 
@@ -68,6 +69,12 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
     }
   })
 
+  // Waitlisted players get their own panel — they're not competing yet, and
+  // burying them in the main table makes them impossible to find when a slot
+  // opens. The substitute autocomplete still reads from the same rows.
+  const waitlistRows = rows.filter((r) => r.status === 'waitlisted')
+  const registeredRows = rows.filter((r) => r.status !== 'waitlisted')
+
   const waivers: AdminWaiver[] = ((waiverRows as unknown[] | null) ?? []).map((raw) => {
     const w = raw as {
       id: string
@@ -105,18 +112,21 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
         </div>
       )}
 
-      {rows.length === 0 ? (
+      <WaitlistPanel rows={waitlistRows} />
+
+      {registeredRows.length === 0 ? (
         <p className="rounded-2xl border border-slate-800 bg-slate-900/50 p-8 text-center text-sm text-slate-500">
           No registrations yet.
         </p>
       ) : (
         <RegistrationsTable
-          rows={rows}
+          rows={registeredRows}
           tournamentId={t.id}
           tournamentStatus={t.status}
           tournamentTitle={t.title}
           registrationFee={t.registration_fee}
           isAdmin={ctx.isAdmin}
+          waitlistUsernames={waitlistRows.map((r) => r.username).filter((u): u is string => !!u)}
         />
       )}
     </section>

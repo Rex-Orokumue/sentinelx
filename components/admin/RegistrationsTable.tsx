@@ -28,6 +28,7 @@ export function RegistrationsTable({
   tournamentTitle,
   registrationFee,
   isAdmin,
+  waitlistUsernames = [],
 }: {
   rows: AdminRegistrationRow[]
   tournamentId: string
@@ -35,6 +36,10 @@ export function RegistrationsTable({
   tournamentTitle: string
   registrationFee: number
   isAdmin: boolean
+  // Passed in rather than derived from `rows` — waitlisted players render in
+  // their own panel and are filtered out of this table, so they'd otherwise
+  // be missing from the substitute autocomplete.
+  waitlistUsernames?: string[]
 }) {
   const [query, setQuery] = useState('')
   const filtered = rows.filter((r) =>
@@ -45,10 +50,6 @@ export function RegistrationsTable({
   )
   const showRefunds = tournamentStatus === 'cancelled'
   const substitutedIds = new Set(rows.map((r) => r.replacesRegistrationId).filter(Boolean) as string[])
-  const waitlistedUsernames = rows
-    .filter((r) => r.status === 'waitlisted')
-    .map((r) => r.username)
-    .filter((u): u is string => !!u)
 
   return (
     <div>
@@ -90,7 +91,7 @@ export function RegistrationsTable({
                           <SubstituteForm
                             tournamentId={tournamentId}
                             disqualifiedRegistrationId={r.id}
-                            waitlistUsernames={waitlistedUsernames}
+                            waitlistUsernames={waitlistUsernames}
                           />
                         )}
                       </div>
