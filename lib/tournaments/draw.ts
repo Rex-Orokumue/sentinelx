@@ -56,8 +56,14 @@ function nextPow2(n: number): number {
 
 // First knockout round from seeded players. bracketSize = next power of 2 >= n;
 // the top (bracketSize - n) seeds get byes; the rest pair highest-vs-lowest.
+//
+// The round name MUST reflect the bracket size, because advancement walks
+// ROUND_ORDER forward from here and the tournament is treated as decided when
+// it reaches 'final'. Naming a 16-player bracket 'quarter_final' would land 4
+// survivors in a round called 'final' — two "final" matches, and confirmResult
+// pays the full prize pool on each one.
 export function knockoutRound1(orderedPlayerIds: string[]): {
-  round: 'final' | 'semi_final' | 'quarter_final'
+  round: 'final' | 'semi_final' | 'quarter_final' | 'round_of_16' | 'round_of_32'
   matches: [string, string][]
   byePlayerIds: string[]
 } {
@@ -68,6 +74,15 @@ export function knockoutRound1(orderedPlayerIds: string[]): {
   const playing = orderedPlayerIds.slice(byes)
   const matches: [string, string][] = []
   for (let i = 0, j = playing.length - 1; i < j; i++, j--) matches.push([playing[i], playing[j]])
-  const round = size <= 2 ? 'final' : size <= 4 ? 'semi_final' : 'quarter_final'
+  const round =
+    size <= 2
+      ? 'final'
+      : size <= 4
+        ? 'semi_final'
+        : size <= 8
+          ? 'quarter_final'
+          : size <= 16
+            ? 'round_of_16'
+            : 'round_of_32'
   return { round, matches, byePlayerIds }
 }

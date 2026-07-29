@@ -7,6 +7,7 @@ import {
   roundRobinPairs,
   knockoutRound1,
 } from './draw'
+import { nextRoundName } from './advancement'
 
 describe('groupCountFor', () => {
   it('maps registered count to group count per the table', () => {
@@ -105,5 +106,48 @@ describe('knockoutRound1', () => {
     expect(knockoutRound1(['a', 'b', 'c', 'd', 'e']).matches).toEqual([['d', 'e']])
     expect(knockoutRound1(['a', 'b', 'c', 'd', 'e', 'f', 'g']).byePlayerIds).toEqual(['a'])
     expect(knockoutRound1(['a', 'b', 'c', 'd', 'e', 'f', 'g']).matches.length).toBe(3)
+  })
+
+  // A 16-qualifier bracket (8 groups x top 2) is the standard shape for a
+  // 32-player tournament. Naming it 'quarter_final' put 4 survivors into a
+  // round called 'final', so confirmResult saw two "final" matches and paid
+  // the full prize pool on each.
+  it('names a 16-player bracket round_of_16, not quarter_final', () => {
+    const seeds = Array.from({ length: 16 }, (_, i) => `s${i + 1}`)
+    const r = knockoutRound1(seeds)
+    expect(r.round).toBe('round_of_16')
+    expect(r.byePlayerIds).toEqual([])
+    expect(r.matches.length).toBe(8)
+  })
+
+  it('names a 32-player bracket round_of_32', () => {
+    const seeds = Array.from({ length: 32 }, (_, i) => `s${i + 1}`)
+    const r = knockoutRound1(seeds)
+    expect(r.round).toBe('round_of_32')
+    expect(r.matches.length).toBe(16)
+  })
+
+  it('rounds a 9-16 player field up into round_of_16 with byes', () => {
+    const seeds = Array.from({ length: 12 }, (_, i) => `s${i + 1}`)
+    const r = knockoutRound1(seeds)
+    expect(r.round).toBe('round_of_16')
+    expect(r.byePlayerIds).toHaveLength(4)
+    expect(r.matches).toHaveLength(4)
+  })
+
+  // Walking ROUND_ORDER forward from the first round must land exactly one
+  // match in 'final' for every supported bracket size.
+  it('halves cleanly to a single final for every bracket size', () => {
+    for (const n of [2, 4, 8, 16, 32]) {
+      const seeds = Array.from({ length: n }, (_, i) => `s${i + 1}`)
+      const { round, matches } = knockoutRound1(seeds)
+      let count = matches.length
+      let current: string | null = round
+      while (current && current !== 'final') {
+        current = nextRoundName(current)
+        count = count / 2
+      }
+      expect({ n, current, count }).toEqual({ n, current: 'final', count: 1 })
+    }
   })
 })

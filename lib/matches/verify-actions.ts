@@ -275,22 +275,33 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
   } else if (isKnockout) {
     await advanceKnockout(admin, m.tournament_id, m.round)
     if (nextRoundName(m.round) === null) {
-      await admin.from('tournaments').update({ status: 'completed' }).eq('id', m.tournament_id)
+      // Claim the completion atomically — the prize is credited only by the
+      // call that actually flipped the tournament to 'completed'. A bracket
+      // that somehow lands more than one match in the 'final' round (or a
+      // double-confirm) would otherwise pay the full pool out once per match.
+      const { data: claimed } = await admin
+        .from('tournaments')
+        .update({ status: 'completed' })
+        .eq('id', m.tournament_id)
+        .neq('status', 'completed')
+        .select('id')
 
-      // Winner-take-all: the final's winner gets the full prize_pool. No
-      // placement tiers — a runner-up/3rd-place prize, if ever wanted, goes
-      // through the admin manual-credit path (adminCreditWallet), not an
-      // automated split.
-      const winnerId = matchWinnerId({
-        status: 'completed',
-        score_a: scoreA,
-        score_b: scoreB,
-        player_a_id: m.player_a_id,
-        player_b_id: m.player_b_id,
-      })
-      const prizePool = t?.prize_pool ?? 0
-      if (winnerId && prizePool > 0) {
-        await creditWallet(admin, winnerId, prizePool, 'prize', m.tournament_id)
+      if (claimed && claimed.length > 0) {
+        // Winner-take-all: the final's winner gets the full prize_pool. No
+        // placement tiers — a runner-up/3rd-place prize, if ever wanted, goes
+        // through the admin manual-credit path (adminCreditWallet), not an
+        // automated split.
+        const winnerId = matchWinnerId({
+          status: 'completed',
+          score_a: scoreA,
+          score_b: scoreB,
+          player_a_id: m.player_a_id,
+          player_b_id: m.player_b_id,
+        })
+        const prizePool = t?.prize_pool ?? 0
+        if (winnerId && prizePool > 0) {
+          await creditWallet(admin, winnerId, prizePool, 'prize', m.tournament_id)
+        }
       }
     }
   }
