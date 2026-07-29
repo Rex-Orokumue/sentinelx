@@ -7,6 +7,10 @@ import {
   getChampion,
   type BracketMatch,
 } from './bracket'
+import { projectBracketRounds, type ProjectedRound } from './bracket-tree'
+
+// Top two of every group advance (sortStandings' advancingCount default).
+const ADVANCE_PER_GROUP = 2
 
 type ProfileRef = { id?: string; username: string | null; display_name: string | null } | null
 function nameOf(p: ProfileRef): string {
@@ -17,6 +21,9 @@ export interface BracketView {
   standings: { groupName: string; rows: StandingRow[] }[]
   fixtures: ReturnType<typeof splitFixturesByState>
   rounds: ReturnType<typeof orderKnockoutRounds>
+  // The knockout shape this tournament will end up with, so the chart can be
+  // drawn with empty slots before those rounds are generated.
+  projected: ProjectedRound[]
   champion: { id: string; name: string } | null
   hasGroups: boolean
   hasKnockout: boolean
@@ -125,12 +132,19 @@ export async function loadBracketView(
   const knockoutMatches = allMatches.filter((m) => m.round !== 'group')
   const rounds = orderKnockoutRounds(knockoutMatches)
 
+  const hasGroups = (groups ?? []).length > 0
+
   return {
     standings,
     fixtures: splitFixturesByState(groupMatches),
     rounds,
+    // Only groups let us know the eventual bracket size up front. A straight
+    // knockout has no group stage to qualify out of, so its chart is whatever
+    // rounds exist — buildBracketDisplay falls back to that on an empty
+    // projection.
+    projected: hasGroups ? projectBracketRounds((groups ?? []).length * ADVANCE_PER_GROUP) : [],
     champion: getChampion(allMatches),
-    hasGroups: (groups ?? []).length > 0,
+    hasGroups,
     hasKnockout: rounds.length > 0,
   }
 }

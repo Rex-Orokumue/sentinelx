@@ -48,10 +48,23 @@ export function roundRobinPairs(playerIds: string[]): [string, string][] {
   return pairs
 }
 
-function nextPow2(n: number): number {
+export function nextPow2(n: number): number {
   let p = 1
   while (p < n) p *= 2
   return p
+}
+
+export type KnockoutRoundName = 'final' | 'semi_final' | 'quarter_final' | 'round_of_16' | 'round_of_32'
+
+// Single source of truth for "how many players are left" -> "what is this round
+// called". Both the live draw and the projected (not-yet-generated) bracket
+// shape read from here so the two can never disagree.
+export function roundNameForBracketSize(size: number): KnockoutRoundName {
+  if (size <= 2) return 'final'
+  if (size <= 4) return 'semi_final'
+  if (size <= 8) return 'quarter_final'
+  if (size <= 16) return 'round_of_16'
+  return 'round_of_32'
 }
 
 // First knockout round from seeded players. bracketSize = next power of 2 >= n;
@@ -63,7 +76,7 @@ function nextPow2(n: number): number {
 // survivors in a round called 'final' — two "final" matches, and confirmResult
 // pays the full prize pool on each one.
 export function knockoutRound1(orderedPlayerIds: string[]): {
-  round: 'final' | 'semi_final' | 'quarter_final' | 'round_of_16' | 'round_of_32'
+  round: KnockoutRoundName
   matches: [string, string][]
   byePlayerIds: string[]
 } {
@@ -74,15 +87,5 @@ export function knockoutRound1(orderedPlayerIds: string[]): {
   const playing = orderedPlayerIds.slice(byes)
   const matches: [string, string][] = []
   for (let i = 0, j = playing.length - 1; i < j; i++, j--) matches.push([playing[i], playing[j]])
-  const round =
-    size <= 2
-      ? 'final'
-      : size <= 4
-        ? 'semi_final'
-        : size <= 8
-          ? 'quarter_final'
-          : size <= 16
-            ? 'round_of_16'
-            : 'round_of_32'
-  return { round, matches, byePlayerIds }
+  return { round: roundNameForBracketSize(size), matches, byePlayerIds }
 }

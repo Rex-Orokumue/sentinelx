@@ -1,21 +1,23 @@
 import Link from 'next/link'
 import type { BracketMatch } from '@/lib/tournaments/bracket'
-import { buildBracketTree } from '@/lib/tournaments/bracket-tree'
+import { buildBracketDisplay, type ProjectedRound } from '@/lib/tournaments/bracket-tree'
 
-// A bracket is inherently wider than a phone, so the tree scrolls horizontally
-// rather than trying to squeeze rounds into 375px. Each round is a column of
-// equal-height bands: a band in one column lines up with the band it feeds in
-// the next, which is what makes the connectors land in the right place without
-// measuring anything at runtime.
+// The full knockout chart, drawn from the start with empty slots that fill in
+// as players advance — knockout rows are only created a round at a time, so
+// without the projected shape the bracket would be invisible until the group
+// stage ends. A bracket is wider than a phone, so it scrolls horizontally
+// rather than being squeezed into 375px.
 export function BracketTree({
   rounds,
+  projected = [],
   champion,
 }: {
   rounds: { round: string; label: string; matches: BracketMatch[] }[]
+  projected?: ProjectedRound[]
   champion?: { id: string; name: string } | null
 }) {
-  const tree = buildBracketTree(rounds)
-  if (tree.length === 0) return null
+  const display = buildBracketDisplay(rounds, projected)
+  if (display.length === 0) return null
 
   return (
     <section className="mb-10">
@@ -26,8 +28,8 @@ export function BracketTree({
 
       <div className="overflow-x-auto pb-3">
         <div className="flex min-w-max items-stretch">
-          {tree.map((round, roundIndex) => {
-            const isFinalColumn = roundIndex === tree.length - 1
+          {display.map((round, roundIndex) => {
+            const isFinalColumn = roundIndex === display.length - 1
             return (
               <div key={round.round} className="flex w-40 shrink-0 flex-col sm:w-48">
                 <h3 className="mb-2 px-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">
@@ -39,15 +41,18 @@ export function BracketTree({
                       key={`${round.round}-${groupIndex}`}
                       className={`relative flex flex-1 flex-col ${isFinalColumn ? '' : 'pr-4'}`}
                     >
-                      {group.map((m) => (
-                        // Each feeder takes an equal share of the band and
-                        // centres itself, so two feeders sit at 25% and 75% of
-                        // the band height — exactly where the connector expects.
-                        <div key={m.id} className="flex flex-1 items-center py-1">
-                          <MatchNode match={m} />
+                      {group.map((slot, slotIndex) => (
+                        // Each slot takes an equal share of the band and centres
+                        // itself, so two slots sit at 25% and 75% of the band
+                        // height — exactly where the connector expects them.
+                        <div
+                          key={slot?.id ?? `${round.round}-${groupIndex}-${slotIndex}`}
+                          className="flex flex-1 items-center py-1"
+                        >
+                          {slot ? <MatchNode match={slot} /> : <EmptySlot />}
                         </div>
                       ))}
-                      {!isFinalColumn && <Connector feederCount={group.length} />}
+                      {!isFinalColumn && group.length > 0 && <Connector slotCount={group.length} />}
                     </div>
                   ))}
                 </div>
@@ -67,17 +72,26 @@ export function BracketTree({
 }
 
 // Drawn in the column's right-hand gutter: a vertical spine joining the two
-// feeders, then a stub out to the next round at the midpoint between them.
-// With one feeder there is nothing to join, so only the stub is drawn.
-function Connector({ feederCount }: { feederCount: number }) {
-  if (feederCount === 0) return null
+// slots, then a stub out to the round they feed at the midpoint between them.
+function Connector({ slotCount }: { slotCount: number }) {
   return (
     <>
-      {feederCount > 1 && (
-        <span aria-hidden className="absolute right-4 top-1/4 h-1/2 w-px bg-slate-700" />
+      {slotCount > 1 && (
+        <span aria-hidden className="absolute right-4 top-1/4 h-1/2 w-px bg-slate-800" />
       )}
-      <span aria-hidden className="absolute right-0 top-1/2 h-px w-4 bg-slate-700" />
+      <span aria-hidden className="absolute right-0 top-1/2 h-px w-4 bg-slate-800" />
     </>
+  )
+}
+
+// A slot on the chart whose player hasn't been decided yet.
+function EmptySlot() {
+  return (
+    <div className="w-full rounded-lg border border-dashed border-slate-800 bg-slate-900/30">
+      <p className="px-2 py-1.5 text-xs text-slate-700">—</p>
+      <div className="h-px bg-slate-800/60" />
+      <p className="px-2 py-1.5 text-xs text-slate-700">—</p>
+    </div>
   )
 }
 

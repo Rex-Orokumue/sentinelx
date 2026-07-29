@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildBracketTree } from './bracket-tree'
+import { projectBracketRounds, buildBracketDisplay } from './bracket-tree'
 import type { BracketMatch } from './bracket'
 
 function match(id: string, aId: string, bId: string): BracketMatch {
@@ -18,105 +18,144 @@ function match(id: string, aId: string, bId: string): BracketMatch {
   }
 }
 
-describe('buildBracketTree', () => {
-  it('returns nothing for no rounds', () => {
-    expect(buildBracketTree([])).toEqual([])
-  })
+const ids = (round: { groups: (BracketMatch | null)[][] }) =>
+  round.groups.map((g) => g.map((m) => m?.id ?? null))
 
-  it('gives each match of a lone round its own group', () => {
-    const tree = buildBracketTree([
-      { round: 'final', label: 'Final', matches: [match('f', 'p1', 'p2')] },
+describe('projectBracketRounds', () => {
+  it('projects the full shape for 16 qualifiers (8 groups x top 2)', () => {
+    expect(projectBracketRounds(16)).toEqual([
+      { round: 'round_of_16', label: 'Round of 16', matchCount: 8 },
+      { round: 'quarter_final', label: 'Quarter-finals', matchCount: 4 },
+      { round: 'semi_final', label: 'Semi-finals', matchCount: 2 },
+      { round: 'final', label: 'Final', matchCount: 1 },
     ])
-    expect(tree).toHaveLength(1)
-    expect(tree[0].groups).toEqual([[match('f', 'p1', 'p2')]])
   })
 
-  it('orders an earlier round so each feeder pair sits opposite the match it feeds', () => {
-    // Semis: s1 = w(q3) vs w(q4), s2 = w(q1) vs w(q2) — deliberately not in
-    // quarter-final order, so a naive index-based pairing would get it wrong.
+  it('rounds a non-power-of-two field up to the next bracket size', () => {
+    expect(projectBracketRounds(6).map((r) => r.round)).toEqual([
+      'quarter_final',
+      'semi_final',
+      'final',
+    ])
+  })
+
+  it('projects a single final for two qualifiers, and nothing below that', () => {
+    expect(projectBracketRounds(2)).toEqual([{ round: 'final', label: 'Final', matchCount: 1 }])
+    expect(projectBracketRounds(1)).toEqual([])
+    expect(projectBracketRounds(0)).toEqual([])
+  })
+})
+
+describe('buildBracketDisplay', () => {
+  it('draws the whole chart as empty slots before any knockout match exists', () => {
+    const display = buildBracketDisplay([], projectBracketRounds(16))
+    expect(display.map((r) => r.round)).toEqual([
+      'round_of_16',
+      'quarter_final',
+      'semi_final',
+      'final',
+    ])
+    // 8 first-round matches = 4 groups of 2, all empty.
+    expect(display[0].groups).toHaveLength(4)
+    expect(display[0].groups.every((g) => g.length === 2 && g.every((s) => s === null))).toBe(true)
+    expect(display[3].groups).toEqual([[null]])
+  })
+
+  it('fills the generated round and leaves later rounds as empty slots', () => {
     const quarters = [
       match('q1', 'a', 'b'),
       match('q2', 'c', 'd'),
       match('q3', 'e', 'f'),
       match('q4', 'g', 'h'),
     ]
+    const display = buildBracketDisplay(
+      [{ round: 'quarter_final', label: 'Quarter-finals', matches: quarters }],
+      projectBracketRounds(8),
+    )
+    expect(display.map((r) => r.round)).toEqual(['quarter_final', 'semi_final', 'final'])
+    // All four played quarter-finals are on the chart...
+    expect(display[0].groups.flat().filter(Boolean)).toHaveLength(4)
+    // ...and the rounds they feed are drawn but still empty.
+    expect(display[1].groups.flat().every((s) => s === null)).toBe(true)
+    expect(display[2].groups).toEqual([[null]])
+  })
+
+  it('pairs feeders by player once the following round exists', () => {
+    const quarters = [
+      match('q1', 'a', 'b'),
+      match('q2', 'c', 'd'),
+      match('q3', 'e', 'f'),
+      match('q4', 'g', 'h'),
+    ]
+    // Semis deliberately out of quarter-final order: s1 takes q3/q4's winners.
     const semis = [match('s1', 'e', 'g'), match('s2', 'a', 'c')]
 
-    const tree = buildBracketTree([
-      { round: 'quarter_final', label: 'Quarter-finals', matches: quarters },
-      { round: 'semi_final', label: 'Semi-finals', matches: semis },
-    ])
-
-    expect(tree.map((r) => r.round)).toEqual(['quarter_final', 'semi_final'])
-    // Group 0 feeds s1, group 1 feeds s2 — following the semis' order.
-    expect(tree[0].groups.map((g) => g.map((m) => m.id))).toEqual([
+    const display = buildBracketDisplay(
+      [
+        { round: 'quarter_final', label: 'Quarter-finals', matches: quarters },
+        { round: 'semi_final', label: 'Semi-finals', matches: semis },
+      ],
+      projectBracketRounds(8),
+    )
+    expect(ids(display[0])).toEqual([
       ['q3', 'q4'],
       ['q1', 'q2'],
     ])
-    expect(tree[1].groups.map((g) => g.map((m) => m.id))).toEqual([['s1'], ['s2']])
+    expect(ids(display[1])).toEqual([['s1', 's2']])
   })
 
-  it('gives a slot a single feeder when the opponent arrived via an earlier bye', () => {
+  it('leaves the partner slot empty when a player advanced via a bye', () => {
     const quarters = [match('q1', 'a', 'b')]
-    // 'z' never played a quarter-final — they had a bye.
-    const semis = [match('s1', 'a', 'z')]
-
-    const tree = buildBracketTree([
-      { round: 'quarter_final', label: 'Quarter-finals', matches: quarters },
-      { round: 'semi_final', label: 'Semi-finals', matches: semis },
-    ])
-    expect(tree[0].groups.map((g) => g.map((m) => m.id))).toEqual([['q1']])
+    const semis = [match('s1', 'a', 'z')] // 'z' had a bye — no quarter-final
+    const display = buildBracketDisplay(
+      [
+        { round: 'quarter_final', label: 'Quarter-finals', matches: quarters },
+        { round: 'semi_final', label: 'Semi-finals', matches: semis },
+      ],
+      [],
+    )
+    expect(ids(display[0])).toEqual([['q1', null]])
   })
 
-  it('still places a match nobody advanced out of (double forfeit)', () => {
+  it('keeps a match nobody advanced out of on the chart (double forfeit)', () => {
     const quarters = [match('q1', 'a', 'b'), match('q2', 'c', 'd')]
-    // Only q1's winner advanced; q2 was forfeited by both players.
     const semis = [match('s1', 'a', 'z')]
-
-    const tree = buildBracketTree([
-      { round: 'quarter_final', label: 'Quarter-finals', matches: quarters },
-      { round: 'semi_final', label: 'Semi-finals', matches: semis },
-    ])
-    const ids = tree[0].groups.map((g) => g.map((m) => m.id))
-    expect(ids).toContainEqual(['q1'])
-    expect(ids).toContainEqual(['q2'])
-    expect(tree[0].groups.flat()).toHaveLength(2)
+    const display = buildBracketDisplay(
+      [
+        { round: 'quarter_final', label: 'Quarter-finals', matches: quarters },
+        { round: 'semi_final', label: 'Semi-finals', matches: semis },
+      ],
+      [],
+    )
+    const present = display[0].groups.flat().filter(Boolean).map((m) => m!.id)
+    expect(present).toContain('q1')
+    expect(present).toContain('q2')
   })
 
   it('never assigns the same feeder to two slots', () => {
     const quarters = [match('q1', 'a', 'b'), match('q2', 'c', 'd')]
-    // Malformed data: both semis claim 'a' as a participant.
-    const semis = [match('s1', 'a', 'c'), match('s2', 'a', 'd')]
-
-    const tree = buildBracketTree([
-      { round: 'quarter_final', label: 'Quarter-finals', matches: quarters },
-      { round: 'semi_final', label: 'Semi-finals', matches: semis },
-    ])
-    const flat = tree[0].groups.flat().map((m) => m.id)
+    const semis = [match('s1', 'a', 'c'), match('s2', 'a', 'd')] // malformed
+    const display = buildBracketDisplay(
+      [
+        { round: 'quarter_final', label: 'Quarter-finals', matches: quarters },
+        { round: 'semi_final', label: 'Semi-finals', matches: semis },
+      ],
+      projectBracketRounds(8),
+    )
+    const flat = display[0].groups.flat().filter(Boolean).map((m) => m!.id)
     expect(flat).toHaveLength(new Set(flat).size)
   })
 
-  it('links a three-round tree end to end', () => {
-    const quarters = [
-      match('q1', 'a', 'b'),
-      match('q2', 'c', 'd'),
-      match('q3', 'e', 'f'),
-      match('q4', 'g', 'h'),
-    ]
-    const semis = [match('s1', 'a', 'c'), match('s2', 'e', 'g')]
-    const final = [match('f1', 'a', 'e')]
+  it('falls back to the actual rounds when there is nothing to project', () => {
+    const display = buildBracketDisplay(
+      [{ round: 'final', label: 'Final', matches: [match('f', 'a', 'b')] }],
+      [],
+    )
+    expect(display.map((r) => r.round)).toEqual(['final'])
+    expect(ids(display[0])).toEqual([['f']])
+  })
 
-    const tree = buildBracketTree([
-      { round: 'quarter_final', label: 'Quarter-finals', matches: quarters },
-      { round: 'semi_final', label: 'Semi-finals', matches: semis },
-      { round: 'final', label: 'Final', matches: final },
-    ])
-
-    expect(tree[2].groups.map((g) => g.map((m) => m.id))).toEqual([['f1']])
-    expect(tree[1].groups.map((g) => g.map((m) => m.id))).toEqual([['s1', 's2']])
-    expect(tree[0].groups.map((g) => g.map((m) => m.id))).toEqual([
-      ['q1', 'q2'],
-      ['q3', 'q4'],
-    ])
+  it('returns nothing when there is neither a projection nor a match', () => {
+    expect(buildBracketDisplay([], [])).toEqual([])
   })
 })

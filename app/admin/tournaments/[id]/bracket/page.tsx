@@ -60,9 +60,9 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
           standings={view.standings}
           fixtures={view.fixtures}
           rounds={view.rounds}
+          projected={view.projected}
           champion={view.champion}
           hasGroups={view.hasGroups}
-          hasKnockout={view.hasKnockout}
         />
       )}
     </section>

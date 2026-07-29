@@ -10,10 +10,10 @@ export function AdminBracketView({
   standings,
   fixtures,
   rounds,
+  projected,
   champion,
   hasGroups,
-  hasKnockout,
-}: Pick<BracketView, 'standings' | 'fixtures' | 'rounds' | 'champion' | 'hasGroups' | 'hasKnockout'>) {
+}: Pick<BracketView, 'standings' | 'fixtures' | 'rounds' | 'projected' | 'champion' | 'hasGroups'>) {
   const [query, setQuery] = useState('')
   const filteredStandings = standings.map((g) => ({
     groupName: g.groupName,
@@ -28,7 +28,7 @@ export function AdminBracketView({
         <PlayerSearch value={query} onChange={setQuery} placeholder="Search players by name or club…" />
       )}
       {hasGroups && <GroupStage standings={filteredStandings} fixtures={fixtures} />}
-      {hasKnockout && <BracketTree rounds={rounds} champion={champion} />}
+      <BracketTree rounds={rounds} projected={projected} champion={champion} />
     </>
   )
 }

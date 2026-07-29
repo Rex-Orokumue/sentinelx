@@ -106,7 +106,7 @@ export default async function BracketPage({ params }: { params: { slug: string }
       ) : (
         <>
           {view.hasGroups && <GroupStage standings={view.standings} fixtures={view.fixtures} />}
-          {view.hasKnockout && <BracketTree rounds={view.rounds} />}
+          <BracketTree rounds={view.rounds} projected={view.projected} />
         </>
       )}
     </div>
