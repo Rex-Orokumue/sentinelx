@@ -92,25 +92,55 @@ export async function addSubstitute(_prev: DisqualifyState, formData: FormData):
 
   const { data: sub } = await admin
     .from('profiles')
-    .select('id')
+    .select('id, display_name, username, whatsapp_number')
     .ilike('username', parsed.data.username)
     .maybeSingle()
   if (!sub) return { error: `No player found with username "${parsed.data.username}".` }
   if (sub.id === removedReg.player_id) return { error: 'The substitute cannot be the removed player.' }
 
-  const { error: insErr } = await admin.from('tournament_registrations').insert({
-    tournament_id: tournamentId,
-    player_id: sub.id,
-    payment_status: 'paid',
-    fee_waived: false,
-    status: 'active',
-    replaces_registration_id: removedReg.id,
-  })
-  if (insErr) {
-    if ((insErr as { code?: string }).code === '23505') {
-      return { error: 'This player is already registered for this tournament.' }
+  // A player who already joined the waitlist for this tournament has a
+  // registration row with their reg_* details already captured — promote
+  // that row in place instead of inserting a second one, which would
+  // violate the tournament_id + player_id unique constraint.
+  const { data: waitlisted } = await admin
+    .from('tournament_registrations')
+    .select('id')
+    .eq('tournament_id', tournamentId)
+    .eq('player_id', sub.id)
+    .eq('status', 'waitlisted')
+    .maybeSingle()
+
+  if (waitlisted) {
+    const { error: upErr } = await admin
+      .from('tournament_registrations')
+      .update({
+        status: 'active',
+        payment_status: 'paid',
+        fee_waived: false,
+        replaces_registration_id: removedReg.id,
+      })
+      .eq('id', waitlisted.id)
+    if (upErr) return { error: 'Could not register the substitute. Please try again.' }
+  } else {
+    // Not gathered by any form for an admin-picked substitute (unlike a
+    // normal self-registration or a waitlist join) — best-effort backfill
+    // from the player's profile so the registrations table isn't left blank.
+    const { error: insErr } = await admin.from('tournament_registrations').insert({
+      tournament_id: tournamentId,
+      player_id: sub.id,
+      payment_status: 'paid',
+      fee_waived: false,
+      status: 'active',
+      replaces_registration_id: removedReg.id,
+      reg_display_name: sub.display_name ?? sub.username,
+      reg_whatsapp: sub.whatsapp_number,
+    })
+    if (insErr) {
+      if ((insErr as { code?: string }).code === '23505') {
+        return { error: 'This player is already registered for this tournament.' }
+      }
+      return { error: 'Could not register the substitute. Please try again.' }
     }
-    return { error: 'Could not register the substitute. Please try again.' }
   }
 
   // Reassign not-yet-played matches to the substitute.
