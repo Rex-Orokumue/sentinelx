@@ -45,6 +45,10 @@ export function RegistrationsTable({
   )
   const showRefunds = tournamentStatus === 'cancelled'
   const substitutedIds = new Set(rows.map((r) => r.replacesRegistrationId).filter(Boolean) as string[])
+  const waitlistedUsernames = rows
+    .filter((r) => r.status === 'waitlisted')
+    .map((r) => r.username)
+    .filter((u): u is string => !!u)
 
   return (
     <div>
@@ -83,9 +87,15 @@ export function RegistrationsTable({
                       <div className="flex flex-col gap-1">
                         <span className="text-xs font-bold text-red-400">Disqualified</span>
                         {isAdmin && !substitutedIds.has(r.id) && (
-                          <SubstituteForm tournamentId={tournamentId} disqualifiedRegistrationId={r.id} />
+                          <SubstituteForm
+                            tournamentId={tournamentId}
+                            disqualifiedRegistrationId={r.id}
+                            waitlistUsernames={waitlistedUsernames}
+                          />
                         )}
                       </div>
+                    ) : r.status === 'waitlisted' ? (
+                      <span className="text-xs font-bold text-amber-400">Waitlisted</span>
                     ) : isAdmin ? (
                       <DisqualifyButton
                         registrationId={r.id}

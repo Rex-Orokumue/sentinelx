@@ -2,6 +2,7 @@
 import Link from 'next/link'
 import { useFormState, useFormStatus } from 'react-dom'
 import { registerForTournament, type RegisterState } from '@/lib/tournaments/actions'
+import { joinWaitlist, type JoinWaitlistState } from '@/lib/tournaments/waitlist-actions'
 import type { RegView } from '@/lib/tournaments/view'
 import { formatNaira } from '@/lib/format'
 import { Field } from '@/components/dashboard/FormField'
@@ -29,6 +30,7 @@ export function RegistrationPanel({
   loginHref,
   prefill,
   hasRules,
+  loggedIn,
 }: {
   view: RegView
   tournamentId: string
@@ -37,6 +39,7 @@ export function RegistrationPanel({
   loginHref: string
   prefill: { displayName: string; whatsapp: string }
   hasRules: boolean
+  loggedIn: boolean
 }) {
   const bracketHref = `/tournaments/${slug}/bracket`
 
@@ -79,6 +82,17 @@ export function RegistrationPanel({
     )
   }
 
+  if (view === 'waitlisted') {
+    return (
+      <div className={box}>
+        <p className="text-center text-sm font-bold text-amber-400">✓ You&apos;re on the waitlist</p>
+        <p className="mt-2 text-center text-xs text-slate-500">
+          We&apos;ll reach out on WhatsApp if a spot opens up.
+        </p>
+      </div>
+    )
+  }
+
   if (view === 'registered') {
     return (
       <div className={box}>
@@ -108,6 +122,11 @@ export function RegistrationPanel({
         ? 'This tournament has ended.'
         : 'Registration is closed.'
 
+  // Waitlist only makes sense once the event is underway/closed (view === 'closed'
+  // maps to tournament status registration_closed/active) — a merely-full
+  // registration_open tournament isn't offered a waitlist here.
+  const canOfferWaitlist = view === 'closed'
+
   return (
     <div className={box}>
       <p className="text-center text-sm font-semibold text-slate-400">{message}</p>
@@ -119,7 +138,73 @@ export function RegistrationPanel({
           View Bracket
         </Link>
       )}
+      {canOfferWaitlist &&
+        (loggedIn ? (
+          <div className="mt-4 border-t border-slate-800 pt-4">
+            <p className="mb-3 text-center text-xs text-slate-500">
+              A registered player drops out sometimes — join the waitlist to be considered as a substitute.
+            </p>
+            <WaitlistForm tournamentId={tournamentId} prefill={prefill} hasRules={hasRules} />
+          </div>
+        ) : (
+          <Link
+            href={loginHref}
+            className="mt-3 block rounded-xl border border-slate-700 px-5 py-2.5 text-center text-sm font-bold text-white hover:border-slate-500"
+          >
+            Log in to join the waitlist
+          </Link>
+        ))}
     </div>
+  )
+}
+
+function WaitlistForm({
+  tournamentId,
+  prefill,
+  hasRules,
+}: {
+  tournamentId: string
+  prefill: { displayName: string; whatsapp: string }
+  hasRules: boolean
+}) {
+  const [state, formAction] = useFormState<JoinWaitlistState, FormData>(joinWaitlist, undefined)
+
+  if (state?.success) {
+    return <p className="text-center text-sm font-bold text-amber-400">✓ You&apos;re on the waitlist</p>
+  }
+
+  return (
+    <form action={formAction} className="space-y-3">
+      <input type="hidden" name="tournamentId" value={tournamentId} />
+      <Field name="displayName" label="Display name" defaultValue={prefill.displayName} />
+      <Field
+        name="whatsapp"
+        label="WhatsApp number"
+        type="tel"
+        defaultValue={prefill.whatsapp}
+        placeholder="+234…"
+      />
+      <Field name="clubName" label="Club name" placeholder="Your in-game club/team" />
+      <Field
+        name="ignTag"
+        label="In-game player ID / tag (optional)"
+        placeholder="Your IGN or player tag"
+        required={false}
+      />
+      {hasRules && (
+        <label className="flex items-start gap-2 text-xs text-slate-400">
+          <input type="checkbox" name="agreedToRules" value="true" required className="mt-0.5 accent-violet-600" />
+          <span>I have read and agree to the tournament rules.</span>
+        </label>
+      )}
+      {state?.error && <p className="text-center text-sm text-red-400">{state.error}</p>}
+      <button
+        type="submit"
+        className="w-full rounded-xl border border-amber-500/40 px-7 py-3 text-sm font-bold text-amber-400 transition-colors hover:bg-amber-500/10"
+      >
+        Join waitlist
+      </button>
+    </form>
   )
 }
 

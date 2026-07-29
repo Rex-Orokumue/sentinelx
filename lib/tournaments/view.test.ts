@@ -42,4 +42,17 @@ describe('resolveRegistrationView', () => {
   it('closed takes precedence over guest for a not-open tournament', () => {
     expect(resolveRegistrationView({ ...base, status: 'active', loggedIn: false })).toBe('closed')
   })
+
+  it('waitlisted: registration_status is waitlisted, regardless of tournament status', () => {
+    expect(resolveRegistrationView({ ...base, status: 'active', registrationStatus: 'waitlisted' })).toBe('waitlisted')
+    expect(resolveRegistrationView({ ...base, status: 'registration_closed', registrationStatus: 'waitlisted' })).toBe(
+      'waitlisted',
+    )
+  })
+
+  it('registered takes precedence over waitlisted', () => {
+    expect(
+      resolveRegistrationView({ ...base, existingStatus: 'paid', registrationStatus: 'waitlisted' }),
+    ).toBe('registered')
+  })
 })

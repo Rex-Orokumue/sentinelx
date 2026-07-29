@@ -72,18 +72,20 @@ export default async function TournamentDetailPage({
   ])
 
   let existingStatus: string | null = null
+  let registrationStatus: string | null = null
   let prefill = { displayName: '', whatsapp: '' }
   if (user) {
     const [{ data: reg }, { data: profile }] = await Promise.all([
       supabase
         .from('tournament_registrations')
-        .select('payment_status')
+        .select('payment_status, status')
         .eq('tournament_id', t.id)
         .eq('player_id', user.id)
         .maybeSingle(),
       supabase.from('profiles').select('display_name, whatsapp_number').eq('id', user.id).maybeSingle(),
     ])
     existingStatus = reg?.payment_status ?? null
+    registrationStatus = reg?.status ?? null
     prefill = { displayName: profile?.display_name ?? '', whatsapp: profile?.whatsapp_number ?? '' }
   }
 
@@ -93,6 +95,7 @@ export default async function TournamentDetailPage({
     paidCount: paidCount ?? 0,
     maxPlayers: t.max_players,
     existingStatus,
+    registrationStatus,
   })
 
   const status = STATUS[t.status] ?? STATUS.completed
@@ -187,6 +190,7 @@ export default async function TournamentDetailPage({
           loginHref={`/login?next=/tournaments/${t.slug}`}
           prefill={prefill}
           hasRules={!!t.rules}
+          loggedIn={!!user}
         />
       </div>
 
