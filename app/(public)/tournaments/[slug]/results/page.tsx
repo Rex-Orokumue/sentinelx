@@ -2,8 +2,9 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { listCompletedMatches } from '@/lib/matches/completed-matches'
+import { listCompletedMatches, groupCompletedMatchesByDate } from '@/lib/matches/completed-matches'
 import { CompletedMatchesList } from '@/components/tournament/CompletedMatchesList'
+import { ResultsDateFilter } from '@/components/tournament/ResultsDateFilter'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 
@@ -33,12 +34,21 @@ export async function generateMetadata({
   })
 }
 
-export default async function TournamentResultsPage({ params }: { params: { slug: string } }) {
+export default async function TournamentResultsPage({
+  params,
+  searchParams,
+}: {
+  params: { slug: string }
+  searchParams: { date?: string }
+}) {
   const t = await getTournament(params.slug)
   if (!t) notFound()
 
   const supabase = createClient()
   const matches = await listCompletedMatches(supabase, t.id)
+  const groups = groupCompletedMatchesByDate(matches)
+  const activeDate = searchParams.date
+  const visibleGroups = activeDate ? groups.filter((g) => g.dateKey === activeDate) : groups
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-20">
@@ -46,7 +56,8 @@ export default async function TournamentResultsPage({ params }: { params: { slug
         ← {t.title}
       </Link>
       <h1 className="mb-4 text-xl font-black text-white">Results</h1>
-      <CompletedMatchesList matches={matches} />
+      <ResultsDateFilter groups={groups} activeDate={activeDate} basePath={`/tournaments/${t.slug}/results`} />
+      <CompletedMatchesList groups={visibleGroups} />
     </div>
   )
 }
