@@ -7,6 +7,8 @@ import { requireStaff } from '@/lib/admin/auth'
 import { prefillScore, hasScoreMismatch } from '@/lib/matches/verify'
 import { ResultReviewForms } from '@/components/admin/ResultReviewForms'
 import { DeclareNoShowWinnerForm } from '@/components/admin/DeclareNoShowWinnerForm'
+import { MarkBothNoShowForm } from '@/components/admin/MarkBothNoShowForm'
+import { canMarkBothNoShow } from '@/lib/matches/noshow-eligibility'
 
 export const metadata: Metadata = { title: 'Review · Admin · SentinelX' }
 
@@ -21,7 +23,7 @@ export default async function ReviewMatchPage({ params }: { params: { id: string
   const { data: mRaw } = await supabase
     .from('matches')
     .select(
-      'id, status, resolution, admin_note, ' +
+      'id, status, resolution, admin_note, noshow_flagged_at, ' +
         'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
         'player_b:profiles!matches_player_b_id_fkey(id, username, display_name)',
     )
@@ -33,6 +35,7 @@ export default async function ReviewMatchPage({ params }: { params: { id: string
     status: string
     resolution: string | null
     admin_note: string | null
+    noshow_flagged_at: string | null
     player_a: ProfileRef
     player_b: ProfileRef
   }
@@ -72,6 +75,11 @@ export default async function ReviewMatchPage({ params }: { params: { id: string
 
   const playerA = nameOf(m.player_a)
   const playerB = nameOf(m.player_b)
+  const eligibleForMutualNoShow = canMarkBothNoShow({
+    status: m.status,
+    noshowFlaggedAt: m.noshow_flagged_at,
+    submissionCount: submissions.length,
+  })
 
   return (
     <section className="max-w-xl">
@@ -130,7 +138,7 @@ export default async function ReviewMatchPage({ params }: { params: { id: string
       <ResultReviewForms matchId={m.id} playerAName={playerA} playerBName={playerB} prefill={prefill} />
 
       {!(m.status === 'completed' && m.resolution === null) && (
-        <div className="mt-4">
+        <div className="mt-4 space-y-4">
           <DeclareNoShowWinnerForm
             matchId={m.id}
             playerAId={m.player_a?.id ?? ''}
@@ -138,6 +146,7 @@ export default async function ReviewMatchPage({ params }: { params: { id: string
             playerBId={m.player_b?.id ?? ''}
             playerBName={playerB}
           />
+          {eligibleForMutualNoShow && <MarkBothNoShowForm matchId={m.id} />}
         </div>
       )}
     </section>
