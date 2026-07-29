@@ -11,6 +11,7 @@ import { notify } from '@/lib/notifications/notify'
 import { notifyInApp } from '@/lib/notifications/inbox'
 import { resultKey, noshowKey } from '@/lib/notifications/keys'
 import { getNotifiableStaffIds } from '@/lib/admin/staff'
+import { canMarkBothNoShow } from './noshow-eligibility'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -192,6 +193,62 @@ export async function declareNoShowWinner(_prev: NoShowState, formData: FormData
     link: `/matches/${id}`,
   })
 
+  revalidateAll(m.tournament_id, t?.slug ?? '', id)
+  return { success: true }
+}
+
+// The only remaining path to a mutual 0-0 draw / forfeit — deliberate,
+// admin-triggered, and only usable when the sweep has already flagged the
+// match AND nobody submitted anything (canMarkBothNoShow). Reuses the exact
+// write shape the old automatic sweep used to write, plus the same
+// post-processing pipeline declareNoShowWinner uses.
+export async function markBothNoShow(_prev: NoShowState, formData: FormData): Promise<NoShowState> {
+  await requireStaff()
+  const id = String(formData.get('id') ?? '')
+  const reason = String(formData.get('reason') ?? '').trim()
+  if (!id) return { error: 'Missing match.' }
+  if (!reason) return { error: 'Enter a reason (e.g. neither player responded to contact attempts).' }
+
+  const admin = createAdminClient()
+  const { data: m } = await admin
+    .from('matches')
+    .select('id, round, group_id, tournament_id, status, noshow_flagged_at, tournament:tournaments(slug)')
+    .eq('id', id)
+    .maybeSingle()
+  if (!m) return { error: 'Match not found.' }
+
+  const { count } = await admin
+    .from('match_results')
+    .select('*', { count: 'exact', head: true })
+    .eq('match_id', id)
+  const submissionCount = count ?? 0
+
+  if (!canMarkBothNoShow({ status: m.status, noshowFlaggedAt: m.noshow_flagged_at, submissionCount })) {
+    return {
+      error:
+        submissionCount > 0
+          ? 'This match has a submitted result — use "Declare no-show winner" or confirm the result instead.'
+          : 'This match has not been flagged as stale yet, or is no longer scheduled/live.',
+    }
+  }
+
+  const now = new Date().toISOString()
+  if (m.round === 'group') {
+    await admin
+      .from('matches')
+      .update({ status: 'completed', resolution: 'no_show_draw', score_a: 0, score_b: 0, completed_at: now, admin_note: reason })
+      .eq('id', id)
+    if (m.group_id) await recomputeGroupAndMaybeAdvance(admin, m.tournament_id, m.group_id)
+  } else {
+    await admin
+      .from('matches')
+      .update({ status: 'forfeited', completed_at: now, admin_note: reason })
+      .eq('id', id)
+    await advanceKnockout(admin, m.tournament_id, m.round)
+  }
+  await syncMatchEvents(admin, id)
+
+  const t = firstOf(m.tournament as { slug: string } | { slug: string }[] | null)
   revalidateAll(m.tournament_id, t?.slug ?? '', id)
   return { success: true }
 }
