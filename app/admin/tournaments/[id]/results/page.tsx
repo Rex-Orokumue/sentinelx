@@ -37,7 +37,10 @@ export default async function AdminTournamentResultsPage({
       </Link>
       <h2 className="mb-4 mt-2 text-base font-bold text-white">{t.title} · Results</h2>
       <ResultsDateFilter groups={groups} activeDate={activeDate} basePath={`/admin/tournaments/${t.id}/results`} />
-      <CompletedMatchesList groups={visibleGroups} reviewHrefFor={(id) => `/admin/matches/${id}/review`} />
+      <CompletedMatchesList
+        groups={visibleGroups}
+        reviewHrefFor={(id) => `/admin/matches/${id}/review?from=tournament-results`}
+      />
     </section>
   )
 }

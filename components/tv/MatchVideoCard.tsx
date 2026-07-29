@@ -11,7 +11,7 @@ export interface MatchVideo {
 
 export function MatchVideoCard({ video }: { video: MatchVideo }) {
   return (
-    <Link href={`/matches/${video.id}`} className="group block">
+    <Link href={`/matches/${video.id}?from=tv`} className="group block">
       <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
         {video.thumbnailUrl && (
           // eslint-disable-next-line @next/next/no-img-element

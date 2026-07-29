@@ -18,7 +18,7 @@ export function NoShowBanner({ matches }: { matches: FlaggedMatchRow[] }) {
         {matches.map((m) => (
           <Link
             key={m.id}
-            href={`/admin/matches/${m.id}/review`}
+            href={`/admin/matches/${m.id}/review?from=tournament-matches`}
             className="block text-xs text-amber-200 underline decoration-amber-500/40 underline-offset-2 hover:text-amber-100"
           >
             {m.playerAName} vs {m.playerBName} — {m.round.replace(/_/g, ' ')}

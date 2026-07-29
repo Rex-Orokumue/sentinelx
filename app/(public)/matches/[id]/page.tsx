@@ -10,6 +10,7 @@ import { SITE_URL } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildMatchJsonLd } from '@/lib/seo/schema/event'
 import { formatFixtureDate } from '@/lib/format'
+import { resolveBackLink } from '@/lib/nav/back-link'
 
 type ProfileRef = { username: string | null; display_name: string | null } | null
 
@@ -63,7 +64,13 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   return buildMetadata({ title, description, path: `/matches/${m.id}` })
 }
 
-export default async function MatchCentrePage({ params }: { params: { id: string } }) {
+export default async function MatchCentrePage({
+  params,
+  searchParams,
+}: {
+  params: { id: string }
+  searchParams: { from?: string | string[]; u?: string | string[] }
+}) {
   const supabase = createClient()
   const m = await getMatch(params.id)
   if (!m) notFound()
@@ -122,6 +129,29 @@ export default async function MatchCentrePage({ params }: { params: { id: string
     !myResult
   const shareText = `${nameOf(m.player_a)} vs ${nameOf(m.player_b)} on Sentinel X 🎮 ${SITE_URL}/matches/${m.id}`
 
+  // This page is entered from the bracket, the dashboard, a player profile and
+  // TV — a single hardcoded back link sent everyone to the tournament page,
+  // including visitors who were never on it. Entry points tag themselves with
+  // ?from=; anything unrecognized falls back to the tournament (or /tournaments
+  // when the match has no tournament attached).
+  const profileUsername = typeof searchParams.u === 'string' ? searchParams.u : null
+  const backLink = resolveBackLink(
+    searchParams.from,
+    {
+      ...(m.tournaments
+        ? { bracket: { href: `/tournaments/${m.tournaments.slug}/bracket`, label: 'Bracket' } }
+        : {}),
+      dashboard: { href: '/dashboard', label: 'Dashboard' },
+      tv: { href: '/tv', label: 'Sentinel X TV' },
+      ...(profileUsername
+        ? { profile: { href: `/players/${profileUsername}`, label: `${profileUsername}'s profile` } }
+        : {}),
+    },
+    m.tournaments
+      ? { href: `/tournaments/${m.tournaments.slug}`, label: m.tournaments.title }
+      : { href: '/tournaments', label: 'All tournaments' },
+  )
+
   return (
     <div className="mx-auto max-w-3xl px-4 pb-20">
       <JsonLd
@@ -136,14 +166,9 @@ export default async function MatchCentrePage({ params }: { params: { id: string
           tournamentSlug: m.tournaments?.slug ?? null,
         })}
       />
-      {m.tournaments && (
-        <Link
-          href={`/tournaments/${m.tournaments.slug}`}
-          className="mt-6 mb-4 inline-block text-sm text-violet-400 hover:text-violet-300"
-        >
-          ← {m.tournaments.title}
-        </Link>
-      )}
+      <Link href={backLink.href} className="mt-6 mb-4 inline-block text-sm text-violet-400 hover:text-violet-300">
+        ← {backLink.label}
+      </Link>
 
       {/* Header */}
       <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900 p-6">

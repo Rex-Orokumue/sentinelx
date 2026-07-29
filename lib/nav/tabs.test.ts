@@ -5,28 +5,30 @@ const compete = PILLAR_TABS.find((t) => t.key === 'compete')!
 const watch = PILLAR_TABS.find((t) => t.key === 'watch')!
 
 describe('isTabActive', () => {
-  it('marks a path-matched tab active on its route and subroutes', () => {
-    expect(isTabActive(compete, '/tournaments', null)).toBe(true)
-    expect(isTabActive(compete, '/tournaments/dls-cup', null)).toBe(true)
-    expect(isTabActive(compete, '/rankings', null)).toBe(false)
+  it('marks a tab active on its route and subroutes', () => {
+    expect(isTabActive(compete, '/tournaments')).toBe(true)
+    expect(isTabActive(compete, '/tournaments/dls-cup')).toBe(true)
+    expect(isTabActive(compete, '/tournaments/dls-cup/bracket')).toBe(true)
+    expect(isTabActive(compete, '/rankings')).toBe(false)
   })
 
-  it('marks the Community tab active on /community (real page, not coming-soon)', () => {
+  it('does not match a route that merely shares a string prefix', () => {
+    expect(isTabActive(watch, '/tvshows')).toBe(false)
+  })
+
+  it('marks each pillar active on its own route only', () => {
     const community = PILLAR_TABS.find((t) => t.key === 'community')!
-    expect(isTabActive(community, '/community', null)).toBe(true)
-    expect(isTabActive(community, '/coming-soon', 'Community')).toBe(false)
-    expect(isTabActive(community, '/tournaments', null)).toBe(false)
-  })
-
-  it('marks the Watch tab active on /tv (real page, not coming-soon)', () => {
-    expect(isTabActive(watch, '/tv', null)).toBe(true)
-    expect(isTabActive(watch, '/coming-soon', 'Watch')).toBe(false)
-  })
-
-  it('marks the Trade tab active on /exchange', () => {
     const trade = PILLAR_TABS.find((t) => t.key === 'trade')!
-    expect(isTabActive(trade, '/exchange', null)).toBe(true)
-    expect(isTabActive(trade, '/coming-soon', 'Trade')).toBe(false)
+    expect(isTabActive(watch, '/tv')).toBe(true)
+    expect(isTabActive(community, '/community')).toBe(true)
+    expect(isTabActive(trade, '/exchange')).toBe(true)
+    expect(isTabActive(trade, '/community')).toBe(false)
+  })
+})
+
+describe('PILLAR_TABS', () => {
+  it('covers the four product pillars', () => {
+    expect(PILLAR_TABS.map((t) => t.key)).toEqual(['compete', 'watch', 'community', 'trade'])
   })
 })
 

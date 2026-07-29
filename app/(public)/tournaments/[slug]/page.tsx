@@ -194,6 +194,23 @@ export default async function TournamentDetailPage({
         />
       </div>
 
+      {/* Bracket + Results are this tournament's primary sub-pages — they sit
+          directly under the registration panel, not buried below the share CTA. */}
+      <div className="mb-6 grid grid-cols-2 gap-3">
+        <Link
+          href={`/tournaments/${t.slug}/bracket`}
+          className="rounded-xl border border-slate-700 px-6 py-3 text-center text-sm font-bold text-white transition-colors hover:border-slate-500"
+        >
+          Bracket
+        </Link>
+        <Link
+          href={`/tournaments/${t.slug}/results`}
+          className="rounded-xl border border-slate-700 px-6 py-3 text-center text-sm font-bold text-white transition-colors hover:border-slate-500"
+        >
+          Results
+        </Link>
+      </div>
+
       {start && (
         <div className="mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm text-slate-400">
           <span>🗓️ Starts {start}</span>
@@ -207,28 +224,14 @@ export default async function TournamentDetailPage({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-3">
-        <a
-          href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-xl border border-[#25D366]/30 px-6 py-3 text-sm font-bold text-[#25D366] transition-colors hover:bg-[#25D366]/10"
-        >
-          Share on WhatsApp
-        </a>
-        <Link
-          href={`/tournaments/${t.slug}/results`}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-6 py-3 text-sm font-bold text-slate-300 transition-colors hover:border-slate-500"
-        >
-          Results
-        </Link>
-        <Link
-          href={`/tournaments/${t.slug}/bracket`}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-6 py-3 text-sm font-bold text-slate-300 transition-colors hover:border-slate-500"
-        >
-          Bracket
-        </Link>
-      </div>
+      <a
+        href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 rounded-xl border border-[#25D366]/30 px-6 py-3 text-sm font-bold text-[#25D366] transition-colors hover:bg-[#25D366]/10"
+      >
+        Share on WhatsApp
+      </a>
     </div>
   )
 }

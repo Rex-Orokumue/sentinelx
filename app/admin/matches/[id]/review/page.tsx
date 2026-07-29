@@ -9,6 +9,7 @@ import { ResultReviewForms } from '@/components/admin/ResultReviewForms'
 import { DeclareNoShowWinnerForm } from '@/components/admin/DeclareNoShowWinnerForm'
 import { MarkBothNoShowForm } from '@/components/admin/MarkBothNoShowForm'
 import { canMarkBothNoShow } from '@/lib/matches/noshow-eligibility'
+import { resolveBackLink } from '@/lib/nav/back-link'
 
 export const metadata: Metadata = { title: 'Review · Admin · SentinelX' }
 
@@ -17,13 +18,19 @@ function nameOf(p: ProfileRef): string {
   return p?.display_name ?? p?.username ?? 'TBD'
 }
 
-export default async function ReviewMatchPage({ params }: { params: { id: string } }) {
+export default async function ReviewMatchPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string }
+  searchParams: { from?: string | string[] }
+}) {
   await requireStaff()
   const supabase = createClient()
   const { data: mRaw } = await supabase
     .from('matches')
     .select(
-      'id, status, resolution, admin_note, noshow_flagged_at, ' +
+      'id, status, resolution, admin_note, noshow_flagged_at, tournament_id, ' +
         'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
         'player_b:profiles!matches_player_b_id_fkey(id, username, display_name)',
     )
@@ -36,9 +43,27 @@ export default async function ReviewMatchPage({ params }: { params: { id: string
     resolution: string | null
     admin_note: string | null
     noshow_flagged_at: string | null
+    tournament_id: string
     player_a: ProfileRef
     player_b: ProfileRef
   }
+
+  // Reached from the global results queue, a tournament's results page, and the
+  // no-show banner on its matches page — the back link follows whichever.
+  const backLink = resolveBackLink(
+    searchParams.from,
+    {
+      'tournament-results': {
+        href: `/admin/tournaments/${m.tournament_id}/results`,
+        label: 'Tournament results',
+      },
+      'tournament-matches': {
+        href: `/admin/tournaments/${m.tournament_id}/matches`,
+        label: 'Matches',
+      },
+    },
+    { href: '/admin/results', label: 'Results queue' },
+  )
 
   const { data: subs } = await supabase
     .from('match_results')
@@ -83,8 +108,8 @@ export default async function ReviewMatchPage({ params }: { params: { id: string
 
   return (
     <section className="max-w-xl">
-      <Link href="/admin/results" className="text-sm text-violet-400 hover:text-violet-300">
-        ← Results queue
+      <Link href={backLink.href} className="text-sm text-violet-400 hover:text-violet-300">
+        ← {backLink.label}
       </Link>
       <h2 className="mb-1 mt-2 text-base font-bold text-white">
         {playerA} vs {playerB}

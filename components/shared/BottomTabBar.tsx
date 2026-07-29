@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { Trophy, Play, Users, ShoppingBag, User, ChevronUp } from 'lucide-react'
 import { PILLAR_TABS, isTabActive } from '@/lib/nav/tabs'
 import { Avatar } from '@/components/shared/Avatar'
@@ -17,7 +17,6 @@ const ICONS: Record<string, typeof Trophy> = {
 
 export function BottomTabBar({ session }: { session: NavSession }) {
   const pathname = usePathname()
-  const feature = useSearchParams().get('feature')
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -56,7 +55,7 @@ export function BottomTabBar({ session }: { session: NavSession }) {
         {PILLAR_TABS.map((tab) => {
           const Icon = ICONS[tab.key]
           return (
-            <Link key={tab.key} href={tab.href} className={cls(isTabActive(tab, pathname, feature))}>
+            <Link key={tab.key} href={tab.href} className={cls(isTabActive(tab, pathname))}>
               <Icon className="h-5 w-5" />
               {tab.label}
             </Link>

@@ -295,7 +295,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
       <ProfileHeader profile={profile} viewerId={user?.id ?? null} friendshipStatus={friendship} />
       <ProfileStats profile={profile} />
       <ProfileAchievements titles={titles} />
-      <ProfileMatchHistory matches={matches} />
+      <ProfileMatchHistory matches={matches} username={params.username} />
     </div>
   )
 }

@@ -4,16 +4,7 @@ import Link from 'next/link'
 import { AccountMenu } from '@/components/shared/AccountMenu'
 import { NotificationBell } from '@/components/shared/NotificationBell'
 import type { NavSession } from '@/lib/nav/session'
-
-const NAV = [
-  { href: '/', label: 'Home' },
-  { href: '/tournaments', label: 'Tournaments' },
-  { href: '/games', label: 'Games' },
-  { href: '/rankings', label: 'Leaderboards' },
-  { href: '/exchange', label: 'Store' },
-  { href: '/community', label: 'Community' },
-  { href: '/about', label: 'About Us' },
-]
+import { HEADER_LINKS } from '@/lib/nav/links'
 
 export function SiteHeader({
   session,
@@ -40,7 +31,7 @@ export function SiteHeader({
         <div className="flex items-center gap-1 sm:gap-2">
           {/* Desktop-only primary links */}
           <div className="hidden items-center gap-1 sm:flex">
-            {NAV.map((item) => (
+            {HEADER_LINKS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

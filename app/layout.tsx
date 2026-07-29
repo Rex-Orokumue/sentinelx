@@ -4,6 +4,7 @@ import localFont from 'next/font/local'
 import { Rajdhani } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SiteHeader } from '@/components/shared/SiteHeader'
+import { SiteFooter } from '@/components/shared/SiteFooter'
 import { BottomTabBar } from '@/components/shared/BottomTabBar'
 import { getNavSession } from '@/lib/nav/session'
 import { JsonLd } from '@/components/seo/JsonLd'
@@ -67,9 +68,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {/* pb-16 clears the fixed mobile tab bar; removed at sm+ */}
           <main className="flex-1 pb-16 sm:pb-0">{children}</main>
 
-          <footer className="border-t border-slate-800 py-5 text-center text-xs text-slate-600">
-            © {new Date().getFullYear()} SentinelX Esports · Nigeria&apos;s Home of Mobile Esports
-          </footer>
+          <SiteFooter />
         </div>
 
         {/* useSearchParams requires a Suspense boundary to avoid de-opting pages to CSR */}

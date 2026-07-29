@@ -20,7 +20,7 @@ export function MatchCard({ match, showGroup = false }: { match: BracketMatch; s
 
   return (
     <Link
-      href={`/matches/${match.id}`}
+      href={`/matches/${match.id}?from=bracket`}
       className="block rounded-xl border border-slate-800 bg-slate-900 p-3 transition-colors hover:border-violet-500/40"
     >
       <div className="mb-2 flex items-center justify-between">

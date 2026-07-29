@@ -166,7 +166,7 @@ export default async function TvPage() {
           <SectionTitle>🔴 Live Now</SectionTitle>
           <VideoEmbed streamUrl={hero.youtube_stream_url} replayUrl={null} isLive />
           <Link
-            href={`/matches/${hero.id}`}
+            href={`/matches/${hero.id}?from=tv`}
             className="mt-2 inline-block text-sm font-semibold text-violet-400 hover:text-violet-300"
           >
             {nameOf(hero.player_a)} vs {nameOf(hero.player_b)} — open Match Centre →

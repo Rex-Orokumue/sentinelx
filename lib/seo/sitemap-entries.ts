@@ -2,7 +2,18 @@ import type { MetadataRoute } from 'next'
 import { SITE_URL } from './site'
 
 export function staticSitemapEntries(): MetadataRoute.Sitemap {
-  const paths = ['/', '/tournaments', '/players', '/rankings', '/hall-of-fame', '/tv', '/exchange', '/community']
+  const paths = [
+    '/',
+    '/tournaments',
+    '/players',
+    '/rankings',
+    '/hall-of-fame',
+    '/tv',
+    '/exchange',
+    '/community',
+    '/games',
+    '/about',
+  ]
   return paths.map((path) => ({ url: `${SITE_URL}${path === '/' ? '/' : path}` }))
 }
 

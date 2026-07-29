@@ -36,7 +36,7 @@ export function FixtureCard({ fixture }: { fixture: DashboardFixture }) {
           : 'border-slate-800 bg-slate-900 hover:border-slate-600'
       }`}
     >
-      <Link href={`/matches/${fixture.id}`} className="block">
+      <Link href={`/matches/${fixture.id}?from=dashboard`} className="block">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate font-bold text-white">vs {fixture.opponentName}</p>

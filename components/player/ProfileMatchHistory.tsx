@@ -9,7 +9,15 @@ const OUTCOME: Record<string, { label: string; cls: string }> = {
   draw: { label: 'D', cls: 'bg-slate-600/40 text-slate-300' },
 }
 
-export function ProfileMatchHistory({ matches }: { matches: ProfileMatch[] }) {
+export function ProfileMatchHistory({
+  matches,
+  username,
+}: {
+  matches: ProfileMatch[]
+  // Carried into the match link so the Match Centre's back link returns here
+  // rather than to a tournament page the visitor was never on.
+  username: string
+}) {
   return (
     <section className="mb-8">
       <h2 className="mb-3 text-base font-bold text-white">Recent matches</h2>
@@ -23,7 +31,7 @@ export function ProfileMatchHistory({ matches }: { matches: ProfileMatch[] }) {
             return (
               <Link
                 key={m.id}
-                href={`/matches/${m.id}`}
+                href={`/matches/${m.id}?from=profile&u=${encodeURIComponent(username)}`}
                 className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 transition-colors hover:border-slate-600"
               >
                 <div className="flex min-w-0 items-center gap-3">
