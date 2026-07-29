@@ -13,6 +13,7 @@ export interface ReviewMatchInput {
   playerBClubName?: string | null
   tournamentTitle: string
   tournamentSlug: string
+  noshowFlaggedAt: string | null
 }
 
 // Split matches (already limited to status scheduled/live/disputed/cancelled) into three
@@ -37,11 +38,12 @@ export function bucketReviewQueue(
     } else if (mt.submissionCount >= 1 && (mt.status === 'scheduled' || mt.status === 'live')) {
       needsReview.push(mt)
     } else if (
-      mt.status === 'scheduled' &&
-      !mt.isFullDay &&
       mt.submissionCount === 0 &&
-      mt.scheduledAt != null &&
-      new Date(mt.scheduledAt).getTime() <= now.getTime()
+      ((mt.status === 'scheduled' &&
+        !mt.isFullDay &&
+        mt.scheduledAt != null &&
+        new Date(mt.scheduledAt).getTime() <= now.getTime()) ||
+        ((mt.status === 'scheduled' || mt.status === 'live') && mt.noshowFlaggedAt != null))
     ) {
       noSubmission.push(mt)
     } else if (mt.status === 'cancelled' && mt.autoExpired && mt.submissionCount === 0) {

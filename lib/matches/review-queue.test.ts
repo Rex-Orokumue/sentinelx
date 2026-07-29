@@ -16,6 +16,7 @@ function m(over: Partial<ReviewMatchInput> & { id: string }): ReviewMatchInput {
     playerBName: 'B',
     tournamentTitle: 'Cup',
     tournamentSlug: 'cup',
+    noshowFlaggedAt: null,
     ...over,
   }
 }
@@ -63,5 +64,35 @@ describe('bucketReviewQueue', () => {
       NOW,
     )
     expect(r.needsReview.concat(r.noSubmission, r.disputed)).toEqual([])
+  })
+  it('routes a flagged full-day match with no submission to No submission', () => {
+    const r = bucketReviewQueue(
+      [
+        m({
+          id: 'fl',
+          status: 'scheduled',
+          isFullDay: true,
+          submissionCount: 0,
+          noshowFlaggedAt: '2026-07-08T00:00:00Z',
+        }),
+      ],
+      NOW,
+    )
+    expect(r.noSubmission.map((x) => x.id)).toEqual(['fl'])
+  })
+  it('routes a flagged live match with no submission to No submission', () => {
+    const r = bucketReviewQueue(
+      [m({ id: 'lv', status: 'live', submissionCount: 0, noshowFlaggedAt: '2026-07-08T00:00:00Z' })],
+      NOW,
+    )
+    expect(r.noSubmission.map((x) => x.id)).toEqual(['lv'])
+  })
+  it('routes a flagged match that already has a submission to Needs review, not No submission', () => {
+    const r = bucketReviewQueue(
+      [m({ id: 'sf', status: 'scheduled', submissionCount: 1, noshowFlaggedAt: '2026-07-08T00:00:00Z' })],
+      NOW,
+    )
+    expect(r.needsReview.map((x) => x.id)).toEqual(['sf'])
+    expect(r.noSubmission).toEqual([])
   })
 })
