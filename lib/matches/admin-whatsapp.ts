@@ -50,3 +50,50 @@ export function buildAdminPlayerWhatsAppUrl(args: {
 
   return `https://wa.me/${number}?text=${encodeURIComponent(text)}`
 }
+
+// A fixture as the bracket view shapes it (lib/tournaments/bracket.ts) — the
+// subset this module needs.
+export interface FixtureContactInput {
+  id: string
+  playerA: { id: string; name: string }
+  playerB: { id: string; name: string }
+  scheduled_at: string | null
+  is_full_day: boolean
+}
+
+/** matchId → the wa.me link for each side, null where that player is unreachable. */
+export type FixtureContacts = Record<string, { a: string | null; b: string | null }>
+
+/**
+ * Builds every fixture's pair of contact links in one pass, for admin surfaces
+ * that render a list of fixtures (the bracket page's Fixtures tab).
+ *
+ * Returned as a plain serializable record because it crosses a Server → Client
+ * component boundary. Admin pages pass it in; the public bracket page passes
+ * nothing, which is what keeps player numbers out of the public bundle.
+ */
+export function buildFixtureContactMap(args: {
+  fixtures: FixtureContactInput[]
+  tournamentTitle: string
+  regWhatsappByPlayer: Map<string, string | null>
+  profileWhatsappByPlayer: Map<string, string | null>
+}): FixtureContacts {
+  const contacts: FixtureContacts = {}
+  for (const f of args.fixtures) {
+    const linkFor = (player: { id: string; name: string }, opponentName: string) =>
+      buildAdminPlayerWhatsAppUrl({
+        regWhatsapp: args.regWhatsappByPlayer.get(player.id),
+        profileWhatsapp: args.profileWhatsappByPlayer.get(player.id),
+        playerName: player.name,
+        opponentName,
+        tournamentTitle: args.tournamentTitle,
+        scheduledAt: f.scheduled_at,
+        isFullDay: f.is_full_day,
+      })
+    contacts[f.id] = {
+      a: linkFor(f.playerA, f.playerB.name),
+      b: linkFor(f.playerB, f.playerA.name),
+    }
+  }
+  return contacts
+}

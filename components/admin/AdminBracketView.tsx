@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import type { BracketView } from '@/lib/tournaments/bracket-view'
+import type { FixtureContacts } from '@/lib/matches/admin-whatsapp'
 import { matchesPlayerQuery } from '@/lib/admin/search'
 import { PlayerSearch } from './PlayerSearch'
 import { GroupStage } from '@/components/bracket/GroupStage'
@@ -13,7 +14,10 @@ export function AdminBracketView({
   projected,
   champion,
   hasGroups,
-}: Pick<BracketView, 'standings' | 'fixtures' | 'rounds' | 'projected' | 'champion' | 'hasGroups'>) {
+  contacts,
+}: Pick<BracketView, 'standings' | 'fixtures' | 'rounds' | 'projected' | 'champion' | 'hasGroups'> & {
+  contacts: FixtureContacts
+}) {
   const [query, setQuery] = useState('')
   const filteredStandings = standings.map((g) => ({
     groupName: g.groupName,
@@ -27,7 +31,7 @@ export function AdminBracketView({
       {hasGroups && (
         <PlayerSearch value={query} onChange={setQuery} placeholder="Search players by name or club…" />
       )}
-      {hasGroups && <GroupStage standings={filteredStandings} fixtures={fixtures} />}
+      {hasGroups && <GroupStage standings={filteredStandings} fixtures={fixtures} contacts={contacts} />}
       <BracketTree rounds={rounds} projected={projected} champion={champion} />
     </>
   )

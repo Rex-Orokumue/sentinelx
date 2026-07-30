@@ -3,6 +3,7 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { StandingRow } from '@/lib/tournaments/standings'
 import { groupFixturesByDate, type BracketMatch, type FixtureDateGroup } from '@/lib/tournaments/bracket'
+import type { FixtureContacts } from '@/lib/matches/admin-whatsapp'
 import { StandingsTable } from './StandingsTable'
 import { MatchCard } from './MatchCard'
 
@@ -16,9 +17,13 @@ type Buckets = {
 export function GroupStage({
   standings,
   fixtures,
+  contacts,
 }: {
   standings: { groupName: string; rows: StandingRow[] }[]
   fixtures: Buckets
+  // Admin-only: matchId -> each player's wa.me link. The public bracket page
+  // omits it, so no player numbers reach the public bundle.
+  contacts?: FixtureContacts
 }) {
   const [tab, setTab] = useState<'table' | 'fixtures'>('table')
   const [showCompleted, setShowCompleted] = useState(false)
@@ -47,12 +52,12 @@ export function GroupStage({
         <div className="space-y-6">
           {fixtures.live.length > 0 && (
             <FixtureGroup title="🔴 Live">
-              {fixtures.live.map((m) => <MatchCard key={m.id} match={m} showGroup />)}
+              {fixtures.live.map((m) => <MatchCard key={m.id} match={m} showGroup contact={contacts?.[m.id]} />)}
             </FixtureGroup>
           )}
           {groupFixturesByDate(fixtures.upcoming).map((g: FixtureDateGroup) => (
             <FixtureGroup key={g.dateLabel} title={`⏳ ${g.dateLabel}`}>
-              {g.matches.map((m) => <MatchCard key={m.id} match={m} showGroup />)}
+              {g.matches.map((m) => <MatchCard key={m.id} match={m} showGroup contact={contacts?.[m.id]} />)}
             </FixtureGroup>
           ))}
           {fixtures.completed.length > 0 && (
@@ -65,14 +70,14 @@ export function GroupStage({
               </button>
               {showCompleted && (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {fixtures.completed.map((m) => <MatchCard key={m.id} match={m} showGroup />)}
+                  {fixtures.completed.map((m) => <MatchCard key={m.id} match={m} showGroup contact={contacts?.[m.id]} />)}
                 </div>
               )}
             </div>
           )}
           {fixtures.disputedOrCancelled.length > 0 && (
             <FixtureGroup title="🚫 Disputed / Cancelled">
-              {fixtures.disputedOrCancelled.map((m) => <MatchCard key={m.id} match={m} showGroup />)}
+              {fixtures.disputedOrCancelled.map((m) => <MatchCard key={m.id} match={m} showGroup contact={contacts?.[m.id]} />)}
             </FixtureGroup>
           )}
         </div>

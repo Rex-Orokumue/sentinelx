@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildAdminPlayerWhatsAppUrl } from './admin-whatsapp'
+import { buildAdminPlayerWhatsAppUrl, buildFixtureContactMap } from './admin-whatsapp'
 
 const base = {
   regWhatsapp: '08012345678',
@@ -76,5 +76,78 @@ describe('buildAdminPlayerWhatsAppUrl', () => {
   it('uses "your opponent" when the opposing player is not yet decided', () => {
     const text = textOf(buildAdminPlayerWhatsAppUrl({ ...base, opponentName: null })!)
     expect(text).toContain('match vs your opponent is scheduled for')
+  })
+})
+
+describe('buildFixtureContactMap', () => {
+  const fixture = {
+    id: 'm1',
+    playerA: { id: 'pa', name: 'Chidi' },
+    playerB: { id: 'pb', name: 'Tunde' },
+    scheduled_at: '2026-07-08T19:00:00Z',
+    is_full_day: false,
+  }
+
+  it('keys by match id and addresses each player about the other', () => {
+    const map = buildFixtureContactMap({
+      fixtures: [fixture],
+      tournamentTitle: 'DLS Cup 4',
+      regWhatsappByPlayer: new Map([
+        ['pa', '08012345678'],
+        ['pb', '08087654321'],
+      ]),
+      profileWhatsappByPlayer: new Map(),
+    })
+    expect(Object.keys(map)).toEqual(['m1'])
+    expect(map.m1.a!.startsWith('https://wa.me/2348012345678?text=')).toBe(true)
+    expect(map.m1.b!.startsWith('https://wa.me/2348087654321?text=')).toBe(true)
+    expect(decodeURIComponent(map.m1.a!.split('?text=')[1])).toContain('Hi Chidi')
+    expect(decodeURIComponent(map.m1.a!.split('?text=')[1])).toContain('vs Tunde')
+    expect(decodeURIComponent(map.m1.b!.split('?text=')[1])).toContain('Hi Tunde')
+    expect(decodeURIComponent(map.m1.b!.split('?text=')[1])).toContain('vs Chidi')
+  })
+
+  it('nulls only the unreachable side, keeping the other usable', () => {
+    const map = buildFixtureContactMap({
+      fixtures: [fixture],
+      tournamentTitle: 'DLS Cup 4',
+      regWhatsappByPlayer: new Map([['pa', '08012345678']]),
+      profileWhatsappByPlayer: new Map(),
+    })
+    expect(map.m1.a).not.toBeNull()
+    expect(map.m1.b).toBeNull()
+  })
+
+  it('falls back to the profile number per player', () => {
+    const map = buildFixtureContactMap({
+      fixtures: [fixture],
+      tournamentTitle: 'DLS Cup 4',
+      regWhatsappByPlayer: new Map(),
+      profileWhatsappByPlayer: new Map([['pb', '08087654321']]),
+    })
+    expect(map.m1.a).toBeNull()
+    expect(map.m1.b!.startsWith('https://wa.me/2348087654321?text=')).toBe(true)
+  })
+
+  it('carries each fixture own schedule state into its message', () => {
+    const map = buildFixtureContactMap({
+      fixtures: [fixture, { ...fixture, id: 'm2', scheduled_at: null }],
+      tournamentTitle: 'DLS Cup 4',
+      regWhatsappByPlayer: new Map([['pa', '08012345678']]),
+      profileWhatsappByPlayer: new Map(),
+    })
+    expect(decodeURIComponent(map.m1.a!.split('?text=')[1])).toContain('is scheduled for 8 Jul, 20:00')
+    expect(decodeURIComponent(map.m2.a!.split('?text=')[1])).toContain("It's not scheduled yet")
+  })
+
+  it('returns an empty map for no fixtures', () => {
+    expect(
+      buildFixtureContactMap({
+        fixtures: [],
+        tournamentTitle: 'DLS Cup 4',
+        regWhatsappByPlayer: new Map(),
+        profileWhatsappByPlayer: new Map(),
+      }),
+    ).toEqual({})
   })
 })

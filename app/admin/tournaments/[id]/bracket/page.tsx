@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
 import { loadBracketView } from '@/lib/tournaments/bracket-view'
+import { buildFixtureContactMap } from '@/lib/matches/admin-whatsapp'
 import { BracketActions } from '@/components/admin/BracketActions'
 import { AdminBracketView } from '@/components/admin/AdminBracketView'
 
@@ -25,6 +26,45 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
     .select('*', { count: 'exact', head: true })
     .eq('tournament_id', t.id)
     .eq('payment_status', 'paid')
+
+  // Contact links for the Fixtures tab, so a stalling group match can be chased
+  // from the same screen it's spotted on. Built here rather than in
+  // loadBracketView — that loader is shared with the PUBLIC bracket page, which
+  // must never receive player phone numbers.
+  const groupFixtures = [
+    ...view.fixtures.live,
+    ...view.fixtures.upcoming,
+    ...view.fixtures.completed,
+    ...view.fixtures.disputedOrCancelled,
+  ]
+  const fixturePlayerIds = Array.from(
+    new Set(groupFixtures.flatMap((f) => [f.playerA.id, f.playerB.id]).filter(Boolean)),
+  )
+  const [{ data: regWhatsappRows }, { data: profileWhatsappRows }] = await Promise.all([
+    fixturePlayerIds.length > 0
+      ? supabase
+          .from('tournament_registrations')
+          .select('player_id, reg_whatsapp')
+          .eq('tournament_id', t.id)
+      : Promise.resolve({ data: [] as { player_id: string; reg_whatsapp: string | null }[] }),
+    fixturePlayerIds.length > 0
+      ? supabase.from('profiles').select('id, whatsapp_number').in('id', fixturePlayerIds)
+      : Promise.resolve({ data: [] as { id: string; whatsapp_number: string | null }[] }),
+  ])
+  const contacts = buildFixtureContactMap({
+    fixtures: groupFixtures,
+    tournamentTitle: t.title,
+    regWhatsappByPlayer: new Map(
+      ((regWhatsappRows as { player_id: string; reg_whatsapp: string | null }[] | null) ?? []).map(
+        (r) => [r.player_id, r.reg_whatsapp],
+      ),
+    ),
+    profileWhatsappByPlayer: new Map(
+      ((profileWhatsappRows as { id: string; whatsapp_number: string | null }[] | null) ?? []).map(
+        (p) => [p.id, p.whatsapp_number],
+      ),
+    ),
+  })
 
   return (
     <section>
@@ -63,6 +103,7 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
           projected={view.projected}
           champion={view.champion}
           hasGroups={view.hasGroups}
+          contacts={contacts}
         />
       )}
     </section>

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { BracketMatch } from '@/lib/tournaments/bracket'
 import { formatFixtureDate } from '@/lib/format'
+import { WhatsAppChip } from '@/components/shared/WhatsAppChip'
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   live:      { label: 'LIVE',      cls: 'bg-red-500/20 text-red-400 border-red-500/30' },
@@ -11,14 +12,24 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   forfeited: { label: 'FORFEITED', cls: 'bg-slate-700/40 text-slate-400 border-slate-700/50' },
 }
 
-export function MatchCard({ match, showGroup = false }: { match: BracketMatch; showGroup?: boolean }) {
+export function MatchCard({
+  match,
+  showGroup = false,
+  contact,
+}: {
+  match: BracketMatch
+  showGroup?: boolean
+  // Admin-only: pre-built wa.me links for the two players. Omitted on public
+  // pages, which is what keeps player numbers out of the public bundle.
+  contact?: { a: string | null; b: string | null }
+}) {
   const badge = STATUS_BADGE[match.status] ?? STATUS_BADGE.scheduled
   const hasScore = match.score_a != null && match.score_b != null
   const aWon = hasScore && match.score_a! > match.score_b!
   const bWon = hasScore && match.score_b! > match.score_a!
   const dateLabel = formatFixtureDate(match.scheduled_at, match.is_full_day)
 
-  return (
+  const card = (
     <Link
       href={`/matches/${match.id}?from=bracket`}
       className="block rounded-xl border border-slate-800 bg-slate-900 p-3 transition-colors hover:border-violet-500/40"
@@ -40,6 +51,20 @@ export function MatchCard({ match, showGroup = false }: { match: BracketMatch; s
       <PlayerRow name={match.playerA.name} score={match.score_a} win={aWon} />
       <PlayerRow name={match.playerB.name} score={match.score_b} win={bWon} />
     </Link>
+  )
+
+  if (!contact) return card
+
+  // The chips sit outside the Link — an anchor cannot legally nest inside
+  // another anchor, and tapping a player must open WhatsApp, not the match page.
+  return (
+    <div className="space-y-1.5">
+      {card}
+      <div className="flex flex-wrap gap-1.5">
+        <WhatsAppChip name={match.playerA.name} url={contact.a} />
+        <WhatsAppChip name={match.playerB.name} url={contact.b} />
+      </div>
+    </div>
   )
 }
 

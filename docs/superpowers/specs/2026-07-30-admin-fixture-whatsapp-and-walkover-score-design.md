@@ -34,11 +34,36 @@ stalling, reach one specific player about that specific match in one tap.
 
 ### Scope
 
-The tournament matches page only (`app/admin/tournaments/[id]/matches/page.tsx` →
-`components/admin/MatchRow.tsx`). Explicitly considered and deferred: the match review page, the
-no-show banner, the results queue, and making the registrations table's WhatsApp column tappable.
-Deferred, not rejected — the URL builder is a plain exported function, so each is a small addition
-later.
+Two admin surfaces:
+
+1. The tournament matches page (`app/admin/tournaments/[id]/matches/page.tsx` →
+   `components/admin/MatchRow.tsx`)
+2. The **Fixtures tab** of the admin bracket page (`app/admin/tournaments/[id]/bracket/page.tsx` →
+   `AdminBracketView` → `GroupStage` → `MatchCard`) — added 2026-07-30 on user request, because
+   that tab is where a stalling group match is actually noticed
+
+Explicitly considered and deferred: the match review page, the no-show banner, the results queue,
+and making the registrations table's WhatsApp column tappable. Deferred, not rejected — the URL
+builder is a plain exported function, so each is a small addition later.
+
+### Constraint: the bracket components are public
+
+`GroupStage` and `MatchCard` are shared verbatim between the admin bracket page and the **public**
+one (`app/(public)/tournaments/[slug]/bracket/page.tsx:108`). Adding contact links to them
+naively would publish every player's phone number to anyone viewing a bracket.
+
+So the links are an **optional prop**, never a fetch inside the shared component:
+
+- `MatchCard` takes `contact?: { a, b }`; absent ⇒ it renders exactly as before, byte for byte
+- `GroupStage` takes `contacts?: FixtureContacts` and indexes it per match
+- The admin page passes the map; the public page passes nothing and is unmodified
+
+Equally, the numbers are fetched in the admin page, **not** in `loadBracketView` — that loader is
+shared with the public page, so it must never learn a phone number in the first place.
+
+`MatchCard`'s body is a `<Link>`. The chips render as a sibling *below* it rather than inside:
+an anchor cannot legally nest in another anchor, and tapping a player's name must open WhatsApp
+rather than navigating to the match page.
 
 ### Number resolution
 
@@ -73,11 +98,19 @@ An undecided opponent (knockout slot not yet filled) renders as "your opponent".
 ### Structure
 
 New module `lib/matches/admin-whatsapp.ts`, mirroring the existing
-`lib/matches/recording-whatsapp.ts` exactly — a pure function importing `toWhatsAppNumber`, with
-its own unit tests. Two exports:
+`lib/matches/recording-whatsapp.ts` exactly — pure functions importing `toWhatsAppNumber`, with
+their own unit tests. Three exports:
 
 - `resolvePlayerWhatsApp(regWhatsapp, profileWhatsapp)` — the fallback chain above
 - `buildAdminPlayerWhatsAppUrl({...}) → string | null` — the full link, null when unreachable
+- `buildFixtureContactMap({...}) → FixtureContacts` — both links for a whole list of fixtures,
+  keyed by match id, for list surfaces like the Fixtures tab
+
+`FixtureContacts` is a plain `Record`, not a `Map` or a callback, because it crosses a Server →
+Client component boundary and must be serializable.
+
+The shared chip lives in `components/shared/WhatsAppChip.tsx` (lifted out of `MatchRow` when the
+bracket page needed it) so both surfaces render an identical control.
 
 Data flow: the page is already a Server Component behind `requireStaff()`. It fetches matches and
 this tournament's registrations in one `Promise.all`, builds a `player_id → reg_whatsapp` map, and
@@ -98,8 +131,9 @@ query, which needs neither field.
 
 ### UI
 
-A `WhatsAppChip` in `MatchRow.tsx`, rendered as a wrapping row directly under the "A vs B" header
-so it reads as being about those two names. WhatsApp green (`#25D366`) with the brand glyph,
+A `WhatsAppChip` rendered as a wrapping row directly under the two player names — under the
+"A vs B" header on the matches page, under the score card on the Fixtures tab — so it reads as
+being about those names. WhatsApp green (`#25D366`) with the brand glyph,
 matching the share buttons used elsewhere in the product. Bye rows show the single player's chip.
 
 Unreachable players render a muted, non-clickable `Chidi · no WhatsApp` rather than the chip
@@ -108,9 +142,15 @@ tells admin *which* player needs chasing another way, which is itself the inform
 
 ### Testing
 
-`lib/matches/admin-whatsapp.test.ts` — 8 cases: all three copy variants, registration preferred
-over profile, fallback on a null registration number, fallback on an *unparseable* registration
-number, null when neither candidate parses, and the undecided-opponent wording.
+`lib/matches/admin-whatsapp.test.ts` — 13 cases.
+
+`buildAdminPlayerWhatsAppUrl` (8): all three copy variants, registration preferred over profile,
+fallback on a null registration number, fallback on an *unparseable* registration number, null
+when neither candidate parses, and the undecided-opponent wording.
+
+`buildFixtureContactMap` (5): keyed by match id with each player addressed about the other, only
+the unreachable side nulled, per-player profile fallback, per-fixture schedule state carried into
+each message, and an empty map for no fixtures.
 
 ## Part 2 — Walkovers record 1-0, not 3-0
 
@@ -152,6 +192,6 @@ carry a pointer to this spec.
 
 ## Verification
 
-- 532 tests pass across 81 files (8 new)
+- 537 tests pass across 81 files (13 new)
 - `tsc --noEmit` clean
 - `npm run build` clean
