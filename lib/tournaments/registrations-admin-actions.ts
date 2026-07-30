@@ -6,7 +6,7 @@ import { disqualifySchema, substituteSchema } from './disqualify-schema'
 import { notify } from '@/lib/notifications/notify'
 import { notifyInApp } from '@/lib/notifications/inbox'
 import { disqualifyKey } from '@/lib/notifications/keys'
-import { recomputeGroupAndMaybeAdvance } from '@/lib/matches/verify-actions'
+import { recomputeGroupStats } from '@/lib/matches/verify-actions'
 
 export type DisqualifyState = { error?: string; success?: boolean } | undefined
 
@@ -175,7 +175,7 @@ export async function addSubstitute(_prev: DisqualifyState, formData: FormData):
       .in('group_id', groupIds)
       .select('group_id')
     for (const g of repointed ?? []) {
-      await recomputeGroupAndMaybeAdvance(admin, tournamentId, g.group_id)
+      await recomputeGroupStats(admin, g.group_id)
     }
   }
 

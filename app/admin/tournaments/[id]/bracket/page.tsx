@@ -7,6 +7,7 @@ import { loadBracketView } from '@/lib/tournaments/bracket-view'
 import { buildFixtureContactMap } from '@/lib/matches/admin-whatsapp'
 import { BracketActions } from '@/components/admin/BracketActions'
 import { AdminBracketView } from '@/components/admin/AdminBracketView'
+import { RecomputeStandingsButton } from '@/components/admin/RecomputeStandingsButton'
 
 export const metadata: Metadata = { title: 'Bracket · Admin · SentinelX' }
 
@@ -95,6 +96,12 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
         roundStartDate={t.round_start_date}
         roundGapDays={t.round_gap_days}
       />
+
+      {view.hasGroups && (
+        <div className="mb-4">
+          <RecomputeStandingsButton tournamentId={t.id} />
+        </div>
+      )}
 
       {!view.hasGroups && !view.hasKnockout ? (
         <p className="rounded-2xl border border-slate-800 bg-slate-900/50 p-8 text-center text-sm text-slate-500">

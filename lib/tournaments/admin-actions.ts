@@ -7,6 +7,8 @@ import { tournamentSchema, type TournamentInput } from './admin-schema'
 import { slugify } from './slug'
 import { missingForPublish } from './readiness'
 import { manualCreditWallet } from '@/lib/admin/wallet-actions'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { recomputeGroupStats } from '@/lib/matches/verify-actions'
 
 export type TournamentFormState = { error?: string; success?: boolean } | undefined
 export type PublishState = { error?: string; fieldErrors?: string[]; success?: boolean } | undefined
@@ -264,4 +266,38 @@ export async function refundRegistration(
 
   revalidatePath(`/admin/tournaments/${tournamentId}/registrations`)
   return { success: true }
+}
+
+export type RecomputeState = { error?: string; success?: boolean; groups?: number } | undefined
+
+// Rebuilds every group's table from its confirmed results. Standings are
+// denormalized onto group_memberships and normally refreshed as a side effect
+// of confirming a result, so anything that changes a group's shape WITHOUT a
+// result being confirmed — a substitution, or a bug fix to the tally itself —
+// leaves a stale table until the next confirmation. This is the explicit
+// admin action to bring it back in line.
+//
+// Deliberately stats-only (recomputeGroupStats, not recomputeGroupAndMaybeAdvance):
+// refreshing a table must never generate the knockout bracket as a side effect.
+// It writes no match result or status, only figures derived from results the
+// admin already confirmed, so it is safe to run at any point.
+export async function recomputeStandings(
+  _prev: RecomputeState,
+  formData: FormData,
+): Promise<RecomputeState> {
+  await requireStaff()
+  const tournamentId = String(formData.get('tournamentId') ?? '')
+  if (!tournamentId) return { error: 'Missing tournament.' }
+
+  const admin = createAdminClient()
+  const { data: groups } = await admin.from('groups').select('id').eq('tournament_id', tournamentId)
+  if (!groups || groups.length === 0) return { error: 'This tournament has no groups to recompute.' }
+
+  for (const g of groups) {
+    await recomputeGroupStats(admin, g.id)
+  }
+
+  revalidatePath(`/admin/tournaments/${tournamentId}/bracket`)
+  revalidatePath(`/tournaments`)
+  return { success: true, groups: groups.length }
 }

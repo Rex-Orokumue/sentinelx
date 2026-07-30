@@ -28,12 +28,12 @@ function firstStr<T>(x: T | T[] | null): T | null {
   return Array.isArray(x) ? x[0] ?? null : x
 }
 
-// Recompute one group's standings, then generate the knockout stage if the group stage is done.
-export async function recomputeGroupAndMaybeAdvance(
-  admin: Admin,
-  tournamentId: string,
-  groupId: string,
-): Promise<void> {
+// Rewrites one group's denormalized standings from its completed matches, and
+// nothing else. Split out from recomputeGroupAndMaybeAdvance so callers that
+// only want the table refreshed — the admin "Recompute standings" action, and
+// a substitution — cannot accidentally trigger knockout generation as a side
+// effect. Safe to run at any time: it is a pure function of the matches.
+export async function recomputeGroupStats(admin: Admin, groupId: string): Promise<void> {
   const { data: members } = await admin
     .from('group_memberships')
     .select('player_id')
@@ -66,6 +66,15 @@ export async function recomputeGroupAndMaybeAdvance(
       .eq('group_id', groupId)
       .eq('player_id', s.playerId)
   }
+}
+
+// Recompute one group's standings, then generate the knockout stage if the group stage is done.
+export async function recomputeGroupAndMaybeAdvance(
+  admin: Admin,
+  tournamentId: string,
+  groupId: string,
+): Promise<void> {
+  await recomputeGroupStats(admin, groupId)
 
   // Generate the knockout stage once ALL group matches are complete and none exists yet.
   const { count: remaining } = await admin
