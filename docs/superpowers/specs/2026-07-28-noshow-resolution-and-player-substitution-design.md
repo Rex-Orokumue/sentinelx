@@ -70,6 +70,10 @@ Admin receives WhatsApp proof of contact attempts out-of-band (no in-app trackin
 consistent with WhatsApp v1 being share-links only, no inbound API). On the match, a new
 **"Declare no-show winner"** admin action: pick which player showed up, required reason note.
 
+> **Superseded 2026-07-30:** the walkover score below is now **1-0**, not 3-0 — walkover goals
+> feed group goal difference, `profiles.goals_scored`, and Golden Boot selection. See
+> `docs/superpowers/specs/2026-07-30-admin-fixture-whatsapp-and-walkover-score-design.md`.
+
 Sets: `status='completed'`, `resolution='walkover'`, `score_a`/`score_b` = **3-0** oriented to
 the declared winner, `admin_note`, `completed_at=now()`. Reuses the same post-processing
 `confirmResult` already does (`lib/matches/verify-actions.ts:220-341`) — group recompute /

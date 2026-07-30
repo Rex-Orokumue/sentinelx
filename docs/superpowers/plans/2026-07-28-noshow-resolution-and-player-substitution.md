@@ -12,6 +12,10 @@
 
 - Nigeria observes no DST — Africa/Lagos (WAT) is UTC+1 year-round. Use `lib/format.ts`'s `fromDateLocal`/WAT helpers for any date-boundary logic; do not hand-roll timezone math.
 - Walkover score is always **3-0** in the declared winner's favor — not admin-entered.
+  > **Superseded 2026-07-30:** the walkover score is now **1-0**. Walkover goals feed group goal
+  > difference, `profiles.goals_scored`, and Golden Boot selection, so 3-0 credited a player who
+  > never played with three goals. See
+  > `docs/superpowers/specs/2026-07-30-admin-fixture-whatsapp-and-walkover-score-design.md`.
 - `no_show` Sentinel Score event = **−10**; `match_completed` = **+2**; `win_no_dispute` = **+1**. These deltas already exist in `lib/scoring/events.ts` — do not change their values.
 - Moderators may adjudicate match results (matches `confirmResult`'s `requireStaff` tier); disqualification/substitution and refunds are **admin-only** (`requireAdmin`) per CLAUDE.md's "moderator: no player bans" rule.
 - A substitute's registration is `payment_status='paid'`, `fee_waived=false` (the default — never set `true`) — they inherit an already-paid slot, this is not a comp.
