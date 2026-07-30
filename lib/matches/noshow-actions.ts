@@ -15,6 +15,14 @@ import { canMarkBothNoShow } from './noshow-eligibility'
 
 type Admin = ReturnType<typeof createAdminClient>
 
+// A walkover is recorded as 1-0, not 3-0. The scoreline isn't cosmetic: walkover
+// goals feed group goal difference and goals-for tiebreakers
+// (lib/tournaments/standings.ts), profiles.goals_scored (lib/scoring/stats.ts),
+// and Golden Boot selection (lib/hall-of-fame/awards.ts). A 3-0 hands a player
+// who never kicked a ball three goals toward the Golden Boot and a +3 swing in
+// their group; 1-0 is the smallest margin that still settles the tie.
+const WALKOVER_SCORE = 1
+
 interface PendingMatch {
   id: string
   tournament_id: string
@@ -151,8 +159,8 @@ export async function declareNoShowWinner(_prev: NoShowState, formData: FormData
     }
   }
 
-  const scoreA = winnerId === m.player_a_id ? 3 : 0
-  const scoreB = winnerId === m.player_b_id ? 3 : 0
+  const scoreA = winnerId === m.player_a_id ? WALKOVER_SCORE : 0
+  const scoreB = winnerId === m.player_b_id ? WALKOVER_SCORE : 0
 
   const { error: upErr } = await admin
     .from('matches')
@@ -189,7 +197,7 @@ export async function declareNoShowWinner(_prev: NoShowState, formData: FormData
     playerId: winnerId,
     type: 'result_confirmed',
     title: 'Result confirmed',
-    body: `Your opponent didn't show — you're marked as the winner (3-0).`,
+    body: `Your opponent didn't show — you're marked as the winner (${WALKOVER_SCORE}-0).`,
     link: `/matches/${id}`,
   })
 

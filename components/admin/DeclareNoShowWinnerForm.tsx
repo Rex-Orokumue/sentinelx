@@ -22,7 +22,7 @@ export function DeclareNoShowWinnerForm({
   if (state?.success) {
     return (
       <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-center text-sm font-semibold text-emerald-400">
-        ✓ No-show winner declared (3-0).
+        ✓ No-show winner declared (1-0).
       </div>
     )
   }
@@ -33,7 +33,7 @@ export function DeclareNoShowWinnerForm({
       <h3 className="text-sm font-bold text-white">Declare no-show winner</h3>
       <p className="text-xs text-slate-500">
         Use once you have WhatsApp proof the winner tried to reach their opponent and the opponent never responded.
-        Records a 3-0 walkover.
+        Records a 1-0 walkover.
       </p>
       <div className="space-y-1.5 text-sm">
         <label className="flex items-center gap-2 text-slate-300">
