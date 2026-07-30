@@ -6,6 +6,7 @@ import { disqualifySchema, substituteSchema } from './disqualify-schema'
 import { notify } from '@/lib/notifications/notify'
 import { notifyInApp } from '@/lib/notifications/inbox'
 import { disqualifyKey } from '@/lib/notifications/keys'
+import { recomputeGroupAndMaybeAdvance } from '@/lib/matches/verify-actions'
 
 export type DisqualifyState = { error?: string; success?: boolean } | undefined
 
@@ -69,8 +70,14 @@ export async function disqualifyRegistration(_prev: DisqualifyState, formData: F
 // Reassigns only not-yet-played matches and the group_memberships row — see
 // design spec section C. Already-completed matches keep the removed player's
 // id untouched; the substitute's standings are derived purely from matches
-// they actually play going forward (recomputeGroupAndMaybeAdvance already
-// does this once matches are repointed — no manual stat reset needed).
+// they actually play going forward.
+//
+// The repointed membership row still carries the removed player's accumulated
+// wins/goals, so the substitute must NOT be left wearing that record: this
+// recomputes the affected groups before returning. Waiting for the next result
+// confirmation to do it (the original design) leaves the substitute credited
+// with matches they never played — indefinitely, if the group has no matches
+// left to confirm.
 export async function addSubstitute(_prev: DisqualifyState, formData: FormData): Promise<DisqualifyState> {
   await requireAdmin()
   const tournamentId = String(formData.get('tournamentId') ?? '')
@@ -161,11 +168,15 @@ export async function addSubstitute(_prev: DisqualifyState, formData: FormData):
   const { data: tournamentGroups } = await admin.from('groups').select('id').eq('tournament_id', tournamentId)
   const groupIds = (tournamentGroups ?? []).map((g) => g.id)
   if (groupIds.length > 0) {
-    await admin
+    const { data: repointed } = await admin
       .from('group_memberships')
       .update({ player_id: sub.id })
       .eq('player_id', removedReg.player_id)
       .in('group_id', groupIds)
+      .select('group_id')
+    for (const g of repointed ?? []) {
+      await recomputeGroupAndMaybeAdvance(admin, tournamentId, g.group_id)
+    }
   }
 
   revalidatePath(`/admin/tournaments/${tournamentId}/registrations`)

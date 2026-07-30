@@ -42,3 +42,61 @@ describe('collectAdvancers', () => {
     expect(r).toEqual(['a1', 'b1', 'a2', 'b2'])
   })
 })
+
+// Regression: a substituted-out player keeps their id on already-completed
+// matches (see addSubstitute in lib/tournaments/registrations-admin-actions.ts),
+// so those matches reference a player who is no longer in group_memberships.
+// Voiding the whole match robbed the opponent who actually played and won.
+describe('computeGroupStats with a departed opponent', () => {
+  it("credits the remaining player's win when their opponent left the group", () => {
+    // HOOLIGANS (quingvonne) beat Lawanson 2-0; Lawanson was later replaced.
+    const stats = computeGroupStats(
+      ['quingvonne'],
+      [{ playerAId: 'lawanson', playerBId: 'quingvonne', scoreA: 0, scoreB: 2 }],
+    )
+    expect(stats).toEqual([
+      {
+        playerId: 'quingvonne',
+        points: 3,
+        wins: 1,
+        draws: 0,
+        losses: 0,
+        goalsFor: 2,
+        goalsAgainst: 0,
+      },
+    ])
+  })
+
+  it('credits a loss and goals against when the departed player won', () => {
+    const [s] = computeGroupStats(
+      ['stayed'],
+      [{ playerAId: 'stayed', playerBId: 'left', scoreA: 1, scoreB: 3 }],
+    )
+    expect(s).toMatchObject({ points: 0, wins: 0, losses: 1, goalsFor: 1, goalsAgainst: 3 })
+  })
+
+  it('credits a draw against a departed player', () => {
+    const [s] = computeGroupStats(
+      ['stayed'],
+      [{ playerAId: 'left', playerBId: 'stayed', scoreA: 2, scoreB: 2 }],
+    )
+    expect(s).toMatchObject({ points: 1, wins: 0, draws: 1, losses: 0, goalsFor: 2, goalsAgainst: 2 })
+  })
+
+  it('ignores a match where neither player is still in the group', () => {
+    const [s] = computeGroupStats(
+      ['stayed'],
+      [{ playerAId: 'left1', playerBId: 'left2', scoreA: 1, scoreB: 0 }],
+    )
+    expect(s).toMatchObject({ points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0 })
+  })
+
+  it('still credits both sides when both players remain', () => {
+    const stats = computeGroupStats(
+      ['a', 'b'],
+      [{ playerAId: 'a', playerBId: 'b', scoreA: 3, scoreB: 1 }],
+    )
+    expect(stats[0]).toMatchObject({ points: 3, wins: 1, goalsFor: 3, goalsAgainst: 1 })
+    expect(stats[1]).toMatchObject({ points: 0, losses: 1, goalsFor: 1, goalsAgainst: 3 })
+  })
+})

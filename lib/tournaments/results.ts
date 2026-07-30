@@ -26,28 +26,28 @@ export function computeGroupStats(
       { playerId: id, points: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0 },
     ]),
   )
-  for (const m of matches) {
-    const a = base.get(m.playerAId)
-    const b = base.get(m.playerBId)
-    if (!a || !b) continue
-    a.goalsFor += m.scoreA
-    a.goalsAgainst += m.scoreB
-    b.goalsFor += m.scoreB
-    b.goalsAgainst += m.scoreA
-    if (m.scoreA > m.scoreB) {
-      a.wins++
-      a.points += 3
-      b.losses++
-    } else if (m.scoreA < m.scoreB) {
-      b.wins++
-      b.points += 3
-      a.losses++
+  // Each side is credited independently. A player substituted out keeps their
+  // id on already-completed matches (see addSubstitute in
+  // lib/tournaments/registrations-admin-actions.ts), so those matches reference
+  // someone no longer in `playerIds` — but the opponent still played and still
+  // earned the result. Voiding the whole match robbed them of it.
+  const credit = (s: PlayerGroupStats | undefined, own: number, against: number) => {
+    if (!s) return // not a current group member — nothing to track for them
+    s.goalsFor += own
+    s.goalsAgainst += against
+    if (own > against) {
+      s.wins++
+      s.points += 3
+    } else if (own < against) {
+      s.losses++
     } else {
-      a.draws++
-      b.draws++
-      a.points++
-      b.points++
+      s.draws++
+      s.points++
     }
+  }
+  for (const m of matches) {
+    credit(base.get(m.playerAId), m.scoreA, m.scoreB)
+    credit(base.get(m.playerBId), m.scoreB, m.scoreA)
   }
   return playerIds.map((id) => base.get(id)!)
 }
