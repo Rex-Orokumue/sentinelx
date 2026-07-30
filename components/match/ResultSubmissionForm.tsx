@@ -4,35 +4,27 @@ import type { FormEvent } from 'react'
 import { useFormState } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
 import { submitMatchResult, type SubmitResultState } from '@/lib/matches/actions'
-import { buildRecordingWhatsAppUrl } from '@/lib/matches/recording-whatsapp'
 
 export function ResultSubmissionForm({
   matchId,
   playerAName,
   playerBName,
-  username,
-  tournamentTitle,
+  recordingWhatsAppUrl,
   initial,
 }: {
   matchId: string
   playerAName: string
   playerBName: string
-  username: string
-  tournamentTitle: string
+  // Built server-side (see lib/matches/recording-whatsapp.ts). Phone parsing
+  // pulls in libphonenumber-js metadata, which must not ship to this public
+  // page's client bundle — so this arrives as a finished string.
+  recordingWhatsAppUrl: string | null
   initial: { scoreA: number | null; scoreB: number | null; recordingUrl: string | null; hasScreenshot: boolean } | null
 }) {
   const [state, formAction] = useFormState<SubmitResultState, FormData>(submitMatchResult, undefined)
   const [uploading, setUploading] = useState(false)
   const [clientError, setClientError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
-
-  const recordingWhatsAppUrl = buildRecordingWhatsAppUrl({
-    adminWhatsapp: process.env.NEXT_PUBLIC_ADMIN_WHATSAPP ?? null,
-    username,
-    tournamentTitle,
-    playerAName,
-    playerBName,
-  })
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()

@@ -40,7 +40,7 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
   const fixturePlayerIds = Array.from(
     new Set(groupFixtures.flatMap((f) => [f.playerA.id, f.playerB.id]).filter(Boolean)),
   )
-  const [{ data: regWhatsappRows }, { data: profileWhatsappRows }] = await Promise.all([
+  const [{ data: regWhatsappRows }, { data: profileWhatsappRowsRaw }] = await Promise.all([
     fixturePlayerIds.length > 0
       ? supabase
           .from('tournament_registrations')
@@ -48,9 +48,14 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
           .eq('tournament_id', t.id)
       : Promise.resolve({ data: [] as { player_id: string; reg_whatsapp: string | null }[] }),
     fixturePlayerIds.length > 0
-      ? supabase.from('profiles').select('id, whatsapp_number').in('id', fixturePlayerIds)
-      : Promise.resolve({ data: [] as { id: string; whatsapp_number: string | null }[] }),
+      ? supabase.from('profiles').select('id, whatsapp_number, country').in('id', fixturePlayerIds)
+      : Promise.resolve({
+          data: [] as { id: string; whatsapp_number: string | null; country: string | null }[],
+        }),
   ])
+  const profileRows = profileWhatsappRowsRaw as
+    | { id: string; whatsapp_number: string | null; country: string | null }[]
+    | null
   const contacts = buildFixtureContactMap({
     fixtures: groupFixtures,
     tournamentTitle: t.title,
@@ -60,10 +65,10 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
       ),
     ),
     profileWhatsappByPlayer: new Map(
-      ((profileWhatsappRows as { id: string; whatsapp_number: string | null }[] | null) ?? []).map(
-        (p) => [p.id, p.whatsapp_number],
-      ),
+      (profileRows ?? []).map((p) => [p.id, p.whatsapp_number]),
     ),
+    // Non-Nigerian players type their number in their own national format.
+    countryByPlayer: new Map((profileRows ?? []).map((p) => [p.id, p.country])),
   })
 
   return (

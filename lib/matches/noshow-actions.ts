@@ -12,6 +12,7 @@ import { notifyInApp } from '@/lib/notifications/inbox'
 import { resultKey, noshowKey } from '@/lib/notifications/keys'
 import { getNotifiableStaffIds } from '@/lib/admin/staff'
 import { canMarkBothNoShow } from './noshow-eligibility'
+import { resolvePlayerPhone } from './admin-whatsapp'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -23,20 +24,24 @@ type Admin = ReturnType<typeof createAdminClient>
 // their group; 1-0 is the smallest margin that still settles the tie.
 const WALKOVER_SCORE = 1
 
+// Contact fields are selected so the staff alert can carry tap-to-chat links.
+type PendingProfile = {
+  display_name: string | null
+  username: string | null
+  whatsapp_number: string | null
+  country: string | null
+}
+
 interface PendingMatch {
   id: string
   tournament_id: string
   round: string
   group_id: string | null
   scheduled_at: string | null
-  player_a:
-    | { display_name: string | null; username: string | null }
-    | { display_name: string | null; username: string | null }[]
-    | null
-  player_b:
-    | { display_name: string | null; username: string | null }
-    | { display_name: string | null; username: string | null }[]
-    | null
+  player_a_id: string | null
+  player_b_id: string | null
+  player_a: PendingProfile | PendingProfile[] | null
+  player_b: PendingProfile | PendingProfile[] | null
   tournament: { title: string } | { title: string }[] | null
 }
 
@@ -63,9 +68,9 @@ export async function resolvePendingNoShowMatches(
   let query = admin
     .from('matches')
     .select(
-      'id, tournament_id, round, group_id, scheduled_at, ' +
-        'player_a:profiles!matches_player_a_id_fkey(display_name, username), ' +
-        'player_b:profiles!matches_player_b_id_fkey(display_name, username), ' +
+      'id, tournament_id, round, group_id, scheduled_at, player_a_id, player_b_id, ' +
+        'player_a:profiles!matches_player_a_id_fkey(display_name, username, whatsapp_number, country), ' +
+        'player_b:profiles!matches_player_b_id_fkey(display_name, username, whatsapp_number, country), ' +
         'tournament:tournaments(title)',
     )
     .in('status', ['scheduled', 'live'])
@@ -80,12 +85,40 @@ export async function resolvePendingNoShowMatches(
 
   const staffIds = await getNotifiableStaffIds(admin)
 
+  // Registration numbers for everyone involved, in one query — the per-tournament
+  // number takes precedence over the profile one (see resolvePlayerPhone).
+  const { data: regRows } = await admin
+    .from('tournament_registrations')
+    .select('tournament_id, player_id, reg_whatsapp')
+    .in('tournament_id', Array.from(new Set(due.map((m) => m.tournament_id))))
+  const regWhatsappByPlayer = new Map(
+    ((regRows as { tournament_id: string; player_id: string; reg_whatsapp: string | null }[] | null) ?? []).map(
+      (r) => [`${r.tournament_id}:${r.player_id}`, r.reg_whatsapp],
+    ),
+  )
+
   for (const m of due) {
     await admin.from('matches').update({ noshow_flagged_at: now.toISOString() }).eq('id', m.id)
 
     const tournamentTitle = firstOf(m.tournament)?.title ?? 'Tournament'
     const playerA = nameOf(m.player_a)
     const playerB = nameOf(m.player_b)
+    // Staff get tap-to-chat links in the alert itself, so chasing a stalled
+    // match doesn't start with hunting for whose number is whose.
+    const [urlA, urlB] = [
+      [m.player_a_id, m.player_a] as const,
+      [m.player_b_id, m.player_b] as const,
+    ].map(([playerId, profile]) => {
+      const p = firstOf(profile)
+      const phone = playerId
+        ? resolvePlayerPhone({
+            regWhatsapp: regWhatsappByPlayer.get(`${m.tournament_id}:${playerId}`),
+            profileWhatsapp: p?.whatsapp_number,
+            country: p?.country,
+          })
+        : null
+      return phone ? `https://wa.me/${phone.waNumber}` : null
+    })
     for (const staffId of staffIds) {
       await notify({
         type: 'noshow_needs_decision',
@@ -95,6 +128,8 @@ export async function resolvePendingNoShowMatches(
         round: m.round,
         playerA,
         playerB,
+        playerAWhatsAppUrl: urlA,
+        playerBWhatsAppUrl: urlB,
       })
       await notifyInApp({
         playerId: staffId,

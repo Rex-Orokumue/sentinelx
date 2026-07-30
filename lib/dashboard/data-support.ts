@@ -1,4 +1,4 @@
-import { toWhatsAppNumber } from './fixtures'
+import { toWhatsAppNumber } from '@/lib/phone/number'
 
 export interface DataSupportMatch {
   round: string

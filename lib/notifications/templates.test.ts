@@ -45,4 +45,42 @@ describe('renderTemplate', () => {
     expect(r.body).toContain('Ade')
     expect(r.body).toContain('Bola')
   })
+
+  it('appends tap-to-chat links to noshow_needs_decision when numbers are known', () => {
+    const r = renderTemplate({
+      type: 'noshow_needs_decision',
+      tournament: 'Lagos Cup',
+      round: 'group',
+      playerA: 'Ade',
+      playerB: 'Bola',
+      playerAWhatsAppUrl: 'https://wa.me/2348012345678',
+      playerBWhatsAppUrl: 'https://wa.me/2348087654321',
+    })
+    expect(r.body).toContain('Message them:')
+    expect(r.body).toContain('Ade: https://wa.me/2348012345678')
+    expect(r.body).toContain('Bola: https://wa.me/2348087654321')
+  })
+
+  it('lists only the reachable player, and omits the block when neither is', () => {
+    const one = renderTemplate({
+      type: 'noshow_needs_decision',
+      tournament: 'Lagos Cup',
+      round: 'group',
+      playerA: 'Ade',
+      playerB: 'Bola',
+      playerAWhatsAppUrl: 'https://wa.me/2348012345678',
+      playerBWhatsAppUrl: null,
+    })
+    expect(one.body).toContain('Ade: https://wa.me/2348012345678')
+    expect(one.body).not.toContain('Bola: ')
+
+    const none = renderTemplate({
+      type: 'noshow_needs_decision',
+      tournament: 'Lagos Cup',
+      round: 'group',
+      playerA: 'Ade',
+      playerB: 'Bola',
+    })
+    expect(none.body).not.toContain('Message them:')
+  })
 })

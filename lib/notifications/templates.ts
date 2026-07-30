@@ -8,7 +8,18 @@ export type TemplateInput =
   | { type: 'escrow_completed'; title: string }
   | { type: 'escrow_refunded'; title: string }
   | { type: 'player_disqualified'; tournament: string; reason: string }
-  | { type: 'noshow_needs_decision'; tournament: string; round: string; playerA: string; playerB: string }
+  | {
+      type: 'noshow_needs_decision'
+      tournament: string
+      round: string
+      playerA: string
+      playerB: string
+      // wa.me links for each player, so staff can chase them straight from the
+      // alert instead of opening the dashboard to look numbers up. Null when a
+      // player has no valid number on file.
+      playerAWhatsAppUrl?: string | null
+      playerBWhatsAppUrl?: string | null
+    }
 
 export interface RenderedTemplate {
   templateName: string
@@ -64,10 +75,17 @@ export function renderTemplate(input: TemplateInput): RenderedTemplate {
         templateName: 'player_disqualified',
         body: `🚫 You've been removed from ${input.tournament} on Sentinel X. Reason: ${input.reason} If you think this is a mistake, reach out to support.`,
       }
-    case 'noshow_needs_decision':
+    case 'noshow_needs_decision': {
+      const contacts = [
+        input.playerAWhatsAppUrl ? `${input.playerA}: ${input.playerAWhatsAppUrl}` : null,
+        input.playerBWhatsAppUrl ? `${input.playerB}: ${input.playerBWhatsAppUrl}` : null,
+      ].filter(Boolean)
       return {
         templateName: 'noshow_needs_decision',
-        body: `⚠️ No-show needs a decision: ${input.playerA} vs ${input.playerB} (${input.tournament}, ${input.round.replace(/_/g, ' ')}) passed its deadline with no confirmed result. Review it on the Sentinel X admin dashboard.`,
+        body:
+          `⚠️ No-show needs a decision: ${input.playerA} vs ${input.playerB} (${input.tournament}, ${input.round.replace(/_/g, ' ')}) passed its deadline with no confirmed result. Review it on the Sentinel X admin dashboard.` +
+          (contacts.length > 0 ? `\n\nMessage them:\n${contacts.join('\n')}` : ''),
       }
+    }
   }
 }

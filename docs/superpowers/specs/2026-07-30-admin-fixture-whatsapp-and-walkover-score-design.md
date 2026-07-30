@@ -73,9 +73,7 @@ Two candidates, tried in order, first one that parses wins:
    for this event, and what players already see of each other
 2. `profiles.whatsapp_number` — their account-level number
 
-Both run through the existing `toWhatsAppNumber` (`lib/dashboard/fixtures.ts:109`), which
-normalizes Nigerian formats (`0801…`, `+234801…`, `234801…`, `801…`) into the `234`-prefixed form
-`wa.me` requires.
+Both run through `parsePlayerPhone` (`lib/phone/number.ts`) — see Part 3.
 
 Falling through on a **parse failure**, not merely on a null, is the deliberate part: a player who
 typed something unusable at registration ("ask me on IG") still gets reached via their profile
@@ -190,8 +188,99 @@ Two earlier documents state the old rule and are now historically inaccurate on 
 `docs/superpowers/specs/2026-07-28-noshow-resolution-and-player-substitution-design.md:73`. Both
 carry a pointer to this spec.
 
+### Opponent contact in the message
+
+The chase message ends with the opponent's number in two forms — readable (to save as a contact or
+dial) and a `wa.me` link (which opens a chat even when the number isn't saved, the actual pain
+point):
+
+```
+Tunde: +234 808 765 4321
+Message them: https://wa.me/2348087654321
+```
+
+Omitted entirely when the opponent has no valid number. This is not a new disclosure: players
+already see each other's numbers via `buildOpponentWhatsAppUrl` on their own dashboard.
+
+The same links are appended to the `noshow_needs_decision` staff alert
+(`lib/notifications/templates.ts`), so a stalled match can be chased from the notification without
+opening the dashboard to look numbers up. Only reachable players are listed; the block is dropped
+when neither is.
+
+Deliberately **not** extended to the walkover notification: that one goes to the winning player,
+not to staff, and telling the winner how to reach the opponent who just no-showed them serves no
+purpose.
+
+## Part 3 — Country-aware phone parsing
+
+### Problem
+
+`toWhatsAppNumber` stripped every non-digit **first** — discarding the `+` that says "this number
+is already international" — then applied Nigeria-only length rules. Checked against all 79 stored
+numbers on 2026-07-30, five were mishandled, and the two causes differ in kind:
+
+| Player | `profiles.country` | Stored | Old result |
+|---|---|---|---|
+| InaPower | South Africa | `0704…` (10 digits) | `2340704…` — **a wrong number, silently** |
+| KIPLANGAT | Kenya | registration `0712…` | `2340712…` — **a wrong number, silently** |
+| KIPLANGAT | Kenya | profile `+254…` | `null` — shown as "no WhatsApp" |
+| (one registration) | — | `+268…` | `null` — shown as "no WhatsApp" |
+
+These are not malformed numbers. A South African mobile is 10 digits starting `0`; so is a Kenyan
+one. Their national formats collide with Nigeria's, and the parser resolved the collision by
+assuming Nigeria and inventing a plausible-looking wrong number.
+
+That reaches further than broken links: the same function gates **phone-verification OTP delivery**
+(`lib/phone/actions.ts`), so a login code could be sent to a stranger's WhatsApp.
+
+### Solution
+
+`libphonenumber-js`, parsing against **the player's own country** rather than a hardcoded region.
+`profiles.country` already records it and was simply never consulted.
+
+New module `lib/phone/number.ts` — moved out of `lib/dashboard/fixtures.ts`, a poor home for
+something that phone verification, data support, friendlies, the dashboard and admin all depend on:
+
+- `countryToRegion(freeText)` — country name → ISO region. The index is built from
+  `Intl.DisplayNames` over `getCountries()`, so all 245 countries resolve without a hand-maintained
+  table. A small alias map covers what Intl can't: demonyms and colloquial names players actually
+  type — live data already contains `Nigerian` alongside `Nigeria`. Defaults to `NG`.
+- `parsePlayerPhone(raw, { country })` → `{ waNumber, e164, display } | null`
+- `toWhatsAppNumber(raw, { country })` — thin wrapper, keeps the existing call sites working
+
+Validation is the point: an impossible number now returns `null` instead of being coerced into a
+real-looking wrong one. "No WhatsApp" is a worse-looking but far better outcome than a link to a
+stranger.
+
+A leading `+` makes a number self-describing, and the region is then ignored — handled natively.
+
+Registration numbers are parsed with the player's **profile** country, since a registration row
+carries no country of its own. That alone rescues KIPLANGAT's `0712…`.
+
+### No migration
+
+Numbers are stored **exactly as typed** (`lib/profile/actions.ts:33`); `requestPhoneCode`
+normalizes only into `phone_verifications.phone`, never back into `profiles`. Normalization is
+purely read-time, so fixing the parser fixes all five rows instantly — everywhere, OTP included —
+with zero rows touched.
+
+A migration was considered and rejected: every one of the five is a *valid* number in its own
+country, so rewriting stored values could only lose information, and would risk baking in exactly
+the mangling being fixed.
+
+### Client bundle
+
+libphonenumber-js metadata is ~120KB and must never reach a browser bundle. One client component
+did drag it in: `components/match/ResultSubmissionForm.tsx`, on the **public** match page, imported
+`buildRecordingWhatsAppUrl` directly. Fixed by the rule the rest of this work already follows —
+**the server builds the URL, the client receives a finished string**.
+
+Verified after a clean rebuild: `grep -rl libphonenumber .next/static/chunks` returns nothing, and
+First Load JS shared by all is unchanged at 87.3 kB.
+
 ## Verification
 
-- 537 tests pass across 81 files (13 new)
+- 555 tests pass across 82 files
 - `tsc --noEmit` clean
-- `npm run build` clean
+- `npm run build` exits 0 (compile **and** lint)
+- No `libphonenumber` in any client chunk after a clean rebuild

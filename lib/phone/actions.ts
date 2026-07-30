@@ -3,7 +3,7 @@ import { randomInt } from 'crypto'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { toWhatsAppNumber } from '@/lib/dashboard/fixtures'
+import { toWhatsAppNumber } from './number'
 import { sendWhatsAppOtp } from '@/lib/notifications/whatsapp-cloud-api'
 import { phoneCodeSchema } from './schema'
 import { hashCode, codeMatches } from './hash'
@@ -18,9 +18,6 @@ export async function requestPhoneCode(
   _prev: PhoneActionState,
   formData: FormData,
 ): Promise<PhoneActionState> {
-  const phone = toWhatsAppNumber(String(formData.get('phone') ?? ''))
-  if (!phone) return { error: 'Enter a valid Nigerian phone number.' }
-
   const supabase = createClient()
   const {
     data: { user },
@@ -28,6 +25,18 @@ export async function requestPhoneCode(
   if (!user) return { error: 'Please log in.' }
 
   const admin = createAdminClient()
+  // Parse against the player's own country: a South African or Kenyan national
+  // number is 10 digits starting '0' just like a truncated Nigerian one, and
+  // guessing Nigeria would send their code to a stranger's WhatsApp.
+  const { data: countryRow } = await admin
+    .from('profiles')
+    .select('country')
+    .eq('id', user.id)
+    .maybeSingle()
+  const phone = toWhatsAppNumber(String(formData.get('phone') ?? ''), {
+    country: countryRow?.country,
+  })
+  if (!phone) return { error: 'Enter a valid phone number, including your country code if you are outside Nigeria.' }
   const { data: existing } = await admin
     .from('phone_verifications')
     .select('created_at')

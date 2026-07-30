@@ -1,4 +1,4 @@
-import { toWhatsAppNumber } from '@/lib/dashboard/fixtures'
+import { toWhatsAppNumber } from '@/lib/phone/number'
 
 export function buildRecordingWhatsAppUrl(args: {
   adminWhatsapp: string | null

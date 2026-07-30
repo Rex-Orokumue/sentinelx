@@ -27,7 +27,12 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-type ProfileRef = { id?: string; username: string | null; display_name: string | null } | null
+type ProfileRef = {
+  id?: string
+  username: string | null
+  display_name: string | null
+  country?: string | null
+} | null
 type TournamentRef =
   | {
       title: string
@@ -47,6 +52,9 @@ type TournamentRef =
 
 function nameOf(p: ProfileRef): string {
   return p?.display_name ?? p?.username ?? 'TBD'
+}
+function countryOf(p: ProfileRef): string | null {
+  return p?.country ?? null
 }
 function firstTournament(t: TournamentRef): {
   title: string
@@ -111,8 +119,8 @@ export default async function DashboardPage() {
       .from('matches')
       .select(
         'id, status, scheduled_at, is_full_day, round, tournament_id, player_a_id, player_b_id, ' +
-          'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
-          'player_b:profiles!matches_player_b_id_fkey(id, username, display_name), ' +
+          'player_a:profiles!matches_player_a_id_fkey(id, username, display_name, country), ' +
+          'player_b:profiles!matches_player_b_id_fkey(id, username, display_name, country), ' +
           'tournament:tournaments(title, slug, status, data_support_text, data_support_whatsapp)',
       )
       .or(`player_a_id.eq.${user.id},player_b_id.eq.${user.id}`),
@@ -248,6 +256,7 @@ export default async function DashboardPage() {
       round: mm.round,
       opponentName: nameOf(opponent),
       opponentWhatsapp: whatsappByKey.get(`${mm.tournament_id}:${opponentId}`) ?? null,
+      opponentCountry: countryOf(opponent),
       tournamentTitle: t?.title ?? 'Tournament',
       tournamentSlug: t?.slug ?? '',
     }

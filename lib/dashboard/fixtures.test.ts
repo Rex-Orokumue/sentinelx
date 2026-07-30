@@ -3,7 +3,6 @@ import {
   bucketFixtures,
   groupFixturesByDate,
   isTournamentPublished,
-  toWhatsAppNumber,
   buildOpponentWhatsAppUrl,
   type DashboardMatchInput,
 } from './fixtures'
@@ -191,36 +190,6 @@ describe('isTournamentPublished', () => {
   it('hides when the tournament reference is missing', () => {
     expect(isTournamentPublished(null)).toBe(false)
     expect(isTournamentPublished(undefined)).toBe(false)
-  })
-})
-
-describe('toWhatsAppNumber', () => {
-  it('converts a local 0-prefixed Nigerian number to international format', () => {
-    expect(toWhatsAppNumber('08012345678')).toBe('2348012345678')
-  })
-
-  it('accepts an already-international number with a leading +', () => {
-    expect(toWhatsAppNumber('+2348012345678')).toBe('2348012345678')
-  })
-
-  it('accepts an already-international number with no +', () => {
-    expect(toWhatsAppNumber('2348012345678')).toBe('2348012345678')
-  })
-
-  it('accepts a 10-digit number missing the leading 0', () => {
-    expect(toWhatsAppNumber('8012345678')).toBe('2348012345678')
-  })
-
-  it('strips spaces and dashes before formatting', () => {
-    expect(toWhatsAppNumber('080 123-45678')).toBe('2348012345678')
-  })
-
-  it('returns null for an unrecognized length', () => {
-    expect(toWhatsAppNumber('12345')).toBeNull()
-  })
-
-  it('returns null for an empty string', () => {
-    expect(toWhatsAppNumber('')).toBeNull()
   })
 })
 

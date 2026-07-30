@@ -25,6 +25,7 @@ export function FixtureCard({ fixture }: { fixture: DashboardFixture }) {
         opponentWhatsapp: fixture.opponentWhatsapp,
         opponentName: fixture.opponentName,
         tournamentTitle: fixture.tournamentTitle,
+        opponentCountry: fixture.opponentCountry,
       })
     : null
 

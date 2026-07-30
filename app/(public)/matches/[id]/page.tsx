@@ -12,6 +12,7 @@ import { JsonLd } from '@/components/seo/JsonLd'
 import { buildMatchJsonLd } from '@/lib/seo/schema/event'
 import { formatFixtureDate } from '@/lib/format'
 import { resolveBackLink } from '@/lib/nav/back-link'
+import { buildRecordingWhatsAppUrl } from '@/lib/matches/recording-whatsapp'
 
 type ProfileRef = { username: string | null; display_name: string | null } | null
 
@@ -237,8 +238,13 @@ export default async function MatchCentrePage({
             matchId={m.id}
             playerAName={nameOf(m.player_a)}
             playerBName={nameOf(m.player_b)}
-            username={myUsername}
-            tournamentTitle={m.tournaments?.title ?? 'Sentinel X'}
+            recordingWhatsAppUrl={buildRecordingWhatsAppUrl({
+              adminWhatsapp: process.env.NEXT_PUBLIC_ADMIN_WHATSAPP ?? null,
+              username: myUsername,
+              tournamentTitle: m.tournaments?.title ?? 'Sentinel X',
+              playerAName: nameOf(m.player_a),
+              playerBName: nameOf(m.player_b),
+            })}
             initial={
               myResult
                 ? {

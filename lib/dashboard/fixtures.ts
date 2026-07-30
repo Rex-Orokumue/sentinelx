@@ -1,4 +1,5 @@
 import { toDateTimeLocal, formatDate } from '@/lib/format'
+import { toWhatsAppNumber } from '@/lib/phone/number'
 
 export interface DashboardMatchInput {
   id: string
@@ -8,6 +9,9 @@ export interface DashboardMatchInput {
   round: string
   opponentName: string
   opponentWhatsapp?: string | null
+  // `profiles.country` for the opponent, so a non-Nigerian number in national
+  // format parses against its own numbering plan.
+  opponentCountry?: string | null
   tournamentTitle: string
   tournamentSlug: string
 }
@@ -102,25 +106,15 @@ export function groupFixturesByDate(fixtures: DashboardFixture[]): FixtureDateGr
   }))
 }
 
-// Normalizes a free-typed registration WhatsApp number (e.g. "0801...",
-// "+234801...", "234801...", "801...") into wa.me's required international
-// format (234 + subscriber number, no leading 0/+). Returns null when the
-// input isn't a recognizable Nigerian number length.
-export function toWhatsAppNumber(raw: string): string | null {
-  const digits = raw.replace(/\D/g, '')
-  if (digits.startsWith('234') && digits.length === 13) return digits
-  if (digits.startsWith('0') && digits.length === 11) return `234${digits.slice(1)}`
-  if (digits.length === 10) return `234${digits}`
-  return null
-}
-
 export function buildOpponentWhatsAppUrl(args: {
   opponentWhatsapp: string | null | undefined
   opponentName: string
   tournamentTitle: string
+  // The opponent's `profiles.country`, so a non-Nigerian number in national
+  // format parses against its own numbering plan. See lib/phone/number.ts.
+  opponentCountry?: string | null
 }): string | null {
-  if (!args.opponentWhatsapp) return null
-  const number = toWhatsAppNumber(args.opponentWhatsapp)
+  const number = toWhatsAppNumber(args.opponentWhatsapp, { country: args.opponentCountry })
   if (!number) return null
   const text = `Hey ${args.opponentName}! We're matched for ${args.tournamentTitle} on Sentinel X — let's coordinate on timing 👋`
   return `https://wa.me/${number}?text=${encodeURIComponent(text)}`

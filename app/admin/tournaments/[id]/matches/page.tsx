@@ -7,7 +7,7 @@ import { ROUND_ORDER, ROUND_LABELS } from '@/lib/tournaments/bracket'
 import { MatchRow, type AdminMatchRow } from '@/components/admin/MatchRow'
 import { ResolvePendingMatchesButton } from '@/components/admin/ResolvePendingMatchesButton'
 import { NoShowBanner, type FlaggedMatchRow } from '@/components/admin/NoShowBanner'
-import { buildAdminPlayerWhatsAppUrl } from '@/lib/matches/admin-whatsapp'
+import { buildAdminPlayerWhatsAppUrl, resolvePlayerPhone } from '@/lib/matches/admin-whatsapp'
 import { toDateTimeLocal } from '@/lib/format'
 
 export const metadata: Metadata = { title: 'Matches · Admin · SentinelX' }
@@ -15,7 +15,9 @@ export const metadata: Metadata = { title: 'Matches · Admin · SentinelX' }
 type ProfileRef = { username: string | null; display_name: string | null } | null
 // The main match query pulls each player's id + fallback number too, so admin
 // can WhatsApp either side of a fixture straight from the row.
-type PlayerRef = (ProfileRef & { id: string; whatsapp_number: string | null }) | null
+type PlayerRef =
+  | (ProfileRef & { id: string; whatsapp_number: string | null; country: string | null })
+  | null
 type GroupRef = { name: string } | { name: string }[] | null
 function nameOf(p: ProfileRef): string | null {
   return p ? p.display_name ?? p.username ?? 'TBD' : null
@@ -39,8 +41,8 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
       .from('matches')
       .select(
         'id, round, group_id, status, scheduled_at, is_full_day, youtube_stream_url, replay_url, ' +
-          'player_a:profiles!matches_player_a_id_fkey(id, username, display_name, whatsapp_number), ' +
-          'player_b:profiles!matches_player_b_id_fkey(id, username, display_name, whatsapp_number), ' +
+          'player_a:profiles!matches_player_a_id_fkey(id, username, display_name, whatsapp_number, country), ' +
+          'player_b:profiles!matches_player_b_id_fkey(id, username, display_name, whatsapp_number, country), ' +
           'groups(name)',
       )
       .eq('tournament_id', t.id),
@@ -72,13 +74,19 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
       player_b: PlayerRef
       groups: GroupRef
     }
+    const contactInputFor = (player: NonNullable<PlayerRef>) => ({
+      regWhatsapp: regWhatsappByPlayer.get(player.id),
+      profileWhatsapp: player.whatsapp_number,
+      country: player.country,
+    })
     const whatsAppUrlFor = (player: PlayerRef, opponent: PlayerRef): string | null =>
       player &&
       buildAdminPlayerWhatsAppUrl({
-        regWhatsapp: regWhatsappByPlayer.get(player.id),
-        profileWhatsapp: player.whatsapp_number,
+        player: contactInputFor(player),
         playerName: nameOf(player) ?? 'there',
         opponentName: nameOf(opponent),
+        // So the player can reach their opponent straight from the message.
+        opponentPhone: opponent && resolvePlayerPhone(contactInputFor(opponent)),
         tournamentTitle: t.title,
         scheduledAt: m.scheduled_at,
         isFullDay: m.is_full_day,

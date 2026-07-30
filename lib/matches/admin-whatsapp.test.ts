@@ -2,8 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { buildAdminPlayerWhatsAppUrl, buildFixtureContactMap } from './admin-whatsapp'
 
 const base = {
-  regWhatsapp: '08012345678',
-  profileWhatsapp: null,
+  player: { regWhatsapp: '08012345678', profileWhatsapp: null as string | null },
   playerName: 'Chidi',
   opponentName: 'Tunde',
   tournamentTitle: 'DLS Cup 4',
@@ -44,8 +43,7 @@ describe('buildAdminPlayerWhatsAppUrl', () => {
   it('falls back to the profile number when the registration has none', () => {
     const url = buildAdminPlayerWhatsAppUrl({
       ...base,
-      regWhatsapp: null,
-      profileWhatsapp: '+2348099999999',
+      player: { regWhatsapp: null, profileWhatsapp: '+2348099999999' },
     })
     expect(url!.startsWith('https://wa.me/2348099999999?text=')).toBe(true)
   })
@@ -53,23 +51,25 @@ describe('buildAdminPlayerWhatsAppUrl', () => {
   it('falls back to the profile number when the registration number is unparseable', () => {
     const url = buildAdminPlayerWhatsAppUrl({
       ...base,
-      regWhatsapp: 'ask me on IG',
-      profileWhatsapp: '08099999999',
+      player: { regWhatsapp: 'ask me on IG', profileWhatsapp: '08099999999' },
     })
     expect(url!.startsWith('https://wa.me/2348099999999?text=')).toBe(true)
   })
 
   it('prefers the registration number over the profile number', () => {
-    const url = buildAdminPlayerWhatsAppUrl({ ...base, profileWhatsapp: '08099999999' })
+    const url = buildAdminPlayerWhatsAppUrl({
+      ...base,
+      player: { regWhatsapp: '08012345678', profileWhatsapp: '08099999999' },
+    })
     expect(url!.startsWith('https://wa.me/2348012345678?text=')).toBe(true)
   })
 
   it('returns null when neither number is usable', () => {
     expect(
-      buildAdminPlayerWhatsAppUrl({ ...base, regWhatsapp: null, profileWhatsapp: null }),
+      buildAdminPlayerWhatsAppUrl({ ...base, player: { regWhatsapp: null, profileWhatsapp: null } }),
     ).toBeNull()
     expect(
-      buildAdminPlayerWhatsAppUrl({ ...base, regWhatsapp: '123', profileWhatsapp: 'nope' }),
+      buildAdminPlayerWhatsAppUrl({ ...base, player: { regWhatsapp: '123', profileWhatsapp: 'nope' } }),
     ).toBeNull()
   })
 
@@ -149,5 +149,88 @@ describe('buildFixtureContactMap', () => {
         profileWhatsappByPlayer: new Map(),
       }),
     ).toEqual({})
+  })
+})
+
+describe('opponent contact block', () => {
+  const base = {
+    player: { regWhatsapp: '08012345678', profileWhatsapp: null as string | null },
+    playerName: 'Chidi',
+    opponentName: 'Tunde',
+    tournamentTitle: 'DLS Cup 4',
+    scheduledAt: '2026-07-08T19:00:00Z',
+    isFullDay: false,
+  }
+
+  it("appends the opponent's readable number and a tap-to-chat link", () => {
+    const url = buildAdminPlayerWhatsAppUrl({
+      ...base,
+      opponentPhone: { waNumber: '2348087654321', e164: '+2348087654321', display: '+234 808 765 4321' },
+    })!
+    const text = decodeURIComponent(url.split('?text=')[1])
+    expect(text).toContain('Tunde: +234 808 765 4321')
+    expect(text).toContain('Message them: https://wa.me/2348087654321')
+    // The chase message itself still comes first.
+    expect(text.indexOf('Hi Chidi')).toBeLessThan(text.indexOf('Tunde: +234'))
+  })
+
+  it('omits the block entirely when the opponent is unreachable', () => {
+    const text = decodeURIComponent(
+      buildAdminPlayerWhatsAppUrl({ ...base, opponentPhone: null })!.split('?text=')[1],
+    )
+    expect(text).not.toContain('Message them:')
+    expect(text.trimEnd()).toBe(text)
+  })
+})
+
+describe('country-aware resolution', () => {
+  const fixture = {
+    id: 'm1',
+    playerA: { id: 'pa', name: 'Kip' },
+    playerB: { id: 'pb', name: 'Chidi' },
+    scheduled_at: '2026-07-08T19:00:00Z',
+    is_full_day: false,
+  }
+
+  it("parses a player's national-format number against their own country", () => {
+    const map = buildFixtureContactMap({
+      fixtures: [fixture],
+      tournamentTitle: 'DLS Cup 4',
+      // A Kenyan national number: mangled into a wrong Nigerian one before this.
+      regWhatsappByPlayer: new Map([['pa', '0712345678']]),
+      profileWhatsappByPlayer: new Map(),
+      countryByPlayer: new Map([['pa', 'Kenya']]),
+    })
+    expect(map.m1.a!.startsWith('https://wa.me/254712345678?text=')).toBe(true)
+  })
+
+  it('falls through to the profile number when the registration one is foreign-invalid', () => {
+    const map = buildFixtureContactMap({
+      fixtures: [fixture],
+      tournamentTitle: 'DLS Cup 4',
+      regWhatsappByPlayer: new Map([['pa', '0712345678']]), // invalid as Nigerian
+      profileWhatsappByPlayer: new Map([['pa', '+254712345678']]),
+      countryByPlayer: new Map(), // country unknown => Nigeria
+    })
+    expect(map.m1.a!.startsWith('https://wa.me/254712345678?text=')).toBe(true)
+  })
+
+  it("carries each player's number into their opponent's message", () => {
+    const map = buildFixtureContactMap({
+      fixtures: [fixture],
+      tournamentTitle: 'DLS Cup 4',
+      regWhatsappByPlayer: new Map([
+        ['pa', '+254712345678'],
+        ['pb', '08012345678'],
+      ]),
+      profileWhatsappByPlayer: new Map(),
+    })
+    // Kip's message carries Chidi's number, and vice versa.
+    expect(decodeURIComponent(map.m1.a!.split('?text=')[1])).toContain(
+      'Message them: https://wa.me/2348012345678',
+    )
+    expect(decodeURIComponent(map.m1.b!.split('?text=')[1])).toContain(
+      'Message them: https://wa.me/254712345678',
+    )
   })
 })

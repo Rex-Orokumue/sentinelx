@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { MatchRoom } from '@/components/friendly/MatchRoom'
-import { toWhatsAppNumber } from '@/lib/dashboard/fixtures'
+import { toWhatsAppNumber } from '@/lib/phone/number'
 
 export const metadata: Metadata = {
   title: 'Match Room · SentinelX',
@@ -10,8 +10,8 @@ export const metadata: Metadata = {
 }
 
 type ProfileRef =
-  | { username: string | null; display_name: string | null; whatsapp_number: string | null }
-  | { username: string | null; display_name: string | null; whatsapp_number: string | null }[]
+  | { username: string | null; display_name: string | null; whatsapp_number: string | null; country: string | null }
+  | { username: string | null; display_name: string | null; whatsapp_number: string | null; country: string | null }[]
   | null
 function first(p: ProfileRef) {
   return Array.isArray(p) ? p[0] ?? null : p
@@ -32,8 +32,8 @@ export default async function MatchRoomPage({ params }: { params: { id: string }
     .select(
       'id, challenger_id, opponent_id, stake_amount, status, challenger_paid, opponent_paid, ' +
         'game_code, score_challenger, score_opponent, winner_id, ' +
-        'challenger:profiles!friendly_matches_challenger_id_fkey(username, display_name, whatsapp_number), ' +
-        'opponent:profiles!friendly_matches_opponent_id_fkey(username, display_name, whatsapp_number)',
+        'challenger:profiles!friendly_matches_challenger_id_fkey(username, display_name, whatsapp_number, country), ' +
+        'opponent:profiles!friendly_matches_opponent_id_fkey(username, display_name, whatsapp_number, country)',
     )
     .eq('id', params.id)
     .maybeSingle()
@@ -71,7 +71,7 @@ export default async function MatchRoomPage({ params }: { params: { id: string }
   const me = isChallenger ? first(data.challenger as ProfileRef) : first(data.opponent as ProfileRef)
   const opponent = isChallenger ? first(data.opponent as ProfileRef) : first(data.challenger as ProfileRef)
   const opponentWhatsappUrl = (() => {
-    const num = opponent?.whatsapp_number ? toWhatsAppNumber(opponent.whatsapp_number) : null
+    const num = toWhatsAppNumber(opponent?.whatsapp_number, { country: opponent?.country })
     if (!num) return null
     return `https://wa.me/${num}?text=${encodeURIComponent("Hey! Let's coordinate our friendly match on Sentinel X")}`
   })()
