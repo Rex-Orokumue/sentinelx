@@ -21,6 +21,13 @@ import { signOut } from '@/lib/auth/actions'
 import { listBanks, type Bank } from '@/lib/paystack/server'
 import { computeDataSupportEligibility } from '@/lib/dashboard/data-support'
 import { DataSupportPanel } from '@/components/dashboard/DataSupportPanel'
+import {
+  computeTournamentStatus,
+  type KnockoutMatchInput,
+  type TournamentBanner,
+} from '@/lib/dashboard/tournament-status'
+import type { MembershipInput } from '@/lib/tournaments/standings'
+import { TournamentStatusBanners } from '@/components/dashboard/TournamentStatusBanner'
 
 export const metadata: Metadata = {
   title: 'Dashboard · SentinelX Esports',
@@ -107,6 +114,7 @@ export default async function DashboardPage() {
     referralsRes,
     friendsRes,
     friendliesRes,
+    myGroupMembershipsRes,
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -118,7 +126,7 @@ export default async function DashboardPage() {
     supabase
       .from('matches')
       .select(
-        'id, status, scheduled_at, is_full_day, round, tournament_id, player_a_id, player_b_id, ' +
+        'id, status, scheduled_at, is_full_day, round, tournament_id, player_a_id, player_b_id, score_a, score_b, ' +
           'player_a:profiles!matches_player_a_id_fkey(id, username, display_name, country), ' +
           'player_b:profiles!matches_player_b_id_fkey(id, username, display_name, country), ' +
           'tournament:tournaments(title, slug, status, data_support_text, data_support_whatsapp)',
@@ -176,6 +184,10 @@ export default async function DashboardPage() {
       .from('friendly_matches')
       .select('id, status, challenger_id, opponent_id')
       .or(`challenger_id.eq.${user.id},opponent_id.eq.${user.id}`),
+    supabase
+      .from('group_memberships')
+      .select('group_id, groups(tournament_id)')
+      .eq('player_id', user.id),
   ])
 
   const profile = profileRes.data
@@ -214,6 +226,8 @@ export default async function DashboardPage() {
     tournament_id: string
     player_a_id: string
     player_b_id: string
+    score_a: number | null
+    score_b: number | null
     player_a: ProfileRef
     player_b: ProfileRef
     tournament: TournamentRef
@@ -262,6 +276,117 @@ export default async function DashboardPage() {
     }
   })
   const fixtures = bucketFixtures(matches, submittedMatchIds, new Date())
+
+  type GroupTournamentRef = { tournament_id: string } | { tournament_id: string }[] | null
+  function firstGroupTournamentId(g: GroupTournamentRef): string | null {
+    const row = Array.isArray(g) ? g[0] ?? null : g
+    return row?.tournament_id ?? null
+  }
+
+  const myGroupRows = ((myGroupMembershipsRes.data as unknown[] | null) ?? []) as {
+    group_id: string
+    groups: GroupTournamentRef
+  }[]
+  const groupIdByTournamentId = new Map<string, string>()
+  for (const r of myGroupRows) {
+    const tId = firstGroupTournamentId(r.groups)
+    if (tId) groupIdByTournamentId.set(tId, r.group_id)
+  }
+  const myGroupIds = Array.from(new Set(myGroupRows.map((r) => r.group_id)))
+
+  const [groupStandingsRes, groupMatchesRes] =
+    myGroupIds.length > 0
+      ? await Promise.all([
+          supabase
+            .from('group_memberships')
+            .select('group_id, player_id, wins, draws, losses, goals_for, goals_against, points')
+            .in('group_id', myGroupIds),
+          supabase.from('matches').select('group_id, status').in('group_id', myGroupIds).eq('round', 'group'),
+        ])
+      : [
+          {
+            data: [] as {
+              group_id: string
+              player_id: string
+              wins: number
+              draws: number
+              losses: number
+              goals_for: number
+              goals_against: number
+              points: number
+            }[],
+          },
+          { data: [] as { group_id: string; status: string }[] },
+        ]
+
+  const groupCompleteById = new Map<string, boolean>()
+  const groupStandingsById = new Map<string, MembershipInput[]>()
+  for (const groupId of myGroupIds) {
+    const matchRows = (groupMatchesRes.data ?? []).filter((m) => m.group_id === groupId)
+    groupCompleteById.set(groupId, matchRows.length > 0 && matchRows.every((m) => m.status === 'completed'))
+    groupStandingsById.set(
+      groupId,
+      (groupStandingsRes.data ?? [])
+        .filter((r) => r.group_id === groupId)
+        .map((r) => ({
+          playerId: r.player_id,
+          name: '',
+          wins: r.wins,
+          draws: r.draws,
+          losses: r.losses,
+          goalsFor: r.goals_for,
+          goalsAgainst: r.goals_against,
+          points: r.points,
+        })),
+    )
+  }
+
+  const knockoutMatchesByTournament = new Map<string, KnockoutMatchInput[]>()
+  for (const mm of visibleMatches) {
+    if (mm.round === 'group') continue
+    const list = knockoutMatchesByTournament.get(mm.tournament_id) ?? []
+    list.push({
+      round: mm.round,
+      status: mm.status,
+      score_a: mm.score_a,
+      score_b: mm.score_b,
+      player_a_id: mm.player_a_id,
+      player_b_id: mm.player_b_id,
+    })
+    knockoutMatchesByTournament.set(mm.tournament_id, list)
+  }
+
+  // Built from rawMatches (not visibleMatches) so an unpublished tournament's
+  // title/status is still resolvable here — but such a tournament is then
+  // deliberately skipped below via isTournamentPublished, same privacy rule
+  // the rest of this page already applies to fixtures.
+  const tournamentRefById = new Map<string, { title: string; slug: string; status: string }>()
+  for (const mm of rawMatches) {
+    const t = firstTournament(mm.tournament)
+    if (t) tournamentRefById.set(mm.tournament_id, { title: t.title, slug: t.slug, status: t.status })
+  }
+
+  const tournamentIdsToEvaluate = Array.from(
+    new Set<string>([...Array.from(knockoutMatchesByTournament.keys()), ...Array.from(groupIdByTournamentId.keys())]),
+  )
+
+  const tournamentBanners: NonNullable<TournamentBanner>[] = []
+  for (const tournamentId of tournamentIdsToEvaluate) {
+    const ref = tournamentRefById.get(tournamentId)
+    if (!ref || !isTournamentPublished(ref.status)) continue
+    const groupId = groupIdByTournamentId.get(tournamentId) ?? null
+    const banner = computeTournamentStatus(user.id, {
+      tournamentId,
+      tournamentTitle: ref.title,
+      tournamentSlug: ref.slug,
+      tournamentStatus: ref.status,
+      groupId,
+      groupComplete: groupId ? groupCompleteById.get(groupId) ?? false : false,
+      groupStandings: groupId ? groupStandingsById.get(groupId) ?? [] : [],
+      knockoutMatches: knockoutMatchesByTournament.get(tournamentId) ?? [],
+    })
+    if (banner) tournamentBanners.push(banner)
+  }
 
   const dataSupportEligibility = computeDataSupportEligibility(
     visibleMatches.map((mm) => {
@@ -395,6 +520,7 @@ export default async function DashboardPage() {
       </CollapsibleSection>
 
       <CollapsibleSection id="matches" title="Active matches" defaultOpen>
+        <TournamentStatusBanners banners={tournamentBanners} />
         <ActiveFixtures fixtures={{ live: fixtures.live, upcoming: fixtures.upcoming }} />
       </CollapsibleSection>
       <CollapsibleSection
