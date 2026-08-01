@@ -75,7 +75,14 @@ interface TournamentStatusInput {
 }
 
 type TournamentBanner =
-  | { kind: 'qualified'; tournamentTitle: string; tournamentSlug: string; round: string; isBye: boolean }
+  | {
+      kind: 'qualified'
+      tournamentTitle: string
+      tournamentSlug: string
+      round: string
+      awaitingOpponent: boolean // true => no fixture card exists yet for this round (bye, or
+      // the rest of the previous round hasn't finished) — banner is their only signal they're through
+    }
   | { kind: 'eliminated'; tournamentTitle: string; tournamentSlug: string; round: string }
   | null
 
@@ -86,18 +93,27 @@ Logic:
 
 1. **Any knockout matches for this player?** Take the one furthest along `ROUND_ORDER`
    (`lib/tournaments/bracket.ts:19`) — call it `latest`.
-   - `latest.status === 'bye'` → `qualified`, `round: latest.round`, `isBye: true`.
+   - `latest.status === 'bye'` → `qualified`, `round: latest.round`, `awaitingOpponent: true`.
    - `latest.status` is `'scheduled'` or `'live'` → `qualified`, `round: latest.round`,
-     `isBye: false`. (They're already placed into this round — that placement *is* the "you
-     qualified" moment, whether or not they've played it yet.)
+     `awaitingOpponent: false`. (They're already placed into this round — that placement *is* the
+     "you qualified" moment, whether or not they've played it yet. The fixture card already shows
+     the opponent, so the banner doesn't need to.)
    - `latest.status === 'forfeited'` → `eliminated`, `round: latest.round`. (`roundResolved`
      treats a double no-show as resolved with no winner — both sides are out.)
    - `latest.status === 'completed'`:
-     - `matchWinnerId(latest) === playerId` → they won. If `nextRoundName(latest.round) === null`
-       (they won the **final**) → no banner; a champion is celebrated elsewhere (Hall of Fame /
-       home page), out of scope here. Otherwise this branch shouldn't actually occur in practice —
-       `advanceKnockout` runs synchronously in the same request that confirms the winning result,
-       so the player's next-round row already exists and *that* row is `latest`, not this one.
+     - `matchWinnerId(latest) === playerId` → they won.
+       - `nextRoundName(latest.round) === null` (they won the **final**) → no banner; a champion is
+         celebrated elsewhere (Hall of Fame / home page), out of scope here.
+       - otherwise → `qualified`, `round: nextRoundName(latest.round)`, `awaitingOpponent: true`.
+         **Verified
+         against live data, not just assumed:** `advanceKnockout` only creates the next round once
+         *every* match in the current round resolves (`roundResolved` in
+         `lib/tournaments/advancement.ts:21-26`), not the instant one player wins. Production has
+         exactly this case right now — Codexempire beat Cristiano 2-0 in round_of_16 while 6 other
+         round_of_16 matches are still `scheduled`, so no `quarter_final` row exists for them yet.
+         This is the same "qualified, no opponent assigned yet" shape as a bye, just for a
+         different reason (waiting on the rest of the round, not an odd bracket count) — same
+         banner copy variant applies.
      - otherwise (they lost) → `eliminated`, `round: latest.round`.
 2. **No knockout matches** (still confined to groups, or bracket not generated yet):
    - `groupId === null` → no banner. (Registration hasn't closed / bracket not generated — the
@@ -105,9 +121,9 @@ Logic:
    - `groupId` set but `!groupComplete` → no banner. Still mid-group-stage; existing fixture cards
      cover it.
    - `groupId` set and `groupComplete` → run `sortStandings(groupStandings)`, find this player's
-     row. `row.advancing` → `qualified`, `round: 'knockout stage'` (no specific round name yet —
-     other groups may still be playing, so round 1 may not exist tournament-wide). Otherwise →
-     `eliminated`, `round: 'group'`.
+     row. `row.advancing` → `qualified`, `round: 'knockout stage'`, `awaitingOpponent: true` (no
+     specific round name yet — other groups may still be playing, so round 1 may not exist
+     tournament-wide). Otherwise → `eliminated`, `round: 'group'`.
 
 ## UI
 
@@ -115,15 +131,18 @@ A small banner renders **above the fixture groups, inside the existing "Active m
 `CollapsibleSection`** (`app/dashboard/page.tsx:397`) — one per tournament currently carrying a
 status, before `<ActiveFixtures />`.
 
-Copy, keyed off `ROUND_LABELS`:
+`round` holds either a real `ROUND_ORDER` code (look up display text in `ROUND_LABELS`,
+`lib/tournaments/bracket.ts:27`) or one of two sentinel strings used only by the group-stage branch
+(`'knockout stage'`, `'group'`) that are never passed to `ROUND_LABELS` — they get their own fixed
+copy instead. The four `qualified`/`eliminated` × `round`-shape combinations:
 
-| Case | Copy |
-|---|---|
-| Qualified, real opponent pending | 🎉 You advanced to the **{ROUND_LABELS[round]}** in {tournamentTitle}! |
-| Qualified, bye | 🎉 You advanced to the **{ROUND_LABELS[round]}** in {tournamentTitle} with a bye — sit tight for your next fixture. |
-| Qualified, round unknown yet | 🎉 You made the knockout stage in {tournamentTitle} — the draw will appear here once every group finishes. |
-| Eliminated, group stage | You were eliminated from {tournamentTitle} after the **Group Stage**. Thanks for competing! 🎮 |
-| Eliminated, knockout round | You were eliminated from {tournamentTitle} in the **{ROUND_LABELS[round]}**. Thanks for competing! 🎮 |
+| Case | `round` value | Copy |
+|---|---|---|
+| Qualified, opponent already assigned | real code, `awaitingOpponent: false` | 🎉 You advanced to the **{ROUND_LABELS[round]}** in {tournamentTitle}! |
+| Qualified, no opponent yet (bye, or rest of round pending) | real code, `awaitingOpponent: true` | 🎉 You advanced to the **{ROUND_LABELS[round]}** in {tournamentTitle} — sit tight for your next fixture. |
+| Qualified, knockout draw not made yet | `'knockout stage'` (always `awaitingOpponent: true`) | 🎉 You made the knockout stage in {tournamentTitle} — the draw will appear here once every group finishes. |
+| Eliminated after group stage | `'group'` | You were eliminated from {tournamentTitle} after the **Group Stage**. Thanks for competing! 🎮 |
+| Eliminated in a knockout round | real code | You were eliminated from {tournamentTitle} in the **{ROUND_LABELS[round]}**. Thanks for competing! 🎮 |
 
 Each links to that tournament's public bracket page (`/tournaments/[slug]/bracket`).
 
@@ -149,12 +168,17 @@ Not dismissible, no read/unread state — nothing to store. It disappears on its
 
 - no matches at all → null
 - group stage incomplete → null
-- group stage complete, top-2 → qualified, round `'knockout stage'`
+- group stage complete, top-2 → qualified, round `'knockout stage'`, `awaitingOpponent: true`
 - group stage complete, outside top-2 → eliminated, round `'group'`
-- knockout match scheduled → qualified, `isBye: false`
-- knockout match is a bye → qualified, `isBye: true`
-- knockout match completed, lost → eliminated
-- knockout match forfeited → eliminated
+- knockout match scheduled → qualified, `awaitingOpponent: false`
+- knockout match live → qualified, `awaitingOpponent: false`
+- knockout match is a bye → qualified, `awaitingOpponent: true`
+- knockout match completed, won, next round not yet generated → qualified,
+  `round: nextRoundName(latest.round)`, `awaitingOpponent: true` (the Codexempire case above)
+- knockout match completed, lost → eliminated, round `latest.round`
+- knockout match forfeited → eliminated, round `latest.round`
 - won the final (`nextRoundName` returns null) → null
+- two knockout rows for the same player (e.g. a completed round_of_16 win plus a scheduled
+  quarter_final already generated) → picks the `quarter_final` row as `latest`, not the completed one
 
 Same style as the existing `lib/tournaments/standings.test.ts` and `lib/tournaments/advancement.test.ts`.
