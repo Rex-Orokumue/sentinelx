@@ -1,0 +1,160 @@
+# Dashboard qualify/eliminate banner — design
+
+Date: 2026-08-01
+
+## Problem
+
+Nothing on the player dashboard says whether a player is still alive in a tournament. Today:
+
+- A player who doesn't finish top-2 in their group simply stops seeing new fixtures. Nothing tells
+  them why, or that it's final.
+- A player who advances to a knockout round with a real opponent gets a new fixture card
+  (`components/dashboard/FixtureCard.tsx`) — but nothing frames it as "you qualified," just "here's
+  your next match."
+- A player who advances via a **bye** (odd advancer count) gets nothing at all. Their bye match row
+  (`status: 'bye'`) is classified into the `completed` bucket by `RESOLVED` in
+  `lib/dashboard/fixtures.ts:26`, so it renders as an ordinary-looking completed card with no
+  opponent (`vs TBD`) tucked under "Completed matches" — the least visible place for the most
+  important state a bye player can be in.
+
+This surfaced from a conversation walking through live group standings (Group E, Group G) where
+group-stage results had already been confirmed and a knockout draw already generated, with no
+record anywhere of a "you're through" or "you're out" moment for the players involved.
+
+## Approach: derive the status, don't store it
+
+No new event, no new table column, no write path added to `recomputeGroupAndMaybeAdvance` or
+`advanceKnockout`. The dashboard computes each tournament's qualify/eliminate status **live, at
+render time**, from data those two functions already produce (`matches`, `group_memberships`).
+
+This matters for two reasons specific to how this came up:
+
+1. **Retroactive by construction.** Group E and Group G's group stages already finished before this
+   feature exists. A stored-event approach would need a backfill; a derived approach just reflects
+   whatever the current match/standings rows say, the first time this ships.
+2. **Self-correcting.** A "qualified to quarter-final" status is naturally superseded the moment
+   that match resolves — the function always looks at the player's *most advanced* match, so there
+   is no stale banner to invalidate and no second write path to keep in sync with advancement logic.
+
+## Data needed
+
+The dashboard's existing `matches` query (`app/dashboard/page.tsx:118`) already fetches every match
+the signed-in player is part of, across every tournament, with `round` and `status`. That alone is
+enough for the knockout half of the logic.
+
+It is **not** enough for "did my group finish and where did I rank" — a player's own 3 group
+matches can all be complete while two other players in their group still have a match to play,
+which could still move standings. So one more query is added, scoped to groups the player belongs
+to:
+
+```ts
+const { data: myGroupMemberships } = await supabase
+  .from('group_memberships')
+  .select('group_id, player_id, wins, draws, losses, goals_for, goals_against, points')
+  .in('group_id', /* group ids the player belongs to */)
+```
+
+...plus, per distinct `group_id`, a completion check identical in shape to the one already in
+`recomputeGroupAndMaybeAdvance` (`lib/matches/verify-actions.ts:80-86`): count matches in that group
+with `status != 'completed'`.
+
+## `lib/dashboard/tournament-status.ts`
+
+A pure function, one call per tournament the player is registered in:
+
+```ts
+interface TournamentStatusInput {
+  tournamentId: string
+  tournamentTitle: string
+  tournamentSlug: string
+  tournamentStatus: string // banner suppressed once this is 'completed'
+  groupId: string | null // null => no group stage (<=8 players, straight knockout)
+  groupComplete: boolean // ignored when groupId is null
+  groupStandings: MembershipInput[] // this player's whole group; ignored when groupId is null
+  knockoutMatches: (AdvanceMatch & { round: string })[] // this player's own round != 'group' matches
+}
+
+type TournamentBanner =
+  | { kind: 'qualified'; tournamentTitle: string; tournamentSlug: string; round: string; isBye: boolean }
+  | { kind: 'eliminated'; tournamentTitle: string; tournamentSlug: string; round: string }
+  | null
+
+function computeTournamentStatus(playerId: string, input: TournamentStatusInput): TournamentBanner
+```
+
+Logic:
+
+1. **Any knockout matches for this player?** Take the one furthest along `ROUND_ORDER`
+   (`lib/tournaments/bracket.ts:19`) — call it `latest`.
+   - `latest.status === 'bye'` → `qualified`, `round: latest.round`, `isBye: true`.
+   - `latest.status` is `'scheduled'` or `'live'` → `qualified`, `round: latest.round`,
+     `isBye: false`. (They're already placed into this round — that placement *is* the "you
+     qualified" moment, whether or not they've played it yet.)
+   - `latest.status === 'forfeited'` → `eliminated`, `round: latest.round`. (`roundResolved`
+     treats a double no-show as resolved with no winner — both sides are out.)
+   - `latest.status === 'completed'`:
+     - `matchWinnerId(latest) === playerId` → they won. If `nextRoundName(latest.round) === null`
+       (they won the **final**) → no banner; a champion is celebrated elsewhere (Hall of Fame /
+       home page), out of scope here. Otherwise this branch shouldn't actually occur in practice —
+       `advanceKnockout` runs synchronously in the same request that confirms the winning result,
+       so the player's next-round row already exists and *that* row is `latest`, not this one.
+     - otherwise (they lost) → `eliminated`, `round: latest.round`.
+2. **No knockout matches** (still confined to groups, or bracket not generated yet):
+   - `groupId === null` → no banner. (Registration hasn't closed / bracket not generated — the
+     empty "Active matches" state already covers this.)
+   - `groupId` set but `!groupComplete` → no banner. Still mid-group-stage; existing fixture cards
+     cover it.
+   - `groupId` set and `groupComplete` → run `sortStandings(groupStandings)`, find this player's
+     row. `row.advancing` → `qualified`, `round: 'knockout stage'` (no specific round name yet —
+     other groups may still be playing, so round 1 may not exist tournament-wide). Otherwise →
+     `eliminated`, `round: 'group'`.
+
+## UI
+
+A small banner renders **above the fixture groups, inside the existing "Active matches"
+`CollapsibleSection`** (`app/dashboard/page.tsx:397`) — one per tournament currently carrying a
+status, before `<ActiveFixtures />`.
+
+Copy, keyed off `ROUND_LABELS`:
+
+| Case | Copy |
+|---|---|
+| Qualified, real opponent pending | 🎉 You advanced to the **{ROUND_LABELS[round]}** in {tournamentTitle}! |
+| Qualified, bye | 🎉 You advanced to the **{ROUND_LABELS[round]}** in {tournamentTitle} with a bye — sit tight for your next fixture. |
+| Qualified, round unknown yet | 🎉 You made the knockout stage in {tournamentTitle} — the draw will appear here once every group finishes. |
+| Eliminated, group stage | You were eliminated from {tournamentTitle} after the **Group Stage**. Thanks for competing! 🎮 |
+| Eliminated, knockout round | You were eliminated from {tournamentTitle} in the **{ROUND_LABELS[round]}**. Thanks for competing! 🎮 |
+
+Each links to that tournament's public bracket page (`/tournaments/[slug]/bracket`).
+
+Suppressed once `tournamentStatus === 'completed'` — the tournament's final placements live on the
+bracket/Hall of Fame pages by then, and an "eliminated after Group Stage" card sitting on a
+player's dashboard for a tournament that ended weeks ago is stale, not informative.
+
+Not dismissible, no read/unread state — nothing to store. It disappears on its own once superseded
+(next round) or once the tournament completes.
+
+## Explicitly out of scope
+
+- Bell notification / WhatsApp message for this event. The infra exists
+  (`lib/notifications/inbox.ts`, `lib/notifications/notify.ts`) and wiring it in later is a small,
+  independent addition, but it wasn't asked for here — the ask was specifically a dashboard visual.
+- A "Champion" banner for winning the final.
+- Backfilling or otherwise persisting anything for tournaments that already resolved before this
+  ships — the derived approach makes that unnecessary by construction.
+
+## Testing
+
+`lib/dashboard/tournament-status.test.ts`, unit tests against `computeTournamentStatus` covering:
+
+- no matches at all → null
+- group stage incomplete → null
+- group stage complete, top-2 → qualified, round `'knockout stage'`
+- group stage complete, outside top-2 → eliminated, round `'group'`
+- knockout match scheduled → qualified, `isBye: false`
+- knockout match is a bye → qualified, `isBye: true`
+- knockout match completed, lost → eliminated
+- knockout match forfeited → eliminated
+- won the final (`nextRoundName` returns null) → null
+
+Same style as the existing `lib/tournaments/standings.test.ts` and `lib/tournaments/advancement.test.ts`.
