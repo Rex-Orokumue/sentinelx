@@ -3,6 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 export type NotificationType =
   | 'listing_approved'
   | 'listing_removed'
+  | 'listing_deleted'
+  | 'listing_sold'
   | 'withdrawal_paid'
   | 'withdrawal_rejected'
   | 'result_confirmed'
