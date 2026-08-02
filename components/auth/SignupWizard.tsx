@@ -71,6 +71,9 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
               autoFocus
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2">
