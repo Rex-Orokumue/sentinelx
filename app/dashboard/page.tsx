@@ -92,7 +92,11 @@ function friendProfileName(p: FriendProfileRef): { name: string; username: strin
   return { name: r?.display_name ?? r?.username ?? 'Player', username: r?.username ?? null, avatarUrl: r?.avatar_url ?? null }
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { deposit?: string }
+}) {
   const supabase = createClient()
   const {
     data: { user },
@@ -537,6 +541,16 @@ export default async function DashboardPage() {
       <MySales sales={mySales} />
 
       <CollapsibleSection id="wallet" title="Wallet" defaultOpen={walletBalance > 0 || hasActive}>
+        {searchParams.deposit === 'paid' && (
+          <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-400">
+            🎉 Wallet funded — your balance is updated below.
+          </div>
+        )}
+        {searchParams.deposit === 'failed' && (
+          <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400">
+            Payment was not completed. You can try again below.
+          </div>
+        )}
         <WalletPanel
           balance={walletBalance}
           requests={walletRequests}

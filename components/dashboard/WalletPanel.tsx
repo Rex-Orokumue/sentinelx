@@ -1,6 +1,9 @@
 'use client'
+import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { requestWalletWithdrawal, type WalletWithdrawalState } from '@/lib/wallet/actions'
+import { initiateWalletDeposit, type WalletDepositState } from '@/lib/wallet/deposit'
+import { computePaystackFee } from '@/lib/paystack/fees'
 import { formatDate, formatNaira } from '@/lib/format'
 import { maskAccountNumber, kycPanelMode } from '@/lib/kyc/logic'
 import { KycForm } from './KycForm'
@@ -55,6 +58,10 @@ export function WalletPanel({
         {formatNaira(balance)}
       </p>
 
+      <div className="mb-4">
+        <FundWalletForm />
+      </div>
+
       {mode === 'form' && <KycForm banks={banks} failureReason={kycFailureReason} />}
       {mode === 'pending' && (
         <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-5 text-center text-sm font-semibold text-sky-300">
@@ -73,6 +80,43 @@ export function WalletPanel({
         </div>
       )}
     </>
+  )
+}
+
+function FundWalletForm() {
+  const [state, formAction] = useFormState<WalletDepositState, FormData>(initiateWalletDeposit, undefined)
+  const [amount, setAmount] = useState<number | ''>('')
+  const fee = typeof amount === 'number' && amount >= 100 ? computePaystackFee(amount) : 0
+  const total = typeof amount === 'number' && amount >= 100 ? amount + fee : 0
+
+  return (
+    <form
+      action={formAction}
+      className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-5"
+    >
+      <Field
+        name="amount"
+        label="Amount to add (₦)"
+        type="number"
+        min={100}
+        placeholder="1000"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
+      />
+      {total > 0 && (
+        <p className="text-xs text-slate-500">
+          You&apos;ll pay {formatNaira(total)} total — {formatNaira(amount as number)} to your wallet +{' '}
+          {formatNaira(fee)} fee.
+        </p>
+      )}
+      {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
+      <button
+        type="submit"
+        className="w-full rounded-xl bg-emerald-600 px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-emerald-500"
+      >
+        Fund wallet
+      </button>
+    </form>
   )
 }
 
