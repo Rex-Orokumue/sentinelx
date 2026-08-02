@@ -25,3 +25,18 @@ export const listingSchema = z.object({
 })
 
 export type ListingInput = z.infer<typeof listingSchema>
+
+export const BUY_REQUEST_BUDGET_FLOOR_NGN = 100
+
+export const buyRequestSchema = z.object({
+  title: z.string().trim().min(1, 'Enter a title'),
+  category: z.enum(LISTING_CATEGORIES),
+  gameId: z.union([z.literal(''), z.string().uuid()]).optional(),
+  budget: z.coerce
+    .number()
+    .int()
+    .min(BUY_REQUEST_BUDGET_FLOOR_NGN, `Budget must be at least ₦${BUY_REQUEST_BUDGET_FLOOR_NGN}`),
+  description: z.union([z.literal(''), z.string().trim()]).optional(),
+})
+
+export type BuyRequestInput = z.infer<typeof buyRequestSchema>
