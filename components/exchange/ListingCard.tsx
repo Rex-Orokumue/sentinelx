@@ -20,7 +20,7 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
       <div className="relative aspect-square w-full bg-slate-950">
         {listing.primaryImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={listing.primaryImage} alt="" className="h-full w-full object-cover" />
+          <img src={listing.primaryImage} alt={listing.title} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-3xl text-slate-700">🎮</div>
         )}

@@ -26,7 +26,7 @@ export function ImageGallery({ images, title }: { images: string[]; title: strin
               className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border ${i === active ? 'border-violet-500' : 'border-slate-800'}`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="" className="h-full w-full object-cover" />
+              <img src={src} alt={`${title} photo ${i + 1}`} className="h-full w-full object-cover" />
             </button>
           ))}
         </div>

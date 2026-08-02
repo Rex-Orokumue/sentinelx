@@ -27,7 +27,7 @@ export function VideoCard({ video }: { video: CuratedVideo }) {
         <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-900">
           {thumb && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={thumb} alt="" className="h-full w-full object-cover" />
+            <img src={thumb} alt={video.title} className="h-full w-full object-cover" />
           )}
           <span className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity group-hover:opacity-100">
             <Play className="h-10 w-10 text-white" />
