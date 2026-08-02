@@ -10,6 +10,7 @@ import { buildMetadata } from '@/lib/seo/metadata'
 import { SITE_URL } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildMatchJsonLd } from '@/lib/seo/schema/event'
+import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 import { formatFixtureDate } from '@/lib/format'
 import { resolveBackLink } from '@/lib/nav/back-link'
 import { buildRecordingWhatsAppUrl } from '@/lib/matches/recording-whatsapp'
@@ -211,6 +212,21 @@ export default async function MatchCentrePage({
           tournamentSlug: m.tournaments?.slug ?? null,
         })}
       />
+      {m.tournaments ? (
+        <JsonLd
+          data={buildBreadcrumbJsonLd([
+            { name: 'Tournaments', path: '/tournaments' },
+            { name: m.tournaments.title, path: `/tournaments/${m.tournaments.slug}` },
+            { name: `${nameOf(m.player_a)} vs ${nameOf(m.player_b)}`, path: `/matches/${m.id}` },
+          ])}
+        />
+      ) : (
+        <JsonLd
+          data={buildBreadcrumbJsonLd([
+            { name: `${nameOf(m.player_a)} vs ${nameOf(m.player_b)}`, path: `/matches/${m.id}` },
+          ])}
+        />
+      )}
       <Link href={backLink.href} className="mt-6 mb-4 inline-block text-sm text-violet-400 hover:text-violet-300">
         ← {backLink.label}
       </Link>

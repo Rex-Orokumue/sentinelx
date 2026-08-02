@@ -7,6 +7,8 @@ import { CompletedMatchesList } from '@/components/tournament/CompletedMatchesLi
 import { ResultsDateFilter } from '@/components/tournament/ResultsDateFilter'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 
 async function getTournament(slug: string) {
   const supabase = createClient()
@@ -52,6 +54,13 @@ export default async function TournamentResultsPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-20">
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: 'Tournaments', path: '/tournaments' },
+          { name: t.title, path: `/tournaments/${t.slug}` },
+          { name: 'Results', path: `/tournaments/${t.slug}/results` },
+        ])}
+      />
       <Link href={`/tournaments/${t.slug}`} className="mt-6 mb-4 inline-block text-sm text-violet-400 hover:text-violet-300">
         ← {t.title}
       </Link>
