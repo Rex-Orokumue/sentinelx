@@ -7,6 +7,35 @@ function playerLabel(p: CardPlayer): string {
   return p.displayName ?? p.username ?? 'TBD'
 }
 
+// Satori (the next/og renderer) fetches a remote <img src> itself, and on
+// a network failure or an unreachable/non-image URL it silently renders a
+// blank box rather than throwing or falling back. Fetching and inlining the
+// avatar as a data URI ourselves, with a real try/catch, guarantees an
+// unreachable avatar falls back to initials instead of shipping a blank
+// circle. This does not cover every failure mode: a small number of PNGs
+// with unusual encodings can fail Satori's own decoder even once
+// successfully fetched, with no error surfaced to catch — a known upstream
+// limitation, not something fetch-side validation can detect.
+async function resolveAvatarDataUri(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) })
+    if (!res.ok) return null
+    const contentType = res.headers.get('content-type') ?? ''
+    if (!contentType.startsWith('image/')) return null
+    const buf = await res.arrayBuffer()
+    const base64 = Buffer.from(buf).toString('base64')
+    return `data:${contentType};base64,${base64}`
+  } catch {
+    return null
+  }
+}
+
+async function resolvePlayer(player: CardPlayer): Promise<CardPlayer> {
+  if (!player.avatarUrl) return player
+  const dataUri = await resolveAvatarDataUri(player.avatarUrl)
+  return { ...player, avatarUrl: dataUri }
+}
+
 // Satori (the next/og renderer) can't parse variable fonts and doesn't take
 // Tailwind classes — every style here is inline, matching the constraint
 // already documented in lib/og/template.tsx.
@@ -15,12 +44,21 @@ function PlayerBlock({ player, highlight }: { player: CardPlayer; highlight: boo
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, width: 320 }}>
       {player.avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={player.avatarUrl}
-          width={120}
-          height={120}
-          style={{ borderRadius: '50%', objectFit: 'cover', border: `4px solid ${ringColor}` }}
+        // backgroundImage on a plain div, not an <img> with objectFit — Satori's
+        // <img> + objectFit layout is unreliable for non-square source images
+        // (silently renders blank instead of cropping); background-image sizing
+        // goes through Satori's more robust background-layer code path instead.
+        <div
+          style={{
+            display: 'flex',
+            width: 120,
+            height: 120,
+            borderRadius: '50%',
+            backgroundImage: `url(${player.avatarUrl})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            border: `4px solid ${ringColor}`,
+          }}
         />
       ) : (
         <div
@@ -84,14 +122,15 @@ function CardShell({
   )
 }
 
-function renderHype(input: HypeCardInput) {
+async function renderHype(input: HypeCardInput) {
+  const [playerA, playerB] = await Promise.all([resolvePlayer(input.playerA), resolvePlayer(input.playerB)])
   return new ImageResponse(
     (
       <CardShell tournamentTitle={input.tournamentTitle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
-          <PlayerBlock player={input.playerA} highlight={false} />
+          <PlayerBlock player={playerA} highlight={false} />
           <div style={{ display: 'flex', fontSize: 48, fontWeight: 900, color: '#475569' }}>VS</div>
-          <PlayerBlock player={input.playerB} highlight={false} />
+          <PlayerBlock player={playerB} highlight={false} />
         </div>
         {input.scheduledLabel && (
           <div style={{ display: 'flex', fontSize: 24, color: '#94a3b8', marginTop: 40 }}>{input.scheduledLabel}</div>
@@ -102,16 +141,17 @@ function renderHype(input: HypeCardInput) {
   )
 }
 
-function renderResult(input: ResultCardInput) {
+async function renderResult(input: ResultCardInput) {
+  const [playerA, playerB] = await Promise.all([resolvePlayer(input.playerA), resolvePlayer(input.playerB)])
   return new ImageResponse(
     (
       <CardShell tournamentTitle={input.tournamentTitle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
-          <PlayerBlock player={input.playerA} highlight={input.winnerSide === 'player_a'} />
+          <PlayerBlock player={playerA} highlight={input.winnerSide === 'player_a'} />
           <div style={{ display: 'flex', fontSize: 56, fontWeight: 900, color: '#ffffff' }}>
             {input.scoreA} – {input.scoreB}
           </div>
-          <PlayerBlock player={input.playerB} highlight={input.winnerSide === 'player_b'} />
+          <PlayerBlock player={playerB} highlight={input.winnerSide === 'player_b'} />
         </div>
       </CardShell>
     ),
@@ -119,6 +159,6 @@ function renderResult(input: ResultCardInput) {
   )
 }
 
-export function renderMatchCard(input: HypeCardInput | ResultCardInput) {
+export function renderMatchCard(input: HypeCardInput | ResultCardInput): Promise<ImageResponse> {
   return input.variant === 'result' ? renderResult(input) : renderHype(input)
 }
