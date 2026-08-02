@@ -15,6 +15,7 @@ import { resolveBackLink } from '@/lib/nav/back-link'
 import { buildRecordingWhatsAppUrl } from '@/lib/matches/recording-whatsapp'
 import { BettingPanel } from '@/components/match/BettingPanel'
 import { bettingOpen, type Side } from '@/lib/betting/market'
+import { ShareCardButton } from '@/components/match/ShareCardButton'
 
 type ProfileRef = { username: string | null; display_name: string | null } | null
 
@@ -322,14 +323,17 @@ export default async function MatchCentrePage({
         </div>
       )}
 
-      <a
-        href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 rounded-xl border border-[#25D366]/30 px-6 py-3 text-sm font-bold text-[#25D366] transition-colors hover:bg-[#25D366]/10"
-      >
-        Share on WhatsApp
-      </a>
+      <div className="flex flex-wrap gap-3">
+        <a
+          href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-xl border border-[#25D366]/30 px-6 py-3 text-sm font-bold text-[#25D366] transition-colors hover:bg-[#25D366]/10"
+        >
+          Share on WhatsApp
+        </a>
+        <ShareCardButton matchId={m.id} shareText={shareText} />
+      </div>
     </div>
   )
 }
