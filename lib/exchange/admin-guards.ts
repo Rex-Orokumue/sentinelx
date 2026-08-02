@@ -5,7 +5,7 @@
 // be unit tested directly.
 
 type GuardOrderStatus = 'initiated' | 'payment_held' | 'completed' | 'refunded'
-const IN_PROGRESS_STATUSES: ReadonlySet<GuardOrderStatus> = new Set(['initiated', 'payment_held'])
+const IN_PROGRESS_STATUSES: ReadonlySet<GuardOrderStatus> = new Set<GuardOrderStatus>(['initiated', 'payment_held'])
 
 /** True if the listing has any order at all — blocks permanent delete. */
 export function hasAnyOrder(orderStatuses: string[]): boolean {
