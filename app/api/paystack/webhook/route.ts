@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyWebhookSignature } from '@/lib/paystack/server'
 import { confirmRegistration } from '@/lib/tournaments/confirm'
 import { confirmFriendlyStake } from '@/lib/friendly-matches/confirm'
+import { confirmWalletDeposit } from '@/lib/wallet/confirm'
 import { applyIdentificationWebhook, extractIdentificationCustomerCode } from '@/lib/kyc/webhook'
 
 export const runtime = 'nodejs'
@@ -40,7 +41,10 @@ export async function POST(req: NextRequest) {
     // (every path resolves to a ConfirmResult string); if that ever changes,
     // a genuine error must still propagate as a 500, not fall through here.
     if (result === 'not_found') {
-      await confirmFriendlyStake(event.data.reference)
+      const friendlyResult = await confirmFriendlyStake(event.data.reference)
+      if (friendlyResult === 'not_found') {
+        await confirmWalletDeposit(event.data.reference)
+      }
     }
   } else if (type === 'customeridentification.success' || type === 'customeridentification.failed') {
     // data IS the customer object for this event family (customer_code at the

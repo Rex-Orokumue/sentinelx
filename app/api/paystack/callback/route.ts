@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { confirmRegistration } from '@/lib/tournaments/confirm'
 import { confirmFriendlyStake } from '@/lib/friendly-matches/confirm'
+import { confirmWalletDeposit } from '@/lib/wallet/confirm'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
@@ -43,9 +44,16 @@ export async function GET(req: NextRequest) {
         .eq('opponent_paystack_reference', reference)
         .maybeSingle()
   const matchId = byChallenger?.id ?? byOpponent?.id
-  const success = friendlyResult === 'confirmed' || friendlyResult === 'already_paid'
-  const dest = matchId
-    ? `/dashboard/friendlies/${matchId}?${success ? 'paid=1' : 'payment=failed'}`
-    : '/dashboard'
-  return NextResponse.redirect(new URL(dest, origin))
+
+  if (matchId) {
+    const success = friendlyResult === 'confirmed' || friendlyResult === 'already_paid'
+    const dest = `/dashboard/friendlies/${matchId}?${success ? 'paid=1' : 'payment=failed'}`
+    return NextResponse.redirect(new URL(dest, origin))
+  }
+
+  // Not a friendly-match stake either — try a wallet deposit.
+  const depositResult = await confirmWalletDeposit(reference)
+  const depositSuccess = depositResult === 'confirmed' || depositResult === 'already_paid'
+  const depositDest = `/dashboard?${depositSuccess ? 'deposit=paid' : 'deposit=failed'}`
+  return NextResponse.redirect(new URL(depositDest, origin))
 }
