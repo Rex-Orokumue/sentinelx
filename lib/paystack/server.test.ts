@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest'
 import { createHmac } from 'crypto'
 import {
   buildReference,
+  buildWalletDepositReference,
   verifyWebhookSignature,
   buildIdentificationPayload,
   buildRecipientPayload,
@@ -25,6 +26,17 @@ describe('buildReference', () => {
 
   it('produces distinct references on repeat calls', () => {
     expect(buildReference('t', 'u')).not.toBe(buildReference('t', 'u'))
+  })
+})
+
+describe('buildWalletDepositReference', () => {
+  it('is prefixed and encodes the truncated player id', () => {
+    const ref = buildWalletDepositReference('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')
+    expect(ref).toMatch(/^sxdep_aaaaaaaa_[a-z0-9]{8}$/)
+  })
+
+  it('produces distinct references on repeat calls', () => {
+    expect(buildWalletDepositReference('u')).not.toBe(buildWalletDepositReference('u'))
   })
 })
 

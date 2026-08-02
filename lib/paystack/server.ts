@@ -22,6 +22,12 @@ export function buildFriendlyStakeReference(friendlyMatchId: string, userId: str
   return `sxfm_${m}_${u}_${rand}`
 }
 
+export function buildWalletDepositReference(playerId: string): string {
+  const u = playerId.replace(/-/g, '').slice(0, 8)
+  const rand = Math.random().toString(36).slice(2, 10).padEnd(8, '0')
+  return `sxdep_${u}_${rand}`
+}
+
 export function verifyWebhookSignature(rawBody: string, signature: string | null): boolean {
   if (!signature) return false
   const expected = createHmac('sha512', secret()).update(rawBody).digest('hex')
