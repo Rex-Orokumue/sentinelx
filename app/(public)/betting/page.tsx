@@ -20,7 +20,7 @@ export default async function BettingHubPage() {
   const { data } = await supabase
     .from('matches')
     .select(
-      'id, scheduled_at, betting_locked, status, ' +
+      'id, scheduled_at, betting_locked, is_full_day, status, ' +
         'tournaments(title), ' +
         'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
         'player_b:profiles!matches_player_b_id_fkey(username, display_name)',
@@ -34,6 +34,7 @@ export default async function BettingHubPage() {
     id: string
     scheduled_at: string | null
     betting_locked: boolean
+    is_full_day: boolean
     status: string
     tournaments: { title: string } | null
     player_a: ProfileRef

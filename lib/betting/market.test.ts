@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { bettingOpen, impliedPayoutMultiplier, RAKE_RATE } from './market'
 
 describe('bettingOpen', () => {
-  const base = { status: 'scheduled', scheduled_at: '2026-08-10T18:00:00Z', betting_locked: false }
+  const base = { status: 'scheduled', scheduled_at: '2026-08-10T18:00:00Z', betting_locked: false, is_full_day: false }
 
   it('is open before scheduled_at', () => {
     expect(bettingOpen(base, new Date('2026-08-10T17:00:00Z'))).toBe(true)
@@ -24,6 +24,30 @@ describe('bettingOpen', () => {
 
   it('is open when scheduled_at is not yet set', () => {
     expect(bettingOpen({ ...base, scheduled_at: null }, new Date())).toBe(true)
+  })
+
+  // scheduled_at for a full-day match is midnight WAT (the START of the
+  // match day, per lib/tournaments/round-schedule.ts), not a kickoff
+  // instant — players can play any time during that day. Locking at
+  // scheduled_at itself would close betting before the day's play window
+  // has even begun.
+  describe('full-day matches', () => {
+    const fullDay = { ...base, is_full_day: true }
+
+    it('stays open through the scheduled day, past scheduled_at itself', () => {
+      // scheduled_at is 2026-08-10T18:00:00Z (midnight WAT going into Aug 10
+      // in this fixture) — an hour after that instant, the match's actual
+      // play window has barely started.
+      expect(bettingOpen(fullDay, new Date('2026-08-10T19:00:00Z'))).toBe(true)
+    })
+
+    it('closes at the end of the scheduled day (scheduled_at + 24h)', () => {
+      expect(bettingOpen(fullDay, new Date('2026-08-11T18:00:00Z'))).toBe(false)
+    })
+
+    it('is still open one minute before the day ends', () => {
+      expect(bettingOpen(fullDay, new Date('2026-08-11T17:59:00Z'))).toBe(true)
+    })
   })
 })
 

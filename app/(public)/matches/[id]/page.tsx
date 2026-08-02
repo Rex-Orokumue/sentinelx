@@ -169,7 +169,7 @@ export default async function MatchCentrePage({
     : []
   const bettingDisabledReason = isParticipant
     ? 'You cannot bet on your own match.'
-    : !bettingOpen({ status: m.status, scheduled_at: m.scheduled_at, betting_locked: m.betting_locked })
+    : !bettingOpen({ status: m.status, scheduled_at: m.scheduled_at, betting_locked: m.betting_locked, is_full_day: m.is_full_day })
       ? 'Betting is closed for this match.'
       : null
 
