@@ -11,6 +11,7 @@ export type WalletTxnType =
   | 'bet_stake'
   | 'bet_payout'
   | 'bet_refund'
+  | 'deposit'
 
 export async function getWalletBalance(
   admin: SupabaseClient<Database>,
