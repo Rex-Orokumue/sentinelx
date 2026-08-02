@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useFormState } from 'react-dom'
 import { placeBet, type BetState } from '@/lib/betting/actions'
 import { impliedPayoutMultiplier, type SidePools, type Side } from '@/lib/betting/market'
@@ -61,7 +62,19 @@ export function BettingPanel({
             required
             className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
           />
-          {state?.error && <p className="text-xs text-red-400">{state.error}</p>}
+          {state?.error && (
+            <p className="text-xs text-red-400">
+              {state.error}
+              {state.error === 'Insufficient wallet balance.' && (
+                <>
+                  {' '}
+                  <Link href="/dashboard#wallet" className="font-bold text-violet-400 hover:text-violet-300">
+                    Fund wallet →
+                  </Link>
+                </>
+              )}
+            </p>
+          )}
           {state?.success && <p className="text-xs text-emerald-400">Bet placed.</p>}
           <button
             type="submit"
