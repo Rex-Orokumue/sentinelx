@@ -37,6 +37,8 @@ Four components render a content-bearing image with `alt=""` while the descripti
 
 ## 4. `llms.txt`
 
+**Correction (found during implementation, not during this audit):** `public/llms.txt` already existed — the audit that produced this spec checked `app/` route-convention files but missed the `public/` static-assets directory. The existing file is more thorough than what's drafted below. No new route was created; this section is left for the record only.
+
 New route handler `app/llms.txt/route.ts`, matching the existing `robots.ts`/`sitemap.ts` file-convention pattern in this codebase (a `.ts` file under `app/` returning the right content type), returning `text/plain` per the llmstxt.org convention: an H1 with the site name, a one-line blockquote summary, then a `## Pages` section linking the key public surfaces. The H1 and first summary line are built from the existing `SITE_NAME`/`SITE_DESCRIPTION` constants (`lib/seo/site.ts`); the second summary sentence is adapted from the "What is Sentinel X" description already in this repo's `CLAUDE.md` (existing documented positioning, not new copy); the page-link list is new but is just titles + one-line descriptions of pages that already exist.
 
 ```

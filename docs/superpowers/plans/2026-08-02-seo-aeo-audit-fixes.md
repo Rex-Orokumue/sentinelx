@@ -307,6 +307,8 @@ git commit -m "fix(seo): add breadcrumb schema to matches and results pages"
 
 ### Task 4: `llms.txt`
 
+**Correction during execution:** `public/llms.txt` already existed (added 2026-07-17, missed during the audit — the audit only checked `app/` route-convention files, not the `public/` directory). It's more thorough than the version drafted here. No route handler was created; the existing static file was left as-is and verified to still serve correctly. Steps below are kept for the record but were not executed.
+
 **Files:**
 - Create: `app/llms.txt/route.ts`
 
