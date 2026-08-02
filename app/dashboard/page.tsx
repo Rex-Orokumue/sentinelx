@@ -9,6 +9,7 @@ import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection'
 import { MyTournaments, type RegistrationRow } from '@/components/dashboard/MyTournaments'
 import { WalletPanel, type WalletRequestRow } from '@/components/dashboard/WalletPanel'
 import { MyListings, type MyListing } from '@/components/dashboard/MyListings'
+import { MyBuyRequests, type MyBuyRequest } from '@/components/dashboard/MyBuyRequests'
 import { MyOrders } from '@/components/dashboard/MyOrders'
 import { latestPerListing, type OrderRow } from '@/lib/exchange/orders'
 import { MySales } from '@/components/dashboard/MySales'
@@ -111,6 +112,7 @@ export default async function DashboardPage({
     walletRes,
     walletRequestsRes,
     listingsRes,
+    buyRequestsRes,
     ordersRes,
     salesRes,
     kycRes,
@@ -157,6 +159,11 @@ export default async function DashboardPage({
       .neq('status', 'removed')
       .order('created_at', { ascending: false }),
     supabase
+      .from('buy_requests')
+      .select('id, title, budget, status')
+      .eq('buyer_id', user.id)
+      .order('created_at', { ascending: false }),
+    supabase
       .from('marketplace_orders')
       .select('id, listing_id, listing_title, amount, status')
       .eq('buyer_id', user.id)
@@ -200,6 +207,12 @@ export default async function DashboardPage({
     title: l.title,
     price: l.price,
     status: l.status,
+  }))
+  const myBuyRequests: MyBuyRequest[] = (buyRequestsRes.data ?? []).map((r) => ({
+    id: r.id,
+    title: r.title,
+    budget: r.budget,
+    status: r.status as MyBuyRequest['status'],
   }))
   const toOrderRow = (r: {
     id: string
@@ -537,6 +550,7 @@ export default async function DashboardPage({
 
       <MyTournaments registrations={registrations} />
       <MyListings listings={myListings} />
+      <MyBuyRequests requests={myBuyRequests} />
       <MyOrders orders={myOrders} />
       <MySales sales={mySales} />
 
