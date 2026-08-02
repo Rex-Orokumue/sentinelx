@@ -13,6 +13,7 @@ export function staticSitemapEntries(): MetadataRoute.Sitemap {
     '/community',
     '/games',
     '/about',
+    '/betting',
   ]
   return paths.map((path) => ({ url: `${SITE_URL}${path === '/' ? '/' : path}` }))
 }
