@@ -32,7 +32,7 @@
 - `lib/betting/actions.ts` — new: `placeBet` server action.
 - `lib/betting/admin-actions.ts` — new: `voidBet`, `toggleBettingLocked` server actions.
 - `lib/matches/verify-actions.ts` — modify: call `settleMatchBets`/`refundMatchBets` from `confirmResult`.
-- `lib/matches/admin-actions.ts` — modify: call `refundMatchBets` from `declareNoShowWinner` and `markBothNoShow`.
+- `lib/matches/noshow-actions.ts` — modify: call `refundMatchBets` from `declareNoShowWinner` and `markBothNoShow`.
 - `components/match/BettingPanel.tsx` — new: client component, stake form + live pool display, on the Match Centre page.
 - `app/(public)/matches/[id]/page.tsx` — modify: render `BettingPanel`.
 - `app/(public)/betting/page.tsx` — new: hub page listing all open markets.
@@ -591,7 +591,7 @@ Immediately after the existing score/status update block (right after the `if (u
 
 - [ ] **Step 2: Wire `declareNoShowWinner`**
 
-In `lib/matches/admin-actions.ts`, add the import:
+In `lib/matches/noshow-actions.ts`, add the import:
 
 ```ts
 import { refundMatchBets } from '@/lib/betting/settle'
