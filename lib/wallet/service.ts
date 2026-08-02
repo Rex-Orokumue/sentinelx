@@ -8,6 +8,9 @@ export type WalletTxnType =
   | 'admin_credit'
   | 'withdrawal_request'
   | 'withdrawal_reversal'
+  | 'bet_stake'
+  | 'bet_payout'
+  | 'bet_refund'
 
 export async function getWalletBalance(
   admin: SupabaseClient<Database>,

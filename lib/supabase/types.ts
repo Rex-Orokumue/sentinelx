@@ -665,6 +665,60 @@ export type Database = {
           },
         ]
       }
+      match_bets: {
+        Row: {
+          id: string
+          match_id: string
+          payout_amount: number | null
+          placed_at: string
+          player_id: string
+          settled_at: string | null
+          side: string
+          stake_amount: number
+          status: string
+          voided_reason: string | null
+        }
+        Insert: {
+          id?: string
+          match_id: string
+          payout_amount?: number | null
+          placed_at?: string
+          player_id: string
+          settled_at?: string | null
+          side: string
+          stake_amount: number
+          status?: string
+          voided_reason?: string | null
+        }
+        Update: {
+          id?: string
+          match_id?: string
+          payout_amount?: number | null
+          placed_at?: string
+          player_id?: string
+          settled_at?: string | null
+          side?: string
+          stake_amount?: number
+          status?: string
+          voided_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_bets_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_bets_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_check_ins: {
         Row: {
           checked_in_at: string
@@ -772,6 +826,7 @@ export type Database = {
         Row: {
           admin_note: string | null
           auto_expired: boolean
+          betting_locked: boolean
           completed_at: string | null
           created_at: string
           group_id: string | null
@@ -794,6 +849,7 @@ export type Database = {
         Insert: {
           admin_note?: string | null
           auto_expired?: boolean
+          betting_locked?: boolean
           completed_at?: string | null
           created_at?: string
           group_id?: string | null
@@ -816,6 +872,7 @@ export type Database = {
         Update: {
           admin_note?: string | null
           auto_expired?: boolean
+          betting_locked?: boolean
           completed_at?: string | null
           created_at?: string
           group_id?: string | null
