@@ -14,6 +14,9 @@ export type NotificationType =
   | 'fixture_assigned'
   | 'player_disqualified'
   | 'noshow_needs_decision'
+  | 'buy_request_in_progress'
+  | 'buy_request_fulfilled'
+  | 'buy_request_closed'
 
 // Best-effort — NEVER throws into the caller's primary action, mirroring
 // lib/notifications/notify.ts's WhatsApp helper. A failed in-app notification

@@ -56,6 +56,63 @@ export type Database = {
           },
         ]
       }
+      buy_requests: {
+        Row: {
+          admin_note: string | null
+          budget: number
+          buyer_id: string
+          category: string
+          created_at: string
+          description: string | null
+          game_id: string | null
+          id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          admin_note?: string | null
+          budget: number
+          buyer_id: string
+          category: string
+          created_at?: string
+          description?: string | null
+          game_id?: string | null
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          admin_note?: string | null
+          budget?: number
+          buyer_id?: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          game_id?: string | null
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buy_requests_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buy_requests_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_post_images: {
         Row: {
           created_at: string
