@@ -24,6 +24,7 @@ export const SECONDARY_LINKS: NavLink[] = [
   { href: '/games', label: 'Games' },
   { href: '/rankings', label: 'Leaderboards' },
   { href: '/about', label: 'About' },
+  { href: '/betting', label: 'Betting' },
 ]
 
 // Reachable from the footer only — too many for the header, and the mobile
@@ -42,5 +43,5 @@ export const HEADER_LINKS: NavLink[] = [...PILLAR_LINKS, ...SECONDARY_LINKS]
 export const FOOTER_SECTIONS: { heading: string; links: NavLink[] }[] = [
   { heading: 'Compete', links: [PILLAR_LINKS[0], SECONDARY_LINKS[1], FOOTER_ONLY_LINKS[1]] },
   { heading: 'Explore', links: [PILLAR_LINKS[1], PILLAR_LINKS[2], PILLAR_LINKS[3]] },
-  { heading: 'More', links: [SECONDARY_LINKS[0], FOOTER_ONLY_LINKS[0], SECONDARY_LINKS[2]] },
+  { heading: 'More', links: [SECONDARY_LINKS[0], FOOTER_ONLY_LINKS[0], SECONDARY_LINKS[2], SECONDARY_LINKS[3]] },
 ]
