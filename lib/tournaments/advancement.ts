@@ -45,6 +45,25 @@ export function pairWinners(
   return { pairs, leftover: i < merged.length ? merged[i] : null }
 }
 
+// The two semifinal losers, or null if the round isn't ready for a bronze
+// match. Requires exactly two matches (structurally guaranteed whenever the
+// semi_final round exists) and both must be a normally decided 'completed'
+// result — a bye or forfeit leaves no legitimate loser on that side, so no
+// 3rd place match is created for that tournament run (an admin can still
+// credit one manually — see lib/matches/verify-actions.ts).
+export function thirdPlacePair(semiFinalMatches: AdvanceMatch[]): [string, string] | null {
+  if (semiFinalMatches.length !== 2) return null
+  const losers = semiFinalMatches.map((m) => {
+    if (m.status !== 'completed') return null
+    const winnerId = matchWinnerId(m)
+    if (!winnerId) return null
+    return winnerId === m.player_a_id ? m.player_b_id : m.player_a_id
+  })
+  const [a, b] = losers
+  if (!a || !b) return null
+  return [a, b]
+}
+
 // The next knockout round, or null for the final / a non-knockout round.
 export function nextRoundName(current: string): string | null {
   const i = ROUND_ORDER.indexOf(current as (typeof ROUND_ORDER)[number])

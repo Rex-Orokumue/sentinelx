@@ -4,6 +4,7 @@ import {
   roundResolved,
   pairWinners,
   nextRoundName,
+  thirdPlacePair,
   type AdvanceMatch,
 } from './advancement'
 
@@ -76,6 +77,45 @@ describe('pairWinners', () => {
   })
   it('returns no pairs and no leftover when nobody advances', () => {
     expect(pairWinners([], [])).toEqual({ pairs: [], leftover: null })
+  })
+})
+
+describe('thirdPlacePair', () => {
+  it('returns the two semifinal losers', () => {
+    const semis = [
+      mk({ player_a_id: 'w1', player_b_id: 'l1', score_a: 3, score_b: 1 }),
+      mk({ player_a_id: 'l2', player_b_id: 'w2', score_a: 0, score_b: 2 }),
+    ]
+    expect(thirdPlacePair(semis)).toEqual(['l1', 'l2'])
+  })
+
+  it('returns null when a semifinal was a bye (no real loser)', () => {
+    const semis = [
+      mk({ status: 'bye', player_a_id: 'w1', player_b_id: null, score_a: null, score_b: null }),
+      mk({ player_a_id: 'l2', player_b_id: 'w2', score_a: 0, score_b: 2 }),
+    ]
+    expect(thirdPlacePair(semis)).toBeNull()
+  })
+
+  it('returns null when a semifinal was forfeited (double no-show)', () => {
+    const semis = [
+      mk({ status: 'forfeited', score_a: null, score_b: null }),
+      mk({ player_a_id: 'l2', player_b_id: 'w2', score_a: 0, score_b: 2 }),
+    ]
+    expect(thirdPlacePair(semis)).toBeNull()
+  })
+
+  it('returns null when a semifinal is not yet decided', () => {
+    const semis = [
+      mk({ status: 'scheduled', score_a: null, score_b: null }),
+      mk({ player_a_id: 'l2', player_b_id: 'w2', score_a: 0, score_b: 2 }),
+    ]
+    expect(thirdPlacePair(semis)).toBeNull()
+  })
+
+  it('returns null unless there are exactly two semifinal matches', () => {
+    expect(thirdPlacePair([])).toBeNull()
+    expect(thirdPlacePair([mk({})])).toBeNull()
   })
 })
 
