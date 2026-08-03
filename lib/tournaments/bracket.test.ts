@@ -3,6 +3,7 @@ import {
   splitFixturesByState,
   orderKnockoutRounds,
   getChampion,
+  getThirdPlace,
   groupFixturesByDate,
   type BracketMatch,
 } from './bracket'
@@ -107,5 +108,51 @@ describe('getChampion', () => {
   it('returns null when the final is not completed or absent', () => {
     expect(getChampion([match({ id: 'f', round: 'final', status: 'live', score_a: 1, score_b: 0 })])).toBeNull()
     expect(getChampion([match({ id: 's', round: 'semi_final', status: 'completed', score_a: 2, score_b: 0 })])).toBeNull()
+  })
+})
+
+describe('getThirdPlace', () => {
+  it('returns the winner of a completed third_place match', () => {
+    const winner = getThirdPlace([
+      match({
+        id: 'tp',
+        round: 'third_place',
+        status: 'completed',
+        score_a: 1,
+        score_b: 3,
+        playerA: { id: 'pa', name: 'Alpha' },
+        playerB: { id: 'pb', name: 'Bravo' },
+      }),
+    ])
+    expect(winner).toEqual({ id: 'pb', name: 'Bravo' })
+  })
+
+  it('returns playerA for an admin-credited bye', () => {
+    const winner = getThirdPlace([
+      match({
+        id: 'tp',
+        round: 'third_place',
+        status: 'bye',
+        score_a: null,
+        score_b: null,
+        playerA: { id: 'pa', name: 'Alpha' },
+        playerB: { id: '', name: 'TBD' },
+      }),
+    ])
+    expect(winner).toEqual({ id: 'pa', name: 'Alpha' })
+  })
+
+  it('returns null when not completed/bye, absent, or drawn', () => {
+    expect(
+      getThirdPlace([match({ id: 'tp', round: 'third_place', status: 'scheduled' })]),
+    ).toBeNull()
+    expect(
+      getThirdPlace([match({ id: 'f', round: 'final', status: 'completed', score_a: 2, score_b: 0 })]),
+    ).toBeNull()
+    expect(
+      getThirdPlace([
+        match({ id: 'tp', round: 'third_place', status: 'completed', score_a: 1, score_b: 1 }),
+      ]),
+    ).toBeNull()
   })
 })

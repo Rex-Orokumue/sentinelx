@@ -31,6 +31,7 @@ export const ROUND_LABELS: Record<string, string> = {
   quarter_final: 'Quarter-finals',
   semi_final: 'Semi-finals',
   final: 'Final',
+  third_place: 'Third Place Match',
 }
 
 // A match is only "live" when an admin has set status = 'live' in the DB. With
@@ -100,4 +101,19 @@ export function getChampion(matches: BracketMatch[]): { id: string; name: string
   if (!final || final.score_a == null || final.score_b == null) return null
   if (final.score_a === final.score_b) return null
   return final.score_a > final.score_b ? final.playerA : final.playerB
+}
+
+// A 3rd place result exists in two shapes: a real completed match (two
+// semifinal losers played it), or an admin-credited 'bye' (no opponent, no
+// match played — see lib/matches/verify-actions.ts:creditThirdPlace). Both
+// are recognized identically here, so the bracket page and Hall of Fame
+// don't need to care which one produced the result.
+export function getThirdPlace(matches: BracketMatch[]): { id: string; name: string } | null {
+  const m = matches.find(
+    (m) => m.round === 'third_place' && (m.status === 'completed' || m.status === 'bye'),
+  )
+  if (!m) return null
+  if (m.status === 'bye') return m.playerA
+  if (m.score_a == null || m.score_b == null || m.score_a === m.score_b) return null
+  return m.score_a > m.score_b ? m.playerA : m.playerB
 }
