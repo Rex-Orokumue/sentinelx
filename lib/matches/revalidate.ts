@@ -14,3 +14,12 @@ export function revalidateAll(tournamentId: string, slug: string, matchId: strin
     revalidatePath(`/tournaments/${slug}/bracket`)
   }
 }
+
+// For the admin manual-credit path (creditThirdPlace, verify-actions.ts) —
+// narrower than revalidateAll since no individual match confirmation UI is
+// involved (no match was played).
+export function revalidateThirdPlaceCredit(tournamentId: string, slug: string): void {
+  revalidatePath(`/admin/tournaments/${tournamentId}/matches`)
+  if (slug) revalidatePath(`/tournaments/${slug}/bracket`)
+  revalidatePath('/hall-of-fame')
+}

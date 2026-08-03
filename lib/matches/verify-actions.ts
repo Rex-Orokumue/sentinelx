@@ -21,7 +21,7 @@ import { resultKey } from '@/lib/notifications/keys'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 import { creditWallet } from '@/lib/wallet/service'
 import { settleMatchBets, refundMatchBets } from '@/lib/betting/settle'
-import { revalidateAll } from './revalidate'
+import { revalidateAll, revalidateThirdPlaceCredit } from './revalidate'
 
 export type VerifyState = { error?: string; success?: boolean } | undefined
 type Admin = ReturnType<typeof createAdminClient>
@@ -469,5 +469,57 @@ export async function disputeResult(_prev: VerifyState, formData: FormData): Pro
 
   const t = firstStr(m.tournament as { slug: string } | { slug: string }[] | null)
   revalidateAll(m.tournament_id, t?.slug ?? '', id)
+  return { success: true }
+}
+
+export type CreditThirdPlaceState = { error?: string; success?: boolean } | undefined
+
+// Admin escape hatch: credit a player as 3rd place with no match played —
+// for a tournament that predates this feature, or whose semifinal round hit
+// a bye/forfeit so createThirdPlaceMatch had no legitimate loser pair to use.
+// Recorded as a 'bye' match (single player, no opponent) — the same status
+// already used elsewhere in this codebase for "this slot resolved with no
+// real opponent" — so getThirdPlace (lib/tournaments/bracket.ts) reads it
+// identically to a real result, and matchEventsFor (lib/scoring/events.ts)
+// generates zero Sentinel Score events for a 'bye', correctly not
+// fabricating match-completion or win points for a match that never happened.
+export async function creditThirdPlace(
+  _prev: CreditThirdPlaceState,
+  formData: FormData,
+): Promise<CreditThirdPlaceState> {
+  await requireStaff()
+  const tournamentId = String(formData.get('tournamentId') ?? '')
+  const playerId = String(formData.get('playerId') ?? '')
+  if (!tournamentId || !playerId) return { error: 'Missing tournament or player.' }
+
+  const admin = createAdminClient()
+  const { data: t } = await admin
+    .from('tournaments')
+    .select('slug')
+    .eq('id', tournamentId)
+    .maybeSingle()
+  if (!t) return { error: 'Tournament not found.' }
+
+  const { count: existing } = await admin
+    .from('matches')
+    .select('*', { count: 'exact', head: true })
+    .eq('tournament_id', tournamentId)
+    .eq('round', 'third_place')
+  if (existing && existing > 0) {
+    return { error: 'A third place result already exists for this tournament.' }
+  }
+
+  const { error } = await admin.from('matches').insert({
+    tournament_id: tournamentId,
+    round: 'third_place',
+    group_id: null,
+    player_a_id: playerId,
+    player_b_id: null,
+    status: 'bye',
+    completed_at: new Date().toISOString(),
+  })
+  if (error) return { error: 'Could not save the third place credit.' }
+
+  revalidateThirdPlaceCredit(tournamentId, t.slug)
   return { success: true }
 }
