@@ -5,6 +5,7 @@ import {
   splitFixturesByState,
   orderKnockoutRounds,
   getChampion,
+  getThirdPlace,
   type BracketMatch,
 } from './bracket'
 import { projectBracketRounds, type ProjectedRound } from './bracket-tree'
@@ -25,6 +26,7 @@ export interface BracketView {
   // drawn with empty slots before those rounds are generated.
   projected: ProjectedRound[]
   champion: { id: string; name: string } | null
+  thirdPlace: { id: string; name: string } | null
   hasGroups: boolean
   hasKnockout: boolean
 }
@@ -144,6 +146,7 @@ export async function loadBracketView(
     // projection.
     projected: hasGroups ? projectBracketRounds((groups ?? []).length * ADVANCE_PER_GROUP) : [],
     champion: getChampion(allMatches),
+    thirdPlace: getThirdPlace(allMatches),
     hasGroups,
     hasKnockout: rounds.length > 0,
   }

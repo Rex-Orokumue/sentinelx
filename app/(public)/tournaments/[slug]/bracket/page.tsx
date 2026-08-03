@@ -95,6 +95,13 @@ export default async function BracketPage({ params }: { params: { slug: string }
         </div>
       )}
 
+      {view.thirdPlace && (
+        <div className="mb-6 rounded-2xl border border-slate-700/40 bg-slate-800/20 px-5 py-3 text-center">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400/80">Third Place</p>
+          <p className="mt-1 text-base font-bold text-white">🥉 {view.thirdPlace.name}</p>
+        </div>
+      )}
+
       {isEmpty ? (
         <div className="rounded-2xl border border-slate-800 bg-slate-900/50 py-12 text-center">
           <p className="text-3xl">🗂️</p>
