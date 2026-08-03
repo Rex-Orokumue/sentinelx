@@ -8,6 +8,7 @@ import {
   roundResolved,
   pairWinners,
   nextRoundName,
+  thirdPlacePair,
   type AdvanceMatch,
 } from '@/lib/tournaments/advancement'
 import { knockoutRound1 } from '@/lib/tournaments/draw'
@@ -231,6 +232,53 @@ export async function advanceKnockout(admin: Admin, tournamentId: string, round:
   )
 }
 
+// Create the 3rd place match from the two semifinal losers, once both semis
+// are decisively completed. Idempotent — a tournament ends up with at most
+// one third_place row, whether it comes from here or from the admin
+// manual-credit path (creditThirdPlace, below).
+async function createThirdPlaceMatch(admin: Admin, tournamentId: string): Promise<void> {
+  const { data: semis } = await admin
+    .from('matches')
+    .select('status, score_a, score_b, player_a_id, player_b_id')
+    .eq('tournament_id', tournamentId)
+    .eq('round', 'semi_final')
+  const pair = thirdPlacePair((semis ?? []) as AdvanceMatch[])
+  if (!pair) return
+
+  const { count: existing } = await admin
+    .from('matches')
+    .select('*', { count: 'exact', head: true })
+    .eq('tournament_id', tournamentId)
+    .eq('round', 'third_place')
+  if (existing && existing > 0) return
+
+  const roundDate = await nextRoundScheduledAt(admin, tournamentId)
+  const schedule = roundDate ? { scheduled_at: roundDate, is_full_day: true } : {}
+  const { data: inserted } = await admin
+    .from('matches')
+    .insert({
+      tournament_id: tournamentId,
+      round: 'third_place',
+      group_id: null,
+      player_a_id: pair[0],
+      player_b_id: pair[1],
+      status: 'scheduled',
+      ...schedule,
+    })
+    .select('id, player_a_id, player_b_id, scheduled_at, is_full_day')
+  await notifyNewFixtures(
+    admin,
+    (inserted ?? []).map((m) => ({
+      id: m.id,
+      tournamentId,
+      playerAId: m.player_a_id as string,
+      playerBId: m.player_b_id,
+      scheduledAt: m.scheduled_at,
+      isFullDay: m.is_full_day,
+    })),
+  )
+}
+
 export async function confirmResult(_prev: VerifyState, formData: FormData): Promise<VerifyState> {
   const ctx = await requireStaff()
   const id = String(formData.get('id') ?? '')
@@ -295,11 +343,20 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
     await recomputeGroupAndMaybeAdvance(admin, m.tournament_id, m.group_id)
   } else if (isKnockout) {
     await advanceKnockout(admin, m.tournament_id, m.round)
-    if (nextRoundName(m.round) === null) {
+    if (m.round === 'semi_final') {
+      await createThirdPlaceMatch(admin, m.tournament_id)
+    }
+    if (m.round === 'final') {
       // Claim the completion atomically — the prize is credited only by the
       // call that actually flipped the tournament to 'completed'. A bracket
       // that somehow lands more than one match in the 'final' round (or a
       // double-confirm) would otherwise pay the full pool out once per match.
+      //
+      // Explicitly 'final', not "nextRoundName(round) === null" — the
+      // third_place round also returns null from nextRoundName (it's
+      // deliberately outside ROUND_ORDER's progression chain), so that check
+      // would otherwise fire when the bronze match gets confirmed too,
+      // wrongly completing the tournament and paying its winner the full pool.
       const { data: claimed } = await admin
         .from('tournaments')
         .update({ status: 'completed' })
