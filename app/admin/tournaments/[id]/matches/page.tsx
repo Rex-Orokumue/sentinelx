@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
 import { ROUND_ORDER, ROUND_LABELS } from '@/lib/tournaments/bracket'
 import { MatchRow, type AdminMatchRow } from '@/components/admin/MatchRow'
+import { ThirdPlaceCreditForm } from '@/components/admin/ThirdPlaceCreditForm'
 import { ResolvePendingMatchesButton } from '@/components/admin/ResolvePendingMatchesButton'
 import { NoShowBanner, type FlaggedMatchRow } from '@/components/admin/NoShowBanner'
 import { buildAdminPlayerWhatsAppUrl, resolvePlayerPhone } from '@/lib/matches/admin-whatsapp'
@@ -36,7 +37,7 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
     .maybeSingle()
   if (!t) notFound()
 
-  const [{ data }, { data: regRows }] = await Promise.all([
+  const [{ data }, { data: regRows }, { data: paidRegs }] = await Promise.all([
     supabase
       .from('matches')
       .select(
@@ -50,6 +51,11 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
       .from('tournament_registrations')
       .select('player_id, reg_whatsapp')
       .eq('tournament_id', t.id),
+    supabase
+      .from('tournament_registrations')
+      .select('player_id, profiles!tournament_registrations_player_id_fkey(username, display_name)')
+      .eq('tournament_id', t.id)
+      .eq('payment_status', 'paid'),
   ])
 
   // Per-tournament number a player gave at registration — the first choice for
@@ -59,6 +65,15 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
       r.player_id,
       r.reg_whatsapp,
     ]),
+  )
+
+  // Candidates for the manual "credit third place" form.
+  const thirdPlaceCandidates: { id: string; name: string }[] = ((paidRegs as unknown[] | null) ?? []).map(
+    (raw) => {
+      const r = raw as { player_id: string; profiles: ProfileRef | ProfileRef[] }
+      const p = Array.isArray(r.profiles) ? r.profiles[0] ?? null : r.profiles
+      return { id: r.player_id, name: nameOf(p) ?? 'Player' }
+    },
   )
 
   const all = ((data as unknown[] | null) ?? []).map((raw) => {
@@ -96,6 +111,7 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
       groupName: groupNameOf(m.groups),
       row: {
         id: m.id,
+        round: m.round,
         playerAName: nameOf(m.player_a) ?? 'TBD',
         playerBName: nameOf(m.player_b),
         playerAWhatsAppUrl: whatsAppUrlFor(m.player_a, m.player_b),
@@ -143,6 +159,7 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
     rows: all.filter((x) => x.round === r).map((x) => x.row),
   })).filter((s) => s.rows.length > 0)
   const sections = [...groupSections, ...knockoutSections]
+  const thirdPlaceMatch = all.find((x) => x.round === 'third_place')?.row ?? null
 
   return (
     <section>
@@ -177,6 +194,20 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
               </div>
             </div>
           ))}
+          {(thirdPlaceMatch || thirdPlaceCandidates.length > 0) && (
+            <div>
+              <h3 className="mb-3 text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                Third Place Match
+              </h3>
+              {thirdPlaceMatch ? (
+                <div className="space-y-3">
+                  <MatchRow match={thirdPlaceMatch} />
+                </div>
+              ) : (
+                <ThirdPlaceCreditForm tournamentId={t.id} players={thirdPlaceCandidates} />
+              )}
+            </div>
+          )}
         </div>
       )}
     </section>

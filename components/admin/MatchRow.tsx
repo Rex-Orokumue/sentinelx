@@ -6,6 +6,7 @@ import { WhatsAppChip } from '@/components/shared/WhatsAppChip'
 
 export interface AdminMatchRow {
   id: string
+  round: string
   playerAName: string
   playerBName: string | null // null => bye
   // Pre-built wa.me links (see lib/matches/admin-whatsapp.ts). Null => that
@@ -32,7 +33,9 @@ export function MatchRow({ match }: { match: AdminMatchRow }) {
     return (
       <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
         <p className="font-bold text-white">{match.playerAName}</p>
-        <p className="mt-0.5 text-xs text-slate-500">Bye — auto-advances</p>
+        <p className="mt-0.5 text-xs text-slate-500">
+          {match.round === 'third_place' ? 'Credited — no match played' : 'Bye — auto-advances'}
+        </p>
         <div className="mt-2.5">
           <WhatsAppChip name={match.playerAName} url={match.playerAWhatsAppUrl} />
         </div>
