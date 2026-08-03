@@ -5,13 +5,15 @@ import {
   pickGoldenBoot,
   pickCategoryAward,
   deriveChampions,
+  deriveThirdPlaces,
   type ChampionInput,
+  type ThirdPlaceInput,
 } from '@/lib/hall-of-fame/awards'
 import { scoreStatsByPlayerAndCategory, categoryStat, type GameScopedMatch } from '@/lib/rankings/game-breakdown'
 import { CATEGORY_META } from '@/lib/games/categories'
 import type { BracketMatch } from '@/lib/tournaments/bracket'
 import { AwardCard } from '@/components/hall-of-fame/AwardCard'
-import { ChampionCard } from '@/components/hall-of-fame/ChampionCard'
+import { PlacementCard } from '@/components/hall-of-fame/PlacementCard'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
@@ -152,6 +154,20 @@ export default async function HallOfFamePage() {
           .eq('status', 'completed')
       : { data: [] as unknown[] }
 
+  const { data: thirdPlaceRows } =
+    tournamentIds.length > 0
+      ? await supabase
+          .from('matches')
+          .select(
+            'id, tournament_id, round, status, score_a, score_b, ' +
+              'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
+              'player_b:profiles!matches_player_b_id_fkey(id, username, display_name)',
+          )
+          .in('tournament_id', tournamentIds)
+          .eq('round', 'third_place')
+          .in('status', ['completed', 'bye'])
+      : { data: [] as unknown[] }
+
   // Map tournament_id -> its completed final as a BracketMatch.
   const finalByTournament = new Map<string, BracketMatch>()
   for (const raw of (finalRows as unknown[] | null) ?? []) {
@@ -180,6 +196,33 @@ export default async function HallOfFamePage() {
     })
   }
 
+  const thirdPlaceByTournament = new Map<string, BracketMatch>()
+  for (const raw of (thirdPlaceRows as unknown[] | null) ?? []) {
+    const m = raw as {
+      id: string
+      tournament_id: string
+      round: string
+      status: string
+      score_a: number | null
+      score_b: number | null
+      player_a: ProfileRef
+      player_b: ProfileRef
+    }
+    thirdPlaceByTournament.set(m.tournament_id, {
+      id: m.id,
+      round: m.round,
+      group_id: null,
+      groupName: null,
+      status: m.status,
+      score_a: m.score_a,
+      score_b: m.score_b,
+      scheduled_at: null,
+      is_full_day: false,
+      playerA: { id: m.player_a?.id ?? '', name: nameOf(m.player_a) },
+      playerB: { id: m.player_b?.id ?? '', name: nameOf(m.player_b) },
+    })
+  }
+
   const championInputs: ChampionInput[] = tournaments.map((t) => ({
     tournamentId: t.id,
     slug: t.slug,
@@ -190,8 +233,19 @@ export default async function HallOfFamePage() {
   }))
   const champions = deriveChampions(championInputs)
 
+  const thirdPlaceInputs: ThirdPlaceInput[] = tournaments.map((t) => ({
+    tournamentId: t.id,
+    slug: t.slug,
+    title: t.title,
+    gameName: firstGameName(t.games),
+    tournamentEnd: t.tournament_end,
+    thirdPlaceMatch: thirdPlaceByTournament.get(t.id) ?? null,
+  }))
+  const thirdPlaces = deriveThirdPlaces(thirdPlaceInputs)
+
   const hasAwards = mvp != null || goldenBoot != null || categoryAwards.length > 0
   const hasChampions = champions.length > 0
+  const hasBronze = thirdPlaces.length > 0
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-20">
@@ -202,7 +256,7 @@ export default async function HallOfFamePage() {
         </p>
       </div>
 
-      {!hasAwards && !hasChampions ? (
+      {!hasAwards && !hasChampions && !hasBronze ? (
         <EmptyState
           icon="🏆"
           title="The Hall of Fame awaits its first legends"
@@ -258,7 +312,16 @@ export default async function HallOfFamePage() {
             {hasChampions ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 {champions.map((c) => (
-                  <ChampionCard key={c.tournamentId} entry={c} />
+                  <PlacementCard
+                    key={c.tournamentId}
+                    icon="🏆"
+                    playerName={c.champion.name}
+                    slug={c.slug}
+                    title={c.title}
+                    gameName={c.gameName}
+                    date={c.date}
+                    fallbackLabel="Champion"
+                  />
                 ))}
               </div>
             ) : (
@@ -266,6 +329,32 @@ export default async function HallOfFamePage() {
                 icon="🏆"
                 title="No champions crowned yet"
                 body="Winners appear here when tournaments finish and finals are confirmed."
+              />
+            )}
+          </section>
+
+          <section className="mb-10">
+            <h2 className="mb-4 text-base font-bold text-white">🥉 Bronze</h2>
+            {hasBronze ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {thirdPlaces.map((tp) => (
+                  <PlacementCard
+                    key={tp.tournamentId}
+                    icon="🥉"
+                    playerName={tp.player.name}
+                    slug={tp.slug}
+                    title={tp.title}
+                    gameName={tp.gameName}
+                    date={tp.date}
+                    fallbackLabel="Third Place"
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon="🥉"
+                title="No third place finishes yet"
+                body="3rd place winners appear here once a bronze match is confirmed."
               />
             )}
           </section>
