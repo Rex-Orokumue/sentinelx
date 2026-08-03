@@ -1,6 +1,6 @@
 import { isRankingEligible, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
 import { categoryStat } from '@/lib/rankings/game-breakdown'
-import { getChampion, type BracketMatch } from '@/lib/tournaments/bracket'
+import { getChampion, getThirdPlace, type BracketMatch } from '@/lib/tournaments/bracket'
 
 function winRate(p: PlayerStatsInput): number {
   return p.totalMatches > 0 ? p.wins / p.totalMatches : 0
@@ -75,6 +75,55 @@ export function deriveChampions(inputs: ChampionInput[]): ChampionEntry[] {
           gameName: inp.gameName,
           date: inp.tournamentEnd,
           champion: { id: w.id, name: w.name },
+        },
+      ]
+    })
+    .sort((a, b) => {
+      if (a.date == null) return b.date == null ? 0 : 1
+      if (b.date == null) return -1
+      return b.date.localeCompare(a.date)
+    })
+}
+
+export interface ThirdPlaceInput {
+  tournamentId: string
+  slug: string
+  title: string
+  gameName: string | null
+  tournamentEnd: string | null
+  thirdPlaceMatch: BracketMatch | null
+}
+
+export interface ThirdPlaceEntry {
+  tournamentId: string
+  slug: string
+  title: string
+  gameName: string | null
+  date: string | null
+  player: { id: string; name: string }
+}
+
+// One 3rd place entry per completed tournament with a decided third_place
+// match — real (two semifinal losers played it) or admin-credited (a bye,
+// single player). getThirdPlace enforces both shapes identically, so the
+// winner rule is reused, never reimplemented. Ordered most-recent-first,
+// nulls last — same ordering as deriveChampions. Kept as a separate
+// function/types rather than generalizing deriveChampions itself, since
+// ChampionInput/ChampionEntry are exercised by existing tests and consumers.
+export function deriveThirdPlaces(inputs: ThirdPlaceInput[]): ThirdPlaceEntry[] {
+  return inputs
+    .flatMap((inp) => {
+      if (!inp.thirdPlaceMatch) return []
+      const w = getThirdPlace([inp.thirdPlaceMatch])
+      if (!w) return []
+      return [
+        {
+          tournamentId: inp.tournamentId,
+          slug: inp.slug,
+          title: inp.title,
+          gameName: inp.gameName,
+          date: inp.tournamentEnd,
+          player: { id: w.id, name: w.name },
         },
       ]
     })

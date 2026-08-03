@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { pickMVP, pickGoldenBoot, pickCategoryAward, deriveChampions, type ChampionInput } from './awards'
+import {
+  pickMVP,
+  pickGoldenBoot,
+  pickCategoryAward,
+  deriveChampions,
+  deriveThirdPlaces,
+  type ChampionInput,
+  type ThirdPlaceInput,
+} from './awards'
 import type { PlayerStatsInput } from '@/lib/rankings/leaderboard'
 import type { BracketMatch } from '@/lib/tournaments/bracket'
 
@@ -172,6 +180,84 @@ describe('deriveChampions', () => {
       champInput({ tournamentId: 'old', tournamentEnd: '2025-01-01' }),
       champInput({ tournamentId: 'none', tournamentEnd: null }),
       champInput({ tournamentId: 'new', tournamentEnd: '2026-06-01' }),
+    ])
+    expect(r.map((c) => c.tournamentId)).toEqual(['new', 'old', 'none'])
+  })
+})
+
+function thirdPlaceMatch(over: Partial<BracketMatch>): BracketMatch {
+  return {
+    id: 'tp',
+    round: 'third_place',
+    group_id: null,
+    groupName: null,
+    status: 'completed',
+    score_a: 1,
+    score_b: 2,
+    scheduled_at: null,
+    is_full_day: false,
+    playerA: { id: 'pa', name: 'Ada' },
+    playerB: { id: 'pb', name: 'Bill' },
+    ...over,
+  }
+}
+
+function thirdPlaceInput(over: Partial<ThirdPlaceInput> & { tournamentId: string }): ThirdPlaceInput {
+  return {
+    slug: over.tournamentId,
+    title: `Cup ${over.tournamentId}`,
+    gameName: 'DLS',
+    tournamentEnd: '2026-01-01',
+    thirdPlaceMatch: thirdPlaceMatch({}),
+    ...over,
+  }
+}
+
+describe('deriveThirdPlaces', () => {
+  it('returns [] for empty input', () => {
+    expect(deriveThirdPlaces([])).toEqual([])
+  })
+
+  it('emits the third_place winner', () => {
+    const r = deriveThirdPlaces([thirdPlaceInput({ tournamentId: 't1' })])
+    expect(r).toHaveLength(1)
+    expect(r[0].player).toEqual({ id: 'pb', name: 'Bill' })
+    expect(r[0].slug).toBe('t1')
+  })
+
+  it('emits the credited player for an admin bye', () => {
+    const r = deriveThirdPlaces([
+      thirdPlaceInput({
+        tournamentId: 't1',
+        thirdPlaceMatch: thirdPlaceMatch({ status: 'bye', score_a: null, score_b: null }),
+      }),
+    ])
+    expect(r[0].player).toEqual({ id: 'pa', name: 'Ada' })
+  })
+
+  it('skips a tournament with no third_place match', () => {
+    const r = deriveThirdPlaces([thirdPlaceInput({ tournamentId: 't1', thirdPlaceMatch: null })])
+    expect(r).toEqual([])
+  })
+
+  it('skips a drawn or in-progress third_place match', () => {
+    expect(
+      deriveThirdPlaces([
+        thirdPlaceInput({ tournamentId: 't1', thirdPlaceMatch: thirdPlaceMatch({ score_a: 1, score_b: 1 }) }),
+      ]),
+    ).toEqual([])
+    expect(
+      deriveThirdPlaces([
+        thirdPlaceInput({ tournamentId: 't2', thirdPlaceMatch: thirdPlaceMatch({ status: 'scheduled' }) }),
+      ]),
+    ).toEqual([])
+  })
+
+  it('orders most-recent-first with nulls last', () => {
+    const r = deriveThirdPlaces([
+      thirdPlaceInput({ tournamentId: 'old', tournamentEnd: '2025-01-01' }),
+      thirdPlaceInput({ tournamentId: 'none', tournamentEnd: null }),
+      thirdPlaceInput({ tournamentId: 'new', tournamentEnd: '2026-06-01' }),
     ])
     expect(r.map((c) => c.tournamentId)).toEqual(['new', 'old', 'none'])
   })
