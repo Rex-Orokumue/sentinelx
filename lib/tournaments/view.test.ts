@@ -55,4 +55,12 @@ describe('resolveRegistrationView', () => {
       resolveRegistrationView({ ...base, existingStatus: 'paid', registrationStatus: 'waitlisted' }),
     ).toBe('registered')
   })
+
+  it('invitation_only: gates the public form for an invitation-only tournament', () => {
+    expect(resolveRegistrationView({ ...base, invitationOnly: true })).toBe('invitation_only')
+  })
+
+  it('registered takes precedence over invitation_only for an already-paid invitee', () => {
+    expect(resolveRegistrationView({ ...base, existingStatus: 'paid', invitationOnly: true })).toBe('registered')
+  })
 })

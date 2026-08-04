@@ -34,7 +34,7 @@ export async function registerForTournament(
   // Re-fetch server-side; never trust the client for status, capacity, or rules.
   const { data: tournament } = await supabase
     .from('tournaments')
-    .select('id, slug, status, max_players, rules, registration_fee')
+    .select('id, slug, status, max_players, rules, registration_fee, invitation_only')
     .eq('id', tournamentId)
     .maybeSingle()
   if (!tournament) return { error: 'Tournament not found.' }
@@ -63,6 +63,7 @@ export async function registerForTournament(
     paidCount: paidCount ?? 0,
     maxPlayers: tournament.max_players,
     existingStatus: existing?.payment_status ?? null,
+    invitationOnly: tournament.invitation_only,
   })
   if (!guard.ok) {
     return {
@@ -71,7 +72,9 @@ export async function registerForTournament(
           ? "You're already registered for this tournament."
           : guard.reason === 'full'
             ? 'This tournament is full.'
-            : 'Registration is closed for this tournament.',
+            : guard.reason === 'invitation_only'
+              ? 'This tournament is invitation-only. Check your dashboard for an invite.'
+              : 'Registration is closed for this tournament.',
     }
   }
 

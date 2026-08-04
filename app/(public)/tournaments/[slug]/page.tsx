@@ -25,7 +25,7 @@ async function getTournament(slug: string) {
   const { data } = await supabase
     .from('tournaments')
     .select(
-      'id, title, slug, description, banner_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, tournament_end, rules, games(name, icon_url, slug)',
+      'id, title, slug, description, banner_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, tournament_end, rules, invitation_only, games(name, icon_url, slug)',
     )
     .eq('slug', slug)
     .maybeSingle()
@@ -96,6 +96,7 @@ export default async function TournamentDetailPage({
     maxPlayers: t.max_players,
     existingStatus,
     registrationStatus,
+    invitationOnly: t.invitation_only,
   })
 
   const status = STATUS[t.status] ?? STATUS.completed

@@ -120,7 +120,9 @@ export function RegistrationPanel({
       ? 'This tournament is full.'
       : view === 'ended'
         ? 'This tournament has ended.'
-        : 'Registration is closed.'
+        : view === 'invitation_only'
+          ? "This tournament is by invitation only. Check your dashboard if you've been invited."
+          : 'Registration is closed.'
 
   // Waitlist only makes sense once the event is underway/closed (view === 'closed'
   // maps to tournament status registration_closed/active) — a merely-full

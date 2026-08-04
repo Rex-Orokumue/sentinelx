@@ -37,4 +37,28 @@ describe('checkCanRegister', () => {
       checkCanRegister({ status: 'registration_open', paidCount: 999, maxPlayers: null, existingStatus: null }),
     ).toEqual({ ok: true })
   })
+
+  it('blocks the public form on an invitation-only tournament', () => {
+    expect(
+      checkCanRegister({
+        status: 'registration_open',
+        paidCount: 3,
+        maxPlayers: 16,
+        existingStatus: null,
+        invitationOnly: true,
+      }),
+    ).toEqual({ ok: false, reason: 'invitation_only' })
+  })
+
+  it('an already-paid invitee still resolves to already_registered, not invitation_only', () => {
+    expect(
+      checkCanRegister({
+        status: 'registration_open',
+        paidCount: 16,
+        maxPlayers: 16,
+        existingStatus: 'paid',
+        invitationOnly: true,
+      }),
+    ).toEqual({ ok: false, reason: 'already_registered' })
+  })
 })
