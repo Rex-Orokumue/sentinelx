@@ -14,9 +14,15 @@ interface MatchRow {
   score_b: number | null
   status: string
   resolution: string | null
+  tournament_id: string
+  tournament:
+    | { tournament_type: string; season_id: string | null }
+    | { tournament_type: string; season_id: string | null }[]
+    | null
 }
 
-const MATCH_COLS = 'id, player_a_id, player_b_id, score_a, score_b, status, resolution'
+const MATCH_COLS =
+  'id, player_a_id, player_b_id, score_a, score_b, status, resolution, tournament_id, tournament:tournaments(tournament_type, season_id)'
 
 // Reuse getChampion's winner rule by shaping a raw final row into a BracketMatch.
 // Only ids are compared, so names are irrelevant.
@@ -43,8 +49,18 @@ function toBracketFinal(m: {
   }
 }
 
-// Delete this match's AUTO events (only) and reinsert from the current result.
-// Returns the ids of players whose scoring is affected. No refresh here.
+function isSeasonNoShowEligible(
+  t: MatchRow['tournament'],
+): t is { tournament_type: string; season_id: string } {
+  const row = Array.isArray(t) ? t[0] : t
+  return !!row?.season_id && (row.tournament_type === 'community_club' || row.tournament_type === 'masters')
+}
+
+const SEASON_NO_SHOW_PENALTY = -15
+
+// Delete this match's AUTO events (only) and reinsert from the current
+// result, and do the same for its season_noshow_penalties row(s). Returns
+// the ids of players whose scoring is affected. No refresh here.
 async function regenerateMatchEvents(admin: Admin, match: MatchRow): Promise<string[]> {
   await admin
     .from('sentinel_score_events')
@@ -53,6 +69,25 @@ async function regenerateMatchEvents(admin: Admin, match: MatchRow): Promise<str
     .in('event_type', [...AUTO_MATCH_EVENT_TYPES])
   const events = matchEventsFor(match)
   if (events.length > 0) await admin.from('sentinel_score_events').insert(events)
+
+  // Regenerate season_noshow_penalties for this match the same way — delete
+  // then reinsert, so a dispute overturning a walkover clears the penalty too.
+  await admin.from('season_noshow_penalties').delete().eq('match_id', match.id)
+  const tournamentRow = Array.isArray(match.tournament) ? match.tournament[0] : match.tournament
+  if (isSeasonNoShowEligible(match.tournament)) {
+    const noShowPlayerIds = events.filter((e) => e.event_type === 'no_show').map((e) => e.player_id)
+    if (noShowPlayerIds.length > 0) {
+      await admin.from('season_noshow_penalties').insert(
+        noShowPlayerIds.map((playerId) => ({
+          season_id: tournamentRow!.season_id as string,
+          player_id: playerId,
+          match_id: match.id,
+          points: SEASON_NO_SHOW_PENALTY,
+        })),
+      )
+    }
+  }
+
   return [match.player_a_id, match.player_b_id].filter((x): x is string => !!x)
 }
 
