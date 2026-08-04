@@ -1327,6 +1327,137 @@ export type Database = {
           },
         ]
       }
+      season_noshow_penalties: {
+        Row: {
+          created_at: string
+          id: string
+          match_id: string
+          player_id: string
+          points: number
+          season_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          match_id: string
+          player_id: string
+          points?: number
+          season_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          match_id?: string
+          player_id?: string
+          points?: number
+          season_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "season_noshow_penalties_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "season_noshow_penalties_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "season_noshow_penalties_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      season_ranking_points: {
+        Row: {
+          awarded_at: string
+          id: string
+          placement: number | null
+          player_id: string
+          points: number
+          season_id: string
+          tournament_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          id?: string
+          placement?: number | null
+          player_id: string
+          points?: number
+          season_id: string
+          tournament_id: string
+        }
+        Update: {
+          awarded_at?: string
+          id?: string
+          placement?: number | null
+          player_id?: string
+          points?: number
+          season_id?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "season_ranking_points_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "season_ranking_points_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "season_ranking_points_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seasons: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          name: string
+          slug: string
+          start_date: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          name: string
+          slug: string
+          start_date: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          name?: string
+          slug?: string
+          start_date?: string
+          status?: string
+        }
+        Relationships: []
+      }
       sentinel_score_events: {
         Row: {
           created_at: string
@@ -1424,6 +1555,54 @@ export type Database = {
           },
         ]
       }
+      tournament_invitations: {
+        Row: {
+          expires_at: string
+          id: string
+          invited_at: string
+          player_id: string
+          rank_at_invite: number
+          responded_at: string | null
+          status: string
+          tournament_id: string
+        }
+        Insert: {
+          expires_at: string
+          id?: string
+          invited_at?: string
+          player_id: string
+          rank_at_invite: number
+          responded_at?: string | null
+          status?: string
+          tournament_id: string
+        }
+        Update: {
+          expires_at?: string
+          id?: string
+          invited_at?: string
+          player_id?: string
+          rank_at_invite?: number
+          responded_at?: string | null
+          status?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_invitations_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_invitations_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_registrations: {
         Row: {
           disqualification_note: string | null
@@ -1510,6 +1689,7 @@ export type Database = {
           format: string
           game_id: string
           id: string
+          invitation_only: boolean
           max_players: number | null
           prize_pool: number
           registration_end: string | null
@@ -1518,11 +1698,13 @@ export type Database = {
           round_gap_days: number
           round_start_date: string | null
           rules: string | null
+          season_id: string | null
           slug: string
           status: string
           title: string
           tournament_end: string | null
           tournament_start: string | null
+          tournament_type: string
           updated_at: string
         }
         Insert: {
@@ -1534,6 +1716,7 @@ export type Database = {
           format?: string
           game_id: string
           id?: string
+          invitation_only?: boolean
           max_players?: number | null
           prize_pool?: number
           registration_end?: string | null
@@ -1542,11 +1725,13 @@ export type Database = {
           round_gap_days?: number
           round_start_date?: string | null
           rules?: string | null
+          season_id?: string | null
           slug: string
           status?: string
           title: string
           tournament_end?: string | null
           tournament_start?: string | null
+          tournament_type?: string
           updated_at?: string
         }
         Update: {
@@ -1558,6 +1743,7 @@ export type Database = {
           format?: string
           game_id?: string
           id?: string
+          invitation_only?: boolean
           max_players?: number | null
           prize_pool?: number
           registration_end?: string | null
@@ -1566,11 +1752,13 @@ export type Database = {
           round_gap_days?: number
           round_start_date?: string | null
           rules?: string | null
+          season_id?: string | null
           slug?: string
           status?: string
           title?: string
           tournament_end?: string | null
           tournament_start?: string | null
+          tournament_type?: string
           updated_at?: string
         }
         Relationships: [
@@ -1579,6 +1767,13 @@ export type Database = {
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournaments_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
             referencedColumns: ["id"]
           },
         ]
