@@ -29,6 +29,7 @@ import {
 } from '@/lib/dashboard/tournament-status'
 import type { MembershipInput } from '@/lib/tournaments/standings'
 import { TournamentStatusBanners } from '@/components/dashboard/TournamentStatusBanner'
+import { MastersInvitationBanner } from '@/components/dashboard/MastersInvitationBanner'
 
 export const metadata: Metadata = {
   title: 'Dashboard · SentinelX Esports',
@@ -476,6 +477,21 @@ export default async function DashboardPage({
   })
   const friendlyBuckets = bucketFriendlies(rawFriendlies, user.id)
 
+  const { data: pendingInvitations } = await supabase
+    .from('tournament_invitations')
+    .select('id, rank_at_invite, expires_at, tournament:tournaments(title, registration_fee)')
+    .eq('player_id', user.id)
+    .eq('status', 'pending')
+    .gt('expires_at', new Date().toISOString())
+    .order('expires_at', { ascending: true })
+    .limit(1)
+  const pendingInvitationRow = pendingInvitations?.[0] ?? null
+  const pendingInvitationTournament = pendingInvitationRow
+    ? Array.isArray(pendingInvitationRow.tournament)
+      ? pendingInvitationRow.tournament[0]
+      : pendingInvitationRow.tournament
+    : null
+
   return (
     <div className="mx-auto max-w-4xl px-4 pb-20">
       <DashboardHeader
@@ -485,6 +501,17 @@ export default async function DashboardPage({
         wins={profile?.wins ?? 0}
         losses={profile?.losses ?? 0}
       />
+      {pendingInvitationRow && pendingInvitationTournament && (
+        <MastersInvitationBanner
+          invitation={{
+            id: pendingInvitationRow.id,
+            rank: pendingInvitationRow.rank_at_invite,
+            deadline: pendingInvitationRow.expires_at,
+            tournamentTitle: pendingInvitationTournament.title,
+            fee: pendingInvitationTournament.registration_fee,
+          }}
+        />
+      )}
       <form action={signOut} className="mb-4">
         <button
           type="submit"
