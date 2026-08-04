@@ -20,6 +20,10 @@ export type TemplateInput =
       playerAWhatsAppUrl?: string | null
       playerBWhatsAppUrl?: string | null
     }
+  | { type: 'masters_invitation'; tournamentName: string; rank: number; deadline: string; entryFee: string }
+  | { type: 'champions_cup_invitation'; tournamentName: string; rank: number; deadline: string; entryFee: string }
+  | { type: 'invitation_accepted'; tournamentName: string; playerName: string }
+  | { type: 'invitation_expired_cascade'; tournamentName: string; rank: number; deadline: string; entryFee: string }
 
 export interface RenderedTemplate {
   templateName: string
@@ -87,5 +91,25 @@ export function renderTemplate(input: TemplateInput): RenderedTemplate {
           (contacts.length > 0 ? `\n\nMessage them:\n${contacts.join('\n')}` : ''),
       }
     }
+    case 'masters_invitation':
+      return {
+        templateName: 'masters_invitation',
+        body: `🏆 You're invited to ${input.tournamentName}! You ranked #${input.rank}. Entry fee: ${input.entryFee}. Respond by ${input.deadline} to secure your spot.`,
+      }
+    case 'champions_cup_invitation':
+      return {
+        templateName: 'champions_cup_invitation',
+        body: `🏆 You're invited to ${input.tournamentName} — the season finale! You ranked #${input.rank}. Free entry. Respond by ${input.deadline} to secure your spot.`,
+      }
+    case 'invitation_accepted':
+      return {
+        templateName: 'invitation_accepted',
+        body: `${input.playerName} accepted their invitation to ${input.tournamentName}.`,
+      }
+    case 'invitation_expired_cascade':
+      return {
+        templateName: 'invitation_expired_cascade',
+        body: `🏆 A spot opened up in ${input.tournamentName}! You ranked #${input.rank}. Entry fee: ${input.entryFee}. Respond by ${input.deadline} to secure your spot.`,
+      }
   }
 }
