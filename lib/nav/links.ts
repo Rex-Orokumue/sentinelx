@@ -23,6 +23,7 @@ export const PILLAR_LINKS: PillarLink[] = [
 export const SECONDARY_LINKS: NavLink[] = [
   { href: '/games', label: 'Games' },
   { href: '/rankings', label: 'Leaderboards' },
+  { href: '/seasons/season-1', label: 'Seasons' },
   { href: '/about', label: 'About' },
   { href: '/betting', label: 'Betting' },
 ]
@@ -41,7 +42,7 @@ export const HEADER_LINKS: NavLink[] = [...PILLAR_LINKS, ...SECONDARY_LINKS]
 // breakpoint — it's what makes /tv reachable on desktop and /rankings,
 // /games, /about reachable on mobile.
 export const FOOTER_SECTIONS: { heading: string; links: NavLink[] }[] = [
-  { heading: 'Compete', links: [PILLAR_LINKS[0], SECONDARY_LINKS[1], FOOTER_ONLY_LINKS[1]] },
+  { heading: 'Compete', links: [PILLAR_LINKS[0], SECONDARY_LINKS[1], SECONDARY_LINKS[2], FOOTER_ONLY_LINKS[1]] },
   { heading: 'Explore', links: [PILLAR_LINKS[1], PILLAR_LINKS[2], PILLAR_LINKS[3]] },
-  { heading: 'More', links: [SECONDARY_LINKS[0], FOOTER_ONLY_LINKS[0], SECONDARY_LINKS[2], SECONDARY_LINKS[3]] },
+  { heading: 'More', links: [SECONDARY_LINKS[0], FOOTER_ONLY_LINKS[0], SECONDARY_LINKS[3], SECONDARY_LINKS[4]] },
 ]
