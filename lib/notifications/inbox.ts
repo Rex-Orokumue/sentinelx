@@ -17,6 +17,10 @@ export type NotificationType =
   | 'buy_request_in_progress'
   | 'buy_request_fulfilled'
   | 'buy_request_closed'
+  | 'masters_invitation'
+  | 'champions_cup_invitation'
+  | 'invitation_accepted'
+  | 'invitation_expired_cascade'
 
 // Best-effort — NEVER throws into the caller's primary action, mirroring
 // lib/notifications/notify.ts's WhatsApp helper. A failed in-app notification
