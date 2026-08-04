@@ -22,6 +22,7 @@ import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 import { creditWallet } from '@/lib/wallet/service'
 import { settleMatchBets, refundMatchBets } from '@/lib/betting/settle'
 import { revalidateAll, revalidateThirdPlaceCredit } from './revalidate'
+import { awardSeasonPoints } from './season-points'
 
 export type VerifyState = { error?: string; success?: boolean } | undefined
 type Admin = ReturnType<typeof createAdminClient>
@@ -279,6 +280,42 @@ async function createThirdPlaceMatch(admin: Admin, tournamentId: string): Promis
   )
 }
 
+// Claims the tournament's completion atomically and, exactly once per
+// tournament, credits the winner's prize and awards season points. Shared
+// by confirmResult and both no-show resolution paths (noshow-actions.ts) —
+// any of the three can be the call that resolves a grand final. Gated on
+// round === 'final' explicitly, not "nextRoundName(round) === null" —
+// 'third_place' also returns null from nextRoundName (deliberately outside
+// ROUND_ORDER's progression chain), so that check would wrongly fire when
+// the bronze match gets resolved via a no-show too.
+export async function completeTournamentIfFinal(
+  admin: Admin,
+  tournamentId: string,
+  round: string,
+  finalMatch: AdvanceMatch,
+): Promise<void> {
+  if (round !== 'final') return
+
+  const { data: claimed } = await admin
+    .from('tournaments')
+    .update({ status: 'completed' })
+    .eq('id', tournamentId)
+    .neq('status', 'completed')
+    .select('id, prize_pool')
+  if (!claimed || claimed.length === 0) return
+
+  // Winner-take-all: the final's winner gets the full prize_pool. No
+  // placement tiers — a runner-up/3rd-place prize, if ever wanted, goes
+  // through the admin manual-credit path (adminCreditWallet), not an
+  // automated split.
+  const winnerId = matchWinnerId(finalMatch)
+  const prizePool = claimed[0]?.prize_pool ?? 0
+  if (winnerId && prizePool > 0) {
+    await creditWallet(admin, winnerId, prizePool, 'prize', tournamentId)
+  }
+  await awardSeasonPoints(admin, tournamentId)
+}
+
 export async function confirmResult(_prev: VerifyState, formData: FormData): Promise<VerifyState> {
   const ctx = await requireStaff()
   const id = String(formData.get('id') ?? '')
@@ -346,42 +383,13 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
     if (m.round === 'semi_final') {
       await createThirdPlaceMatch(admin, m.tournament_id)
     }
-    if (m.round === 'final') {
-      // Claim the completion atomically — the prize is credited only by the
-      // call that actually flipped the tournament to 'completed'. A bracket
-      // that somehow lands more than one match in the 'final' round (or a
-      // double-confirm) would otherwise pay the full pool out once per match.
-      //
-      // Explicitly 'final', not "nextRoundName(round) === null" — the
-      // third_place round also returns null from nextRoundName (it's
-      // deliberately outside ROUND_ORDER's progression chain), so that check
-      // would otherwise fire when the bronze match gets confirmed too,
-      // wrongly completing the tournament and paying its winner the full pool.
-      const { data: claimed } = await admin
-        .from('tournaments')
-        .update({ status: 'completed' })
-        .eq('id', m.tournament_id)
-        .neq('status', 'completed')
-        .select('id')
-
-      if (claimed && claimed.length > 0) {
-        // Winner-take-all: the final's winner gets the full prize_pool. No
-        // placement tiers — a runner-up/3rd-place prize, if ever wanted, goes
-        // through the admin manual-credit path (adminCreditWallet), not an
-        // automated split.
-        const winnerId = matchWinnerId({
-          status: 'completed',
-          score_a: scoreA,
-          score_b: scoreB,
-          player_a_id: m.player_a_id,
-          player_b_id: m.player_b_id,
-        })
-        const prizePool = t?.prize_pool ?? 0
-        if (winnerId && prizePool > 0) {
-          await creditWallet(admin, winnerId, prizePool, 'prize', m.tournament_id)
-        }
-      }
-    }
+    await completeTournamentIfFinal(admin, m.tournament_id, m.round, {
+      status: 'completed',
+      score_a: scoreA,
+      score_b: scoreB,
+      player_a_id: m.player_a_id,
+      player_b_id: m.player_b_id,
+    })
   }
 
   await syncMatchEvents(admin, id)
