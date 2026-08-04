@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import { type TournamentFormState } from '@/lib/tournaments/admin-actions'
 
@@ -19,6 +20,8 @@ export interface TournamentFormValues {
   rules: string
   dataSupportText: string
   dataSupportWhatsapp: string
+  tournamentType: string
+  seasonId: string
 }
 
 type Action = (prev: TournamentFormState, fd: FormData) => Promise<TournamentFormState>
@@ -26,17 +29,21 @@ type Action = (prev: TournamentFormState, fd: FormData) => Promise<TournamentFor
 export function TournamentForm({
   action,
   games,
+  seasons,
   initial,
   slugLocked,
   submitLabel,
 }: {
   action: Action
   games: { id: string; name: string }[]
+  seasons: { id: string; name: string }[]
   initial: TournamentFormValues
   slugLocked: boolean
   submitLabel: string
 }) {
   const [state, formAction] = useFormState<TournamentFormState, FormData>(action, undefined)
+  const [tournamentType, setTournamentType] = useState(initial.tournamentType || 'open')
+  const isInvitationOnly = tournamentType === 'masters' || tournamentType === 'champions_cup'
   return (
     <form action={formAction} className="space-y-4">
       {initial.id && <input type="hidden" name="id" value={initial.id} />}
@@ -83,6 +90,55 @@ export function TournamentForm({
           ))}
         </select>
       </div>
+
+      <div className="space-y-1.5">
+        <label htmlFor="tournamentType" className="text-sm font-medium text-slate-300">
+          Tournament Type
+        </label>
+        <select
+          id="tournamentType"
+          name="tournamentType"
+          value={tournamentType}
+          onChange={(e) => setTournamentType(e.target.value)}
+          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
+        >
+          <option value="open">Open</option>
+          <option value="community_club">Community Club</option>
+          <option value="masters">SentinelX Masters</option>
+          <option value="champions_cup">SentinelX Champions Cup</option>
+        </select>
+      </div>
+
+      {tournamentType !== 'open' && (
+        <div className="space-y-1.5">
+          <label htmlFor="seasonId" className="text-sm font-medium text-slate-300">
+            Season
+          </label>
+          <select
+            id="seasonId"
+            name="seasonId"
+            defaultValue={initial.seasonId}
+            required
+            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
+          >
+            <option value="" disabled>
+              Choose a season
+            </option>
+            {seasons.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {isInvitationOnly && (
+        <p className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-xs text-violet-300">
+          Invitation-only — players can only join via an accepted invitation, not the public registration
+          form.
+        </p>
+      )}
 
       <div className="space-y-1.5">
         <label htmlFor="description" className="text-sm font-medium text-slate-300">

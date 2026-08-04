@@ -19,9 +19,10 @@ function moneyStr(n: number | null): string {
 export default async function EditTournamentPage({ params }: { params: { id: string } }) {
   await requireStaff()
   const supabase = createClient()
-  const [{ data: t }, { data: games }] = await Promise.all([
+  const [{ data: t }, { data: games }, { data: seasons }] = await Promise.all([
     supabase.from('tournaments').select('*').eq('id', params.id).maybeSingle(),
     supabase.from('games').select('id, name').eq('active', true).order('name'),
+    supabase.from('seasons').select('id, name').order('start_date', { ascending: false }),
   ])
   if (!t) notFound()
 
@@ -42,6 +43,8 @@ export default async function EditTournamentPage({ params }: { params: { id: str
     rules: t.rules ?? '',
     dataSupportText: t.data_support_text ?? '',
     dataSupportWhatsapp: t.data_support_whatsapp ?? '',
+    tournamentType: t.tournament_type,
+    seasonId: t.season_id ?? '',
   }
 
   return (
@@ -52,9 +55,18 @@ export default async function EditTournamentPage({ params }: { params: { id: str
       <h2 className="mb-4 mt-2 text-base font-bold text-white">
         Edit · <span className="text-slate-400">{t.status.replace(/_/g, ' ')}</span>
       </h2>
+      {(t.tournament_type === 'masters' || t.tournament_type === 'champions_cup') && (
+        <Link
+          href={`/admin/tournaments/${t.id}/invitations`}
+          className="mb-4 inline-block text-sm text-violet-400 hover:text-violet-300"
+        >
+          → Manage invitations
+        </Link>
+      )}
       <TournamentForm
         action={updateTournament}
         games={games ?? []}
+        seasons={seasons ?? []}
         initial={initial}
         slugLocked={t.status !== 'draft'}
         submitLabel="Save changes"

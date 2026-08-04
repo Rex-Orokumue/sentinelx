@@ -30,6 +30,8 @@ function parseForm(formData: FormData) {
     rules: formData.get('rules') ?? '',
     dataSupportText: formData.get('dataSupportText') ?? '',
     dataSupportWhatsapp: formData.get('dataSupportWhatsapp') ?? '',
+    tournamentType: formData.get('tournamentType') ?? 'open',
+    seasonId: formData.get('seasonId') ?? '',
   })
 }
 
@@ -51,6 +53,9 @@ function toRow(d: TournamentInput) {
     rules: orNull(d.rules),
     data_support_text: orNull(d.dataSupportText),
     data_support_whatsapp: orNull(d.dataSupportWhatsapp),
+    tournament_type: d.tournamentType,
+    season_id: d.seasonId === '' ? null : d.seasonId,
+    invitation_only: d.tournamentType === 'masters' || d.tournamentType === 'champions_cup',
   }
 }
 

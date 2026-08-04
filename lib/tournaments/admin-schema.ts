@@ -10,25 +10,32 @@ const localDateTime = z.union([
 const money = (max: number) =>
   z.coerce.number().int('Whole naira only').min(0, 'Cannot be negative').max(max, 'Amount is too large')
 
-export const tournamentSchema = z.object({
-  title: z.string().trim().min(1, 'Title is required').max(120, 'Title is too long'),
-  gameId: z.string().uuid('Choose a game'),
-  slug: z.union([z.literal(''), z.string().trim().max(120)]),
-  description: optionalText(2000),
-  bannerUrl: optionalUrl,
-  registrationFee: money(1_000_000),
-  prizePool: money(1_000_000_000),
-  maxPlayers: z.union([
-    z.literal(''),
-    z.coerce.number().int().min(2, 'At least 2 players').max(64, 'At most 64 players'),
-  ]),
-  registrationStart: localDateTime,
-  registrationEnd: localDateTime,
-  tournamentStart: localDateTime,
-  tournamentEnd: localDateTime,
-  rules: optionalText(5000),
-  dataSupportText: optionalText(500),
-  dataSupportWhatsapp: optionalText(20),
-})
+export const tournamentSchema = z
+  .object({
+    title: z.string().trim().min(1, 'Title is required').max(120, 'Title is too long'),
+    gameId: z.string().uuid('Choose a game'),
+    slug: z.union([z.literal(''), z.string().trim().max(120)]),
+    description: optionalText(2000),
+    bannerUrl: optionalUrl,
+    registrationFee: money(1_000_000),
+    prizePool: money(1_000_000_000),
+    maxPlayers: z.union([
+      z.literal(''),
+      z.coerce.number().int().min(2, 'At least 2 players').max(64, 'At most 64 players'),
+    ]),
+    registrationStart: localDateTime,
+    registrationEnd: localDateTime,
+    tournamentStart: localDateTime,
+    tournamentEnd: localDateTime,
+    rules: optionalText(5000),
+    dataSupportText: optionalText(500),
+    dataSupportWhatsapp: optionalText(20),
+    tournamentType: z.enum(['open', 'community_club', 'masters', 'champions_cup']),
+    seasonId: z.union([z.literal(''), z.string().uuid()]),
+  })
+  .refine((d) => d.tournamentType === 'open' || d.seasonId !== '', {
+    message: 'Choose a season for this tournament type.',
+    path: ['seasonId'],
+  })
 
 export type TournamentInput = z.infer<typeof tournamentSchema>

@@ -17,6 +17,8 @@ const valid = {
   rules: '',
   dataSupportText: '',
   dataSupportWhatsapp: '',
+  tournamentType: 'open' as const,
+  seasonId: '',
 }
 
 describe('tournamentSchema', () => {
@@ -54,5 +56,22 @@ describe('tournamentSchema', () => {
   })
   it('allows an empty rules field', () => {
     expect(tournamentSchema.safeParse({ ...valid, rules: '' }).success).toBe(true)
+  })
+  it('requires a season when tournamentType is not open', () => {
+    expect(
+      tournamentSchema.safeParse({ ...valid, tournamentType: 'community_club', seasonId: '' }).success,
+    ).toBe(false)
+  })
+  it('accepts a season tournament with a seasonId', () => {
+    expect(
+      tournamentSchema.safeParse({
+        ...valid,
+        tournamentType: 'masters',
+        seasonId: '11111111-1111-4111-8111-111111111111',
+      }).success,
+    ).toBe(true)
+  })
+  it('rejects an unknown tournamentType', () => {
+    expect(tournamentSchema.safeParse({ ...valid, tournamentType: 'bogus' }).success).toBe(false)
   })
 })

@@ -23,16 +23,17 @@ const EMPTY: TournamentFormValues = {
   rules: '',
   dataSupportText: '',
   dataSupportWhatsapp: '',
+  tournamentType: 'open',
+  seasonId: '',
 }
 
 export default async function NewTournamentPage() {
   await requireStaff()
   const supabase = createClient()
-  const { data: games } = await supabase
-    .from('games')
-    .select('id, name')
-    .eq('active', true)
-    .order('name')
+  const [{ data: games }, { data: seasons }] = await Promise.all([
+    supabase.from('games').select('id, name').eq('active', true).order('name'),
+    supabase.from('seasons').select('id, name').order('start_date', { ascending: false }),
+  ])
 
   return (
     <section className="max-w-xl">
@@ -48,6 +49,7 @@ export default async function NewTournamentPage() {
         <TournamentForm
           action={createTournament}
           games={games ?? []}
+          seasons={seasons ?? []}
           initial={EMPTY}
           slugLocked={false}
           submitLabel="Create tournament"
