@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireStaff } from '@/lib/admin/auth'
 import { noShowDeadlinePassed } from './noshow'
 import { nextRoundName } from '@/lib/tournaments/advancement'
-import { recomputeGroupAndMaybeAdvance, advanceKnockout } from './verify-actions'
+import { recomputeGroupAndMaybeAdvance, advanceKnockout, completeTournamentIfFinal } from './verify-actions'
 import { revalidateAll } from './revalidate'
 import { syncMatchEvents } from '@/lib/scoring/apply'
 import { notify } from '@/lib/notifications/notify'
@@ -219,6 +219,13 @@ export async function declareNoShowWinner(_prev: NoShowState, formData: FormData
     await recomputeGroupAndMaybeAdvance(admin, m.tournament_id, m.group_id)
   } else if (m.round !== 'group') {
     await advanceKnockout(admin, m.tournament_id, m.round)
+    await completeTournamentIfFinal(admin, m.tournament_id, m.round, {
+      status: 'completed',
+      score_a: scoreA,
+      score_b: scoreB,
+      player_a_id: m.player_a_id,
+      player_b_id: m.player_b_id,
+    })
   }
   await syncMatchEvents(admin, id)
 
@@ -260,7 +267,9 @@ export async function markBothNoShow(_prev: NoShowState, formData: FormData): Pr
   const admin = createAdminClient()
   const { data: m } = await admin
     .from('matches')
-    .select('id, round, group_id, tournament_id, status, noshow_flagged_at, tournament:tournaments(slug)')
+    .select(
+      'id, round, group_id, tournament_id, status, noshow_flagged_at, player_a_id, player_b_id, tournament:tournaments(slug)',
+    )
     .eq('id', id)
     .maybeSingle()
   if (!m) return { error: 'Match not found.' }
@@ -293,6 +302,13 @@ export async function markBothNoShow(_prev: NoShowState, formData: FormData): Pr
       .update({ status: 'forfeited', completed_at: now, admin_note: reason })
       .eq('id', id)
     await advanceKnockout(admin, m.tournament_id, m.round)
+    await completeTournamentIfFinal(admin, m.tournament_id, m.round, {
+      status: 'forfeited',
+      score_a: null,
+      score_b: null,
+      player_a_id: m.player_a_id,
+      player_b_id: m.player_b_id,
+    })
   }
   await syncMatchEvents(admin, id)
   await refundMatchBets(admin, id)
