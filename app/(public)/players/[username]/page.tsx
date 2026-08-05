@@ -1,15 +1,21 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { Medal } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getChampion, type BracketMatch } from '@/lib/tournaments/bracket'
 import { matchOutcome, type ProfileView, type ProfileMatch, type ProfileTitle } from '@/lib/players/profile'
 import { friendshipStatus, type FriendshipStatus } from '@/lib/friends/list'
-import { scoreStatsByPlayerAndCategory, type GameScopedMatch, type CategoryStat } from '@/lib/rankings/game-breakdown'
+import { scoreStatsByPlayerAndCategory, winsByPlayerAndGame, type GameScopedMatch, type CategoryStat } from '@/lib/rankings/game-breakdown'
 import { CATEGORY_META } from '@/lib/games/categories'
+import { RANKING_MIN_MATCHES } from '@/lib/rankings/leaderboard'
 import { ProfileHeader } from '@/components/player/ProfileHeader'
 import { ProfileStats } from '@/components/player/ProfileStats'
 import { ProfileAchievements } from '@/components/player/ProfileAchievements'
 import { ProfileMatchHistory } from '@/components/player/ProfileMatchHistory'
+import { ProfileGamesRow } from '@/components/player/ProfileGamesRow'
+import { ProfileRecentActivity } from '@/components/player/ProfileRecentActivity'
+import { ProfileSidebarNav, ProfileTournamentsPromo } from '@/components/player/ProfileSidebarNav'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildPlayerJsonLd } from '@/lib/seo/schema/player'
@@ -162,7 +168,14 @@ export default async function PlayerProfilePage({ params }: { params: { username
     }
   }
 
-  const [{ data: rankData }, { data: rawMatches }, { data: rawFinals }, { data: rawCategoryMatches }] = await Promise.all([
+  const [
+    { data: rankData },
+    { data: rawMatches },
+    { data: rawFinals },
+    { data: rawCategoryMatches },
+    { count: tournamentsPlayed },
+    { count: totalRankedPlayers },
+  ] = await Promise.all([
     supabase.rpc('player_rank', { uname: p.username }),
     supabase
       .from('matches')
@@ -192,6 +205,15 @@ export default async function PlayerProfilePage({ params }: { params: { username
       )
       .eq('status', 'completed')
       .or(`player_a_id.eq.${p.id},player_b_id.eq.${p.id}`),
+    supabase
+      .from('tournament_registrations')
+      .select('id', { count: 'exact', head: true })
+      .eq('player_id', p.id)
+      .eq('payment_status', 'paid'),
+    supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .gte('total_matches', RANKING_MIN_MATCHES),
   ])
 
   const categoryMatches: GameScopedMatch[] = ((rawCategoryMatches as unknown[] | null) ?? []).map((raw) => {
@@ -220,25 +242,15 @@ export default async function PlayerProfilePage({ params }: { params: { username
     return { category, ...stat }
   })
 
-  const profile: ProfileView = {
-    id: p.id,
-    username: p.username,
-    displayName: p.display_name,
-    avatarUrl: p.avatar_url,
-    country: p.country,
-    bio: p.bio,
-    createdAt: p.created_at,
-    sentinelScore: p.sentinel_score,
-    sentinelTier: p.sentinel_tier,
-    totalMatches: p.total_matches,
-    wins: p.wins,
-    losses: p.losses,
-    goalsScored: p.goals_scored,
-    goalsConceded: p.goals_conceded,
-    totalTitles: p.total_titles,
-    categoryStats,
-    rank: (rankData as number | null) ?? null,
-  }
+  // "Games You Play" — every distinct game this player has a completed match
+  // in, with real wins/matches counts (not fabricated per-game ranks/scores).
+  const playedMatches = categoryMatches.filter((m) => m.player_a_id === p.id || m.player_b_id === p.id)
+  const winsByGameMap = new Map((winsByPlayerAndGame(categoryMatches).get(p.id) ?? []).map((g) => [g.game, g.wins]))
+  const gamesPlayed = Array.from(new Set(playedMatches.map((m) => m.game_name))).map((name) => ({
+    name,
+    wins: winsByGameMap.get(name) ?? 0,
+    matches: playedMatches.filter((m) => m.game_name === name).length,
+  }))
 
   const recentRows = (rawMatches ?? []) as unknown as RecentRow[]
   const matches: ProfileMatch[] = recentRows
@@ -261,6 +273,38 @@ export default async function PlayerProfilePage({ params }: { params: { username
       }
     })
 
+  // Consecutive wins ending at the most recent completed match, bounded by the
+  // 10 most recent fetched above — a real (if window-limited) figure rather
+  // than a fabricated one.
+  let currentStreak = 0
+  for (const m of matches) {
+    if (m.outcome !== 'win') break
+    currentStreak++
+  }
+
+  const profile: ProfileView = {
+    id: p.id,
+    username: p.username,
+    displayName: p.display_name,
+    avatarUrl: p.avatar_url,
+    country: p.country,
+    bio: p.bio,
+    createdAt: p.created_at,
+    sentinelScore: p.sentinel_score,
+    sentinelTier: p.sentinel_tier,
+    totalMatches: p.total_matches,
+    wins: p.wins,
+    losses: p.losses,
+    goalsScored: p.goals_scored,
+    goalsConceded: p.goals_conceded,
+    totalTitles: p.total_titles,
+    categoryStats,
+    rank: (rankData as number | null) ?? null,
+    tournamentsPlayed: tournamentsPlayed ?? 0,
+    currentStreak,
+    totalRankedPlayers: totalRankedPlayers ?? null,
+  }
+
   const finalRows = (rawFinals ?? []) as unknown as FinalRow[]
   const titles: ProfileTitle[] = finalRows
     .filter((f) => getChampion([toBracketFinal(f)])?.id === p.id)
@@ -274,8 +318,10 @@ export default async function PlayerProfilePage({ params }: { params: { username
       }
     })
 
+  const displayName = p.display_name ?? p.username
+
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-20">
+    <div className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
       <JsonLd
         data={buildPlayerJsonLd({
           username: p.username,
@@ -289,13 +335,57 @@ export default async function PlayerProfilePage({ params }: { params: { username
       <JsonLd
         data={buildBreadcrumbJsonLd([
           { name: 'Players', path: '/players' },
-          { name: p.display_name ?? p.username, path: `/players/${p.username}` },
+          { name: displayName, path: `/players/${p.username}` },
         ])}
       />
-      <ProfileHeader profile={profile} viewerId={user?.id ?? null} friendshipStatus={friendship} />
-      <ProfileStats profile={profile} />
-      <ProfileAchievements titles={titles} />
-      <ProfileMatchHistory matches={matches} username={params.username} />
+
+      <nav className="py-4 text-xs text-sx-gray">
+        <Link href="/" className="hover:text-white">Home</Link>
+        <span className="mx-1.5">›</span>
+        <Link href="/players" className="hover:text-white">Players</Link>
+        <span className="mx-1.5">›</span>
+        <span className="text-white">{displayName}</span>
+      </nav>
+
+      <div id="top" className="grid gap-6 pb-4 lg:grid-cols-[240px_1fr]">
+        {/* ── Left sidebar ──────────────────────────────────── */}
+        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+          <ProfileSidebarNav />
+          <ProfileTournamentsPromo />
+        </aside>
+
+        {/* ── Main content ──────────────────────────────────── */}
+        <div className="min-w-0 space-y-8">
+          <ProfileHeader profile={profile} viewerId={user?.id ?? null} friendshipStatus={friendship} />
+          <ProfileStats profile={profile} />
+          <ProfileGamesRow games={gamesPlayed} />
+
+          <div className="grid gap-8 lg:grid-cols-3">
+            <ProfileAchievements titles={titles} />
+            <ProfileRecentActivity matches={matches} />
+            <TrophiesComingSoon />
+          </div>
+
+          <ProfileMatchHistory matches={matches} username={params.username} />
+        </div>
+      </div>
     </div>
+  )
+}
+
+// Trophy/badge earning logic is Phase 2 (spec §7 Out of Scope) — an honest
+// "coming soon" here rather than a grid of badges nobody has actually earned.
+function TrophiesComingSoon() {
+  return (
+    <section>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-bold uppercase tracking-widest text-white">Trophies &amp; Badges</h2>
+      </div>
+      <div className="rounded-xl border border-sx-border bg-sx-surface p-6 text-center">
+        <Medal className="mx-auto mb-3 h-8 w-8 text-sx-gray" />
+        <p className="text-sm font-bold text-white">Coming soon</p>
+        <p className="mt-1 text-xs text-sx-gray">Earn badges for streaks, milestones and more.</p>
+      </div>
+    </section>
   )
 }

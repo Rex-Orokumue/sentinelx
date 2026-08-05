@@ -421,6 +421,39 @@ export type Database = {
           },
         ]
       }
+      game_interest: {
+        Row: {
+          created_at: string
+          game_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_interest_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_interest_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           active: boolean

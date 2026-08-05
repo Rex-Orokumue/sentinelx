@@ -1,43 +1,35 @@
-import { Fragment } from 'react'
 import { winPercent } from '@/lib/players/profile'
 import type { ProfileView } from '@/lib/players/profile'
-import { CATEGORY_META } from '@/lib/games/categories'
 
-function Stat({ label, value }: { label: string; value: string | number }) {
+function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-3 text-center">
-      <p className="text-lg font-black text-white">{value}</p>
-      <p className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-500">{label}</p>
+    <div className="rounded-xl border border-sx-border bg-sx-surface p-4 text-center">
+      <p className="font-display text-2xl font-black text-white">{value}</p>
+      <p className="mt-0.5 text-[11px] uppercase tracking-wide text-sx-gray">{label}</p>
+      {sub && <p className="mt-1 text-[11px] text-sx-purple-text">{sub}</p>}
     </div>
   )
 }
 
 export function ProfileStats({ profile }: { profile: ProfileView }) {
-  // Only categories this player has actually completed matches in, and only
-  // ones with a defined secondary stat ('other' deliberately has none).
-  const playedCategories = profile.categoryStats.filter(
-    (c) => CATEGORY_META[c.category] != null && (c.scored > 0 || c.conceded > 0),
-  )
+  const topPercent =
+    profile.rank != null && profile.totalRankedPlayers
+      ? Math.max(1, Math.ceil((profile.rank / profile.totalRankedPlayers) * 100))
+      : null
+
   return (
-    <section className="mb-8">
-      <h2 className="mb-3 text-base font-bold text-white">Stats</h2>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Stat label="Matches" value={profile.totalMatches} />
-        <Stat label="Wins" value={profile.wins} />
-        <Stat label="Losses" value={profile.losses} />
-        <Stat label="Win rate" value={winPercent(profile.wins, profile.totalMatches)} />
-        <Stat label="Titles" value={profile.totalTitles} />
-        {playedCategories.map((c) => {
-          const label = CATEGORY_META[c.category].statLabel
-          const diff = c.scored - c.conceded
-          return (
-            <Fragment key={c.category}>
-              <Stat label={`${label} for`} value={c.scored} />
-              <Stat label={`${label} against`} value={c.conceded} />
-              <Stat label={`${label} diff`} value={diff > 0 ? `+${diff}` : diff} />
-            </Fragment>
-          )
-        })}
+    <section id="stats" className="mb-8 scroll-mt-24">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <Stat
+          label="SX Score"
+          value={profile.sentinelScore}
+          sub={topPercent ? `Top ${topPercent}% of players` : undefined}
+        />
+        <Stat label="Titles Won" value={profile.totalTitles} />
+        <Stat label="Tournaments" value={profile.tournamentsPlayed} sub="Participated" />
+        <Stat label="Matches Played" value={profile.totalMatches} sub={`${profile.wins} Wins`} />
+        <Stat label="Win Rate" value={winPercent(profile.wins, profile.totalMatches)} />
+        <Stat label="Current Streak" value={profile.currentStreak} sub={profile.currentStreak > 0 ? 'Wins' : undefined} />
       </div>
     </section>
   )

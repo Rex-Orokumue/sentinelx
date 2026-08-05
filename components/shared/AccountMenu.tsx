@@ -30,13 +30,13 @@ export function AccountMenu({ session }: { session: NavSession }) {
       <div className="flex items-center gap-2">
         <Link
           href="/login"
-          className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm font-bold text-slate-200 transition-colors hover:border-slate-500"
+          className="rounded-lg border border-sx-border px-3 py-1.5 text-sm font-bold text-white/80 transition-colors hover:border-white/30 hover:text-white"
         >
           Login
         </Link>
         <Link
           href="/signup"
-          className="rounded-lg bg-violet-600 px-3 py-1.5 text-sm font-bold text-white transition-colors hover:bg-violet-500"
+          className="rounded-lg bg-sx-purple px-3 py-1.5 text-sm font-bold text-white transition-colors hover:bg-sx-purple-light"
         >
           Register
         </Link>
@@ -53,7 +53,7 @@ export function AccountMenu({ session }: { session: NavSession }) {
         onClick={() => setOpen((o) => !o)}
         aria-label="Account menu"
         aria-expanded={open}
-        className="flex max-w-[10rem] items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 ring-1 ring-slate-700 transition hover:ring-slate-500"
+        className="flex max-w-[10rem] items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5 ring-1 ring-sx-border transition hover:ring-sx-purple/40"
       >
         <Avatar
           avatarUrl={session.avatarUrl}
@@ -61,13 +61,13 @@ export function AccountMenu({ session }: { session: NavSession }) {
           username={session.username}
           size={26}
         />
-        <span className="truncate text-sm font-semibold text-slate-200">{name}</span>
+        <span className="truncate text-sm font-semibold text-white/90">{name}</span>
         <ChevronDown
-          className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`h-3.5 w-3.5 shrink-0 text-sx-gray transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-44 rounded-xl border border-slate-800 bg-slate-900 py-1 shadow-xl">
+        <div className="absolute right-0 mt-2 w-44 rounded-xl border border-sx-border bg-sx-surface py-1 shadow-xl">
           <MenuLink
             href={session.username ? `/players/${session.username}` : '/dashboard'}
             onNavigate={() => setOpen(false)}
@@ -83,7 +83,7 @@ export function AccountMenu({ session }: { session: NavSession }) {
           <form action={signOut}>
             <button
               type="submit"
-              className="block w-full px-4 py-2 text-left text-sm text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+              className="block w-full px-4 py-2 text-left text-sm text-white/70 transition-colors hover:bg-white/5 hover:text-white"
             >
               Sign out
             </button>
@@ -107,7 +107,7 @@ function MenuLink({
     <Link
       href={href}
       onClick={onNavigate}
-      className="block px-4 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+      className="block px-4 py-2 text-sm text-white/70 transition-colors hover:bg-white/5 hover:text-white"
     >
       {children}
     </Link>

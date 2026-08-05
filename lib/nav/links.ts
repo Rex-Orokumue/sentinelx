@@ -38,6 +38,20 @@ export const FOOTER_ONLY_LINKS: NavLink[] = [
 // Desktop header, in order. The logo is the Home link, so '/' is not repeated.
 export const HEADER_LINKS: NavLink[] = [...PILLAR_LINKS, ...SECONDARY_LINKS]
 
+// The Phase 1 visual-overhaul Navbar (see docs/superpowers visual-overhaul spec §2.1)
+// shows a tighter, mockup-exact link set — including Home as its own item — rather
+// than every secondary destination HEADER_LINKS carries. /tv, /seasons, /betting and
+// /hall-of-fame stay reachable from the footer.
+export const NAVBAR_LINKS: NavLink[] = [
+  { href: '/', label: 'Home' },
+  { href: '/tournaments', label: 'Tournaments' },
+  { href: '/games', label: 'Games' },
+  { href: '/rankings', label: 'Leaderboards' },
+  { href: '/exchange', label: 'Store' },
+  { href: '/community', label: 'Community' },
+  { href: '/about', label: 'About Us' },
+]
+
 // The footer is the one surface that renders every destination on every
 // breakpoint — it's what makes /tv reachable on desktop and /rankings,
 // /games, /about reachable on mobile.

@@ -5,24 +5,26 @@ import type { ProfileTitle } from '@/lib/players/profile'
 
 export function ProfileAchievements({ titles }: { titles: ProfileTitle[] }) {
   return (
-    <section className="mb-8">
-      <h2 className="mb-3 text-base font-bold text-white">Achievements</h2>
+    <section id="achievements" className="scroll-mt-24">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-sm font-bold uppercase tracking-widest text-white">Achievements</h2>
+      </div>
       {titles.length === 0 ? (
         <EmptyState icon="🏆" title="No titles yet" body="Win a tournament to claim your first title." />
       ) : (
         <div className="space-y-2">
-          {titles.map((t) => {
+          {titles.slice(0, 4).map((t) => {
             const date = formatMonthYear(t.date)
             return (
               <Link
                 key={t.tournamentSlug}
                 href={`/tournaments/${t.tournamentSlug}`}
-                className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 transition-colors hover:border-violet-500/40"
+                className="flex items-center gap-3 rounded-xl border border-sx-border bg-sx-surface p-4 transition-colors hover:border-sx-purple/40"
               >
-                <span className="text-2xl">🏆</span>
+                <span className="text-2xl text-sx-purple-text">🏆</span>
                 <div className="min-w-0">
                   <p className="truncate font-bold text-white">{t.tournamentTitle}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-sx-gray">
                     Champion{t.gameName ? ` · ${t.gameName}` : ''}{date ? ` · ${date}` : ''}
                   </p>
                 </div>

@@ -11,7 +11,7 @@ const FEATURES = [
   {
     icon: Users,
     title: 'Connect',
-    body: 'Meet gamers, build teams and grow your network.',
+    body: 'Meet gamers, build teams, and grow your network.',
     href: '/community',
   },
   {
@@ -42,20 +42,20 @@ const FEATURES = [
 
 export function FeatureGrid() {
   return (
-    <section id="how-it-works" className="mb-10 scroll-mt-20">
-      <h2 className="mb-6 text-center text-base font-bold uppercase tracking-widest text-white">
-        What You Can Do Here
-      </h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <section
+      id="how-it-works"
+      className="mb-10 scroll-mt-20 rounded-xl border border-sx-border bg-sx-surface p-4 sm:p-6"
+    >
+      <div className="grid gap-6 sm:grid-cols-3 lg:grid-cols-6">
         {FEATURES.map(({ icon: Icon, title, body, href }) => (
           <Link
             key={title}
             href={href}
-            className="rounded-2xl border border-slate-800 bg-slate-900 p-5 text-center transition-colors hover:border-violet-500/40"
+            className="rounded-lg p-2 text-center transition-colors hover:bg-white/[0.03]"
           >
-            <Icon className="mx-auto mb-3 h-7 w-7 text-violet-400" />
+            <Icon className="mx-auto mb-3 h-7 w-7 text-sx-purple-text" />
             <p className="mb-1 text-sm font-bold text-white">{title}</p>
-            <p className="text-xs text-slate-400">{body}</p>
+            <p className="text-xs text-sx-gray">{body}</p>
           </Link>
         ))}
       </div>

@@ -45,4 +45,14 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Horizontally-scrollable chip/tab rows (genre filters, game tabs) — scrolls
+     on touch/trackpad but hides the scrollbar so it doesn't fight the pill design. */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }

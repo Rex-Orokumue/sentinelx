@@ -6,7 +6,7 @@ import { CATEGORY_META } from '@/lib/games/categories'
 
 const BASE_TABS: { key: LeaderboardMetric; label: string }[] = [
   { key: 'wins', label: 'Wins' },
-  { key: 'score', label: 'Sentinel Score' },
+  { key: 'score', label: 'SX Score' },
 ]
 
 export function LeaderboardTabs({
@@ -27,13 +27,13 @@ export function LeaderboardTabs({
   const ranked = rankPlayersBy(players, metric)
   return (
     <div>
-      <div className="mb-4 flex gap-1 rounded-lg border border-slate-800 bg-slate-900 p-1">
+      <div className="mb-4 flex gap-1 overflow-x-auto scrollbar-hide rounded-xl border border-sx-border bg-sx-surface p-1">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setMetric(t.key)}
-            className={`flex-1 rounded-md px-3 py-1.5 text-xs font-bold transition-colors ${
-              metric === t.key ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'
+            className={`shrink-0 flex-1 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+              metric === t.key ? 'bg-sx-purple text-white' : 'text-sx-gray hover:text-white'
             }`}
           >
             {t.label}

@@ -98,7 +98,7 @@ export function NotificationBell({
         onClick={() => setOpen((o) => !o)}
         aria-label="Notifications"
         aria-expanded={open}
-        className="relative flex h-9 w-9 items-center justify-center rounded-full text-slate-300 transition hover:bg-slate-800"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full text-white/80 transition hover:bg-white/5"
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
@@ -108,21 +108,21 @@ export function NotificationBell({
         )}
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 max-h-96 w-80 overflow-y-auto rounded-xl border border-slate-800 bg-slate-900 py-1 shadow-xl">
+        <div className="absolute right-0 mt-2 max-h-96 w-80 overflow-y-auto rounded-xl border border-sx-border bg-sx-surface py-1 shadow-xl">
           {notifications.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-slate-500">No notifications yet.</p>
+            <p className="px-4 py-6 text-center text-sm text-sx-gray">No notifications yet.</p>
           ) : (
             notifications.map((n) => (
               <button
                 key={n.id}
                 type="button"
                 onClick={() => onSelect(n)}
-                className={`block w-full px-4 py-3 text-left text-sm transition-colors hover:bg-slate-800 ${
+                className={`block w-full px-4 py-3 text-left text-sm transition-colors hover:bg-white/5 ${
                   n.read ? 'opacity-60' : ''
                 }`}
               >
                 <p className="font-semibold text-white">{n.title}</p>
-                <p className="mt-0.5 text-xs text-slate-400">{n.body}</p>
+                <p className="mt-0.5 text-xs text-sx-gray">{n.body}</p>
               </button>
             ))
           )}

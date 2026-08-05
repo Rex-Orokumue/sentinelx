@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import localFont from 'next/font/local'
-import { Rajdhani } from 'next/font/google'
+import { Barlow_Condensed, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SiteHeader } from '@/components/shared/SiteHeader'
 import { SiteFooter } from '@/components/shared/SiteFooter'
@@ -23,11 +23,17 @@ const geistMono = localFont({
   weight: '100 900',
 })
 
-// Display font for the wordmark + headings — sporty/esports feel to match the logo.
-const rajdhani = Rajdhani({
+// Display font for headlines/wordmark (Phase 1 visual overhaul design system) —
+// condensed, heavy weights for the all-caps hero treatment.
+const barlowCondensed = Barlow_Condensed({
+  weight: ['700', '800', '900'],
   subsets: ['latin'],
-  weight: ['500', '600', '700'],
   variable: '--font-display',
+})
+// Body font — replaces Geist sitewide per the Phase 1 design system.
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-body',
 })
 
 export const metadata: Metadata = {
@@ -60,7 +66,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${rajdhani.variable} bg-slate-950 font-sans text-white antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${barlowCondensed.variable} ${inter.variable} bg-sx-bg font-sans text-white antialiased`}
       >
         <div className="flex min-h-screen flex-col">
           <SiteHeader session={navSession} whatsappUrl={WHATSAPP_COMMUNITY} />

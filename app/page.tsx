@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { Crown } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { TournamentCard } from '@/components/tournament/TournamentCard'
 import type { TournamentCardData } from '@/components/tournament/TournamentCard'
@@ -10,6 +11,8 @@ import { Hero } from '@/components/home/Hero'
 import { TrustedByStrip } from '@/components/home/TrustedByStrip'
 import { FeatureGrid } from '@/components/home/FeatureGrid'
 import { StatsBar } from '@/components/home/StatsBar'
+import { LiveTournamentCard } from '@/components/home/LiveTournamentCard'
+import { SentinelBubble } from '@/components/ui/SentinelBubble'
 import { dedupeGamesByName } from '@/lib/games/dedupe'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { homepageDescription } from '@/lib/seo/homepage-description'
@@ -48,14 +51,11 @@ export default async function HomePage() {
     { data: rawGames },
     { count: playerCount },
     { count: tournamentCount },
-    {
-      data: { user },
-    },
   ] = await Promise.all([
     supabase
       .from('tournaments')
       .select(
-        'id, title, slug, prize_pool, registration_fee, status, tournament_start, registration_end, max_players, games(name, icon_url)'
+        'id, title, slug, prize_pool, registration_fee, status, tournament_start, registration_end, tournament_end, max_players, format, tournament_type, games(name, icon_url)'
       )
       .in('status', ['active', 'registration_open'])
       .order('created_at', { ascending: false })
@@ -76,7 +76,6 @@ export default async function HomePage() {
     supabase.from('games').select('name, slug, icon_url, active, created_at'),
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
     supabase.from('tournaments').select('*', { count: 'exact', head: true }).neq('status', 'draft'),
-    supabase.auth.getUser(),
   ])
 
   const games = dedupeGamesByName(rawGames ?? [])
@@ -99,48 +98,46 @@ export default async function HomePage() {
   const shareText = `Play mobile esports in Nigeria on SentinelX Esports — Compete. Win. Level Up! ${SITE_URL}`
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pb-20">
+    <div className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
 
-      <Hero isLoggedIn={!!user} whatsappUrl={WHATSAPP_COMMUNITY} />
+      <Hero />
 
       <TrustedByStrip games={games} />
 
       <FeatureGrid />
 
-      <StatsBar
-        playerCount={playerCount ?? 0}
-        tournamentCount={tournamentCount ?? 0}
-        gameCount={games.length}
-      />
+      {/* ── Stats Overview + Live Tournament ─────────────────── */}
+      <section className="mb-10 grid gap-6 lg:grid-cols-2">
+        <StatsBar
+          playerCount={playerCount ?? 0}
+          tournamentCount={tournamentCount ?? 0}
+          gameCount={games.length}
+        />
+        <LiveTournamentCard tournament={featured} />
+      </section>
+
+      {/* ── Tagline banner ────────────────────────────────────── */}
+      <section className="mb-10 rounded-xl border border-sx-border bg-sx-surface px-6 py-10 text-center">
+        <Crown className="mx-auto mb-3 h-7 w-7 text-sx-purple-text" />
+        <p className="font-display text-2xl font-black uppercase tracking-wide text-white sm:text-3xl">
+          One Guardian. Every Moment.
+        </p>
+        <p className="mt-2 font-display text-sm font-bold uppercase tracking-widest text-sx-purple-text">
+          Where Gamers Unite. Champions Rise.
+        </p>
+      </section>
 
       <PromoBanner banner={banner} />
-
-      {/* ── Featured / Active Tournament ─────────────────────── */}
-      <section className="mb-10">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-bold text-white">
-            {featured?.status === 'active' ? '🔴 Live Now' : '🎮 Featured Tournament'}
-          </h2>
-          <Link href="/tournaments" className="text-sm text-violet-400 hover:text-violet-300">
-            View all →
-          </Link>
-        </div>
-
-        {featured ? (
-          <TournamentCard tournament={featured} featured />
-        ) : (
-          <EmptyState
-            icon="🎮"
-            title="No active tournament right now"
-            body="Join the WhatsApp community to be notified when the next one drops."
-          />
-        )}
-      </section>
 
       {/* ── Upcoming Tournaments ─────────────────────────────── */}
       {upcoming.length > 0 && (
         <section className="mb-10">
-          <h2 className="mb-4 text-base font-bold text-white">Upcoming</h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-bold text-white">Upcoming</h2>
+            <Link href="/tournaments" className="text-sm font-semibold text-sx-purple-text hover:text-white">
+              View all →
+            </Link>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {upcoming.map((t) => (
               <TournamentCard key={t.id} tournament={t} />
@@ -153,12 +150,12 @@ export default async function HomePage() {
       <section className="mb-10">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-bold text-white">🏆 Top Players</h2>
-          <Link href="/rankings" className="text-sm text-violet-400 hover:text-violet-300">
+          <Link href="/rankings" className="text-sm font-semibold text-sx-purple-text hover:text-white">
             Full Rankings →
           </Link>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900">
+        <div className="overflow-hidden rounded-xl border border-sx-border bg-sx-surface">
           {leaderboard.length === 0 ? (
             <EmptyState
               icon="🏅"
@@ -168,26 +165,26 @@ export default async function HomePage() {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-800 text-[11px] uppercase tracking-widest text-slate-500">
+                <tr className="border-b border-sx-border text-[11px] uppercase tracking-widest text-sx-gray">
                   <th className="px-4 py-3 text-left">#</th>
                   <th className="px-4 py-3 text-left">Player</th>
                   <th className="px-4 py-3 text-right">Wins</th>
                   <th className="hidden px-4 py-3 text-right sm:table-cell">Matches</th>
-                  <th className="hidden px-4 py-3 text-right sm:table-cell">Score</th>
+                  <th className="hidden px-4 py-3 text-right sm:table-cell">SX Score</th>
                 </tr>
               </thead>
               <tbody>
                 {leaderboard.map((player, i) => (
                   <tr
                     key={player.id}
-                    className="border-b border-slate-800/50 transition-colors last:border-0 hover:bg-slate-800/40"
+                    className="border-b border-sx-border/60 transition-colors last:border-0 hover:bg-white/[0.03]"
                   >
-                    <td className="px-4 py-3.5 font-bold text-slate-400">
+                    <td className="px-4 py-3.5 font-bold text-sx-gray">
                       {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
                     </td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-700 text-xs font-bold text-white">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white">
                           {((player.username ?? player.display_name ?? '?')[0] ?? '?').toUpperCase()}
                         </div>
                         <div>
@@ -198,13 +195,13 @@ export default async function HomePage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 text-right font-bold text-emerald-400">
+                    <td className="px-4 py-3.5 text-right font-bold text-sx-green">
                       {player.wins}
                     </td>
-                    <td className="hidden px-4 py-3.5 text-right text-slate-400 sm:table-cell">
+                    <td className="hidden px-4 py-3.5 text-right text-sx-gray sm:table-cell">
                       {player.total_matches}
                     </td>
-                    <td className="hidden px-4 py-3.5 text-right font-bold text-white sm:table-cell">
+                    <td className="hidden px-4 py-3.5 text-right font-bold text-sx-purple-text sm:table-cell">
                       {player.sentinel_score}
                     </td>
                   </tr>
@@ -216,10 +213,10 @@ export default async function HomePage() {
       </section>
 
       {/* ── WhatsApp Community CTA ───────────────────────────── */}
-      <section className="rounded-2xl border border-[#25D366]/20 bg-[#25D366]/5 p-8 text-center">
+      <section className="rounded-xl border border-[#25D366]/20 bg-[#25D366]/5 p-8 text-center">
         <p className="mb-3 text-4xl">💬</p>
         <h2 className="mb-2 text-xl font-bold text-white">Join Our WhatsApp Community</h2>
-        <p className="mb-6 text-sm text-slate-400">
+        <p className="mb-6 text-sm text-sx-gray">
           Get tournament alerts, live match updates, and connect with Nigerian mobile gamers.
         </p>
         <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
@@ -227,7 +224,7 @@ export default async function HomePage() {
             href={WHATSAPP_COMMUNITY}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex w-full max-w-xs items-center justify-center gap-2 rounded-xl bg-[#25D366] px-6 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 sm:w-auto"
+            className="inline-flex w-full max-w-xs items-center justify-center gap-2 rounded-lg bg-[#25D366] px-6 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 sm:w-auto"
           >
             <WhatsAppIcon />
             Join Community
@@ -236,7 +233,7 @@ export default async function HomePage() {
             href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex w-full max-w-xs items-center justify-center gap-2 rounded-xl border border-[#25D366]/30 px-6 py-3 text-sm font-bold text-[#25D366] transition-colors hover:bg-[#25D366]/10 sm:w-auto"
+            className="inline-flex w-full max-w-xs items-center justify-center gap-2 rounded-lg border border-[#25D366]/30 px-6 py-3 text-sm font-bold text-[#25D366] transition-colors hover:bg-[#25D366]/10 sm:w-auto"
           >
             <WhatsAppIcon />
             Share on WhatsApp
@@ -246,6 +243,8 @@ export default async function HomePage() {
 
       <FaqSection items={HOMEPAGE_FAQS} />
       <JsonLd data={buildFaqJsonLd(HOMEPAGE_FAQS)} />
+
+      <SentinelBubble variant="home" />
     </div>
   )
 }

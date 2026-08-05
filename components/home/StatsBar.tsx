@@ -1,5 +1,6 @@
 import { Users, Trophy, Gamepad2, Globe } from 'lucide-react'
 
+// Left column of the homepage "Stats + Live Tournament" section (spec §3.1 §4).
 export function StatsBar({
   playerCount,
   tournamentCount,
@@ -9,29 +10,40 @@ export function StatsBar({
   tournamentCount: number
   gameCount: number
 }) {
-  const stats = [
-    { icon: Users, value: String(playerCount), label: 'Players' },
-    { icon: Trophy, value: String(tournamentCount), label: 'Tournaments' },
-    { icon: Gamepad2, value: String(gameCount), label: 'Games' },
-  ]
   return (
-    <section className="mb-10 grid grid-cols-2 gap-4 rounded-2xl border border-slate-800 bg-slate-900 p-6 sm:grid-cols-4">
-      {stats.map(({ icon: Icon, value, label }) => (
-        <div key={label} className="flex items-center gap-3">
-          <Icon className="h-6 w-6 shrink-0 text-violet-400" />
-          <div>
-            <p className="text-lg font-black text-white">{value}</p>
-            <p className="text-[11px] uppercase tracking-wide text-slate-500">{label}</p>
-          </div>
-        </div>
-      ))}
-      <div className="flex items-center gap-3">
-        <Globe className="h-6 w-6 shrink-0 text-violet-400" />
-        <div>
+    <div>
+      <p className="mb-4 text-xs font-bold uppercase tracking-widest text-sx-purple-text">Stats Overview</p>
+      <div className="grid grid-cols-2 gap-4">
+        <StatCard icon={Users} value={String(playerCount)} label="Players" sub="In our community" />
+        <StatCard icon={Trophy} value={String(tournamentCount)} label="Tournaments" sub="Running now" />
+        <StatCard icon={Gamepad2} value={String(gameCount)} label="Games" sub="And more coming" />
+        <div className="rounded-xl border border-sx-border bg-sx-surface p-4">
+          <Globe className="mb-2 h-6 w-6 text-sx-purple-text" />
           <p className="text-sm font-bold text-white">Mission</p>
-          <p className="text-[11px] text-slate-500">Building Africa&apos;s Biggest Esports Community</p>
+          <p className="mt-0.5 text-xs text-sx-gray">Building Africa&apos;s biggest esports community</p>
         </div>
       </div>
-    </section>
+    </div>
+  )
+}
+
+function StatCard({
+  icon: Icon,
+  value,
+  label,
+  sub,
+}: {
+  icon: typeof Users
+  value: string
+  label: string
+  sub: string
+}) {
+  return (
+    <div className="rounded-xl border border-sx-border bg-sx-surface p-4">
+      <Icon className="mb-2 h-6 w-6 text-sx-purple-text" />
+      <p className="font-display text-2xl font-bold text-white">{value}</p>
+      <p className="text-xs font-semibold text-white/80">{label}</p>
+      <p className="mt-0.5 text-[11px] text-sx-gray">{sub}</p>
+    </div>
   )
 }

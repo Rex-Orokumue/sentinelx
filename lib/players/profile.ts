@@ -25,6 +25,12 @@ export interface ProfileView {
   totalTitles: number
   categoryStats: CategoryStat[]
   rank: number | null // null = unranked
+  /** Distinct tournaments this player has a paid registration in. */
+  tournamentsPlayed: number
+  /** Consecutive wins ending at their most recent completed match (0 if none/loss/draw last). */
+  currentStreak: number
+  /** Total ranked players, for a "Top X%" read on rank. Null when rank is null. */
+  totalRankedPlayers: number | null
 }
 
 export interface ProfileMatch {
