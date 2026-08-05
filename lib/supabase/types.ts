@@ -1255,7 +1255,10 @@ export type Database = {
           goals_scored: number
           id: string
           kyc_verified: boolean
+          last_login_date: string | null
+          login_streak: number
           losses: number
+          membership_tier: string
           phone: string | null
           phone_verified_at: string | null
           referred_by: string | null
@@ -1267,6 +1270,7 @@ export type Database = {
           username: string | null
           whatsapp_number: string | null
           wins: number
+          xp: number
         }
         Insert: {
           avatar_url?: string | null
@@ -1278,7 +1282,10 @@ export type Database = {
           goals_scored?: number
           id: string
           kyc_verified?: boolean
+          last_login_date?: string | null
+          login_streak?: number
           losses?: number
+          membership_tier?: string
           phone?: string | null
           phone_verified_at?: string | null
           referred_by?: string | null
@@ -1290,6 +1297,7 @@ export type Database = {
           username?: string | null
           whatsapp_number?: string | null
           wins?: number
+          xp?: number
         }
         Update: {
           avatar_url?: string | null
@@ -1301,7 +1309,10 @@ export type Database = {
           goals_scored?: number
           id?: string
           kyc_verified?: boolean
+          last_login_date?: string | null
+          login_streak?: number
           losses?: number
+          membership_tier?: string
           phone?: string | null
           phone_verified_at?: string | null
           referred_by?: string | null
@@ -1313,6 +1324,7 @@ export type Database = {
           username?: string | null
           whatsapp_number?: string | null
           wins?: number
+          xp?: number
         }
         Relationships: [
           {
@@ -2026,6 +2038,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "withdrawal_requests_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      xp_events: {
+        Row: {
+          created_at: string
+          id: string
+          player_id: string
+          reference_id: string | null
+          source: string
+          xp: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          player_id: string
+          reference_id?: string | null
+          source: string
+          xp: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          player_id?: string
+          reference_id?: string | null
+          source?: string
+          xp?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xp_events_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "profiles"
