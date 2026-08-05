@@ -1259,8 +1259,8 @@ export type Database = {
           phone: string | null
           phone_verified_at: string | null
           referred_by: string | null
-          sentinel_score: number
           sentinel_tier: string | null
+          sx_score: number
           total_matches: number
           total_titles: number
           updated_at: string
@@ -1282,8 +1282,8 @@ export type Database = {
           phone?: string | null
           phone_verified_at?: string | null
           referred_by?: string | null
-          sentinel_score?: number
           sentinel_tier?: string | null
+          sx_score?: number
           total_matches?: number
           total_titles?: number
           updated_at?: string
@@ -1305,8 +1305,8 @@ export type Database = {
           phone?: string | null
           phone_verified_at?: string | null
           referred_by?: string | null
-          sentinel_score?: number
           sentinel_tier?: string | null
+          sx_score?: number
           total_matches?: number
           total_titles?: number
           updated_at?: string
@@ -1491,7 +1491,7 @@ export type Database = {
         }
         Relationships: []
       }
-      sentinel_score_events: {
+      sx_score_events: {
         Row: {
           created_at: string
           event_type: string
