@@ -16,11 +16,11 @@ describe('matchEventsFor', () => {
     const events = matchEventsFor(base)
     expect(events).toHaveLength(3)
     expect(events.filter((e) => e.player_id === 'A')).toEqual([
-      { player_id: 'A', match_id: 'm1', event_type: 'match_completed', points_delta: 2, note: null },
-      { player_id: 'A', match_id: 'm1', event_type: 'win_no_dispute', points_delta: 1, note: null },
+      { player_id: 'A', match_id: 'm1', event_type: 'match_completed', points_delta: 10, note: null },
+      { player_id: 'A', match_id: 'm1', event_type: 'win_no_dispute', points_delta: 90, note: null },
     ])
     expect(events.filter((e) => e.player_id === 'B')).toEqual([
-      { player_id: 'B', match_id: 'm1', event_type: 'match_completed', points_delta: 2, note: null },
+      { player_id: 'B', match_id: 'm1', event_type: 'match_completed', points_delta: 10, note: null },
     ])
   })
 
@@ -46,30 +46,41 @@ describe('matchEventsFor', () => {
     expect(matchEventsFor({ ...base, status: 'bye', player_b_id: null, score_a: null, score_b: null })).toEqual([])
     expect(matchEventsFor({ ...base, score_b: null })).toEqual([])
   })
+
+  it('a decisive win totals 100 and a loss totals 10 across both events', () => {
+    const events = matchEventsFor({
+      id: 'm1', player_a_id: 'a', player_b_id: 'b',
+      score_a: 3, score_b: 1, status: 'completed', resolution: null,
+    })
+    const totalFor = (playerId: string) =>
+      events.filter((e) => e.player_id === playerId).reduce((s, e) => s + e.points_delta, 0)
+    expect(totalFor('a')).toBe(100)
+    expect(totalFor('b')).toBe(10)
+  })
 })
 
 describe('matchEventsFor — no-show resolutions', () => {
   it('gives a walkover winner match_completed only, and the loser no_show only', () => {
     const events = matchEventsFor({ ...base, resolution: 'walkover', score_a: 3, score_b: 0 })
     expect(events).toEqual([
-      { player_id: 'A', match_id: 'm1', event_type: 'match_completed', points_delta: 2, note: null },
-      { player_id: 'B', match_id: 'm1', event_type: 'no_show', points_delta: -10, note: null },
+      { player_id: 'A', match_id: 'm1', event_type: 'match_completed', points_delta: 10, note: null },
+      { player_id: 'B', match_id: 'm1', event_type: 'no_show', points_delta: -100, note: null },
     ])
   })
 
   it('gives both players no_show on a group no_show_draw', () => {
     const events = matchEventsFor({ ...base, resolution: 'no_show_draw', score_a: 0, score_b: 0 })
     expect(events).toEqual([
-      { player_id: 'A', match_id: 'm1', event_type: 'no_show', points_delta: -10, note: null },
-      { player_id: 'B', match_id: 'm1', event_type: 'no_show', points_delta: -10, note: null },
+      { player_id: 'A', match_id: 'm1', event_type: 'no_show', points_delta: -100, note: null },
+      { player_id: 'B', match_id: 'm1', event_type: 'no_show', points_delta: -100, note: null },
     ])
   })
 
   it('gives both players no_show on a knockout forfeit, with no score required', () => {
     const events = matchEventsFor({ ...base, status: 'forfeited', score_a: null, score_b: null })
     expect(events).toEqual([
-      { player_id: 'A', match_id: 'm1', event_type: 'no_show', points_delta: -10, note: null },
-      { player_id: 'B', match_id: 'm1', event_type: 'no_show', points_delta: -10, note: null },
+      { player_id: 'A', match_id: 'm1', event_type: 'no_show', points_delta: -100, note: null },
+      { player_id: 'B', match_id: 'm1', event_type: 'no_show', points_delta: -100, note: null },
     ])
   })
 

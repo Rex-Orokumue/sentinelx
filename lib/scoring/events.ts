@@ -4,9 +4,9 @@
 export const AUTO_MATCH_EVENT_TYPES = ['match_completed', 'win_no_dispute', 'no_show'] as const
 export type AutoMatchEventType = (typeof AUTO_MATCH_EVENT_TYPES)[number]
 
-export const MATCH_COMPLETED_DELTA = 2
-export const WIN_DELTA = 1
-export const NO_SHOW_DELTA = -10
+export const MATCH_COMPLETED_DELTA = 10
+export const WIN_DELTA = 90
+export const NO_SHOW_DELTA = -100
 
 export interface NewMatchEvent {
   player_id: string
