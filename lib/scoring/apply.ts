@@ -91,8 +91,11 @@ async function regenerateMatchEvents(admin: Admin, match: MatchRow): Promise<str
   return [match.player_a_id, match.player_b_id].filter((x): x is string => !!x)
 }
 
-// Recompute aggregates + score for one player and write both caches to profiles.
-async function refreshPlayer(admin: Admin, playerId: string): Promise<void> {
+// Recompute aggregates + score for one player and write both caches to
+// profiles. Exported so authored-event writers outside this file (e.g. the
+// admin disqualify action, which inserts directly into sx_score_events
+// rather than going through matchEventsFor) can refresh the cache too.
+export async function refreshPlayer(admin: Admin, playerId: string): Promise<void> {
   const { data: rawMatches } = await admin
     .from('matches')
     .select('player_a_id, player_b_id, score_a, score_b, round, status')
