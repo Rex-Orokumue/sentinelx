@@ -1,7 +1,9 @@
 import Image from 'next/image'
-import { ShieldCheck, Target, Eye, Gem, Flag, Trophy, Users, Rocket, Handshake, BookOpen, Gift, Crown } from 'lucide-react'
+import { ShieldCheck, Target, Eye, Gem, Flag, Trophy, Users, Rocket, Handshake, BookOpen, Gift } from 'lucide-react'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
+import { findOptionalPublicImage } from '@/lib/media/optional-image'
+import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder'
 
 export const metadata = buildMetadata({
   title: 'About Us · SentinelX Esports',
@@ -71,6 +73,10 @@ const PILLARS = [
 ]
 
 export default function AboutPage() {
+  const whySentinelImg = findOptionalPublicImage('about', 'why-sentinel-x')
+  const missionImg = findOptionalPublicImage('about', 'mission-bg')
+  const visionImg = findOptionalPublicImage('about', 'vision-bg')
+
   return (
     <div className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
       {/* ── Hero ──────────────────────────────────────────────── */}
@@ -129,11 +135,11 @@ export default function AboutPage() {
 
       {/* ── Mission / Vision / Values ─────────────────────────── */}
       <section className="mb-10 grid gap-4 lg:grid-cols-3">
-        <MissionCard icon={Target} label="Our Mission">
+        <MissionCard icon={Target} label="Our Mission" bgImage={missionImg}>
           To empower gamers by creating opportunities through tournaments, communities, resources and
           partnerships that drive the growth of esports.
         </MissionCard>
-        <MissionCard icon={Eye} label="Our Vision">
+        <MissionCard icon={Eye} label="Our Vision" bgImage={visionImg}>
           To become a global esports leader, inspiring the next generation of champions and making
           esports a recognized and respected industry worldwide.
         </MissionCard>
@@ -190,7 +196,16 @@ export default function AboutPage() {
 
       {/* ── Why Sentinel X ────────────────────────────────────── */}
       <section className="mb-10 grid gap-8 rounded-xl border border-sx-border bg-sx-surface p-6 sm:p-8 lg:grid-cols-2 lg:items-center">
-        <ArenaPanel />
+        {whySentinelImg ? (
+          <div className="relative mx-auto h-64 w-full max-w-sm overflow-hidden rounded-xl">
+            <Image src={whySentinelImg} alt="" fill className="object-cover" />
+          </div>
+        ) : (
+          <ImagePlaceholder
+            className="mx-auto h-64 w-full max-w-sm"
+            label={'Stadium/arena crowd photo — mascot seen from behind, facing the stage\n(public/about/why-sentinel-x.jpg)'}
+          />
+        )}
         <div>
           <p className="mb-1 text-xs font-bold uppercase tracking-widest text-sx-purple-text">Why Sentinel X?</p>
           <h2 className="mb-5 font-display text-2xl font-black text-white">We Provide More</h2>
@@ -233,56 +248,31 @@ export default function AboutPage() {
   )
 }
 
-// Abstract "arena at night" panel — no stadium photo asset exists, so this is
-// built from layered gradients rather than reusing the mascot crop a second
-// time (which read as a placeholder, not a deliberate design choice).
-function ArenaPanel() {
-  return (
-    <div className="relative mx-auto h-64 w-full max-w-sm overflow-hidden rounded-xl border border-sx-border bg-sx-bg">
-      <div
-        aria-hidden
-        className="absolute inset-0"
-        style={{
-          backgroundImage:
-            'radial-gradient(circle at 20% 15%, rgba(124,58,237,0.35), transparent 45%),' +
-            'radial-gradient(circle at 80% 10%, rgba(124,58,237,0.25), transparent 40%),' +
-            'radial-gradient(circle at 50% 100%, rgba(124,58,237,0.3), transparent 55%)',
-        }}
-      />
-      <div
-        aria-hidden
-        className="absolute inset-0 opacity-[0.15]"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-          backgroundSize: '28px 28px',
-          maskImage: 'radial-gradient(ellipse at center, black 0%, transparent 75%)',
-        }}
-      />
-      <div className="relative flex h-full flex-col items-center justify-center gap-2 text-center">
-        <Crown className="h-10 w-10 text-sx-purple-text drop-shadow-[0_0_20px_rgba(124,58,237,0.6)]" />
-        <p className="font-display text-xl font-black uppercase tracking-wide text-white">Sentinel X</p>
-        <p className="text-xs uppercase tracking-[0.3em] text-sx-purple-text">The Arena Awaits</p>
-      </div>
-    </div>
-  )
-}
-
 function MissionCard({
   icon: Icon,
   label,
+  bgImage,
   children,
 }: {
   icon: typeof Target
   label: string
+  bgImage: string | null
   children: React.ReactNode
 }) {
   return (
-    <div className="rounded-xl border border-sx-border bg-sx-surface p-6">
-      <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-sx-purple-text">
-        <Icon className="h-4 w-4" /> {label}
-      </p>
-      <p className="text-sm text-sx-gray">{children}</p>
+    <div className="relative overflow-hidden rounded-xl border border-sx-border bg-sx-surface p-6">
+      {bgImage && (
+        <>
+          <Image src={bgImage} alt="" fill className="object-cover opacity-20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-sx-surface via-sx-surface/80 to-sx-surface/40" />
+        </>
+      )}
+      <div className="relative">
+        <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-sx-purple-text">
+          <Icon className="h-4 w-4" /> {label}
+        </p>
+        <p className="text-sm text-sx-gray">{children}</p>
+      </div>
     </div>
   )
 }

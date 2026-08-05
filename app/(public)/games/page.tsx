@@ -8,6 +8,8 @@ import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { SentinelBubble } from '@/components/ui/SentinelBubble'
 import { GameGenreTabs } from '@/components/games/GameGenreTabs'
 import { NotifyMeButton } from '@/components/games/NotifyMeButton'
+import { findOptionalPublicImage } from '@/lib/media/optional-image'
+import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder'
 
 export const metadata = buildMetadata({
   title: 'Games · SentinelX Esports',
@@ -243,6 +245,7 @@ function GameCard({ game }: { game: GameWithCounts }) {
   const description =
     DESCRIPTIONS[game.name] ?? FALLBACK_BY_CATEGORY[game.category] ?? FALLBACK_BY_CATEGORY.other
   const isLive = game.active && game.tournamentCount > 0
+  const bannerImg = findOptionalPublicImage('games', game.slug)
 
   return (
     <div
@@ -250,7 +253,12 @@ function GameCard({ game }: { game: GameWithCounts }) {
         !game.active ? 'opacity-80' : ''
       }`}
     >
-      <div className="relative flex h-24 items-center justify-center bg-gradient-to-br from-sx-purple/25 via-sx-surface to-sx-bg">
+      <div className="relative h-36">
+        {bannerImg ? (
+          <Image src={bannerImg} alt={game.name} fill className="object-cover" />
+        ) : (
+          <ImagePlaceholder className="h-full rounded-none border-x-0 border-t-0" label={`${game.name} key art\n(public/games/${game.slug}.jpg)`} />
+        )}
         <span
           className={`absolute left-2 top-2 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${
             isLive
@@ -262,12 +270,6 @@ function GameCard({ game }: { game: GameWithCounts }) {
         >
           {isLive ? '● Live' : game.active ? 'Upcoming' : 'Coming Soon'}
         </span>
-        {game.icon_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={game.icon_url} alt="" className="h-12 w-12 rounded-lg object-cover" />
-        ) : (
-          <Gamepad2 className="h-9 w-9 text-sx-purple-text" />
-        )}
       </div>
       <div className="p-4">
         <div className="mb-1 flex items-center justify-between gap-2">

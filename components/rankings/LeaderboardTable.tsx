@@ -45,6 +45,7 @@ export function LeaderboardTable({
             <th className="px-2 py-3 text-right">Win%</th>
             <th className="hidden px-2 py-3 text-right sm:table-cell">Titles</th>
             <th className="hidden px-3 py-3 text-right sm:table-cell">GD</th>
+            <th className="hidden px-3 py-3 text-right lg:table-cell">Trend</th>
           </tr>
         </thead>
         <tbody>
@@ -102,10 +103,13 @@ export function LeaderboardTable({
                   <td className="hidden px-3 py-3.5 text-right font-bold text-white sm:table-cell">
                     {pl.goalDiff > 0 ? `+${pl.goalDiff}` : pl.goalDiff}
                   </td>
+                  {/* No rank-history data exists yet to compute a real ▲/▼ move —
+                      shown as a neutral dash rather than a fabricated number. */}
+                  <td className="hidden px-3 py-3.5 text-right text-sx-gray lg:table-cell">—</td>
                 </tr>
                 {isExpanded && (
                   <tr className="border-b border-sx-border/60 bg-sx-bg/50 last:border-0">
-                    <td colSpan={6} className="px-6 py-3 text-xs text-sx-gray">
+                    <td colSpan={7} className="px-6 py-3 text-xs text-sx-gray">
                       {pl.winsByGame.length === 0
                         ? 'No wins recorded yet.'
                         : pl.winsByGame
