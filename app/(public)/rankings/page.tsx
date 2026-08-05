@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { Trophy } from 'lucide-react'
+import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder'
 import { createClient } from '@/lib/supabase/server'
 import { RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
 import { winsByPlayerAndGame, scoreStatsByPlayerAndCategory, type GameScopedMatch } from '@/lib/rankings/game-breakdown'
@@ -149,16 +149,12 @@ export default async function RankingsPage() {
           </div>
         </div>
 
-        <div className="relative mx-auto -mt-2 h-64 w-52 pb-8 sm:h-80 sm:w-64 lg:absolute lg:inset-y-0 lg:right-4 lg:mx-0 lg:h-auto lg:w-64 lg:pb-0 xl:right-8 xl:w-80">
-          <Image
-            src="/mascot/mascot-leaderboards.png"
-            alt="Sentinel, the Sentinel X mascot"
-            fill
-            priority
-            sizes="(min-width: 1280px) 20rem, (min-width: 1024px) 16rem, 13rem"
-            className="object-contain object-bottom"
-          />
-        </div>
+        {/* mascot-leaderboards.png is the Games-page pose reused, not the mockup's
+            own pointing-toward-trophy render — placeholder until the exact one lands. */}
+        <ImagePlaceholder
+          className="relative mx-auto -mt-2 h-64 w-52 pb-8 sm:h-80 sm:w-64 lg:absolute lg:inset-y-0 lg:right-4 lg:mx-0 lg:h-auto lg:w-64 lg:pb-0 xl:right-8 xl:w-80"
+          label={'Sentinel mascot — pointing pose, trophy line-art backdrop\n(public/mascot/mascot-leaderboards.png)'}
+        />
       </section>
 
       {/* ── Stats bar ─────────────────────────────────────────── */}

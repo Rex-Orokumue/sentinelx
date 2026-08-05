@@ -7,9 +7,10 @@ export interface PlayedGame {
   matches: number
 }
 
-// "Games You Play" (spec §3.5) — real per-game wins/matches, not the fabricated
-// per-game SX Score + rank the mockup shows (that needs a per-game score
-// column the schema doesn't have yet — see roadmap #21 multi-game support).
+// "Games You Play" (spec §3.5). The mockup's per-game "#1 Rank" / "1,250 SX
+// Score" fields need a per-game score column the schema doesn't have (see
+// roadmap #21 multi-game support) — shown honestly as "not tracked yet"
+// rather than substituted with different (real but different-shaped) data.
 export function ProfileGamesRow({ games }: { games: PlayedGame[] }) {
   return (
     <section id="games" className="scroll-mt-24">
@@ -27,7 +28,9 @@ export function ProfileGamesRow({ games }: { games: PlayedGame[] }) {
             >
               <Gamepad2 className="mx-auto mb-2 h-6 w-6 text-sx-purple-text" />
               <p className="truncate text-sm font-bold text-white">{g.name}</p>
-              <p className="mt-1 text-xs text-sx-gray">
+              <p className="mt-1 text-xs text-sx-gray">— Rank</p>
+              <p className="text-xs text-sx-gray">— SX Score</p>
+              <p className="mt-1 text-[10px] text-sx-gray/70">
                 {g.wins} win{g.wins === 1 ? '' : 's'} · {g.matches} match{g.matches === 1 ? '' : 'es'}
               </p>
             </div>

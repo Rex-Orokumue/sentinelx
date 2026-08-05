@@ -108,17 +108,12 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* Mascot — bottom-anchored, fills the hero's actual height at lg+ */}
-        <div className="relative mx-auto -mt-2 h-64 w-52 pb-8 sm:h-80 sm:w-64 lg:absolute lg:inset-y-0 lg:right-56 lg:mx-0 lg:h-auto lg:w-56 lg:pb-0 xl:right-64 xl:w-64">
-          <Image
-            src="/mascot/mascot-about.png"
-            alt="Sentinel, the Sentinel X mascot"
-            fill
-            priority
-            sizes="(min-width: 1280px) 16rem, (min-width: 1024px) 14rem, 13rem"
-            className="object-contain object-bottom"
-          />
-        </div>
+        {/* mascot-about.png is the fist-pump pose, not the mockup's open-hand
+            reach-toward-viewer render — placeholder until the exact one lands. */}
+        <ImagePlaceholder
+          className="relative mx-auto -mt-2 h-64 w-52 pb-8 sm:h-80 sm:w-64 lg:absolute lg:inset-y-0 lg:right-56 lg:mx-0 lg:h-auto lg:w-56 lg:pb-0 xl:right-64 xl:w-64"
+          label={'Sentinel mascot — open hand reaching toward viewer\n(public/mascot/mascot-about.png)'}
+        />
 
         {/* Our Promise — floats top-right, independent of the mascot's height */}
         <div className="relative mx-auto mt-6 w-full max-w-xs rounded-xl border border-sx-purple/30 bg-sx-surface p-5 lg:absolute lg:right-6 lg:top-8 lg:mx-0 lg:mt-0 lg:w-56 xl:w-64">

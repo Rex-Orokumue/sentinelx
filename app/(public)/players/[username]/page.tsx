@@ -15,6 +15,7 @@ import { ProfileAchievements } from '@/components/player/ProfileAchievements'
 import { ProfileMatchHistory } from '@/components/player/ProfileMatchHistory'
 import { ProfileGamesRow } from '@/components/player/ProfileGamesRow'
 import { ProfileRecentActivity } from '@/components/player/ProfileRecentActivity'
+import { CareerStatsRadar } from '@/components/player/CareerStatsRadar'
 import { ProfileSidebarNav, ProfileTournamentsPromo } from '@/components/player/ProfileSidebarNav'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { JsonLd } from '@/components/seo/JsonLd'
@@ -362,29 +363,51 @@ export default async function PlayerProfilePage({ params }: { params: { username
 
           <div className="grid gap-8 lg:grid-cols-3">
             <ProfileAchievements titles={titles} />
+            <CareerStatsRadar />
             <ProfileRecentActivity matches={matches} />
-            <TrophiesComingSoon />
           </div>
 
           <ProfileMatchHistory matches={matches} username={params.username} />
+
+          <TrophiesComingSoon />
         </div>
       </div>
     </div>
   )
 }
 
-// Trophy/badge earning logic is Phase 2 (spec §7 Out of Scope) — an honest
-// "coming soon" here rather than a grid of badges nobody has actually earned.
+// Trophy/badge earning logic is Phase 2 (spec §7 Out of Scope). The mockup's
+// grid shape is kept — all 8 badges shown locked/gray, since no earning logic
+// exists yet to say any of them are actually earned. Not a fabricated "earned"
+// grid, just the same layout in an honest all-locked state.
+const BADGE_NAMES = [
+  'DLS Champion',
+  'CODM Legend',
+  'Free Fire Hero',
+  'EA FC Elite',
+  'Consistent Player',
+  'Streak Master',
+  'Clutch King',
+  'SX Veteran',
+]
+
 function TrophiesComingSoon() {
   return (
     <section>
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-bold uppercase tracking-widest text-white">Trophies &amp; Badges</h2>
+        <span className="text-xs text-sx-gray">Coming soon</span>
       </div>
-      <div className="rounded-xl border border-sx-border bg-sx-surface p-6 text-center">
-        <Medal className="mx-auto mb-3 h-8 w-8 text-sx-gray" />
-        <p className="text-sm font-bold text-white">Coming soon</p>
-        <p className="mt-1 text-xs text-sx-gray">Earn badges for streaks, milestones and more.</p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {BADGE_NAMES.map((name) => (
+          <div
+            key={name}
+            className="flex flex-col items-center gap-2 rounded-xl border border-sx-border bg-sx-surface p-4 text-center opacity-50"
+          >
+            <Medal className="h-8 w-8 text-sx-gray" />
+            <p className="text-xs font-semibold text-sx-gray">{name}</p>
+          </div>
+        ))}
       </div>
     </section>
   )
