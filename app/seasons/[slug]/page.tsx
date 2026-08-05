@@ -55,7 +55,7 @@ export default async function SeasonPage({ params }: { params: { slug: string } 
   ])
 
   return (
-    <div className="mx-auto max-w-4xl px-4 pb-20 pt-8">
+    <div className="mx-auto max-w-4xl px-4 pb-20 pt-8 sm:px-6">
       <JsonLd
         data={buildBreadcrumbJsonLd([
           { name: 'Home', path: '/' },

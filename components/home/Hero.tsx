@@ -9,7 +9,7 @@ export function Hero() {
         aria-hidden
         className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-sx-purple/25 blur-[100px]"
       />
-      <div className="relative grid gap-8 px-6 py-12 sm:px-10 sm:py-16 lg:grid-cols-[1fr_auto] lg:items-end lg:gap-4">
+      <div className="relative px-6 py-12 sm:px-10 sm:py-16 lg:py-20 lg:pr-64 xl:pr-80">
         <div className="text-center lg:text-left">
           <span className="mb-5 inline-block rounded-full border border-sx-purple/30 bg-sx-surface px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-sx-purple-text">
             Nigeria&apos;s Home of Mobile Esports
@@ -40,17 +40,19 @@ export function Hero() {
             </Link>
           </div>
         </div>
+      </div>
 
-        <div className="relative mx-auto h-56 w-44 shrink-0 sm:h-72 sm:w-56 lg:h-80 lg:w-64">
-          <Image
-            src="/mascot/mascot-home.png"
-            alt="Sentinel, the Sentinel X mascot"
-            fill
-            priority
-            sizes="(min-width: 1024px) 16rem, 14rem"
-            className="object-contain object-bottom"
-          />
-        </div>
+      {/* Mascot — in-flow/centered below the fold on mobile, pinned to the hero's
+          full height on the right at lg+ so it scales with the card, not the text. */}
+      <div className="relative mx-auto -mt-2 h-64 w-52 pb-8 sm:h-80 sm:w-64 lg:absolute lg:inset-y-0 lg:right-4 lg:mx-0 lg:h-auto lg:w-64 lg:pb-0 xl:right-8 xl:w-80">
+        <Image
+          src="/mascot/mascot-home.png"
+          alt="Sentinel, the Sentinel X mascot"
+          fill
+          priority
+          sizes="(min-width: 1280px) 20rem, (min-width: 1024px) 16rem, 13rem"
+          className="object-contain object-bottom"
+        />
       </div>
     </section>
   )

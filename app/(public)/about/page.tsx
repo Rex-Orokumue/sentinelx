@@ -101,13 +101,13 @@ export default function AboutPage() {
             </div>
           </div>
 
-          <div className="relative mx-auto h-52 w-40 shrink-0 sm:h-64 sm:w-48">
+          <div className="relative mx-auto h-64 w-52 shrink-0 sm:h-80 sm:w-64 lg:h-[26rem] lg:w-56 xl:h-[28rem] xl:w-64">
             <Image
               src="/mascot/mascot-about.png"
               alt="Sentinel, the Sentinel X mascot"
               fill
               priority
-              sizes="12rem"
+              sizes="(min-width: 1280px) 16rem, (min-width: 1024px) 14rem, 13rem"
               className="object-contain object-bottom"
             />
           </div>

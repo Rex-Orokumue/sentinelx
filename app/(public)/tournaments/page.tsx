@@ -109,7 +109,7 @@ export default async function TournamentsPage({ searchParams }: { searchParams: 
           aria-hidden
           className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-sx-purple/25 blur-[100px]"
         />
-        <div className="relative grid gap-8 px-6 py-10 sm:px-10 sm:py-14 lg:grid-cols-[1fr_auto] lg:items-end">
+        <div className="relative px-6 py-10 sm:px-10 sm:py-14 lg:py-16 lg:pr-64 xl:pr-80">
           <div className="text-center lg:text-left">
             <p className="mb-3 text-xs font-bold uppercase tracking-widest text-sx-purple-text">Tournaments</p>
             <h1 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-white sm:text-5xl lg:text-6xl">
@@ -149,17 +149,17 @@ export default async function TournamentsPage({ searchParams }: { searchParams: 
               </Link>
             </form>
           </div>
+        </div>
 
-          <div className="relative mx-auto h-52 w-40 shrink-0 sm:h-64 sm:w-48">
-            <Image
-              src="/mascot/mascot-tournaments.png"
-              alt="Sentinel, the Sentinel X mascot"
-              fill
-              priority
-              sizes="12rem"
-              className="object-contain object-bottom"
-            />
-          </div>
+        <div className="relative mx-auto -mt-2 h-64 w-52 pb-8 sm:h-80 sm:w-64 lg:absolute lg:inset-y-0 lg:right-4 lg:mx-0 lg:h-auto lg:w-64 lg:pb-0 xl:right-8 xl:w-80">
+          <Image
+            src="/mascot/mascot-tournaments.png"
+            alt="Sentinel, the Sentinel X mascot"
+            fill
+            priority
+            sizes="(min-width: 1280px) 20rem, (min-width: 1024px) 16rem, 13rem"
+            className="object-contain object-bottom"
+          />
         </div>
       </section>
 

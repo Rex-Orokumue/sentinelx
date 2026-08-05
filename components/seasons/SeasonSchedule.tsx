@@ -42,15 +42,15 @@ export function SeasonSchedule({ tournaments }: { tournaments: ScheduleTournamen
 
   return (
     <section className="mb-10">
-      <h2 className="mb-4 text-base font-bold text-white">Season Schedule</h2>
-      {months.length === 0 && <p className="text-sm text-slate-500">No tournaments scheduled yet.</p>}
+      <p className="mb-4 text-xs font-bold uppercase tracking-widest text-sx-purple-text">Season Schedule</p>
+      {months.length === 0 && <p className="text-sm text-sx-gray">No tournaments scheduled yet.</p>}
       {months.map((key, i) => (
         <CollapsibleSection key={key} id={`month-${key}`} title={monthLabel(key)} defaultOpen={i === 0}>
           <ul className="space-y-2">
             {byMonth.get(key)!.map((t) => (
               <li
                 key={t.id}
-                className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900 px-4 py-3"
+                className="flex items-center justify-between rounded-xl border border-sx-border bg-sx-surface px-4 py-3"
               >
                 <p className="text-sm font-semibold text-white">
                   {t.tournament_type === 'masters' ? '👑 ' : '📅 '}
@@ -58,7 +58,7 @@ export function SeasonSchedule({ tournaments }: { tournaments: ScheduleTournamen
                 </p>
                 <Link
                   href={`/tournaments/${t.slug}`}
-                  className="shrink-0 rounded-full border border-slate-700 px-2.5 py-1 text-[11px] font-bold text-slate-300"
+                  className="shrink-0 rounded-full border border-sx-border px-2.5 py-1 text-[11px] font-bold text-white/80 transition-colors hover:border-sx-purple/40"
                 >
                   {t.invitation_only && t.status === 'registration_open' ? 'Invite Only' : STATUS_LABEL[t.status] ?? t.status}
                 </Link>
