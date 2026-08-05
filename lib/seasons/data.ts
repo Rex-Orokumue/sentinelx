@@ -8,7 +8,7 @@ export interface SeasonLeaderboardRow {
   username: string | null
   displayName: string | null
   avatarUrl: string | null
-  sentinelScore: number
+  sxScore: number
   points: number
 }
 
@@ -16,7 +16,7 @@ interface ProfileInfo {
   username: string | null
   displayName: string | null
   avatarUrl: string | null
-  sentinelScore: number
+  sxScore: number
 }
 
 async function playerProfiles(admin: Admin, playerIds: string[]): Promise<Map<string, ProfileInfo>> {
@@ -24,14 +24,14 @@ async function playerProfiles(admin: Admin, playerIds: string[]): Promise<Map<st
   if (playerIds.length === 0) return map
   const { data } = await admin
     .from('profiles')
-    .select('id, username, display_name, avatar_url, sentinel_score')
+    .select('id, username, display_name, avatar_url, sx_score')
     .in('id', playerIds)
   for (const p of data ?? []) {
     map.set(p.id, {
       username: p.username,
       displayName: p.display_name,
       avatarUrl: p.avatar_url,
-      sentinelScore: p.sentinel_score ?? 0,
+      sxScore: p.sx_score ?? 0,
     })
   }
   return map
@@ -46,7 +46,7 @@ function toRows(totals: Map<string, number>, profiles: Map<string, ProfileInfo>)
         username: p?.username ?? null,
         displayName: p?.displayName ?? null,
         avatarUrl: p?.avatarUrl ?? null,
-        sentinelScore: p?.sentinelScore ?? 0,
+        sxScore: p?.sxScore ?? 0,
         points,
       }
     })
