@@ -16,7 +16,7 @@ export function RecomputeButton() {
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
       <p className="font-bold text-white">Recompute all scores &amp; stats</p>
       <p className="mt-0.5 text-xs text-slate-500">
-        Rebuilds every player&apos;s aggregates and Sentinel Score from match history and the
+        Rebuilds every player&apos;s aggregates and SX Score from match history and the
         events log. Safe to run anytime; use it to recover from a scoring bug.
       </p>
 

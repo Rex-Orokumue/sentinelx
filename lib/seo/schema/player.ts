@@ -5,7 +5,7 @@ export type PlayerProfileInput = {
   displayName: string | null
   wins: number
   totalMatches: number
-  sentinelScore: number
+  sxScore: number
   sentinelTier: string | null
 }
 
@@ -21,7 +21,7 @@ export function buildPlayerJsonLd(p: PlayerProfileInput) {
       name,
       alternateName: p.username,
       url,
-      description: `${name} on Sentinel X — ${p.wins} wins from ${p.totalMatches} matches, Sentinel Score ${p.sentinelScore}${tierText}.`,
+      description: `${name} on Sentinel X — ${p.wins} wins from ${p.totalMatches} matches, SX Score ${p.sxScore}${tierText}.`,
     },
   }
 }

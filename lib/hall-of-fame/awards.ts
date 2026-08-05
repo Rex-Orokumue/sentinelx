@@ -6,15 +6,15 @@ function winRate(p: PlayerStatsInput): number {
   return p.totalMatches > 0 ? p.wins / p.totalMatches : 0
 }
 
-// Most Valuable Player: highest Sentinel Score among eligible players. Ties break by
-// wins then win rate — so at launch, when every score is the default 70, MVP resolves
+// Most Valuable Player: highest SX Score among eligible players. Ties break by
+// wins then win rate — so at launch, when every score is the default 700, MVP resolves
 // to most wins with no special-case code.
 export function pickMVP(players: PlayerStatsInput[]): PlayerStatsInput | null {
   const eligible = players.filter(isRankingEligible)
   if (eligible.length === 0) return null
   return [...eligible].sort(
     (a, b) =>
-      b.sentinelScore - a.sentinelScore ||
+      b.sxScore - a.sxScore ||
       b.wins - a.wins ||
       winRate(b) - winRate(a),
   )[0]

@@ -10,7 +10,7 @@ export const metadata = buildMetadata({
   image: DEFAULT_OG_IMAGE,
 })
 
-const PLAYER_COLS = 'username, display_name, avatar_url, sentinel_score, sentinel_tier'
+const PLAYER_COLS = 'username, display_name, avatar_url, sx_score, sentinel_tier'
 
 export default async function PlayersPage({ searchParams }: { searchParams: { q?: string } }) {
   const q = (searchParams.q ?? '').trim()
@@ -22,7 +22,7 @@ export default async function PlayersPage({ searchParams }: { searchParams: { q?
   let query = supabase
     .from('profiles')
     .select(PLAYER_COLS)
-    .order('sentinel_score', { ascending: false })
+    .order('sx_score', { ascending: false })
     .limit(60)
   if (user) query = query.neq('id', user.id)
   if (q) {

@@ -23,7 +23,7 @@ export interface PlayerStatsInput {
   // same matchWinnerId "who won" logic).
   winsByGame: GameWinCount[]
   totalTitles: number
-  sentinelScore: number
+  sxScore: number
   sentinelTier: string | null
 }
 
@@ -48,7 +48,7 @@ export type LeaderboardMetric = 'wins' | 'score' | 'football' | 'fighting' | 'sh
 
 const METRIC_VALUE: Record<LeaderboardMetric, (p: PlayerStatsInput) => number> = {
   wins: (p) => p.wins,
-  score: (p) => p.sentinelScore,
+  score: (p) => p.sxScore,
   football: (p) => categoryStat(p.categoryStats, 'football').scored,
   fighting: (p) => categoryStat(p.categoryStats, 'fighting').scored,
   shooter: (p) => categoryStat(p.categoryStats, 'shooter').scored,

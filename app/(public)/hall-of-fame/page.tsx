@@ -55,7 +55,7 @@ export default async function HallOfFamePage() {
     supabase
       .from('profiles')
       .select(
-        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sentinel_score, sentinel_tier',
+        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sx_score, sentinel_tier',
       )
       .gte('total_matches', RANKING_MIN_MATCHES),
     supabase
@@ -119,7 +119,7 @@ export default async function HallOfFamePage() {
     })),
     winsByGame: [],
     totalTitles: p.total_titles,
-    sentinelScore: p.sentinel_score,
+    sxScore: p.sx_score,
     sentinelTier: p.sentinel_tier,
   }))
 
@@ -273,8 +273,8 @@ export default async function HallOfFamePage() {
                     label="MVP"
                     icon="⭐"
                     name={mvp.displayName ?? mvp.username ?? 'Anonymous'}
-                    metricLabel="Sentinel Score"
-                    metricValue={mvp.sentinelScore}
+                    metricLabel="SX Score"
+                    metricValue={mvp.sxScore}
                     tier={mvp.sentinelTier}
                   />
                 )}

@@ -44,7 +44,7 @@ export default async function RankingsPage() {
     supabase
       .from('profiles')
       .select(
-        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sentinel_score, sentinel_tier',
+        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sx_score, sentinel_tier',
       )
       .gte('total_matches', RANKING_MIN_MATCHES)
       .order('wins', { ascending: false })
@@ -114,13 +114,13 @@ export default async function RankingsPage() {
       })),
       winsByGame: winsMap.get(p.id) ?? [],
       totalTitles: p.total_titles,
-      sentinelScore: p.sentinel_score,
+      sxScore: p.sx_score,
       sentinelTier: p.sentinel_tier,
     }),
   )
 
   const viewer = user ? players.find((p) => p.id === user.id) ?? null : null
-  const topScore = [...players].sort((a, b) => b.sentinelScore - a.sentinelScore)[0] ?? null
+  const topScore = [...players].sort((a, b) => b.sxScore - a.sxScore)[0] ?? null
   const topTitles = [...players].sort((a, b) => b.totalTitles - a.totalTitles)[0] ?? null
   const topWinRate =
     [...players]
@@ -250,7 +250,7 @@ function YourGlobalStatsCard({ viewer, isLoggedIn }: { viewer: PlayerStatsInput 
     <div className="rounded-xl border border-sx-border bg-sx-surface p-6 text-center">
       <Trophy className="mx-auto mb-3 h-9 w-9 text-sx-purple-text" />
       <p className="mb-1 text-xs font-bold uppercase tracking-widest text-sx-purple-text">Your Global Stats</p>
-      <p className="mb-4 font-display text-3xl font-black text-white">{viewer.sentinelScore} SX Score</p>
+      <p className="mb-4 font-display text-3xl font-black text-white">{viewer.sxScore} SX Score</p>
       <div className="grid grid-cols-2 gap-3 text-left text-xs">
         <Stat label="Matches Played" value={viewer.totalMatches} />
         <Stat label="Total Wins" value={viewer.wins} />
@@ -286,7 +286,7 @@ function TopPerformersCard({
   topWinRate: PlayerStatsInput | null
 }) {
   const rows = [
-    { label: 'Most SX Score', player: topScore, value: topScore ? String(topScore.sentinelScore) : '—' },
+    { label: 'Most SX Score', player: topScore, value: topScore ? String(topScore.sxScore) : '—' },
     { label: 'Most Titles Won', player: topTitles, value: topTitles ? String(topTitles.totalTitles) : '—' },
     {
       label: 'Highest Win Rate',

@@ -422,19 +422,23 @@ git commit -m "fix(sx-score): rename disqualify event table, rescale penalty, re
 **Interfaces:**
 - Consumes: `sx_score` DB column (Task 1.1), `ProfileView.sxScore` / `PlayerStatsInput.sxScore` (this task defines both).
 
-- [ ] **Step 1: Rename field-by-field**
+- [x] **Step 1: Rename field-by-field**
+
+Done. Also caught two fallout spots not in the original file list: `lib/friendly-matches/scoring.test.ts` (hardcoded old `points_delta: 1` from Task 1.3's constant recalibration) and `lib/friendly-matches/admin-actions.ts` (a real functional `sentinel_score_events`/`sentinel_score` reference the Explore pass hadn't surfaced, not just a comment). Both fixed.
 
 For each file above, open it, find every occurrence of `sentinel_score`, `sentinelScore`, `SENTINEL_SCORE`, or the literal text "Sentinel Score" (case-sensitive first pass, then a case-insensitive pass for prose), and replace with `sx_score`, `sxScore`, `SX_SCORE`, "SX Score" respectively — **except** any occurrence that is actually `sentinel_tier`/`sentinelTier`/"Sentinel Tier", which stays unchanged per Global Constraints #5. Read each file before editing (do not blind-replace) since several of these have interleaved `sentinel_score` and `sentinel_tier` references that must be told apart.
 
-- [ ] **Step 2: Verify no stale references remain**
+- [x] **Step 2: Verify no stale references remain**
 
 Run: `grep -rn "sentinel_score\|sentinelScore\|SENTINEL_SCORE" --include="*.ts" --include="*.tsx" app lib components` (excluding `lib/supabase/types.ts`, which was already regenerated in Task 1.1, and `docs/`, which is historical record). Expected: zero matches. If `lib/supabase/types.ts` still shows old names, re-run Task 1.1 Step 3.
 
-- [ ] **Step 3: Run the full test suite**
+- [x] **Step 3: Run the full test suite**
 
 Run: `npm run test` — expect PASS. Run: `npm run build` — expect a clean build (catches any TypeScript reference the grep missed, e.g. a destructured prop name).
 
-- [ ] **Step 4: Commit**
+675/675 tests passing, clean production build.
+
+- [x] **Step 4: Commit**
 
 ```bash
 git add -A

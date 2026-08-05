@@ -6,7 +6,7 @@ export interface PlayerCardData {
   username: string
   display_name: string | null
   avatar_url: string | null
-  sentinel_score: number
+  sx_score: number
   sentinel_tier: string | null
 }
 
@@ -27,10 +27,7 @@ export function PlayerCard({ player }: { player: PlayerCardData }) {
         <p className="truncate text-xs text-slate-500">@{player.username}</p>
       </div>
       <div className="shrink-0 text-right">
-        <p className="text-sm font-bold text-white">
-          {player.sentinel_score}
-          <span className="text-slate-500">/100</span>
-        </p>
+        <p className="text-sm font-bold text-white">{player.sx_score}</p>
         <TierBadge tier={player.sentinel_tier} />
       </div>
     </Link>

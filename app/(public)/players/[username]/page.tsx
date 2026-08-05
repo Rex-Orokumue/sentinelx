@@ -23,7 +23,7 @@ import { buildPlayerJsonLd } from '@/lib/seo/schema/player'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 
 const PROFILE_COLS =
-  'id, username, display_name, avatar_url, country, bio, created_at, sentinel_score, sentinel_tier, ' +
+  'id, username, display_name, avatar_url, country, bio, created_at, sx_score, sentinel_tier, ' +
   'total_matches, wins, losses, goals_scored, goals_conceded, total_titles'
 
 type ProfileRow = {
@@ -34,7 +34,7 @@ type ProfileRow = {
   country: string | null
   bio: string | null
   created_at: string | null
-  sentinel_score: number
+  sx_score: number
   sentinel_tier: string | null
   total_matches: number
   wins: number
@@ -117,7 +117,7 @@ export async function generateMetadata({ params }: { params: { username: string 
   if (!p) return { title: 'Player not found — SentinelX Esports' }
   const name = p.display_name ?? p.username
   const title = `${name} (@${p.username}) — SentinelX Esports`
-  const description = `Sentinel Score ${p.sentinel_score} · ${p.wins}W–${p.losses}L · ${p.total_titles} titles on Sentinel X.`
+  const description = `SX Score ${p.sx_score} · ${p.wins}W–${p.losses}L · ${p.total_titles} titles on Sentinel X.`
   return buildMetadata({ title, description, path: `/players/${p.username}` })
 }
 
@@ -291,7 +291,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
     country: p.country,
     bio: p.bio,
     createdAt: p.created_at,
-    sentinelScore: p.sentinel_score,
+    sxScore: p.sx_score,
     sentinelTier: p.sentinel_tier,
     totalMatches: p.total_matches,
     wins: p.wins,
@@ -329,7 +329,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
           displayName: p.display_name,
           wins: p.wins,
           totalMatches: p.total_matches,
-          sentinelScore: p.sentinel_score,
+          sxScore: p.sx_score,
           sentinelTier: p.sentinel_tier,
         })}
       />

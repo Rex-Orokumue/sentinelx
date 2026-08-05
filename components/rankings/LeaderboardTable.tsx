@@ -15,7 +15,7 @@ const METRIC_LABEL: Record<LeaderboardMetric, string> = {
 }
 const METRIC_VALUE: Record<LeaderboardMetric, (p: RankedPlayer) => number> = {
   wins: (p) => p.wins,
-  score: (p) => p.sentinelScore,
+  score: (p) => p.sxScore,
   football: (p) => categoryStat(p.categoryStats, 'football').scored,
   fighting: (p) => categoryStat(p.categoryStats, 'fighting').scored,
   shooter: (p) => categoryStat(p.categoryStats, 'shooter').scored,

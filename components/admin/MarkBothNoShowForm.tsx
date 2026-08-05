@@ -19,7 +19,7 @@ export function MarkBothNoShowForm({ matchId }: { matchId: string }) {
       <h3 className="text-sm font-bold text-white">Mark both no-show</h3>
       <p className="text-xs text-slate-500">
         Use only when neither player showed up or responded — records a 0-0 draw (group) or a forfeit (knockout),
-        and both players receive the no-show Sentinel Score penalty.
+        and both players receive the no-show SX Score penalty.
       </p>
       <textarea
         name="reason"

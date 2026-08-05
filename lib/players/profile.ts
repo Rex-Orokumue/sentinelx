@@ -15,7 +15,7 @@ export interface ProfileView {
   country: string | null
   bio: string | null
   createdAt: string | null
-  sentinelScore: number
+  sxScore: number
   sentinelTier: string | null
   totalMatches: number
   wins: number

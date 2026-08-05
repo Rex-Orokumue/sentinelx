@@ -9,13 +9,13 @@ describe('buildPlayerJsonLd', () => {
       displayName: 'Sniper King',
       wins: 12,
       totalMatches: 20,
-      sentinelScore: 82,
+      sxScore: 820,
       sentinelTier: 'Trusted',
     })
     expect(result.mainEntity).not.toHaveProperty('interactionStatistic')
     expect(result.mainEntity.description).toContain('12 wins')
     expect(result.mainEntity.description).toContain('20 matches')
-    expect(result.mainEntity.description).toContain('82')
+    expect(result.mainEntity.description).toContain('820')
     expect(result.mainEntity.description).toContain('Trusted')
     expect(result.mainEntity.url).toBe(`${SITE_URL}/players/sniperking`)
     expect(result.mainEntity.alternateName).toBe('sniperking')
@@ -27,7 +27,7 @@ describe('buildPlayerJsonLd', () => {
       displayName: null,
       wins: 0,
       totalMatches: 0,
-      sentinelScore: 70,
+      sxScore: 700,
       sentinelTier: null,
     })
     expect(result.mainEntity.name).toBe('sniperking')
