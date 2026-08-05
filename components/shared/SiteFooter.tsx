@@ -29,8 +29,13 @@ const EXPANDED_SECTIONS: { heading: string; links: { href: string; label: string
       { href: '/tournaments', label: 'Tournaments' },
       { href: '/games', label: 'Games' },
       { href: '/rankings', label: 'Leaderboards' },
+      { href: '/seasons/season-1', label: 'Seasons' },
       { href: '/exchange', label: 'Store (Exchange)' },
       { href: '/community', label: 'Community' },
+      { href: '/tv', label: 'Sentinel X TV' },
+      { href: '/hall-of-fame', label: 'Hall of Fame' },
+      { href: '/players', label: 'Players' },
+      { href: '/betting', label: 'Betting' },
     ],
   },
   {

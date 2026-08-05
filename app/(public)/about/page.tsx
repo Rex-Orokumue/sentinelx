@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { ShieldCheck, Target, Eye, Gem, Flag, Trophy, Users, Rocket, Handshake, BookOpen, Gift } from 'lucide-react'
+import { ShieldCheck, Target, Eye, Gem, Flag, Trophy, Users, Rocket, Handshake, BookOpen, Gift, Crown } from 'lucide-react'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 
@@ -79,7 +79,7 @@ export default function AboutPage() {
           aria-hidden
           className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-sx-purple/25 blur-[100px]"
         />
-        <div className="relative grid gap-8 px-6 py-10 sm:px-10 sm:py-14 lg:grid-cols-[1fr_auto_auto] lg:items-end">
+        <div className="relative px-6 py-10 sm:px-10 sm:py-14 lg:py-16 lg:pr-64 xl:pr-[22rem]">
           <div className="text-center lg:text-left">
             <p className="mb-3 text-xs font-bold uppercase tracking-widest text-sx-purple-text">About Sentinel X</p>
             <h1 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-white sm:text-5xl lg:text-6xl">
@@ -100,28 +100,30 @@ export default function AboutPage() {
               ))}
             </div>
           </div>
+        </div>
 
-          <div className="relative mx-auto h-64 w-52 shrink-0 sm:h-80 sm:w-64 lg:h-[26rem] lg:w-56 xl:h-[28rem] xl:w-64">
-            <Image
-              src="/mascot/mascot-about.png"
-              alt="Sentinel, the Sentinel X mascot"
-              fill
-              priority
-              sizes="(min-width: 1280px) 16rem, (min-width: 1024px) 14rem, 13rem"
-              className="object-contain object-bottom"
-            />
-          </div>
+        {/* Mascot — bottom-anchored, fills the hero's actual height at lg+ */}
+        <div className="relative mx-auto -mt-2 h-64 w-52 pb-8 sm:h-80 sm:w-64 lg:absolute lg:inset-y-0 lg:right-56 lg:mx-0 lg:h-auto lg:w-56 lg:pb-0 xl:right-64 xl:w-64">
+          <Image
+            src="/mascot/mascot-about.png"
+            alt="Sentinel, the Sentinel X mascot"
+            fill
+            priority
+            sizes="(min-width: 1280px) 16rem, (min-width: 1024px) 14rem, 13rem"
+            className="object-contain object-bottom"
+          />
+        </div>
 
-          <div className="w-full max-w-xs rounded-xl border border-sx-purple/30 bg-sx-surface p-5 lg:w-64">
-            <p className="mb-2 flex items-center gap-2 text-sm font-bold text-white">
-              <ShieldCheck className="h-4 w-4 text-sx-purple-text" /> Our Promise
-            </p>
-            <p className="text-xs italic text-sx-gray">
-              &ldquo;We provide a fair, safe and competitive environment where every gamer has the chance to
-              play, grow and succeed.&rdquo;
-            </p>
-            <p className="mt-3 font-display text-lg italic text-sx-purple-text">— Sentinel</p>
-          </div>
+        {/* Our Promise — floats top-right, independent of the mascot's height */}
+        <div className="relative mx-auto mt-6 w-full max-w-xs rounded-xl border border-sx-purple/30 bg-sx-surface p-5 lg:absolute lg:right-6 lg:top-8 lg:mx-0 lg:mt-0 lg:w-56 xl:w-64">
+          <p className="mb-2 flex items-center gap-2 text-sm font-bold text-white">
+            <ShieldCheck className="h-4 w-4 text-sx-purple-text" /> Our Promise
+          </p>
+          <p className="text-xs italic text-sx-gray">
+            &ldquo;We provide a fair, safe and competitive environment where every gamer has the chance to
+            play, grow and succeed.&rdquo;
+          </p>
+          <p className="mt-3 font-display text-lg italic text-sx-purple-text">— Sentinel</p>
         </div>
       </section>
 
@@ -168,10 +170,14 @@ export default function AboutPage() {
           Sentinel X was born from a simple belief: gamers deserve more. More opportunities, more
           platforms, and more respect.
         </p>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="relative grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div
+            aria-hidden
+            className="absolute left-5 right-5 top-5 hidden h-px bg-gradient-to-r from-transparent via-sx-purple/40 to-transparent lg:block"
+          />
           {TIMELINE.map((t) => (
-            <div key={t.year + t.title}>
-              <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-sx-purple/15 text-sx-purple-text">
+            <div key={t.year + t.title} className="relative">
+              <span className="relative z-10 mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-sx-purple/30 bg-sx-bg text-sx-purple-text">
                 <t.icon className="h-5 w-5" />
               </span>
               <p className="text-xs font-bold text-sx-purple-text">{t.year}</p>
@@ -184,15 +190,7 @@ export default function AboutPage() {
 
       {/* ── Why Sentinel X ────────────────────────────────────── */}
       <section className="mb-10 grid gap-8 rounded-xl border border-sx-border bg-sx-surface p-6 sm:p-8 lg:grid-cols-2 lg:items-center">
-        <div className="relative mx-auto h-64 w-full max-w-sm overflow-hidden rounded-xl bg-gradient-to-br from-sx-purple/20 via-sx-surface to-sx-bg">
-          <Image
-            src="/mascot/mascot-about.png"
-            alt="Sentinel, the Sentinel X mascot"
-            fill
-            sizes="24rem"
-            className="object-contain object-bottom"
-          />
-        </div>
+        <ArenaPanel />
         <div>
           <p className="mb-1 text-xs font-bold uppercase tracking-widest text-sx-purple-text">Why Sentinel X?</p>
           <h2 className="mb-5 font-display text-2xl font-black text-white">We Provide More</h2>
@@ -208,7 +206,16 @@ export default function AboutPage() {
       </section>
 
       {/* ── CTA banner ────────────────────────────────────────── */}
-      <section className="rounded-xl border border-sx-purple/30 bg-gradient-to-r from-sx-purple/20 to-transparent p-8 text-center">
+      <section className="relative overflow-hidden rounded-xl border border-sx-purple/30 bg-gradient-to-r from-sx-purple/20 to-transparent py-8 pl-24 pr-8 text-center sm:pl-32">
+        <div className="pointer-events-none absolute bottom-0 left-2 hidden h-full w-24 sm:block">
+          <Image
+            src="/mascot/mascot-about.png"
+            alt=""
+            fill
+            sizes="6rem"
+            className="object-contain object-bottom"
+          />
+        </div>
         <p className="font-display text-2xl font-black uppercase text-white sm:text-3xl">
           Be Part of Something Bigger.
         </p>
@@ -222,6 +229,41 @@ export default function AboutPage() {
           <Users className="h-4 w-4" /> Join the Community →
         </a>
       </section>
+    </div>
+  )
+}
+
+// Abstract "arena at night" panel — no stadium photo asset exists, so this is
+// built from layered gradients rather than reusing the mascot crop a second
+// time (which read as a placeholder, not a deliberate design choice).
+function ArenaPanel() {
+  return (
+    <div className="relative mx-auto h-64 w-full max-w-sm overflow-hidden rounded-xl border border-sx-border bg-sx-bg">
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 20% 15%, rgba(124,58,237,0.35), transparent 45%),' +
+            'radial-gradient(circle at 80% 10%, rgba(124,58,237,0.25), transparent 40%),' +
+            'radial-gradient(circle at 50% 100%, rgba(124,58,237,0.3), transparent 55%)',
+        }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 opacity-[0.15]"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
+          maskImage: 'radial-gradient(ellipse at center, black 0%, transparent 75%)',
+        }}
+      />
+      <div className="relative flex h-full flex-col items-center justify-center gap-2 text-center">
+        <Crown className="h-10 w-10 text-sx-purple-text drop-shadow-[0_0_20px_rgba(124,58,237,0.6)]" />
+        <p className="font-display text-xl font-black uppercase tracking-wide text-white">Sentinel X</p>
+        <p className="text-xs uppercase tracking-[0.3em] text-sx-purple-text">The Arena Awaits</p>
+      </div>
     </div>
   )
 }
