@@ -63,12 +63,12 @@ const SEASON_NO_SHOW_PENALTY = -15
 // the ids of players whose scoring is affected. No refresh here.
 async function regenerateMatchEvents(admin: Admin, match: MatchRow): Promise<string[]> {
   await admin
-    .from('sentinel_score_events')
+    .from('sx_score_events')
     .delete()
     .eq('match_id', match.id)
     .in('event_type', [...AUTO_MATCH_EVENT_TYPES])
   const events = matchEventsFor(match)
-  if (events.length > 0) await admin.from('sentinel_score_events').insert(events)
+  if (events.length > 0) await admin.from('sx_score_events').insert(events)
 
   // Regenerate season_noshow_penalties for this match the same way — delete
   // then reinsert, so a dispute overturning a walkover clears the penalty too.
@@ -117,14 +117,14 @@ async function refreshPlayer(admin: Admin, playerId: string): Promise<void> {
   const aggregates = computeAggregates(playerId, completed, titlesWon)
 
   const { data: events } = await admin
-    .from('sentinel_score_events')
+    .from('sx_score_events')
     .select('points_delta')
     .eq('player_id', playerId)
-  const sentinel_score = computeScore(events ?? [])
+  const sx_score = computeScore(events ?? [])
 
   await admin
     .from('profiles')
-    .update({ ...aggregates, sentinel_score })
+    .update({ ...aggregates, sx_score })
     .eq('id', playerId)
 }
 
@@ -147,7 +147,7 @@ export async function syncMatchEvents(admin: Admin, matchId: string): Promise<vo
 // completed match, then refreshes every profile.
 export async function recomputeAllScoring(admin: Admin): Promise<{ players: number }> {
   await admin
-    .from('sentinel_score_events')
+    .from('sx_score_events')
     .delete()
     .in('event_type', [...AUTO_MATCH_EVENT_TYPES])
 
@@ -157,7 +157,7 @@ export async function recomputeAllScoring(admin: Admin): Promise<{ players: numb
     .in('status', ['completed', 'forfeited'])
   for (const m of matches ?? []) {
     const events = matchEventsFor(m)
-    if (events.length > 0) await admin.from('sentinel_score_events').insert(events)
+    if (events.length > 0) await admin.from('sx_score_events').insert(events)
   }
 
   const { data: profiles } = await admin.from('profiles').select('id')
