@@ -172,8 +172,14 @@ export default async function TournamentsPage({ searchParams }: { searchParams: 
       </section>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+        {/* ── Right sidebar (shown first on mobile) ─────────────────────────────────── */}
+        <aside className="order-first space-y-6 lg:order-last">
+          <HowToJoinCard />
+          <TournamentFaqCard />
+        </aside>
+
         {/* ── Left column ───────────────────────────────────── */}
-        <div className="min-w-0">
+        <div className="min-w-0 lg:order-first">
           {gameFilter && (
             <div className="mb-4">
               <Link
@@ -252,12 +258,6 @@ export default async function TournamentsPage({ searchParams }: { searchParams: 
             </nav>
           )}
         </div>
-
-        {/* ── Right sidebar ─────────────────────────────────── */}
-        <aside className="space-y-6">
-          <HowToJoinCard />
-          <TournamentFaqCard />
-        </aside>
       </div>
 
       <ShareCta />

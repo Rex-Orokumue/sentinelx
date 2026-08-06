@@ -52,16 +52,16 @@ export default async function ExchangePage({ searchParams }: { searchParams: Sea
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-20">
-      <div className="flex items-center justify-between gap-3 py-8">
+      <div className="flex flex-col gap-3 py-8 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-white">Gaming Exchange</h1>
           <p className="mt-1 text-sm text-slate-400">Accounts, coins, and gear — protected by Zolarux escrow.</p>
         </div>
-        <div className="flex shrink-0 gap-2">
-          <Link href="/exchange/requests/new" className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-bold text-slate-200 hover:border-slate-500">
+        <div className="flex flex-col gap-2 sm:flex-row sm:shrink-0">
+          <Link href="/exchange/requests/new" className="rounded-lg border border-slate-700 px-4 py-2 text-center text-sm font-bold text-slate-200 hover:border-slate-500">
             Can&apos;t find it? Request it
           </Link>
-          <Link href="/exchange/new" className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-bold text-white hover:bg-violet-500">
+          <Link href="/exchange/new" className="rounded-lg bg-violet-600 px-4 py-2 text-center text-sm font-bold text-white hover:bg-violet-500">
             Sell an item
           </Link>
         </div>

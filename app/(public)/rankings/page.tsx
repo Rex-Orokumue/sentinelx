@@ -165,22 +165,21 @@ export default async function RankingsPage() {
         <StatItem icon="🏆" value={formatNaira(prizesAwarded)} label="Prizes Awarded" />
       </section>
 
-      {players.length === 0 ? (
-        <EmptyState icon="🏅" title="Rankings coming soon" body="Be the first to compete and claim the top spot." />
-      ) : (
-        <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-          {/* ── Left: leaderboard table ─────────────────────── */}
-          <div className="min-w-0">
-            <LeaderboardTabs players={players} currentUserId={user?.id ?? null} activeCategories={activeCategories} />
-          </div>
+      <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+        {/* ── Right: sidebars (shown first on mobile) ── */}
+        <aside className="order-first space-y-6 lg:order-last">
+          <YourGlobalStatsCard viewer={viewer} isLoggedIn={!!user} />
+          <TopPerformersCard topScore={topScore} topTitles={topTitles} topWinRate={topWinRate} />
+        </aside>
 
-          {/* ── Right: sidebars ─────────────────────────────── */}
-          <aside className="space-y-6">
-            <YourGlobalStatsCard viewer={viewer} isLoggedIn={!!user} />
-            <TopPerformersCard topScore={topScore} topTitles={topTitles} topWinRate={topWinRate} />
-          </aside>
+        {/* ── Left: leaderboard table ─────────────────────── */}
+        <div className="min-w-0">
+          <LeaderboardTabs players={players} currentUserId={user?.id ?? null} activeCategories={activeCategories} />
+          {players.length === 0 && (
+            <EmptyState icon="🏅" title="Rankings coming soon" body="Be the first to compete and claim the top spot." />
+          )}
         </div>
-      )}
+      </div>
 
       {/* ── CTA banner ────────────────────────────────────────── */}
       <section className="mt-10 rounded-xl border border-sx-border bg-gradient-to-r from-sx-purple/20 to-transparent p-8 text-center sm:text-left">

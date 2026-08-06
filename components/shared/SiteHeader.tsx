@@ -20,86 +20,97 @@ export function SiteHeader({
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   return (
-    <header className="sticky top-0 z-50 border-b border-sx-border bg-sx-bg/95 backdrop-blur-md">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/" className="flex shrink-0 items-center gap-2">
-          <Image src="/logo-icon.png" alt="SentinelX Esports" width={32} height={32} priority />
-          <span className="flex flex-col leading-none">
-            <span className="whitespace-nowrap font-display text-lg font-bold uppercase tracking-wide text-white sm:text-xl">
-              Sentinel<span className="text-sx-purple-text">X</span>
+    <>
+      <header className="sticky top-0 z-50 border-b border-sx-border bg-sx-bg/95 backdrop-blur-md">
+        <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+          <Link href="/" className="flex shrink-0 items-center gap-2">
+            <Image src="/logo-icon.png" alt="SentinelX Esports" width={32} height={32} priority />
+            <span className="flex flex-col leading-none">
+              <span className="whitespace-nowrap font-display text-lg font-bold uppercase tracking-wide text-white sm:text-xl">
+                Sentinel<span className="text-sx-purple-text">X</span>
+              </span>
+              <span className="font-display text-[10px] font-semibold uppercase tracking-[0.25em] text-sx-gray">
+                Esports
+              </span>
             </span>
-            <span className="font-display text-[10px] font-semibold uppercase tracking-[0.25em] text-sx-gray">
-              Esports
-            </span>
-          </span>
-        </Link>
+          </Link>
 
-        {/* Desktop-only primary links */}
-        <div className="hidden items-center gap-1 lg:flex">
-          {NAVBAR_LINKS.map((item) => {
-            const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`border-b-2 px-3 py-1.5 text-sm font-medium transition-colors ${
-                  active
-                    ? 'border-sx-purple text-white'
-                    : 'border-transparent text-white/70 hover:text-white'
-                }`}
-              >
-                {item.label}
-              </Link>
-            )
-          })}
-        </div>
-
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* WhatsApp community CTA — all breakpoints */}
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden items-center gap-1.5 rounded-full bg-sx-green px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 sm:flex"
-          >
-            <WhatsAppIcon className="h-3.5 w-3.5" />
-            <span>Community</span>
-          </a>
-
-          {/* Notifications — every breakpoint, never in the bottom tab bar */}
-          {session.isLoggedIn && (
-            <NotificationBell
-              initialNotifications={session.recentNotifications}
-              initialUnreadCount={session.unreadNotificationCount}
-            />
-          )}
-
-          {/* Account — desktop only; mobile uses the bottom tab bar */}
-          <div className="hidden sm:block">
-            <AccountMenu session={session} />
+          {/* Desktop-only primary links */}
+          <div className="hidden items-center gap-1 lg:flex">
+            {NAVBAR_LINKS.map((item) => {
+              const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`border-b-2 px-3 py-1.5 text-sm font-medium transition-colors ${
+                    active
+                      ? 'border-sx-purple text-white'
+                      : 'border-transparent text-white/70 hover:text-white'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              )
+            })}
           </div>
 
-          {/* Hamburger — collapses the full link set into a drawer below lg */}
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open menu"
-            aria-expanded={drawerOpen}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/5 lg:hidden"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-        </div>
-      </nav>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* WhatsApp community CTA — all breakpoints */}
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden items-center gap-1.5 rounded-full bg-sx-green px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 sm:flex"
+            >
+              <WhatsAppIcon className="h-3.5 w-3.5" />
+              <span>Community</span>
+            </a>
 
+            {/* Notifications — every breakpoint, never in the bottom tab bar */}
+            {session.isLoggedIn && (
+              <NotificationBell
+                initialNotifications={session.recentNotifications}
+                initialUnreadCount={session.unreadNotificationCount}
+              />
+            )}
+
+            {/* Account — desktop only; mobile uses the bottom tab bar */}
+            <div className="hidden sm:block">
+              <AccountMenu session={session} />
+            </div>
+
+            {/* Hamburger — collapses the full link set into a drawer below lg */}
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={drawerOpen}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/5 lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </div>
+        </nav>
+      </header>
+
+      {/* ── Mobile nav drawer — rendered OUTSIDE header to escape its
+           backdrop-filter stacking context, which would otherwise trap
+           fixed children and prevent them from overlaying page content. ── */}
       {drawerOpen && (
         <>
+          {/* Backdrop overlay */}
           <div
-            className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+            className="fixed inset-0 z-[60] lg:hidden"
+            style={{ background: 'rgba(0,0,0,0.75)' }}
             onClick={() => setDrawerOpen(false)}
             aria-hidden
           />
-          <div className="fixed inset-y-0 right-0 z-50 flex w-72 max-w-[85vw] flex-col border-l border-sx-border bg-sx-surface p-5 lg:hidden">
+          {/* Drawer panel */}
+          <div
+            className="fixed inset-y-0 right-0 z-[70] flex w-72 max-w-[85vw] flex-col p-5 lg:hidden"
+            style={{ background: '#13131F', borderLeft: '1px solid #1E1E30' }}
+          >
             <div className="mb-6 flex items-center justify-between">
               <span className="font-display text-lg font-bold uppercase tracking-wide text-white">
                 Menu
@@ -108,7 +119,7 @@ export function SiteHeader({
                 type="button"
                 onClick={() => setDrawerOpen(false)}
                 aria-label="Close menu"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/5"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/10"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -122,8 +133,11 @@ export function SiteHeader({
                     href={item.href}
                     onClick={() => setDrawerOpen(false)}
                     className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
-                      active ? 'bg-sx-purple/15 text-white' : 'text-white/70 hover:bg-white/5 hover:text-white'
+                      active
+                        ? 'text-white'
+                        : 'text-white/70 hover:text-white'
                     }`}
+                    style={active ? { background: 'rgba(124,58,237,0.15)' } : undefined}
                   >
                     {item.label}
                   </Link>
@@ -134,7 +148,8 @@ export function SiteHeader({
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 flex items-center justify-center gap-1.5 rounded-full bg-sx-green px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="mt-4 flex items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              style={{ background: '#10B981' }}
             >
               <WhatsAppIcon className="h-4 w-4" />
               <span>Community</span>
@@ -144,14 +159,16 @@ export function SiteHeader({
                 <Link
                   href="/login"
                   onClick={() => setDrawerOpen(false)}
-                  className="flex-1 rounded-lg border border-sx-border py-2.5 text-center text-sm font-bold text-white transition-colors hover:border-white/30"
+                  className="flex-1 rounded-lg py-2.5 text-center text-sm font-bold text-white transition-colors"
+                  style={{ border: '1px solid #1E1E30' }}
                 >
                   Login
                 </Link>
                 <Link
                   href="/signup"
                   onClick={() => setDrawerOpen(false)}
-                  className="flex-1 rounded-lg bg-sx-purple py-2.5 text-center text-sm font-bold text-white transition-colors hover:bg-sx-purple-light"
+                  className="flex-1 rounded-lg py-2.5 text-center text-sm font-bold text-white transition-colors"
+                  style={{ background: '#7C3AED' }}
                 >
                   Register
                 </Link>
@@ -160,7 +177,7 @@ export function SiteHeader({
           </div>
         </>
       )}
-    </header>
+    </>
   )
 }
 

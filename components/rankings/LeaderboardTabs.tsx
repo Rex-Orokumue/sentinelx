@@ -25,6 +25,9 @@ export function LeaderboardTabs({
 
   const [metric, setMetric] = useState<LeaderboardMetric>('wins')
   const ranked = rankPlayersBy(players, metric)
+
+  if (players.length === 0) return null
+
   return (
     <div>
       <div className="mb-4 flex gap-1 overflow-x-auto scrollbar-hide rounded-xl border border-sx-border bg-sx-surface p-1">
