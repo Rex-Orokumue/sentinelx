@@ -6,7 +6,7 @@ import { recomputeAllScoring } from './apply'
 
 export type RecomputeState = { error?: string; players?: number } | undefined
 
-export async function recomputeAllAction(_prev: RecomputeState, _formData: FormData): Promise<RecomputeState> {
+export async function recomputeAllAction(_prev?: RecomputeState, _formData?: FormData): Promise<RecomputeState> {
   // requireAdmin() calls redirect() on failure — that throws a special
   // Next.js error that must not be caught; let it propagate naturally.
   await requireAdmin()
