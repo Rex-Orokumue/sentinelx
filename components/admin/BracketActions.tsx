@@ -4,6 +4,7 @@ import {
   closeRegistration,
   generateBracket,
   publishBracket,
+  reopenRegistration,
   type BracketState,
 } from '@/lib/tournaments/bracket-admin-actions'
 import { groupCountFor, validGroupCounts } from '@/lib/tournaments/draw'
@@ -45,11 +46,13 @@ export function BracketActions({
   )
   const [rollState, rollAction] = useFormState<BracketState, FormData>(generateBracket, undefined)
   const [pubState, pubAction] = useFormState<BracketState, FormData>(publishBracket, undefined)
-  const err = closeState?.error || rollState?.error || pubState?.error
+  const [reopenState, reopenAction] = useFormState<BracketState, FormData>(reopenRegistration, undefined)
+  const err = closeState?.error || rollState?.error || pubState?.error || reopenState?.error
   const success =
     (closeState?.success && 'Registration closed and bracket generated.') ||
     (rollState?.success && 'Draw re-rolled — new fixtures are ready below.') ||
     (pubState?.success && 'Bracket published — it is now public.') ||
+    (reopenState?.success && 'Registration reopened — bracket cleared.') ||
     null
 
   const groupOptions = validGroupCounts(paidCount)
@@ -138,6 +141,22 @@ export function BracketActions({
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500"
             >
               Publish bracket
+            </SubmitButton>
+          </form>
+          <form
+            action={reopenAction}
+            onSubmit={(e) => {
+              if (!window.confirm('Reopen registration? This clears the current bracket and lets you add or remove players.')) {
+                e.preventDefault()
+              }
+            }}
+          >
+            <input type="hidden" name="id" value={tournamentId} />
+            <SubmitButton
+              pendingLabel="Reopening…"
+              className="rounded-lg border border-amber-700 px-4 py-2 text-sm font-bold text-amber-400 hover:border-amber-500"
+            >
+              Reopen registration
             </SubmitButton>
           </form>
           <p className="w-full text-xs text-slate-500">

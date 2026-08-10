@@ -162,6 +162,33 @@ export async function closeRegistration(
   return { success: true }
 }
 
+// Revert a closed-but-not-yet-published tournament back to registration_open
+// so the admin can add/remove players before re-closing. Clears the generated
+// bracket — a fresh draw will be created when registration is closed again.
+export async function reopenRegistration(
+  _prev: BracketState,
+  formData: FormData,
+): Promise<BracketState> {
+  await requireStaff()
+  const id = String(formData.get('id') ?? '')
+  if (!id) return { error: 'Missing tournament.' }
+
+  const admin = createAdminClient()
+  const { data: t } = await admin.from('tournaments').select('status').eq('id', id).maybeSingle()
+  if (!t) return { error: 'Tournament not found.' }
+  if (t.status !== 'registration_closed')
+    return { error: 'Only a closed (unpublished) tournament can be reopened.' }
+
+  try {
+    await clearBracket(admin, id)
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Failed to clear the bracket.' }
+  }
+  await admin.from('tournaments').update({ status: 'registration_open' }).eq('id', id)
+  revalidateAdmin(id)
+  return { success: true }
+}
+
 export async function generateBracket(
   _prev: BracketState,
   formData: FormData,
