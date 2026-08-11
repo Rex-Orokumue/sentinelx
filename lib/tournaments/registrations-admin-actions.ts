@@ -250,3 +250,40 @@ export async function removeFromWaitlist(
   revalidatePath(`/admin/tournaments/${tournamentId}/registrations`)
   return { success: true }
 }
+
+// Promote a waitlisted player to active registration — marks them as paid
+// (fee waived by admin) so they appear in the main registrations table and
+// are eligible for bracket generation.
+export async function promoteFromWaitlist(
+  _prev: DisqualifyState,
+  formData: FormData,
+): Promise<DisqualifyState> {
+  await requireStaff()
+  const registrationId = String(formData.get('registrationId') ?? '')
+  const tournamentId = String(formData.get('tournamentId') ?? '')
+  const playerId = String(formData.get('playerId') ?? '')
+  const tournamentTitle = String(formData.get('tournamentTitle') ?? 'the tournament')
+  if (!registrationId || !tournamentId || !playerId) return { error: 'Missing registration.' }
+
+  const admin = createAdminClient()
+
+  const { data: claimed } = await admin
+    .from('tournament_registrations')
+    .update({ status: 'active', payment_status: 'paid', fee_waived: true })
+    .eq('id', registrationId)
+    .eq('status', 'waitlisted')
+    .select('id')
+  if (!claimed || claimed.length === 0) {
+    return { error: 'This player is not on the waitlist.' }
+  }
+
+  await notifyInApp({
+    playerId,
+    type: 'player_disqualified',
+    title: "You're in!",
+    body: `You've been added to ${tournamentTitle} from the waitlist.`,
+  })
+
+  revalidatePath(`/admin/tournaments/${tournamentId}/registrations`)
+  return { success: true }
+}

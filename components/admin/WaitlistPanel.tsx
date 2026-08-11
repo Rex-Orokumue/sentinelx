@@ -2,7 +2,7 @@
 import { useFormState } from 'react-dom'
 import { formatDateTime } from '@/lib/format'
 import type { AdminRegistrationRow } from './RegistrationsTable'
-import { removeFromWaitlist, type DisqualifyState } from '@/lib/tournaments/registrations-admin-actions'
+import { removeFromWaitlist, promoteFromWaitlist, type DisqualifyState } from '@/lib/tournaments/registrations-admin-actions'
 
 function WaitlistRemoveButton({ registrationId, tournamentId }: { registrationId: string; tournamentId: string }) {
   const [state, action] = useFormState<DisqualifyState, FormData>(removeFromWaitlist, undefined)
@@ -31,10 +31,57 @@ function WaitlistRemoveButton({ registrationId, tournamentId }: { registrationId
   )
 }
 
+function WaitlistPromoteButton({
+  registrationId,
+  tournamentId,
+  playerId,
+  tournamentTitle,
+}: {
+  registrationId: string
+  tournamentId: string
+  playerId: string
+  tournamentTitle: string
+}) {
+  const [state, action] = useFormState<DisqualifyState, FormData>(promoteFromWaitlist, undefined)
+
+  if (state?.success) return <span className="text-xs font-bold text-emerald-400">Added ✓</span>
+
+  return (
+    <form
+      action={action}
+      onSubmit={(e) => {
+        if (!window.confirm('Add this player to the tournament? They will be marked as paid (fee waived).')) {
+          e.preventDefault()
+        }
+      }}
+    >
+      <input type="hidden" name="registrationId" value={registrationId} />
+      <input type="hidden" name="tournamentId" value={tournamentId} />
+      <input type="hidden" name="playerId" value={playerId} />
+      <input type="hidden" name="tournamentTitle" value={tournamentTitle} />
+      <button
+        type="submit"
+        className="rounded-lg border border-emerald-500/40 px-2.5 py-0.5 text-xs font-bold text-emerald-400 hover:bg-emerald-500/10"
+      >
+        Add
+      </button>
+      {state?.error && <p className="mt-1 text-xs text-red-400">{state.error}</p>}
+    </form>
+  )
+}
+
 // Waitlisted players get their own section rather than being mixed into the
 // main registrations table — admin needs to find them at a glance (and their
 // WhatsApp number) the moment a slot opens up.
-export function WaitlistPanel({ rows, tournamentId }: { rows: AdminRegistrationRow[]; tournamentId: string }) {
+export function WaitlistPanel({
+  rows,
+  tournamentId,
+  tournamentTitle,
+}: {
+  rows: AdminRegistrationRow[]
+  tournamentId: string
+  tournamentTitle: string
+}) {
   if (rows.length === 0) return null
 
   return (
@@ -55,7 +102,7 @@ export function WaitlistPanel({ rows, tournamentId }: { rows: AdminRegistrationR
               <th className="px-2 py-2.5 text-left">WhatsApp</th>
               <th className="px-2 py-2.5 text-left">Club</th>
               <th className="px-3 py-2.5 text-left">Joined</th>
-              <th className="w-10 px-2 py-2.5" />
+              <th className="w-24 px-2 py-2.5" />
             </tr>
           </thead>
           <tbody>
@@ -69,7 +116,15 @@ export function WaitlistPanel({ rows, tournamentId }: { rows: AdminRegistrationR
                 <td className="px-2 py-2.5 text-slate-300">{r.regClubName ?? '—'}</td>
                 <td className="px-3 py-2.5 text-slate-400">{formatDateTime(r.registeredAt)}</td>
                 <td className="px-2 py-2.5">
-                  <WaitlistRemoveButton registrationId={r.id} tournamentId={tournamentId} />
+                  <div className="flex items-center gap-1.5">
+                    <WaitlistPromoteButton
+                      registrationId={r.id}
+                      tournamentId={tournamentId}
+                      playerId={r.playerId}
+                      tournamentTitle={tournamentTitle}
+                    />
+                    <WaitlistRemoveButton registrationId={r.id} tournamentId={tournamentId} />
+                  </div>
                 </td>
               </tr>
             ))}
