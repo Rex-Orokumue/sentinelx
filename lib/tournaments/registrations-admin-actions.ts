@@ -1,7 +1,7 @@
 'use server'
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireAdmin } from '@/lib/admin/auth'
+import { requireAdmin, requireStaff } from '@/lib/admin/auth'
 import { disqualifySchema, substituteSchema } from './disqualify-schema'
 import { notify } from '@/lib/notifications/notify'
 import { notifyInApp } from '@/lib/notifications/inbox'
@@ -182,5 +182,71 @@ export async function addSubstitute(_prev: DisqualifyState, formData: FormData):
   revalidatePath(`/admin/tournaments/${tournamentId}/registrations`)
   revalidatePath(`/admin/tournaments/${tournamentId}/matches`)
   revalidatePath(`/admin/tournaments/${tournamentId}/bracket`)
+  return { success: true }
+}
+
+// Soft-remove a registered player without the sentinel-score penalty that
+// disqualification carries. Intended for pre-bracket player-count adjustments
+// (e.g. trimming 22 → 20). Payment refund is handled separately.
+export async function removeRegistration(
+  _prev: DisqualifyState,
+  formData: FormData,
+): Promise<DisqualifyState> {
+  await requireStaff()
+  const registrationId = String(formData.get('registrationId') ?? '')
+  const tournamentId = String(formData.get('tournamentId') ?? '')
+  const playerId = String(formData.get('playerId') ?? '')
+  const tournamentTitle = String(formData.get('tournamentTitle') ?? 'the tournament')
+  if (!registrationId || !tournamentId || !playerId) return { error: 'Missing registration.' }
+
+  const admin = createAdminClient()
+
+  const { data: t } = await admin.from('tournaments').select('status').eq('id', tournamentId).maybeSingle()
+  if (!t) return { error: 'Tournament not found.' }
+  if (t.status !== 'registration_open' && t.status !== 'registration_closed') {
+    return { error: 'Players can only be removed before the bracket is published.' }
+  }
+
+  const { data: claimed } = await admin
+    .from('tournament_registrations')
+    .update({ status: 'removed' })
+    .eq('id', registrationId)
+    .eq('status', 'active')
+    .select('id')
+  if (!claimed || claimed.length === 0) {
+    return { error: 'This registration is not active.' }
+  }
+
+  await notifyInApp({
+    playerId,
+    type: 'player_disqualified',
+    title: 'Removed from tournament',
+    body: `You've been removed from ${tournamentTitle}.`,
+  })
+
+  revalidatePath(`/admin/tournaments/${tournamentId}/registrations`)
+  return { success: true }
+}
+
+// Delete a waitlisted registration row entirely — waitlisted players haven't
+// paid or been placed, so there's nothing to preserve.
+export async function removeFromWaitlist(
+  _prev: DisqualifyState,
+  formData: FormData,
+): Promise<DisqualifyState> {
+  await requireStaff()
+  const registrationId = String(formData.get('registrationId') ?? '')
+  const tournamentId = String(formData.get('tournamentId') ?? '')
+  if (!registrationId || !tournamentId) return { error: 'Missing registration.' }
+
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from('tournament_registrations')
+    .delete()
+    .eq('id', registrationId)
+    .eq('status', 'waitlisted')
+  if (error) return { error: 'Could not remove from waitlist.' }
+
+  revalidatePath(`/admin/tournaments/${tournamentId}/registrations`)
   return { success: true }
 }

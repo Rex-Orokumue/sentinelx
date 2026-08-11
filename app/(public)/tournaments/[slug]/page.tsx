@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveRegistrationView } from '@/lib/tournaments/view'
 import { RegistrationPanel } from '@/components/tournament/RegistrationPanel'
 import { formatDate, formatNaira } from '@/lib/format'
@@ -62,8 +63,12 @@ export default async function TournamentDetailPage({
   const t = await getTournament(params.slug)
   if (!t || t.status === 'draft') notFound()
 
+  // The paidCount query uses the service-role client because the RLS policy on
+  // tournament_registrations restricts SELECT to own-row + staff. A regular
+  // user's client would return count = 0 or 1 instead of the real total.
+  const admin = createAdminClient()
   const [{ count: paidCount }, { data: { user } }] = await Promise.all([
-    supabase
+    admin
       .from('tournament_registrations')
       .select('id', { count: 'exact', head: true })
       .eq('tournament_id', t.id)

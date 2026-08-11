@@ -20,7 +20,7 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
   const supabase = createClient()
   const { data: t } = await supabase
     .from('tournaments')
-    .select('id, title, status, registration_fee')
+    .select('id, title, status, registration_fee, max_players')
     .eq('id', params.id)
     .maybeSingle()
   if (!t) notFound()
@@ -97,7 +97,13 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
       <Link href="/admin/tournaments" className="text-sm text-violet-400 hover:text-violet-300">
         ← Tournaments
       </Link>
-      <h2 className="mb-4 mt-2 text-base font-bold text-white">{t.title} · Registrations</h2>
+      <h2 className="mb-2 mt-2 text-base font-bold text-white">{t.title} · Registrations</h2>
+      <p className="mb-4 text-sm text-slate-400">
+        {registeredRows.filter((r) => r.paymentStatus === 'paid' && r.status === 'active').length} paid
+        {' · '}
+        {registeredRows.filter((r) => r.status === 'active').length} registered
+        {t.max_players != null && ` · max ${t.max_players}`}
+      </p>
 
       {(ctx.isAdmin || waivers.length > 0) && (
         <div className="mb-6 space-y-3">
@@ -112,7 +118,7 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
         </div>
       )}
 
-      <WaitlistPanel rows={waitlistRows} />
+      <WaitlistPanel rows={waitlistRows} tournamentId={t.id} />
 
       {registeredRows.length === 0 ? (
         <p className="rounded-2xl border border-slate-800 bg-slate-900/50 p-8 text-center text-sm text-slate-500">

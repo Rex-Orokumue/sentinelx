@@ -5,6 +5,7 @@ import { PlayerSearch } from './PlayerSearch'
 import { formatDateTime } from '@/lib/format'
 import { RefundButton } from './RefundButton'
 import { DisqualifyButton } from './DisqualifyButton'
+import { RemoveButton } from './RemoveButton'
 import { SubstituteForm } from './SubstituteForm'
 
 export interface AdminRegistrationRow {
@@ -49,6 +50,7 @@ export function RegistrationsTable({
     ),
   )
   const showRefunds = tournamentStatus === 'cancelled'
+  const preBracket = tournamentStatus === 'registration_open' || tournamentStatus === 'registration_closed'
   const substitutedIds = new Set(rows.map((r) => r.replacesRegistrationId).filter(Boolean) as string[])
 
   return (
@@ -95,15 +97,27 @@ export function RegistrationsTable({
                           />
                         )}
                       </div>
+                    ) : r.status === 'removed' ? (
+                      <span className="text-xs font-bold text-amber-400">Removed</span>
                     ) : r.status === 'waitlisted' ? (
                       <span className="text-xs font-bold text-amber-400">Waitlisted</span>
                     ) : isAdmin ? (
-                      <DisqualifyButton
-                        registrationId={r.id}
-                        tournamentId={tournamentId}
-                        playerId={r.playerId}
-                        tournamentTitle={tournamentTitle}
-                      />
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {preBracket && (
+                          <RemoveButton
+                            registrationId={r.id}
+                            tournamentId={tournamentId}
+                            playerId={r.playerId}
+                            tournamentTitle={tournamentTitle}
+                          />
+                        )}
+                        <DisqualifyButton
+                          registrationId={r.id}
+                          tournamentId={tournamentId}
+                          playerId={r.playerId}
+                          tournamentTitle={tournamentTitle}
+                        />
+                      </div>
                     ) : (
                       <span className="text-xs capitalize text-slate-400">{r.status}</span>
                     )}
