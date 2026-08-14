@@ -15,7 +15,7 @@
 - Every SX Score change must still write a row to `sx_score_events` (renamed from `sentinel_score_events`) — never update `profiles.sx_score` directly (CLAUDE.md).
 - Admin routes/actions checked server-side via `requireStaff()`/`requireAdmin()` (`lib/admin/auth.ts`).
 - All service-role writes go through `createAdminClient()` (`lib/supabase/admin.ts`).
-- Migrations are additive history — never edit an existing `supabase/migrations/*.sql` file; the next sequential number is `049` (latest existing is `048_game_interest.sql`).
+- Migrations are additive history — never edit an existing `supabase/migrations/*.sql` file; the next sequential number is `050` (renumbered from the original `049` — `main` independently advanced past this branch's fork point and claimed `049_registration_removed_status.sql` first; this plan's Part 1/Part 2 migrations were renamed `049→050` and `050→051` to resolve the collision, and every subsequent migration number below is shifted +1 from its original plan text accordingly; see the renumbering commit for detail).
 - Test runner is Vitest (`npm run test` = `vitest run`); tests are colocated `*.test.ts` files next to their module.
 - **Decisions made to resolve gaps between the design doc and the actual codebase** (the design doc was written without full codebase context — see `docs/superpowers/specs/2026-08-05-phase2-economy-design.md` §2.3, §5.4 for the ambiguities being resolved here):
   1. **Score deltas**: the design doc's rate table (§2.3: win +100, loss +10, no-show −100) is authoritative over its "just ×10 the old values" description (the old values it assumes — "+10 win, −10 no-show" — don't match the actual code, which is `MATCH_COMPLETED_DELTA=2` + `WIN_DELTA=1` stacked, `NO_SHOW_DELTA=-10`). The existing two-event architecture (`match_completed` + `win_no_dispute`) is kept, but the constants are recalibrated so a win still totals 100 and a loss still totals 10: `MATCH_COMPLETED_DELTA=10`, `WIN_DELTA=90`, `NO_SHOW_DELTA=-100`. Historical events are still multiplied ×10 exactly as specified — this is independent of the new constants and stays internally consistent because `computeScore` sums *all* logged deltas from a rescaled `BASE_SCORE`.
@@ -33,11 +33,11 @@
 New files this plan creates:
 
 ```
-supabase/migrations/049_sx_score_rescale.sql
-supabase/migrations/050_xp_membership.sql
-supabase/migrations/051_sx_coins_store.sql
-supabase/migrations/052_achievements.sql
-supabase/migrations/053_wallet_category.sql
+supabase/migrations/050_sx_score_rescale.sql
+supabase/migrations/051_xp_membership.sql
+supabase/migrations/052_sx_coins_store.sql
+supabase/migrations/053_achievements.sql
+supabase/migrations/054_wallet_category.sql
 
 lib/membership/tiers.ts            lib/membership/tiers.test.ts
 lib/membership/xp.ts               lib/membership/xp.test.ts
@@ -78,7 +78,7 @@ Existing files this plan modifies (grouped by task below — not repeated here).
 ### Task 1.1: Migration — rename + rescale
 
 **Files:**
-- Create: `supabase/migrations/049_sx_score_rescale.sql`
+- Create: `supabase/migrations/050_sx_score_rescale.sql`
 
 **Interfaces:**
 - Produces: table `public.sx_score_events` (was `sentinel_score_events`, same columns), column `public.profiles.sx_score` (was `sentinel_score`), rescaled generated column `public.profiles.sentinel_tier`.
@@ -86,7 +86,7 @@ Existing files this plan modifies (grouped by task below — not repeated here).
 - [x] **Step 1: Write the migration**
 
 ```sql
--- 049_sx_score_rescale.sql
+-- 050_sx_score_rescale.sql
 -- Phase 2 Economy §2: rename Sentinel Score -> SX Score and rescale ×10,
 -- removing the 0-100 upper cap (now floored at 0 only). See
 -- docs/superpowers/specs/2026-08-05-phase2-economy-design.md §2.
@@ -144,7 +144,7 @@ Regenerated via MCP tool. Confirmed `sx_score`/`sx_score_events` present; the on
 - [ ] **Step 4: Commit**
 
 ```bash
-git add supabase/migrations/049_sx_score_rescale.sql lib/supabase/types.ts
+git add supabase/migrations/050_sx_score_rescale.sql lib/supabase/types.ts
 git commit -m "feat(sx-score): migrate sentinel_score -> sx_score, rescale ×10"
 ```
 
@@ -454,12 +454,12 @@ git commit -m "feat(sx-score): rename remaining UI/type/label references sentine
 ### Task 2.1: Migration — XP, membership tier, login streak columns + `xp_events`
 
 **Files:**
-- Create: `supabase/migrations/050_xp_membership.sql`
+- Create: `supabase/migrations/051_xp_membership.sql`
 
 - [ ] **Step 1: Write the migration**
 
 ```sql
--- 050_xp_membership.sql
+-- 051_xp_membership.sql
 -- Phase 2 Economy §4: XP-based membership tiers, plus daily-login tracking
 -- columns (§3.7) landed here since they're both profiles-level additions
 -- with no cross-table dependency. See
@@ -517,7 +517,7 @@ ALTER TABLE public.player_notifications ADD CONSTRAINT player_notifications_type
 Apply via Supabase MCP `apply_migration` (name `xp_membership`) or CLI push. Regenerate `lib/supabase/types.ts` (same command as Task 1.1 Step 3).
 
 ```bash
-git add supabase/migrations/050_xp_membership.sql lib/supabase/types.ts
+git add supabase/migrations/051_xp_membership.sql lib/supabase/types.ts
 git commit -m "feat(xp): add xp/membership_tier/login_streak columns and xp_events ledger"
 ```
 
@@ -1038,12 +1038,12 @@ git commit -m "feat(login-streak): wire recordDailyLogin into dashboard page loa
 ### Task 3.1: Migration — coins, ledger, store tables
 
 **Files:**
-- Create: `supabase/migrations/051_sx_coins_store.sql`
+- Create: `supabase/migrations/052_sx_coins_store.sql`
 
 - [ ] **Step 1: Write the migration**
 
 ```sql
--- 051_sx_coins_store.sql
+-- 052_sx_coins_store.sql
 -- Phase 2 Economy §3: SX Coins balance + ledger, and the cosmetics Store
 -- catalogue + player inventory. See
 -- docs/superpowers/specs/2026-08-05-phase2-economy-design.md §3.
@@ -1145,7 +1145,7 @@ INSERT INTO public.store_items (slug, name, description, category, price_coins, 
 Apply via Supabase MCP `apply_migration` (name `sx_coins_store`). Regenerate `lib/supabase/types.ts`.
 
 ```bash
-git add supabase/migrations/051_sx_coins_store.sql lib/supabase/types.ts
+git add supabase/migrations/052_sx_coins_store.sql lib/supabase/types.ts
 git commit -m "feat(coins): add sx_coins ledger and store catalogue tables, seed initial items"
 ```
 
@@ -1828,12 +1828,12 @@ git commit -m "feat(store): add purchaseStoreItem/equipStoreItem server actions"
 ### Task 4.1: Migration — `achievements` + `player_achievements`
 
 **Files:**
-- Create: `supabase/migrations/052_achievements.sql`
+- Create: `supabase/migrations/053_achievements.sql`
 
 - [ ] **Step 1: Write the migration**
 
 ```sql
--- 052_achievements.sql
+-- 053_achievements.sql
 -- Phase 2 Economy §5: achievement catalogue + per-player unlocks. See
 -- docs/superpowers/specs/2026-08-05-phase2-economy-design.md §5.
 
@@ -1915,7 +1915,7 @@ INSERT INTO public.achievements (slug, name, description, category, xp_reward, c
 Apply via Supabase MCP `apply_migration` (name `achievements`). Regenerate `lib/supabase/types.ts`. Confirm `SELECT count(*) FROM achievements;` returns 30.
 
 ```bash
-git add supabase/migrations/052_achievements.sql lib/supabase/types.ts
+git add supabase/migrations/053_achievements.sql lib/supabase/types.ts
 git commit -m "feat(achievements): add achievements/player_achievements tables, seed 30-item catalogue"
 ```
 
@@ -1931,7 +1931,7 @@ git commit -m "feat(achievements): add achievements/player_achievements tables, 
 
 ```ts
 // Mirrors the achievements.category CHECK constraint in
-// supabase/migrations/052_achievements.sql — keep these two in sync.
+// supabase/migrations/053_achievements.sql — keep these two in sync.
 export const ACHIEVEMENT_CATEGORIES = ['matches', 'tournaments', 'score', 'season', 'profile', 'community'] as const
 export type AchievementCategory = (typeof ACHIEVEMENT_CATEGORIES)[number]
 
@@ -2773,12 +2773,12 @@ git commit -m "feat(ui): show membership tier badge on leaderboards"
 ### Task 7.1: Migration — `wallet_transactions.category` + backfill
 
 **Files:**
-- Create: `supabase/migrations/053_wallet_category.sql`
+- Create: `supabase/migrations/054_wallet_category.sql`
 
 - [ ] **Step 1: Write the migration**
 
 ```sql
--- 053_wallet_category.sql
+-- 054_wallet_category.sql
 -- Phase 2 Economy §6: earnings-breakdown category on wallet_transactions.
 -- See docs/superpowers/specs/2026-08-05-phase2-economy-design.md §6.
 
@@ -2802,7 +2802,7 @@ UPDATE public.wallet_transactions SET category = 'withdrawal' WHERE type IN ('wi
 Apply via Supabase MCP `apply_migration` (name `wallet_category`). Regenerate `lib/supabase/types.ts`. Confirm `SELECT category, count(*) FROM wallet_transactions GROUP BY category;` shows no unexpected NULLs.
 
 ```bash
-git add supabase/migrations/053_wallet_category.sql lib/supabase/types.ts
+git add supabase/migrations/054_wallet_category.sql lib/supabase/types.ts
 git commit -m "feat(wallet): add category column to wallet_transactions, backfill from type"
 ```
 

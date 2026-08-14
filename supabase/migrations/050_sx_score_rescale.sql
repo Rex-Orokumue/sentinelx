@@ -1,4 +1,4 @@
--- 049_sx_score_rescale.sql
+-- 050_sx_score_rescale.sql (renumbered from 049 - see commit msg)
 -- Phase 2 Economy §2: rename Sentinel Score -> SX Score and rescale ×10,
 -- removing the 0-100 upper cap (now floored at 0 only). See
 -- docs/superpowers/specs/2026-08-05-phase2-economy-design.md §2.

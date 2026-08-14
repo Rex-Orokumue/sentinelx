@@ -1,4 +1,4 @@
--- 050_xp_membership.sql
+-- 051_xp_membership.sql (renumbered from 050 - see commit msg)
 -- Phase 2 Economy §4: XP-based membership tiers, plus daily-login tracking
 -- columns (§3.7) landed here since they're both profiles-level additions
 -- with no cross-table dependency. See
