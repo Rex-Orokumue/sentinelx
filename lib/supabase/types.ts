@@ -2163,6 +2163,7 @@ export type Database = {
       wallet_transactions: {
         Row: {
           amount: number
+          category: string | null
           created_at: string
           id: string
           note: string | null
@@ -2172,6 +2173,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          category?: string | null
           created_at?: string
           id?: string
           note?: string | null
@@ -2181,6 +2183,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          category?: string | null
           created_at?: string
           id?: string
           note?: string | null
