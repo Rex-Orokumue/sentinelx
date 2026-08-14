@@ -14,6 +14,7 @@ import { getNotifiableStaffIds } from '@/lib/admin/staff'
 import { canMarkBothNoShow } from './noshow-eligibility'
 import { resolvePlayerPhone } from './admin-whatsapp'
 import { refundMatchBets } from '@/lib/betting/settle'
+import { awardMatchEconomy } from './economy-hooks'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -228,6 +229,7 @@ export async function declareNoShowWinner(_prev: NoShowState, formData: FormData
     })
   }
   await syncMatchEvents(admin, id)
+  await awardMatchEconomy(admin, id)
 
   const t = Array.isArray(m.tournament) ? m.tournament[0] : m.tournament
   await notify({

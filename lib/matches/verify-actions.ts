@@ -23,6 +23,7 @@ import { creditWallet } from '@/lib/wallet/service'
 import { settleMatchBets, refundMatchBets } from '@/lib/betting/settle'
 import { revalidateAll, revalidateThirdPlaceCredit } from './revalidate'
 import { awardSeasonPoints } from './season-points'
+import { awardMatchEconomy } from './economy-hooks'
 
 export type VerifyState = { error?: string; success?: boolean } | undefined
 type Admin = ReturnType<typeof createAdminClient>
@@ -393,6 +394,7 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
   }
 
   await syncMatchEvents(admin, id)
+  await awardMatchEconomy(admin, id)
 
   type NameRef =
     | { display_name: string | null; username: string | null }
