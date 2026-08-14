@@ -32,6 +32,8 @@ import { TournamentStatusBanners } from '@/components/dashboard/TournamentStatus
 import { MastersInvitationBanner } from '@/components/dashboard/MastersInvitationBanner'
 import { recordDailyLogin } from '@/lib/login/actions'
 import { getCoinBalance } from '@/lib/coins/service'
+import { getEarningsBreakdown } from '@/lib/wallet/breakdown'
+import { EarningsBreakdownPanel } from '@/components/dashboard/EarningsBreakdownPanel'
 import { XPProgressPanel } from '@/components/dashboard/XPProgressPanel'
 import { CoinBalancePanel } from '@/components/dashboard/CoinBalancePanel'
 import { RecentAchievements, type RecentAchievement } from '@/components/dashboard/RecentAchievements'
@@ -132,6 +134,7 @@ export default async function DashboardPage({
     myGroupMembershipsRes,
     coinBalance,
     achievementsRes,
+    earningsBreakdown,
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -217,6 +220,7 @@ export default async function DashboardPage({
       .eq('player_id', user.id)
       .order('unlocked_at', { ascending: false })
       .limit(3),
+    getEarningsBreakdown(createAdminClient(), user.id),
   ])
 
   const profile = profileRes.data
@@ -623,6 +627,9 @@ export default async function DashboardPage({
             Payment was not completed. You can try again below.
           </div>
         )}
+        <div className="mb-4">
+          <EarningsBreakdownPanel breakdown={earningsBreakdown} />
+        </div>
         <WalletPanel
           balance={walletBalance}
           requests={walletRequests}
