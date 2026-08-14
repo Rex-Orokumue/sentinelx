@@ -25,6 +25,7 @@ export interface PlayerStatsInput {
   totalTitles: number
   sxScore: number
   sentinelTier: string | null
+  membershipTier: string
 }
 
 export interface RankedPlayer extends PlayerStatsInput {

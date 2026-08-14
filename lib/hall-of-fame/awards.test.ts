@@ -27,6 +27,7 @@ function p(over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput {
     totalTitles: 0,
     sxScore: 700,
     sentinelTier: null,
+    membershipTier: 'recruit',
     ...over,
   }
 }

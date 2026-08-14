@@ -55,7 +55,7 @@ export default async function HallOfFamePage() {
     supabase
       .from('profiles')
       .select(
-        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sx_score, sentinel_tier',
+        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sx_score, sentinel_tier, membership_tier',
       )
       .gte('total_matches', RANKING_MIN_MATCHES),
     supabase
@@ -121,6 +121,7 @@ export default async function HallOfFamePage() {
     totalTitles: p.total_titles,
     sxScore: p.sx_score,
     sentinelTier: p.sentinel_tier,
+    membershipTier: p.membership_tier,
   }))
 
   const mvp = pickMVP(players)
