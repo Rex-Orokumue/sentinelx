@@ -3,23 +3,9 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCoinBalance } from './service'
+import { decidePurchase } from './decide'
 
 export type PurchaseState = { error?: string; success?: boolean } | undefined
-
-interface PurchaseItemInput {
-  item: { active: boolean; price_coins: number }
-  alreadyOwned: boolean
-  balance: number
-}
-type PurchaseDecision = { ok: true } | { ok: false; error: string }
-
-// Pure — unit tested directly, no IO.
-export function decidePurchase({ item, alreadyOwned, balance }: PurchaseItemInput): PurchaseDecision {
-  if (!item.active) return { ok: false, error: 'This item is no longer available.' }
-  if (alreadyOwned) return { ok: false, error: 'You already own this item.' }
-  if (balance < item.price_coins) return { ok: false, error: 'Not enough SX Coins.' }
-  return { ok: true }
-}
 
 export async function purchaseStoreItem(_prev: PurchaseState, formData: FormData): Promise<PurchaseState> {
   const itemId = String(formData.get('itemId') ?? '')

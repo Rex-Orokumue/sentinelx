@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { decidePurchase } from './actions'
+import { decidePurchase } from './decide'
 
 describe('decidePurchase', () => {
   it('rejects an inactive item', () => {
