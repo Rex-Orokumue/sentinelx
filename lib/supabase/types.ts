@@ -1244,6 +1244,45 @@ export type Database = {
           },
         ]
       }
+      player_store_items: {
+        Row: {
+          equipped: boolean
+          id: string
+          item_id: string
+          player_id: string
+          purchased_at: string
+        }
+        Insert: {
+          equipped?: boolean
+          id?: string
+          item_id: string
+          player_id: string
+          purchased_at?: string
+        }
+        Update: {
+          equipped?: boolean
+          id?: string
+          item_id?: string
+          player_id?: string
+          purchased_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_store_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "store_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_store_items_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1502,6 +1541,118 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      store_items: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          preview_url: string | null
+          price_coins: number
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          preview_url?: string | null
+          price_coins: number
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          preview_url?: string | null
+          price_coins?: number
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      sx_coin_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          player_id: string
+          reference_id: string | null
+          source: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          player_id: string
+          reference_id?: string | null
+          source: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          player_id?: string
+          reference_id?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sx_coin_transactions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sx_coins: {
+        Row: {
+          balance: number
+          player_id: string
+          total_earned: number
+          total_spent: number
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          player_id: string
+          total_earned?: number
+          total_spent?: number
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          player_id?: string
+          total_earned?: number
+          total_spent?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sx_coins_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sx_score_events: {
         Row: {
