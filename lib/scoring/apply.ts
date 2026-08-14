@@ -3,6 +3,7 @@ import { getChampion, type BracketMatch } from '@/lib/tournaments/bracket'
 import { AUTO_MATCH_EVENT_TYPES, matchEventsFor } from './events'
 import { computeAggregates, type CompletedMatch } from './stats'
 import { computeScore } from './score'
+import { checkAndUnlockAchievements } from '@/lib/achievements/unlock'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -129,6 +130,8 @@ export async function refreshPlayer(admin: Admin, playerId: string): Promise<voi
     .from('profiles')
     .update({ ...aggregates, sx_score })
     .eq('id', playerId)
+
+  await checkAndUnlockAchievements(admin, playerId, { type: 'sx_score_updated', newScore: sx_score })
 }
 
 // Confirm/dispute hook: regenerate one match's events, then refresh both players.

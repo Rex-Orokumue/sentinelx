@@ -7,6 +7,7 @@ import { toWhatsAppNumber } from './number'
 import { sendWhatsAppOtp } from '@/lib/notifications/whatsapp-cloud-api'
 import { phoneCodeSchema } from './schema'
 import { hashCode, codeMatches } from './hash'
+import { checkAndUnlockAchievements } from '@/lib/achievements/unlock'
 
 export type PhoneActionState = { error?: string; success?: boolean } | undefined
 
@@ -105,6 +106,7 @@ export async function confirmPhoneCode(
     .from('profiles')
     .update({ phone: pending.phone, phone_verified_at: new Date().toISOString() })
     .eq('id', user.id)
+  await checkAndUnlockAchievements(admin, user.id, { type: 'profile_updated' })
   await admin.from('phone_verifications').delete().eq('user_id', user.id)
 
   revalidatePath('/dashboard')

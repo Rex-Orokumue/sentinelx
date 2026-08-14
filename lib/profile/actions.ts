@@ -1,6 +1,8 @@
 'use server'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { checkAndUnlockAchievements } from '@/lib/achievements/unlock'
 import { profileEditSchema } from './schema'
 
 export type ProfileEditState = { error?: string; success?: boolean } | undefined
@@ -40,6 +42,8 @@ export async function updateProfile(
     console.error('updateProfile: update failed', error)
     return { error: 'Could not save your profile. Please try again.' }
   }
+
+  await checkAndUnlockAchievements(createAdminClient(), user.id, { type: 'profile_updated' })
 
   revalidatePath('/dashboard')
   revalidatePath('/players/[username]', 'page')
