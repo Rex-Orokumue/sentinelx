@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import { matchesPlayerQuery } from '@/lib/admin/search'
 import { PlayerSearch } from './PlayerSearch'
 import { formatDateTime } from '@/lib/format'
@@ -77,7 +78,9 @@ export function RegistrationsTable({
               {filtered.map((r) => (
                 <tr key={r.id} className="border-b border-slate-800/50 last:border-0">
                   <td className="px-3 py-2.5 font-semibold text-white">
-                    {r.regDisplayName ?? r.username ?? 'Unknown'}
+                    <Link href={`/admin/players/${r.playerId}`} className="hover:text-violet-300 hover:underline">
+                      {r.regDisplayName ?? r.username ?? 'Unknown'}
+                    </Link>
                   </td>
                   <td className="px-2 py-2.5 text-slate-300">{r.regWhatsapp ?? '—'}</td>
                   <td className="px-2 py-2.5 text-slate-300">{r.regClubName ?? '—'}</td>
