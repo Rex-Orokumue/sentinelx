@@ -31,6 +31,11 @@ import type { MembershipInput } from '@/lib/tournaments/standings'
 import { TournamentStatusBanners } from '@/components/dashboard/TournamentStatusBanner'
 import { MastersInvitationBanner } from '@/components/dashboard/MastersInvitationBanner'
 import { recordDailyLogin } from '@/lib/login/actions'
+import { getCoinBalance } from '@/lib/coins/service'
+import { XPProgressPanel } from '@/components/dashboard/XPProgressPanel'
+import { CoinBalancePanel } from '@/components/dashboard/CoinBalancePanel'
+import { RecentAchievements, type RecentAchievement } from '@/components/dashboard/RecentAchievements'
+import { LoginStreakBadge } from '@/components/dashboard/LoginStreakBadge'
 
 export const metadata: Metadata = {
   title: 'Dashboard · SentinelX Esports',
@@ -125,11 +130,13 @@ export default async function DashboardPage({
     friendsRes,
     friendliesRes,
     myGroupMembershipsRes,
+    coinBalance,
+    achievementsRes,
   ] = await Promise.all([
     supabase
       .from('profiles')
       .select(
-        'username, display_name, avatar_url, whatsapp_number, country, bio, wins, losses, goals_scored, phone_verified_at',
+        'username, display_name, avatar_url, whatsapp_number, country, bio, wins, losses, goals_scored, phone_verified_at, xp, membership_tier, login_streak',
       )
       .eq('id', user.id)
       .maybeSingle(),
@@ -203,9 +210,22 @@ export default async function DashboardPage({
       .from('group_memberships')
       .select('group_id, groups(tournament_id)')
       .eq('player_id', user.id),
+    getCoinBalance(createAdminClient(), user.id),
+    supabase
+      .from('player_achievements')
+      .select('unlocked_at, achievements(name)')
+      .eq('player_id', user.id)
+      .order('unlocked_at', { ascending: false })
+      .limit(3),
   ])
 
   const profile = profileRes.data
+  type AchievementNameRef = { name: string } | { name: string }[] | null
+  const recentAchievements: RecentAchievement[] = ((achievementsRes.data as unknown[] | null) ?? []).map((raw) => {
+    const row = raw as { unlocked_at: string; achievements: AchievementNameRef }
+    const ref = Array.isArray(row.achievements) ? row.achievements[0] ?? null : row.achievements
+    return { name: ref?.name ?? 'Achievement', unlockedAt: row.unlocked_at }
+  })
   const myListings: MyListing[] = (listingsRes.data ?? []).map((l) => ({
     id: l.id,
     title: l.title,
@@ -504,6 +524,14 @@ export default async function DashboardPage({
         wins={profile?.wins ?? 0}
         losses={profile?.losses ?? 0}
       />
+      <CollapsibleSection id="progression" title="Your Progress" defaultOpen>
+        <div className="space-y-3">
+          <XPProgressPanel xp={profile?.xp ?? 0} />
+          <CoinBalancePanel balance={coinBalance} />
+          <LoginStreakBadge streak={profile?.login_streak ?? 0} />
+          <RecentAchievements achievements={recentAchievements} />
+        </div>
+      </CollapsibleSection>
       {pendingInvitationRow && pendingInvitationTournament && (
         <MastersInvitationBanner
           invitation={{
