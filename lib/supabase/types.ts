@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string
+          coin_reward: number
+          description: string
+          icon_url: string | null
+          id: string
+          name: string
+          phase: string
+          slug: string
+          sort_order: number
+          xp_reward: number
+        }
+        Insert: {
+          category: string
+          coin_reward?: number
+          description: string
+          icon_url?: string | null
+          id?: string
+          name: string
+          phase?: string
+          slug: string
+          sort_order?: number
+          xp_reward?: number
+        }
+        Update: {
+          category?: string
+          coin_reward?: number
+          description?: string
+          icon_url?: string | null
+          id?: string
+          name?: string
+          phase?: string
+          slug?: string
+          sort_order?: number
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       admin_flags: {
         Row: {
           created_at: string
@@ -1151,6 +1190,42 @@ export type Database = {
             foreignKeyName: "phone_verifications_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_achievements: {
+        Row: {
+          achievement_id: string
+          id: string
+          player_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          achievement_id: string
+          id?: string
+          player_id: string
+          unlocked_at?: string
+        }
+        Update: {
+          achievement_id?: string
+          id?: string
+          player_id?: string
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_achievements_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
