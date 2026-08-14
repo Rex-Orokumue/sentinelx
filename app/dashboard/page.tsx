@@ -30,6 +30,7 @@ import {
 import type { MembershipInput } from '@/lib/tournaments/standings'
 import { TournamentStatusBanners } from '@/components/dashboard/TournamentStatusBanner'
 import { MastersInvitationBanner } from '@/components/dashboard/MastersInvitationBanner'
+import { recordDailyLogin } from '@/lib/login/actions'
 
 export const metadata: Metadata = {
   title: 'Dashboard · SentinelX Esports',
@@ -104,6 +105,8 @@ export default async function DashboardPage({
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/dashboard')
+
+  await recordDailyLogin(createAdminClient(), user.id)
 
   const [
     profileRes,
