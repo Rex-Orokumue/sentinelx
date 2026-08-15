@@ -49,7 +49,9 @@ export function HexAvatar({
   const heightPx = hexHeight(widthPx)
   const borderPx = BORDER_WIDTH_PX[tier]
   const showImage = src && !errored
-  const initials = username.slice(0, 2).toUpperCase()
+  // Defensive against real rows with neither display_name nor username set —
+  // callers type this as a required string, but runtime data isn't validated.
+  const initials = (username || '?').slice(0, 2).toUpperCase()
   const { topRight, bottomRight } = resolveDecorations(achievements)
   const badgeSize = Math.max(14, Math.round(widthPx * 0.28))
 
