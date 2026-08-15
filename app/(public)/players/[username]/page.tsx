@@ -375,7 +375,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
       <div id="top" className="grid gap-6 pb-4 lg:grid-cols-[240px_1fr]">
         {/* ── Left sidebar ──────────────────────────────────── */}
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <ProfileSidebarNav />
+          <ProfileSidebarNav isOwner={!!user && user.id === p.id} />
           <ProfileTournamentsPromo />
         </aside>
 

@@ -3,20 +3,25 @@ import { User, BarChart3, Medal, ListChecks, Wallet, Settings } from 'lucide-rea
 
 // In-page section jumps for the sections that actually exist on this page;
 // Wallet & Settings route to the real Dashboard panels that already own that
-// functionality rather than duplicating them here.
-const ITEMS = [
+// functionality rather than duplicating them here — shown ONLY to the
+// profile's own owner, since both links point at the viewer's own /dashboard,
+// which is meaningless (and misleading) for anyone viewing someone else's profile.
+const BASE_ITEMS = [
   { href: '#top', label: 'Profile Overview', Icon: User, active: true },
   { href: '#stats', label: 'Stats & Games', Icon: BarChart3, active: false },
   { href: '#achievements', label: 'Achievements', Icon: Medal, active: false },
   { href: '#match-history', label: 'Match History', Icon: ListChecks, active: false },
+]
+const OWNER_ONLY_ITEMS = [
   { href: '/dashboard', label: 'Wallet & Rewards', Icon: Wallet, active: false },
   { href: '/dashboard', label: 'Settings', Icon: Settings, active: false },
 ]
 
-export function ProfileSidebarNav() {
+export function ProfileSidebarNav({ isOwner }: { isOwner: boolean }) {
+  const items = isOwner ? [...BASE_ITEMS, ...OWNER_ONLY_ITEMS] : BASE_ITEMS
   return (
     <nav className="rounded-xl border border-sx-border bg-sx-surface p-2">
-      {ITEMS.map((item) => (
+      {items.map((item) => (
         <Link
           key={item.label}
           href={item.href}
