@@ -2,82 +2,76 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { WalletPanel, type WalletRequestRow } from '@/components/dashboard/WalletPanel'
-import { EarningsBreakdownPanel } from '@/components/dashboard/EarningsBreakdownPanel'
-import { getEarningsBreakdown } from '@/lib/wallet/breakdown'
-import { listBanks, type Bank } from '@/lib/paystack/server'
+import { BalanceHeroCard } from '@/components/wallet/BalanceHeroCard'
+import { QuickActionsRow } from '@/components/wallet/QuickActionsRow'
+import { EarningsOverview } from '@/components/wallet/EarningsOverview'
+import { RecentTransactionsList } from '@/components/wallet/RecentTransactionsList'
+import { WalletSecurityBadges } from '@/components/wallet/WalletSecurityBadges'
+import { RewardsProgressWidget } from '@/components/wallet/RewardsProgressWidget'
+import { mapTransactionRows, type RawWalletTxnRow } from '@/lib/wallet/transactions'
+import { monthOverMonthChange } from '@/lib/wallet/earnings-trend'
+import { summarizeEarningsByCategory } from '@/lib/wallet/breakdown'
 
 export const metadata: Metadata = {
   title: 'Wallet · SentinelX Esports',
   robots: { index: false, follow: false },
 }
 
-export default async function DashboardWalletPage({
-  searchParams,
-}: {
-  searchParams: { deposit?: string }
-}) {
+export default async function WalletOverviewPage() {
   const supabase = createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/dashboard/wallet')
 
-  const [walletRes, walletRequestsRes, kycRes, banks, earningsBreakdown] = await Promise.all([
-    supabase.from('wallets').select('balance').eq('player_id', user.id).maybeSingle(),
-    supabase
-      .from('withdrawal_requests')
-      .select('id, amount, bank_name, account_number, account_name, status, admin_note, requested_at, resolved_at')
+  const admin = createAdminClient()
+  const [walletRes, allTxnRes, pendingWithdrawalsRes, profileRes] = await Promise.all([
+    admin.from('wallets').select('balance').eq('player_id', user.id).maybeSingle(),
+    admin
+      .from('wallet_transactions')
+      .select('id, type, category, amount, reference_id, note, created_at')
       .eq('player_id', user.id)
-      .order('requested_at', { ascending: false }),
-    supabase
-      .from('player_kyc')
-      .select('kyc_status, kyc_failure_reason, payout_bank_name, payout_account_number, payout_account_name')
-      .eq('player_id', user.id)
-      .maybeSingle(),
-    listBanks().catch(() => [] as Bank[]),
-    getEarningsBreakdown(createAdminClient(), user.id),
+      .order('created_at', { ascending: false }),
+    admin.from('withdrawal_requests').select('id, amount, status').eq('player_id', user.id).eq('status', 'pending'),
+    admin.from('profiles').select('xp, kyc_verified').eq('id', user.id).maybeSingle(),
   ])
 
-  const kyc = kycRes.data
-  const walletBalance = walletRes.data?.balance ?? 0
-  const walletRequests = (walletRequestsRes.data ?? []) as WalletRequestRow[]
-  const hasActive = walletRequests.some((w) => w.status === 'pending')
-  const payoutAccount =
-    kyc?.payout_bank_name && kyc?.payout_account_number && kyc?.payout_account_name
-      ? { bankName: kyc.payout_bank_name, accountNumber: kyc.payout_account_number, accountName: kyc.payout_account_name }
-      : null
+  const allTxnRows = (allTxnRes.data ?? []) as RawWalletTxnRow[]
+  const pendingWithdrawalTotal = (pendingWithdrawalsRes.data ?? []).reduce((sum, r) => sum + r.amount, 0)
+
+  // Every withdrawal-status lookup this page needs is for the player's own
+  // rows — fetch withdrawal_requests statuses by id for the recent-5 slice only.
+  const recentRaw = allTxnRows.slice(0, 5)
+  const withdrawalRequestIds = recentRaw.flatMap((r) => (r.type === 'withdrawal_request' && r.reference_id ? [r.reference_id] : []))
+  const { data: wrRows } =
+    withdrawalRequestIds.length > 0
+      ? await admin.from('withdrawal_requests').select('id, status').in('id', withdrawalRequestIds)
+      : { data: [] as { id: string; status: string }[] }
+  const withdrawalStatusById = new Map((wrRows ?? []).map((r) => [r.id, r.status]))
+  const recentTransactions = mapTransactionRows(recentRaw, withdrawalStatusById)
+
+  const breakdown = summarizeEarningsByCategory(allTxnRows)
+  const tournamentPrizeTrendPct = monthOverMonthChange(allTxnRows, 'tournament_prize', new Date())
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-20">
-      <div className="py-8">
-        <h1 className="text-2xl font-black text-white">Wallet</h1>
-        <p className="mt-1 text-sm text-slate-400">Earnings, deposits, and prize withdrawals.</p>
-      </div>
-
-      {searchParams.deposit === 'paid' && (
-        <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-400">
-          🎉 Wallet funded — your balance is updated below.
-        </div>
-      )}
-      {searchParams.deposit === 'failed' && (
-        <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400">
-          Payment was not completed. You can try again below.
-        </div>
-      )}
-
-      <div className="mb-4">
-        <EarningsBreakdownPanel breakdown={earningsBreakdown} />
-      </div>
-      <WalletPanel
-        balance={walletBalance}
-        requests={walletRequests}
-        hasActive={hasActive}
-        kycStatus={kyc?.kyc_status ?? 'unverified'}
-        kycFailureReason={kyc?.kyc_failure_reason ?? null}
-        banks={banks}
-        payoutAccount={payoutAccount}
+    <>
+      <BalanceHeroCard balance={walletRes.data?.balance ?? 0} pendingWithdrawal={pendingWithdrawalTotal} />
+      <QuickActionsRow />
+      <EarningsOverview
+        tournamentPrize={breakdown.tournament_prize ?? 0}
+        tournamentPrizeTrendPct={tournamentPrizeTrendPct}
+        referral={breakdown.referral ?? 0}
+        bonus={breakdown.bonus ?? 0}
       />
-    </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <RecentTransactionsList transactions={recentTransactions} />
+        </div>
+        <div className="space-y-4">
+          <RewardsProgressWidget xp={profileRes.data?.xp ?? 0} />
+          <WalletSecurityBadges kycVerified={profileRes.data?.kyc_verified ?? false} />
+        </div>
+      </div>
+    </>
   )
 }
