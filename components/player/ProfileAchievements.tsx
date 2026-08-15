@@ -5,7 +5,7 @@ import type { ProfileTitle } from '@/lib/players/profile'
 
 export function ProfileAchievements({ titles }: { titles: ProfileTitle[] }) {
   return (
-    <section id="achievements" className="scroll-mt-24">
+    <section id="achievements" className="min-w-0 scroll-mt-24">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-bold uppercase tracking-widest text-white">Achievements</h2>
       </div>

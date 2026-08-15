@@ -17,7 +17,7 @@ export function CareerStatsRadar() {
   const vertices = AXES.map((_, i) => pointAt(i, RADIUS))
 
   return (
-    <section id="career-stats">
+    <section id="career-stats" className="min-w-0">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-bold uppercase tracking-widest text-white">Career Stats</h2>
       </div>

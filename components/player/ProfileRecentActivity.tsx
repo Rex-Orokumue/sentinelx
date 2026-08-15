@@ -21,7 +21,7 @@ function timeAgo(iso: string | null): string {
 export function ProfileRecentActivity({ matches }: { matches: ProfileMatch[] }) {
   const recent = matches.slice(0, 5)
   return (
-    <section>
+    <section className="min-w-0">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-bold uppercase tracking-widest text-white">Recent Activity</h2>
       </div>
