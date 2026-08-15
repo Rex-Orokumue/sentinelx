@@ -56,3 +56,18 @@
     display: none;
   }
 }
+
+/* HexAvatar — Legend tier animated border (see docs/superpowers/specs/2026-08-15-hex-avatar-design.md §5.3).
+   Tailwind can't animate conic-gradient natively, so this lives as plain CSS. */
+@property --legend-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+.hexavatar-legend-border {
+  background: conic-gradient(from var(--legend-angle), #EF4444, #F59E0B, #EF4444);
+  animation: hexavatar-legend-spin 6s linear infinite;
+}
+@keyframes hexavatar-legend-spin {
+  to { --legend-angle: 360deg; }
+}
