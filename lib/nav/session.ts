@@ -14,6 +14,7 @@ export interface NotificationItem {
 export interface NavSession {
   isLoggedIn: boolean
   isStaff: boolean
+  isAdmin: boolean
   id: string | null
   username: string | null
   displayName: string | null
@@ -25,6 +26,7 @@ export interface NavSession {
 const LOGGED_OUT: NavSession = {
   isLoggedIn: false,
   isStaff: false,
+  isAdmin: false,
   id: null,
   username: null,
   displayName: null,
@@ -69,6 +71,7 @@ export async function getNavSession(): Promise<NavSession> {
   return {
     isLoggedIn: true,
     isStaff: staff?.isStaff ?? false,
+    isAdmin: staff?.isAdmin ?? false,
     id: user.id,
     username: profile?.username ?? null,
     displayName: profile?.display_name ?? null,

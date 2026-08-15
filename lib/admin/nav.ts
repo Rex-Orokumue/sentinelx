@@ -1,3 +1,5 @@
+import type { AdminNotificationItem } from './notification-copy'
+
 export interface AdminNavItem {
   label: string
   href: string
@@ -33,4 +35,13 @@ export function visibleNav(items: AdminNavItem[], isAdmin: boolean): AdminNavIte
 export function isAdminNavActive(href: string, pathname: string): boolean {
   if (href === '/admin') return pathname === '/admin'
   return pathname === href || pathname.startsWith(`${href}/`)
+}
+
+// What MobileNavSheet's Admin section (components/shared/MobileNavSheet.tsx)
+// and the root layout (app/layout.tsx) pass around. null means "signed-in
+// user is not staff — don't render the Admin section at all."
+export interface AdminSheetData {
+  items: AdminNavItem[]
+  isAdmin: boolean
+  notifications: AdminNotificationItem[]
 }
