@@ -55,8 +55,18 @@ export async function purchaseStoreItem(_prev: PurchaseState, formData: FormData
   })
   const { error: insertErr } = await admin.from('player_store_items').insert({ player_id: user.id, item_id: itemId })
   if (insertErr) {
-    // UNIQUE(player_id, item_id) race — refund the coins we just deducted.
+    // UNIQUE(player_id, item_id) race — refund the coins we just deducted, and
+    // write a compensating ledger row so sx_coin_transactions still reconciles
+    // against sx_coins.balance (the earlier debit row above stays in the ledger).
     await admin.from('sx_coins').update({ balance, total_spent: coinsRow?.total_spent ?? 0 }).eq('player_id', user.id)
+    await admin.from('sx_coin_transactions').insert({
+      player_id: user.id,
+      amount: item.price_coins,
+      balance_after: balance,
+      source: 'store_purchase',
+      reference_id: itemId,
+      description: `Refund — already owned: ${item.name}`,
+    })
     return { error: 'You already own this item.' }
   }
 

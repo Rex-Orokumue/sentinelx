@@ -10,11 +10,18 @@ type Admin = ReturnType<typeof createAdminClient>
 // primary render path. design doc §3.7.
 export async function recordDailyLogin(admin: Admin, playerId: string, now: Date = new Date()): Promise<void> {
   try {
-    const { data: profile } = await admin
+    const { data: profile, error: profileErr } = await admin
       .from('profiles')
       .select('last_login_date, login_streak')
       .eq('id', playerId)
       .maybeSingle()
+
+    if (profileErr) {
+      // A real read failure — never fall through to the "never logged in
+      // before" path, which would reset the player's streak to 1.
+      console.error('[recordDailyLogin] profile read failed', { playerId, message: profileErr.message })
+      return
+    }
 
     const state = nextLoginState({
       lastLoginDate: profile?.last_login_date ?? null,

@@ -18,6 +18,7 @@ Sentinel X is a mobile esports platform built for competitive mobile gamers in N
 - /hall-of-fame — season champions and award winners
 - /tv — live streams, highlights, and replays
 - /exchange — the Gaming Exchange marketplace
+- /store — spend SX Coins on avatar borders, profile themes, username colours, and mascot skins
 - /community — player discussions and announcements
 - /players/{username} — individual player profiles and stats
 

@@ -38,11 +38,19 @@ async function candidateAchievements(admin: Admin, category: string): Promise<Ac
     .from('achievements')
     .select('id, slug, name, category, xp_reward, coin_reward')
     .eq('category', category)
+    .eq('phase', 'phase2')
   return (data ?? []) as AchievementRow[]
 }
 
 async function unlock(admin: Admin, playerId: string, achievement: AchievementRow): Promise<void> {
-  await admin.from('player_achievements').insert({ player_id: playerId, achievement_id: achievement.id })
+  const { error: insertErr } = await admin
+    .from('player_achievements')
+    .insert({ player_id: playerId, achievement_id: achievement.id })
+  if (insertErr) {
+    // UNIQUE(player_id, achievement_id) race — someone else's concurrent call
+    // already unlocked this. Skip silently; do not double-award.
+    return
+  }
   if (achievement.xp_reward > 0) await awardXP(admin, playerId, achievement.xp_reward, 'achievement_unlocked', achievement.id)
   if (achievement.coin_reward > 0) await awardCoins(admin, playerId, achievement.coin_reward, 'achievement_unlocked', achievement.id)
   await notifyInApp({
@@ -50,7 +58,7 @@ async function unlock(admin: Admin, playerId: string, achievement: AchievementRo
     type: 'achievement_unlocked',
     title: 'Achievement unlocked!',
     body: `${achievement.name} — +${achievement.xp_reward} XP, +${achievement.coin_reward} SX Coins.`,
-    link: `/players`,
+    link: `/dashboard`,
   })
 }
 
@@ -62,7 +70,7 @@ async function unlockIfDue(
   isDue: (slug: string) => boolean,
 ): Promise<void> {
   for (const a of candidates) {
-    if (already.has(a.id) || already.has(a.slug)) continue
+    if (already.has(a.id)) continue
     if (isDue(a.slug)) await unlock(admin, playerId, a)
   }
 }

@@ -16,7 +16,7 @@ UPDATE public.sx_score_events SET points_delta = points_delta * 10;
 ALTER TABLE public.profiles ADD CONSTRAINT profiles_sx_score_check CHECK (sx_score >= 0);
 
 -- sentinel_tier is a separate, still-live concept (reliability tier, distinct
--- from the new XP-based membership_tier added in 050) — kept as-is, just
+-- from the new XP-based membership_tier added in 051) — kept as-is, just
 -- rescaled ×10 so it still means the same real-world skill band.
 ALTER TABLE public.profiles DROP COLUMN sentinel_tier;
 ALTER TABLE public.profiles ADD COLUMN sentinel_tier text GENERATED ALWAYS AS (

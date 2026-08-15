@@ -84,6 +84,7 @@ export async function manuallyUnlockAchievement(
     .insert({ player_id: playerId, achievement_id: achievementId })
   if (error) {
     if ((error as { code?: string }).code === '23505') return { error: 'Player already has this achievement.' }
+    console.error('[manuallyUnlockAchievement]', error)
     return { error: 'Could not unlock the achievement.' }
   }
   revalidatePath(`/admin/players/${playerId}`)

@@ -14,6 +14,7 @@ export function staticSitemapEntries(): MetadataRoute.Sitemap {
     '/games',
     '/about',
     '/betting',
+    '/store',
   ]
   return paths.map((path) => ({ url: `${SITE_URL}${path === '/' ? '/' : path}` }))
 }

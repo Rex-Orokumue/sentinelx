@@ -221,7 +221,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
       .from('profiles')
       .select('id', { count: 'exact', head: true })
       .gte('total_matches', RANKING_MIN_MATCHES),
-    supabase.from('achievements').select('id, slug, name, description').order('sort_order'),
+    supabase.from('achievements').select('id, slug, name, description').eq('phase', 'phase2').order('sort_order'),
     supabase.from('player_achievements').select('achievement_id').eq('player_id', p.id),
   ])
 

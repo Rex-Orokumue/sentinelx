@@ -23,7 +23,7 @@ function fakeAdmin(opts: {
           }
         }
         if (table === 'achievements') {
-          return { select: () => ({ eq: async () => ({ data: opts.achievements }) }) }
+          return { select: () => ({ eq: () => ({ eq: async () => ({ data: opts.achievements }) }) }) }
         }
         if (table === 'profiles') {
           return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: opts.profile }) }) }) }
@@ -82,12 +82,16 @@ describe('checkAndUnlockAchievements — match_completed', () => {
 
   it('never re-unlocks an achievement the player already has', async () => {
     const { client, inserted } = fakeAdmin({
-      unlockedSlugs: ['a1'],
-      achievements: [], // already-unlocked ones are excluded from the query itself
+      unlockedSlugs: ['a1'], // dedup is keyed on achievement_id (a real UUID-shaped id), not slug
+      achievements: [
+        { id: 'a1', slug: 'first_match', name: 'First Blood', category: 'matches', xp_reward: 50, coin_reward: 20 },
+        { id: 'a2', slug: 'first_win', name: 'First W', category: 'matches', xp_reward: 100, coin_reward: 50 },
+      ],
       profile: { total_matches: 1, wins: 1 },
     })
     await checkAndUnlockAchievements(client as never, 'p1', { type: 'match_completed', matchId: 'm1', won: true })
-    expect(inserted).toEqual([])
+    // a1 (first_match) is already unlocked and must be skipped; a2 (first_win) is still due and unlocks.
+    expect(inserted.map((r) => r.achievement_id)).toEqual(['a2'])
   })
 })
 
