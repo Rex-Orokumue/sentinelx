@@ -6,18 +6,19 @@ import { formatMonthYear, formatNaira } from '@/lib/format'
 export function ChampionsCupCard({
   avatarUrl,
   name,
+  achievements,
   sentinelTier,
   slug,
-  title,
   date,
   prizePool,
   seasonName,
 }: {
   avatarUrl: string | null
   name: string
+  /** Champion's unlocked achievement slugs — drives the HexAvatar's decoration badges. */
+  achievements?: string[]
   sentinelTier: string | null
   slug: string
-  title: string
   date: string | null
   prizePool: number
   seasonName: string | null
@@ -29,7 +30,7 @@ export function ChampionsCupCard({
     >
       <div className="flex flex-col items-center gap-6 sm:flex-row">
         {/* Champions Cup winner always gets Legend-tier glow — spec §5 */}
-        <HexAvatar src={avatarUrl} username={name} tier="legend" size="xl" />
+        <HexAvatar src={avatarUrl} username={name} tier="legend" achievements={achievements} size="xl" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
             <p className="text-xs font-bold uppercase tracking-widest text-amber-400">
