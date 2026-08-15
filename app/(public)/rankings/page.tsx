@@ -166,6 +166,15 @@ export default async function RankingsPage() {
         <StatItem icon="🏆" value={formatNaira(prizesAwarded)} label="Prizes Awarded" />
       </section>
 
+      <div className="mb-6 flex justify-center lg:justify-start">
+        <Link
+          href="/hall-of-fame"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-sx-border bg-sx-surface px-4 py-2 text-xs font-bold text-sx-gray transition-colors hover:border-sx-purple/40 hover:text-white"
+        >
+          🏆 Hall of Fame →
+        </Link>
+      </div>
+
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         {/* ── Right: sidebars (shown first on mobile) ── */}
         <aside className="order-first space-y-6 lg:order-last">
