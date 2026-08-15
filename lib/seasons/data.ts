@@ -1,5 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sumPointsByPlayer, type PointsRow } from './points-aggregate'
+import {
+  guaranteedBandsForPlacements,
+  pointsForBand,
+  type PlacementMatch,
+  type SeasonTournamentType,
+} from '@/lib/tournaments/season-placement'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -10,6 +16,10 @@ export interface SeasonLeaderboardRow {
   avatarUrl: string | null
   sxScore: number
   points: number
+  /** True if any part of this player's total comes from a still-active
+   *  tournament's guaranteed-floor estimate rather than a locked-in
+   *  season_ranking_points row — the number can still go up. */
+  isProvisional: boolean
 }
 
 interface ProfileInfo {
@@ -37,7 +47,11 @@ async function playerProfiles(admin: Admin, playerIds: string[]): Promise<Map<st
   return map
 }
 
-function toRows(totals: Map<string, number>, profiles: Map<string, ProfileInfo>): SeasonLeaderboardRow[] {
+function toRows(
+  totals: Map<string, number>,
+  profiles: Map<string, ProfileInfo>,
+  provisionalPlayerIds: Set<string>,
+): SeasonLeaderboardRow[] {
   return Array.from(totals.entries())
     .map(([playerId, points]) => {
       const p = profiles.get(playerId)
@@ -48,39 +62,65 @@ function toRows(totals: Map<string, number>, profiles: Map<string, ProfileInfo>)
         avatarUrl: p?.avatarUrl ?? null,
         sxScore: p?.sxScore ?? 0,
         points,
+        isProvisional: provisionalPlayerIds.has(playerId),
       }
     })
     .sort((a, b) => b.points - a.points)
 }
 
 // Every player actively registered in one of this season's community_club/
-// masters tournaments, ranked by total points desc — 0 for a registered
-// player who has no season_ranking_points/season_noshow_penalties row yet
-// (e.g. their tournament hasn't completed). Previously this only included
-// players who already had a points/penalty row, so anyone still mid-
-// tournament was silently missing rather than showing at 0.
-// Used for Champions Cup qualification (spec §4, "season cumulative").
+// masters tournaments, ranked by total points desc. Real, locked-in points
+// come from season_ranking_points (written once, at tournament completion —
+// see lib/matches/season-points.ts). A player still competing in a tournament
+// that hasn't completed yet additionally gets a provisional guaranteed-floor
+// contribution computed live from that tournament's current match state
+// (guaranteedBandsForPlacements) — never persisted, recomputed on every read,
+// and clearly marked via isProvisional so a still-moving number is never
+// mistaken for a final one. Used for Champions Cup qualification (spec §4,
+// "season cumulative") — that qualification ranking (lib/seasons/
+// invitation-actions.ts) reads real season_ranking_points rows directly and
+// is completely unaffected by this provisional layer.
 export async function getSeasonLeaderboard(admin: Admin, seasonId: string): Promise<SeasonLeaderboardRow[]> {
-  const { data: seasonTournaments } = await admin
+  const { data: seasonTournamentsData } = await admin
     .from('tournaments')
-    .select('id')
+    .select('id, status, tournament_type')
     .eq('season_id', seasonId)
     .in('tournament_type', ['community_club', 'masters'])
-  const tournamentIds = (seasonTournaments ?? []).map((t) => t.id)
+  const seasonTournaments = seasonTournamentsData ?? []
+  const tournamentIds = seasonTournaments.map((t) => t.id)
+  const activeTournaments = seasonTournaments.filter((t) => t.status === 'active')
 
-  const [{ data: registrations }, { data: pointsRows }, { data: penaltyRows }] = await Promise.all([
+  const [{ data: registrations }, { data: pointsRows }, { data: penaltyRows }, provisionalByTournament] = await Promise.all([
     tournamentIds.length > 0
       ? admin.from('tournament_registrations').select('player_id').in('tournament_id', tournamentIds).eq('status', 'active')
       : Promise.resolve({ data: [] as { player_id: string }[] }),
     admin.from('season_ranking_points').select('player_id, points').eq('season_id', seasonId),
     admin.from('season_noshow_penalties').select('player_id, points').eq('season_id', seasonId),
+    Promise.all(
+      activeTournaments.map(async (t) => {
+        const [{ data: activeRegs }, { data: matches }] = await Promise.all([
+          admin.from('tournament_registrations').select('player_id').eq('tournament_id', t.id).eq('status', 'active'),
+          admin.from('matches').select('round, status, player_a_id, player_b_id, score_a, score_b').eq('tournament_id', t.id),
+        ])
+        const activePlayerIds = (activeRegs ?? []).map((r) => r.player_id)
+        const placements = guaranteedBandsForPlacements((matches ?? []) as PlacementMatch[], activePlayerIds)
+        const tournamentType = t.tournament_type as SeasonTournamentType
+        return placements.map(({ playerId, band }) => ({
+          playerId,
+          points: pointsForBand(tournamentType, band),
+        }))
+      }),
+    ),
   ])
 
+  const provisionalRows = provisionalByTournament.flat()
   const rows: PointsRow[] = [
     ...(pointsRows ?? []).map((r) => ({ playerId: r.player_id, points: r.points })),
     ...(penaltyRows ?? []).map((r) => ({ playerId: r.player_id, points: r.points })),
+    ...provisionalRows,
   ]
   const totals = sumPointsByPlayer(rows)
+  const provisionalPlayerIds = new Set(provisionalRows.map((r) => r.playerId))
 
   // Guarantee every actively-registered season player appears, even at 0.
   for (const reg of registrations ?? []) {
@@ -88,7 +128,7 @@ export async function getSeasonLeaderboard(admin: Admin, seasonId: string): Prom
   }
 
   const profiles = await playerProfiles(admin, Array.from(totals.keys()))
-  return toRows(totals, profiles)
+  return toRows(totals, profiles, provisionalPlayerIds)
 }
 
 // Points from community_club tournaments whose tournament_start falls in
@@ -132,5 +172,5 @@ export async function getMonthlyLeaderboard(
   ]
   const totals = sumPointsByPlayer(rows)
   const profiles = await playerProfiles(admin, Array.from(totals.keys()))
-  return toRows(totals, profiles)
+  return toRows(totals, profiles, new Set())
 }
