@@ -36,6 +36,14 @@ export function SeasonLeaderboardTable({
                   <td className="px-4 py-3 font-semibold text-white">
                     {row.displayName ?? row.username ?? 'Player'}
                     {isMe && <span className="ml-1 text-[11px] text-sx-purple-text">(you)</span>}
+                    {row.isProvisional && (
+                      <span
+                        title="Still competing — this total can still change"
+                        className="ml-1.5 rounded-full bg-sx-green/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sx-green"
+                      >
+                        Live
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right font-bold text-sx-purple-text">{row.points}</td>
                 </tr>
