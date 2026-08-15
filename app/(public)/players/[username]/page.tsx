@@ -320,6 +320,8 @@ export default async function PlayerProfilePage({ params }: { params: { username
   // Owner-only (design doc §8) — never show another player's coin balance.
   const coinBalance = user && user.id === p.id ? await getCoinBalance(createAdminClient(), p.id) : null
 
+  const unlockedSlugs = achievementCells.filter((a) => a.unlocked).map((a) => a.slug)
+
   const profile: ProfileView = {
     id: p.id,
     username: p.username,
@@ -400,6 +402,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
             viewerId={user?.id ?? null}
             friendshipStatus={friendship}
             coinBalance={coinBalance ?? undefined}
+            achievements={unlockedSlugs}
             avatarBorderClass={cosmetics.avatarBorder ? AVATAR_BORDER_CLASSES[cosmetics.avatarBorder] : undefined}
             profileThemeClass={cosmetics.profileTheme ? PROFILE_THEME_CLASSES[cosmetics.profileTheme] : undefined}
             usernameColourClass={cosmetics.usernameColour ? USERNAME_COLOUR_CLASSES[cosmetics.usernameColour] : undefined}
