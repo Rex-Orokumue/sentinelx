@@ -4,6 +4,7 @@ import {
   pointsForBand,
   placementForBand,
   type PlacementMatch,
+  type PlacementBand,
   type SeasonTournamentType,
 } from '@/lib/tournaments/season-placement'
 import { awardCoins } from '@/lib/coins/service'
@@ -17,9 +18,39 @@ function isSeasonTournamentType(t: string): t is SeasonTournamentType {
 }
 
 // design doc §3.2 placement tiers, keyed by the same numeric placement
-// placementForBand() already produces (1, 2, 3, 5, 9, 17).
+// placementForBand() already produces (1, 2, 3, 5, 9, 17). Shared by
+// community_club and masters — every band from champion through
+// round_of_16 already resolves to the same numeric placement in both
+// COMMUNITY_CLUB_PLACEMENT and MASTERS_PLACEMENT (lib/tournaments/
+// season-placement.ts); they only diverge at round_of_32/non_advancer
+// (17 vs 9), which is exactly why the two types must resolve through
+// their OWN placementForBand() call below, not a hardcoded one.
 const PLACEMENT_COINS: Record<number, number> = { 1: 500, 2: 300, 3: 150, 5: 75, 9: 30, 17: 10 }
 const PLACEMENT_XP: Record<number, number> = { 1: 500, 2: 300, 3: 200, 5: 100 }
+
+// Champions Cup — higher-stakes invitational, own reward scale entirely
+// (values confirmed with product owner 2026-08-15, scaled above Masters'
+// own +500 coins/+1000 XP champion reward per the original Phase 2 design
+// doc). Band->placement mapping mirrors COMMUNITY_CLUB_PLACEMENT/
+// MASTERS_PLACEMENT in lib/tournaments/season-placement.ts, but is defined
+// here rather than there since SeasonTournamentType specifically means
+// "earns a season_ranking_points row," which Champions Cup still doesn't
+// (Global Constraints #3, original Phase 2 plan) — this table is ONLY ever
+// used for the coin/XP loop below, never for season points.
+// round_of_32/non_advancer default to round_of_16's tier (9th-16th) since
+// Champions Cup, like Masters, is a capped invitational bracket that
+// shouldn't realistically reach those bands.
+const CHAMPIONS_CUP_PLACEMENT: Record<PlacementBand, number> = {
+  champion: 1,
+  runner_up: 2,
+  semi_final: 3,
+  quarter_final: 5,
+  round_of_16: 9,
+  round_of_32: 9,
+  non_advancer: 9,
+}
+const CHAMPIONS_CUP_COINS: Record<number, number> = { 1: 2000, 2: 1200, 3: 800, 5: 400, 9: 150 }
+const CHAMPIONS_CUP_XP: Record<number, number> = { 1: 3000, 2: 2000, 3: 1200, 5: 600, 9: 250 }
 
 // Runs for EVERY tournament type once a tournament completes — coins/XP/
 // achievement checks are not gated on having a season, only the
@@ -61,15 +92,21 @@ export async function awardSeasonPoints(admin: Admin, tournamentId: string): Pro
     await admin.from('season_ranking_points').upsert(rows, { onConflict: 'season_id,player_id,tournament_id' })
   }
 
-  // Placement is only meaningful relative to *some* tournament type's bands
-  // — reuse community_club's band->number mapping for coin/XP tiers since
-  // it's the finer-grained one (masters collapses several bands to the same
-  // number); the coin/XP table keys off the numeric placement, not the band.
+  // Coin/XP tiers key off each tournament type's OWN placement table.
+  // Champions Cup gets its own reward scale entirely (CHAMPIONS_CUP_*
+  // above); Community Club and Masters share PLACEMENT_COINS/PLACEMENT_XP
+  // but resolve through their own band->number mapping via placementForBand
+  // (masters collapses several bands to the same number community_club
+  // doesn't, so the two must NOT share one hardcoded 'community_club' call
+  // — that was the pre-existing bug this fixes). Any other/future
+  // tournament type falls back to community_club's numbers.
+  const isChampionsCup = tournament.tournament_type === 'champions_cup'
+  const coinXpTournamentType = tournament.tournament_type === 'masters' ? 'masters' : 'community_club'
   for (const { playerId, band } of placements) {
-    const placement = placementForBand('community_club', band)
-    const coins = PLACEMENT_COINS[placement]
+    const placement = isChampionsCup ? CHAMPIONS_CUP_PLACEMENT[band] : placementForBand(coinXpTournamentType, band)
+    const coins = isChampionsCup ? CHAMPIONS_CUP_COINS[placement] : PLACEMENT_COINS[placement]
     if (coins) await awardCoins(admin, playerId, coins, 'tournament_placement', tournamentId)
-    const xp = PLACEMENT_XP[placement]
+    const xp = isChampionsCup ? CHAMPIONS_CUP_XP[placement] : PLACEMENT_XP[placement]
     if (xp) await awardXP(admin, playerId, xp, 'tournament_placement', tournamentId)
     await checkAndUnlockAchievements(admin, playerId, {
       type: 'tournament_completed',
