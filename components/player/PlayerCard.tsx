@@ -1,6 +1,7 @@
 import Link from 'next/link'
-import { Avatar } from '@/components/shared/Avatar'
+import { HexAvatar } from '@/components/shared/HexAvatar'
 import { TierBadge } from '@/components/player/TierBadge'
+import type { MembershipTier } from '@/lib/membership/tiers'
 
 export interface PlayerCardData {
   username: string
@@ -8,6 +9,7 @@ export interface PlayerCardData {
   avatar_url: string | null
   sx_score: number
   sentinel_tier: string | null
+  membership_tier: string
 }
 
 export function PlayerCard({ player }: { player: PlayerCardData }) {
@@ -16,11 +18,11 @@ export function PlayerCard({ player }: { player: PlayerCardData }) {
       href={`/players/${player.username}`}
       className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 transition-colors hover:border-slate-600"
     >
-      <Avatar
-        avatarUrl={player.avatar_url}
-        displayName={player.display_name}
-        username={player.username}
-        size={44}
+      <HexAvatar
+        src={player.avatar_url}
+        username={player.display_name ?? player.username}
+        tier={(player.membership_tier ?? 'recruit') as MembershipTier}
+        size="xs"
       />
       <div className="min-w-0 flex-1">
         <p className="truncate font-bold text-white">{player.display_name ?? player.username}</p>
