@@ -53,19 +53,40 @@ function toRows(totals: Map<string, number>, profiles: Map<string, ProfileInfo>)
     .sort((a, b) => b.points - a.points)
 }
 
-// Every player with at least one season_ranking_points or
-// season_noshow_penalties row for this season, ranked by total points desc.
+// Every player actively registered in one of this season's community_club/
+// masters tournaments, ranked by total points desc — 0 for a registered
+// player who has no season_ranking_points/season_noshow_penalties row yet
+// (e.g. their tournament hasn't completed). Previously this only included
+// players who already had a points/penalty row, so anyone still mid-
+// tournament was silently missing rather than showing at 0.
 // Used for Champions Cup qualification (spec §4, "season cumulative").
 export async function getSeasonLeaderboard(admin: Admin, seasonId: string): Promise<SeasonLeaderboardRow[]> {
-  const [{ data: pointsRows }, { data: penaltyRows }] = await Promise.all([
+  const { data: seasonTournaments } = await admin
+    .from('tournaments')
+    .select('id')
+    .eq('season_id', seasonId)
+    .in('tournament_type', ['community_club', 'masters'])
+  const tournamentIds = (seasonTournaments ?? []).map((t) => t.id)
+
+  const [{ data: registrations }, { data: pointsRows }, { data: penaltyRows }] = await Promise.all([
+    tournamentIds.length > 0
+      ? admin.from('tournament_registrations').select('player_id').in('tournament_id', tournamentIds).eq('status', 'active')
+      : Promise.resolve({ data: [] as { player_id: string }[] }),
     admin.from('season_ranking_points').select('player_id, points').eq('season_id', seasonId),
     admin.from('season_noshow_penalties').select('player_id, points').eq('season_id', seasonId),
   ])
+
   const rows: PointsRow[] = [
     ...(pointsRows ?? []).map((r) => ({ playerId: r.player_id, points: r.points })),
     ...(penaltyRows ?? []).map((r) => ({ playerId: r.player_id, points: r.points })),
   ]
   const totals = sumPointsByPlayer(rows)
+
+  // Guarantee every actively-registered season player appears, even at 0.
+  for (const reg of registrations ?? []) {
+    if (!totals.has(reg.player_id)) totals.set(reg.player_id, 0)
+  }
+
   const profiles = await playerProfiles(admin, Array.from(totals.keys()))
   return toRows(totals, profiles)
 }
