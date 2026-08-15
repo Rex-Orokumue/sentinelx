@@ -150,8 +150,15 @@ export function MobileNavSheet({
               >
                 My Profile
               </SheetLink>
-              <SheetLink href="/dashboard" active={pathname.startsWith('/dashboard') && pathname !== '/dashboard/friendlies'} onClose={onClose}>
+              <SheetLink
+                href="/dashboard"
+                active={pathname === '/dashboard'}
+                onClose={onClose}
+              >
                 Dashboard
+              </SheetLink>
+              <SheetLink href="/dashboard/wallet" active={pathname.startsWith('/dashboard/wallet')} onClose={onClose}>
+                Wallet
               </SheetLink>
               <SheetLink href="/dashboard/friendlies" active={pathname.startsWith('/dashboard/friendlies')} onClose={onClose}>
                 Friendlies

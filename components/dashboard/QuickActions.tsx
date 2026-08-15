@@ -11,7 +11,15 @@ export function QuickActions({
   const tiles = [
     { href: '/tournaments', icon: '🎮', label: 'Enter a Tournament' },
     ...(hasSubmittableMatch ? [{ href: '/dashboard#matches', icon: '📤', label: 'Submit Result' }] : []),
-    ...(walletBalance > 0 ? [{ href: '/dashboard/wallet', icon: '💰', label: 'Withdraw Prize', sub: formatNaira(walletBalance) }] : []),
+    // Always shown — this is the only entry point into the wallet section
+    // from the dashboard. Framing changes when there's a real balance to
+    // withdraw, but the link itself must never disappear.
+    {
+      href: '/dashboard/wallet',
+      icon: '💰',
+      label: walletBalance > 0 ? 'Withdraw Prize' : 'Wallet',
+      sub: walletBalance > 0 ? formatNaira(walletBalance) : undefined,
+    },
     { href: '#profile', icon: '⚙', label: 'Account Settings' },
   ]
 
