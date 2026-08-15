@@ -3,11 +3,9 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { bucketFixtures, isTournamentPublished, type DashboardMatchInput } from '@/lib/dashboard/fixtures'
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { ActiveFixtures, CompletedFixtures } from '@/components/dashboard/FixtureCard'
 import { CollapsibleSection } from '@/components/dashboard/CollapsibleSection'
 import { MyTournaments, type RegistrationRow } from '@/components/dashboard/MyTournaments'
-import { WalletPanel, type WalletRequestRow } from '@/components/dashboard/WalletPanel'
 import { MyListings, type MyListing } from '@/components/dashboard/MyListings'
 import { MyBuyRequests, type MyBuyRequest } from '@/components/dashboard/MyBuyRequests'
 import { MyOrders } from '@/components/dashboard/MyOrders'
@@ -19,7 +17,6 @@ import { FriendsPanel, type FriendRequestRow, type FriendRow } from '@/component
 import { FriendliesPanel } from '@/components/dashboard/FriendliesPanel'
 import { bucketFriendlies } from '@/lib/friendly-matches/buckets'
 import { signOut } from '@/lib/auth/actions'
-import { listBanks, type Bank } from '@/lib/paystack/server'
 import { computeDataSupportEligibility } from '@/lib/dashboard/data-support'
 import { DataSupportPanel } from '@/components/dashboard/DataSupportPanel'
 import {
@@ -29,15 +26,19 @@ import {
 } from '@/lib/dashboard/tournament-status'
 import type { MembershipInput } from '@/lib/tournaments/standings'
 import { TournamentStatusBanners } from '@/components/dashboard/TournamentStatusBanner'
-import { MastersInvitationBanner } from '@/components/dashboard/MastersInvitationBanner'
 import { recordDailyLogin } from '@/lib/login/actions'
 import { getCoinBalance } from '@/lib/coins/service'
-import { getEarningsBreakdown } from '@/lib/wallet/breakdown'
-import { EarningsBreakdownPanel } from '@/components/dashboard/EarningsBreakdownPanel'
-import { XPProgressPanel } from '@/components/dashboard/XPProgressPanel'
-import { CoinBalancePanel } from '@/components/dashboard/CoinBalancePanel'
-import { RecentAchievements, type RecentAchievement } from '@/components/dashboard/RecentAchievements'
-import { LoginStreakBadge } from '@/components/dashboard/LoginStreakBadge'
+import type { RecentAchievement } from '@/components/dashboard/RecentAchievements'
+import { HeroIdentityPanel } from '@/components/dashboard/HeroIdentityPanel'
+import { NextMatchCard, type NextMatchData } from '@/components/dashboard/NextMatchCard'
+import { StatsRow } from '@/components/dashboard/StatsRow'
+import { SeasonStandingCard } from '@/components/dashboard/SeasonStandingCard'
+import { ProgressCard } from '@/components/dashboard/ProgressCard'
+import { RecentMatchesCard } from '@/components/dashboard/RecentMatchesCard'
+import { QuickActions } from '@/components/dashboard/QuickActions'
+import { mapRecentMatches } from '@/lib/dashboard/recent-matches'
+import { getSeasonLeaderboard, getMonthlyLeaderboard } from '@/lib/seasons/data'
+import type { MembershipTier } from '@/lib/membership/tiers'
 
 export const metadata: Metadata = {
   title: 'Dashboard · SentinelX Esports',
@@ -102,11 +103,7 @@ function friendProfileName(p: FriendProfileRef): { name: string; username: strin
   return { name: r?.display_name ?? r?.username ?? 'Player', username: r?.username ?? null, avatarUrl: r?.avatar_url ?? null }
 }
 
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: { deposit?: string }
-}) {
+export default async function DashboardPage() {
   const supabase = createClient()
   const {
     data: { user },
@@ -121,25 +118,25 @@ export default async function DashboardPage({
     resultsRes,
     regsRes,
     walletRes,
-    walletRequestsRes,
     listingsRes,
     buyRequestsRes,
     ordersRes,
     salesRes,
-    kycRes,
-    banks,
     referralsRes,
     friendsRes,
     friendliesRes,
     myGroupMembershipsRes,
     coinBalance,
     achievementsRes,
-    earningsBreakdown,
+    nextMatchRes,
+    recentMatchesRes,
+    achievementSlugsRes,
+    activeSeasonRes,
   ] = await Promise.all([
     supabase
       .from('profiles')
       .select(
-        'username, display_name, avatar_url, whatsapp_number, country, bio, wins, losses, goals_scored, phone_verified_at, xp, membership_tier, login_streak',
+        'username, display_name, avatar_url, whatsapp_number, country, bio, wins, losses, goals_scored, phone_verified_at, xp, membership_tier, login_streak, sx_score, total_matches',
       )
       .eq('id', user.id)
       .maybeSingle(),
@@ -159,13 +156,6 @@ export default async function DashboardPage({
       .eq('player_id', user.id)
       .order('registered_at', { ascending: false }),
     supabase.from('wallets').select('balance').eq('player_id', user.id).maybeSingle(),
-    supabase
-      .from('withdrawal_requests')
-      .select(
-        'id, amount, bank_name, account_number, account_name, status, admin_note, requested_at, resolved_at',
-      )
-      .eq('player_id', user.id)
-      .order('requested_at', { ascending: false }),
     supabase
       .from('marketplace_listings')
       .select('id, title, price, status')
@@ -187,12 +177,6 @@ export default async function DashboardPage({
       .select('id, listing_id, listing_title, amount, status')
       .eq('seller_id', user.id)
       .order('created_at', { ascending: false }),
-    supabase
-      .from('player_kyc')
-      .select('kyc_status, kyc_failure_reason, payout_bank_name, payout_account_number, payout_account_name')
-      .eq('player_id', user.id)
-      .maybeSingle(),
-    listBanks().catch(() => [] as Bank[]),
     supabase
       .from('referrals')
       .select('referred:profiles!referrals_referred_id_fkey(username, display_name)')
@@ -220,7 +204,32 @@ export default async function DashboardPage({
       .eq('player_id', user.id)
       .order('unlocked_at', { ascending: false })
       .limit(3),
-    getEarningsBreakdown(createAdminClient(), user.id),
+    supabase
+      .from('matches')
+      .select(
+        'id, status, round, scheduled_at, is_full_day, ' +
+          'tournament:tournaments(title), ' +
+          'opponent_a:profiles!matches_player_a_id_fkey(id, display_name, username, avatar_url, membership_tier), ' +
+          'opponent_b:profiles!matches_player_b_id_fkey(id, display_name, username, avatar_url, membership_tier)',
+      )
+      .or(`player_a_id.eq.${user.id},player_b_id.eq.${user.id}`)
+      .in('status', ['scheduled', 'live'])
+      .order('scheduled_at', { ascending: true })
+      .limit(1),
+    supabase
+      .from('matches')
+      .select(
+        'id, player_a_id, player_b_id, score_a, score_b, updated_at, ' +
+          'tournament:tournaments(title), ' +
+          'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
+          'player_b:profiles!matches_player_b_id_fkey(username, display_name)',
+      )
+      .or(`player_a_id.eq.${user.id},player_b_id.eq.${user.id}`)
+      .eq('status', 'completed')
+      .order('updated_at', { ascending: false })
+      .limit(5),
+    supabase.from('player_achievements').select('achievements(slug)').eq('player_id', user.id),
+    supabase.from('seasons').select('id, name').eq('status', 'active').maybeSingle(),
   ])
 
   const profile = profileRes.data
@@ -321,6 +330,7 @@ export default async function DashboardPage({
     }
   })
   const fixtures = bucketFixtures(matches, submittedMatchIds, new Date())
+  const hasSubmittableMatch = fixtures.live.length > 0 || fixtures.upcoming.some((f) => f.awaitingMyResult)
 
   type GroupTournamentRef = { tournament_id: string } | { tournament_id: string }[] | null
   function firstGroupTournamentId(g: GroupTournamentRef): string | null {
@@ -457,18 +467,7 @@ export default async function DashboardPage({
     }
   })
 
-  const kyc = kycRes.data
   const walletBalance = walletRes.data?.balance ?? 0
-  const walletRequests = (walletRequestsRes.data ?? []) as WalletRequestRow[]
-  const hasActive = walletRequests.some((w) => w.status === 'pending')
-  const payoutAccount =
-    kyc?.payout_bank_name && kyc?.payout_account_number && kyc?.payout_account_name
-      ? {
-          bankName: kyc.payout_bank_name,
-          accountNumber: kyc.payout_account_number,
-          accountName: kyc.payout_account_name,
-        }
-      : null
 
   const displayName = profile?.display_name ?? profile?.username ?? user.email ?? 'Player'
 
@@ -519,34 +518,161 @@ export default async function DashboardPage({
       : pendingInvitationRow.tournament
     : null
 
+  // ── Season standing (Section 4) ─────────────────────────────────────────
+  const activeSeason = activeSeasonRes.data
+
+  let seasonRank: number | null = null
+  let seasonPoints = 0
+  let pointsAtRankSixteen = 0
+  let monthlyRank: number | null = null
+  let monthlyPoints = 0
+  if (activeSeason) {
+    const [seasonBoard, monthlyBoard] = await Promise.all([
+      getSeasonLeaderboard(createAdminClient(), activeSeason.id),
+      getMonthlyLeaderboard(createAdminClient(), activeSeason.id, new Date()),
+    ])
+    const seasonIdx = seasonBoard.findIndex((r) => r.playerId === user.id)
+    seasonRank = seasonIdx >= 0 ? seasonIdx + 1 : null
+    seasonPoints = seasonIdx >= 0 ? seasonBoard[seasonIdx].points : 0
+    pointsAtRankSixteen = seasonBoard[15]?.points ?? 0
+    const monthlyIdx = monthlyBoard.findIndex((r) => r.playerId === user.id)
+    monthlyRank = monthlyIdx >= 0 ? monthlyIdx + 1 : null
+    monthlyPoints = monthlyIdx >= 0 ? monthlyBoard[monthlyIdx].points : 0
+  }
+
+  // ── Next match (Section 2) ──────────────────────────────────────────────
+  type NextMatchOpponentRef = {
+    id: string
+    display_name: string | null
+    username: string | null
+    avatar_url: string | null
+    membership_tier: string | null
+  }
+  type NextMatchRow = {
+    id: string
+    status: string
+    round: string
+    scheduled_at: string | null
+    is_full_day: boolean
+    tournament: { title: string } | { title: string }[] | null
+    opponent_a: NextMatchOpponentRef | NextMatchOpponentRef[] | null
+    opponent_b: NextMatchOpponentRef | NextMatchOpponentRef[] | null
+  }
+  const nextMatchRow = (nextMatchRes.data as unknown as NextMatchRow[] | null)?.[0] ?? null
+  const nextMatch: NextMatchData | null = nextMatchRow
+    ? (() => {
+        const a = Array.isArray(nextMatchRow.opponent_a) ? nextMatchRow.opponent_a[0] : nextMatchRow.opponent_a
+        const b = Array.isArray(nextMatchRow.opponent_b) ? nextMatchRow.opponent_b[0] : nextMatchRow.opponent_b
+        const t = Array.isArray(nextMatchRow.tournament) ? nextMatchRow.tournament[0] : nextMatchRow.tournament
+        const opponent = a?.id === user.id ? b : a
+        return {
+          id: nextMatchRow.id,
+          status: nextMatchRow.status,
+          round: nextMatchRow.round,
+          scheduledAt: nextMatchRow.scheduled_at,
+          isFullDay: nextMatchRow.is_full_day,
+          tournamentTitle: t?.title ?? 'Tournament',
+          myAvatarUrl: profile?.avatar_url ?? null,
+          myDisplayName: displayName,
+          myTier: (profile?.membership_tier ?? 'recruit') as MembershipTier,
+          opponentAvatarUrl: opponent?.avatar_url ?? null,
+          opponentDisplayName: opponent?.display_name ?? opponent?.username ?? 'Opponent',
+          opponentTier: (opponent?.membership_tier ?? 'recruit') as MembershipTier,
+          submitted: submittedMatchIds.has(nextMatchRow.id),
+        }
+      })()
+    : null
+
+  // ── Recent matches (Section 6) ──────────────────────────────────────────
+  type RecentRawRef = { username: string | null; display_name: string | null } | { username: string | null; display_name: string | null }[] | null
+  type RecentTournamentRef = { title: string } | { title: string }[] | null
+  const recentMatchRows = ((recentMatchesRes.data as unknown[] | null) ?? []).map((raw) => {
+    const r = raw as {
+      id: string
+      player_a_id: string | null
+      player_b_id: string | null
+      score_a: number | null
+      score_b: number | null
+      updated_at: string | null
+      tournament: RecentTournamentRef
+      player_a: RecentRawRef
+      player_b: RecentRawRef
+    }
+    const isA = r.player_a_id === user.id
+    const opp = isA ? r.player_b : r.player_a
+    const oppRow = Array.isArray(opp) ? opp[0] ?? null : opp
+    const t = Array.isArray(r.tournament) ? r.tournament[0] : r.tournament
+    return {
+      id: r.id,
+      player_a_id: r.player_a_id,
+      player_b_id: r.player_b_id,
+      score_a: r.score_a,
+      score_b: r.score_b,
+      updated_at: r.updated_at,
+      opponentName: oppRow?.display_name ?? oppRow?.username ?? 'Opponent',
+      opponentUsername: oppRow?.username ?? null,
+      tournamentTitle: t?.title ?? 'Tournament',
+    }
+  })
+  const recentMatches = mapRecentMatches(recentMatchRows, user.id)
+
+  const achievementSlugs = ((achievementSlugsRes.data as unknown[] | null) ?? []).flatMap((raw) => {
+    const r = raw as { achievements: { slug: string } | { slug: string }[] | null }
+    const ref = Array.isArray(r.achievements) ? r.achievements[0] : r.achievements
+    return ref?.slug ? [ref.slug] : []
+  })
+
   return (
     <div className="mx-auto max-w-4xl px-4 pb-20">
-      <DashboardHeader
-        name={displayName}
-        username={profile?.username ?? null}
-        avatarUrl={profile?.avatar_url ?? null}
-        wins={profile?.wins ?? 0}
-        losses={profile?.losses ?? 0}
-      />
-      <CollapsibleSection id="progression" title="Your Progress" defaultOpen>
-        <div className="space-y-3">
-          <XPProgressPanel xp={profile?.xp ?? 0} />
-          <CoinBalancePanel balance={coinBalance} />
-          <LoginStreakBadge streak={profile?.login_streak ?? 0} />
-          <RecentAchievements achievements={recentAchievements} />
-        </div>
-      </CollapsibleSection>
-      {pendingInvitationRow && pendingInvitationTournament && (
-        <MastersInvitationBanner
-          invitation={{
-            id: pendingInvitationRow.id,
-            rank: pendingInvitationRow.rank_at_invite,
-            deadline: pendingInvitationRow.expires_at,
-            tournamentTitle: pendingInvitationTournament.title,
-            fee: pendingInvitationTournament.registration_fee,
-          }}
+      <div className="space-y-4 py-4">
+        <HeroIdentityPanel
+          avatarUrl={profile?.avatar_url ?? null}
+          displayName={displayName}
+          achievements={achievementSlugs}
+          xp={profile?.xp ?? 0}
+          sxScore={profile?.sx_score ?? 700}
+          seasonRank={seasonRank}
+          loginStreak={profile?.login_streak ?? 0}
         />
-      )}
+        <NextMatchCard
+          match={nextMatch}
+          invitation={
+            pendingInvitationRow && pendingInvitationTournament
+              ? {
+                  id: pendingInvitationRow.id,
+                  rank: pendingInvitationRow.rank_at_invite,
+                  deadline: pendingInvitationRow.expires_at,
+                  tournamentTitle: pendingInvitationTournament.title,
+                  fee: pendingInvitationTournament.registration_fee,
+                }
+              : null
+          }
+        />
+        <StatsRow
+          wins={profile?.wins ?? 0}
+          totalMatches={profile?.total_matches ?? 0}
+          goalsScored={profile?.goals_scored ?? 0}
+          coinBalance={coinBalance}
+        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ProgressCard
+            xp={profile?.xp ?? 0}
+            coinBalance={coinBalance}
+            loginStreak={profile?.login_streak ?? 0}
+            recentAchievements={recentAchievements}
+          />
+          <SeasonStandingCard
+            seasonRank={seasonRank}
+            seasonPoints={seasonPoints}
+            pointsAtRankSixteen={pointsAtRankSixteen}
+            monthlyRank={monthlyRank}
+            monthlyPoints={monthlyPoints}
+          />
+        </div>
+        <RecentMatchesCard matches={recentMatches} username={profile?.username ?? null} />
+        <QuickActions walletBalance={walletBalance} hasSubmittableMatch={hasSubmittableMatch} />
+      </div>
+
       <form action={signOut} className="mb-4">
         <button
           type="submit"
@@ -615,31 +741,6 @@ export default async function DashboardPage({
       <MyBuyRequests requests={myBuyRequests} />
       <MyOrders orders={myOrders} />
       <MySales sales={mySales} />
-
-      <CollapsibleSection id="wallet" title="Wallet" defaultOpen={walletBalance > 0 || hasActive}>
-        {searchParams.deposit === 'paid' && (
-          <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-400">
-            🎉 Wallet funded — your balance is updated below.
-          </div>
-        )}
-        {searchParams.deposit === 'failed' && (
-          <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-400">
-            Payment was not completed. You can try again below.
-          </div>
-        )}
-        <div className="mb-4">
-          <EarningsBreakdownPanel breakdown={earningsBreakdown} />
-        </div>
-        <WalletPanel
-          balance={walletBalance}
-          requests={walletRequests}
-          hasActive={hasActive}
-          kycStatus={kyc?.kyc_status ?? 'unverified'}
-          kycFailureReason={kyc?.kyc_failure_reason ?? null}
-          banks={banks}
-          payoutAccount={payoutAccount}
-        />
-      </CollapsibleSection>
     </div>
   )
 }
