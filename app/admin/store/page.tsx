@@ -18,7 +18,8 @@ export default async function AdminStorePage() {
     <div className="mx-auto max-w-5xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-black text-white">Store Items</h1>
       <StoreItemForm mode="create" />
-      <table className="mt-8 w-full text-sm text-slate-300">
+      <div className="mt-8 overflow-x-auto">
+      <table className="w-full text-sm text-slate-300">
         <thead className="text-left text-xs uppercase text-slate-500">
           <tr><th className="py-2">Name</th><th>Category</th><th>Price</th><th>Active</th><th></th></tr>
         </thead>
@@ -28,6 +29,7 @@ export default async function AdminStorePage() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }
