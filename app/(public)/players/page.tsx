@@ -10,7 +10,7 @@ export const metadata = buildMetadata({
   image: DEFAULT_OG_IMAGE,
 })
 
-const PLAYER_COLS = 'username, display_name, avatar_url, sx_score, sentinel_tier'
+const PLAYER_COLS = 'username, display_name, avatar_url, sx_score, sentinel_tier, membership_tier'
 
 export default async function PlayersPage({ searchParams }: { searchParams: { q?: string } }) {
   const q = (searchParams.q ?? '').trim()

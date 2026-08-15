@@ -17,8 +17,15 @@ import { buildRecordingWhatsAppUrl } from '@/lib/matches/recording-whatsapp'
 import { BettingPanel } from '@/components/match/BettingPanel'
 import { bettingOpen, type Side } from '@/lib/betting/market'
 import { ShareCardButton } from '@/components/match/ShareCardButton'
+import { HexAvatar } from '@/components/shared/HexAvatar'
+import type { MembershipTier } from '@/lib/membership/tiers'
 
-type ProfileRef = { username: string | null; display_name: string | null } | null
+type ProfileRef = {
+  username: string | null
+  display_name: string | null
+  avatar_url: string | null
+  membership_tier: string | null
+} | null
 
 function nameOf(p: ProfileRef): string {
   return p?.display_name ?? p?.username ?? 'TBD'
@@ -36,8 +43,8 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 const MATCH_SELECT =
   'id, round, status, score_a, score_b, scheduled_at, is_full_day, betting_locked, youtube_stream_url, replay_url, player_a_id, player_b_id, ' +
   'tournaments(title, slug), ' +
-  'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
-  'player_b:profiles!matches_player_b_id_fkey(username, display_name)'
+  'player_a:profiles!matches_player_a_id_fkey(username, display_name, avatar_url, membership_tier), ' +
+  'player_b:profiles!matches_player_b_id_fkey(username, display_name, avatar_url, membership_tier)'
 
 type MatchRow = {
   id: string
@@ -242,11 +249,27 @@ export default async function MatchCentrePage({
           </p>
         )}
         <div className="flex items-center justify-between gap-4">
-          <p className="flex-1 text-right text-lg font-bold text-white">{nameOf(m.player_a)}</p>
+          <div className="flex flex-1 flex-col items-center gap-2 sm:flex-row sm:justify-end">
+            <HexAvatar
+              src={m.player_a?.avatar_url ?? null}
+              username={nameOf(m.player_a)}
+              tier={(m.player_a?.membership_tier ?? 'recruit') as MembershipTier}
+              size="md"
+            />
+            <p className="text-lg font-bold text-white">{nameOf(m.player_a)}</p>
+          </div>
           <p className="shrink-0 text-2xl font-black tabular-nums text-white">
             {showScore ? `${m.score_a} – ${m.score_b}` : 'vs'}
           </p>
-          <p className="flex-1 text-left text-lg font-bold text-white">{nameOf(m.player_b)}</p>
+          <div className="flex flex-1 flex-col items-center gap-2 sm:flex-row">
+            <HexAvatar
+              src={m.player_b?.avatar_url ?? null}
+              username={nameOf(m.player_b)}
+              tier={(m.player_b?.membership_tier ?? 'recruit') as MembershipTier}
+              size="md"
+            />
+            <p className="text-lg font-bold text-white">{nameOf(m.player_b)}</p>
+          </div>
         </div>
       </div>
 

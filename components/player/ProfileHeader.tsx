@@ -1,4 +1,4 @@
-import { Avatar } from '@/components/shared/Avatar'
+import { HexAvatar } from '@/components/shared/HexAvatar'
 import { TierBadge } from '@/components/player/TierBadge'
 import { MembershipBadge } from './MembershipBadge'
 import { AddFriendButton } from '@/components/player/AddFriendButton'
@@ -6,12 +6,14 @@ import { ChallengeButton } from '@/components/player/ChallengeButton'
 import { formatMonthYear } from '@/lib/format'
 import type { ProfileView } from '@/lib/players/profile'
 import type { FriendshipStatus } from '@/lib/friends/list'
+import type { MembershipTier } from '@/lib/membership/tiers'
 
 export function ProfileHeader({
   profile,
   viewerId,
   friendshipStatus,
   coinBalance,
+  achievements,
   avatarBorderClass,
   profileThemeClass,
   usernameColourClass,
@@ -20,6 +22,8 @@ export function ProfileHeader({
   viewerId: string | null
   friendshipStatus: FriendshipStatus
   coinBalance?: number
+  /** Unlocked achievement slugs — drives the HexAvatar's decoration badges. */
+  achievements?: string[]
   /** Equipped avatar_border cosmetic — a `ring-*` utility, additive with the avatar's own `border-*`. */
   avatarBorderClass?: string
   /** Equipped profile_theme cosmetic — REPLACES the default `bg-sx-surface`, never appended (Tailwind's
@@ -47,12 +51,13 @@ export function ProfileHeader({
         className="pointer-events-none absolute -right-8 -top-8 h-48 w-48 rounded-full bg-sx-purple/20 blur-[50px]"
       />
       <div className="relative flex flex-col items-center gap-4 text-center sm:flex-row sm:items-start sm:gap-6 sm:text-left">
-        <Avatar
-          avatarUrl={profile.avatarUrl}
-          displayName={profile.displayName}
-          username={profile.username}
-          size={80}
-          className={`border-2 border-sx-purple/50 text-3xl ${avatarBorderClass ?? ''}`}
+        <HexAvatar
+          src={profile.avatarUrl}
+          username={profile.displayName ?? profile.username}
+          tier={(profile.membershipTier ?? 'recruit') as MembershipTier}
+          achievements={achievements}
+          size="xl"
+          avatarBorderClass={avatarBorderClass}
         />
         <div className="min-w-0 flex-1">
           <h1 className={`truncate font-display text-2xl font-black sm:text-3xl ${usernameColourClass ?? 'text-white'}`}>

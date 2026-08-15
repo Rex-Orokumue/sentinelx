@@ -103,6 +103,15 @@ export function getChampion(matches: BracketMatch[]): { id: string; name: string
   return final.score_a > final.score_b ? final.playerA : final.playerB
 }
 
+// The losing finalist — spec companion to getChampion, used by the Hall of
+// Fame's Masters/Champions Cup runner-up rows.
+export function getRunnerUp(matches: BracketMatch[]): { id: string; name: string } | null {
+  const final = matches.find((m) => m.round === 'final' && m.status === 'completed')
+  if (!final || final.score_a == null || final.score_b == null) return null
+  if (final.score_a === final.score_b) return null
+  return final.score_a > final.score_b ? final.playerB : final.playerA
+}
+
 // A 3rd place result exists in two shapes: a real completed match (two
 // semifinal losers played it), or an admin-credited 'bye' (no opponent, no
 // match played — see lib/matches/verify-actions.ts:creditThirdPlace). Both

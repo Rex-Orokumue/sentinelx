@@ -118,3 +118,25 @@ export async function resetKycForPlayer(playerId: string): Promise<{ error?: str
   revalidatePath('/dashboard')
   return { success: true }
 }
+
+// Player-initiated equivalent of resetKycForPlayer — lets a player clear
+// their own payout account (e.g. switching banks) and go back through
+// submitKyc to re-add one. withdrawal_requests already snapshots its own
+// bank_name/account_number/account_name at request time (see migration
+// 024), so removing player_kyc here never corrupts an already-submitted
+// pending request.
+export async function removePayoutAccount(): Promise<{ error?: string; success?: boolean }> {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Please log in.' }
+
+  const admin = createAdminClient()
+  const { error } = await admin.from('player_kyc').delete().eq('player_id', user.id)
+  if (error) return { error: 'Could not remove your payout account. Please try again.' }
+  await admin.from('profiles').update({ kyc_verified: false }).eq('id', user.id)
+
+  revalidatePath('/dashboard/wallet/payment-methods')
+  return { success: true }
+}

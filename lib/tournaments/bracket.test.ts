@@ -4,6 +4,7 @@ import {
   orderKnockoutRounds,
   getChampion,
   getThirdPlace,
+  getRunnerUp,
   groupFixturesByDate,
   type BracketMatch,
 } from './bracket'
@@ -153,6 +154,33 @@ describe('getThirdPlace', () => {
       getThirdPlace([
         match({ id: 'tp', round: 'third_place', status: 'completed', score_a: 1, score_b: 1 }),
       ]),
+    ).toBeNull()
+  })
+})
+
+describe('getRunnerUp', () => {
+  it('returns the losing finalist', () => {
+    const runnerUp = getRunnerUp([
+      match({
+        id: 'f',
+        round: 'final',
+        status: 'completed',
+        score_a: 3,
+        score_b: 1,
+        playerA: { id: 'pa', name: 'Alpha' },
+        playerB: { id: 'pb', name: 'Bravo' },
+      }),
+    ])
+    expect(runnerUp).toEqual({ id: 'pb', name: 'Bravo' })
+  })
+
+  it('returns null with no completed final', () => {
+    expect(getRunnerUp([match({ id: 'f', round: 'final', status: 'scheduled' })])).toBeNull()
+  })
+
+  it('returns null on a draw', () => {
+    expect(
+      getRunnerUp([match({ id: 'f', round: 'final', status: 'completed', score_a: 2, score_b: 2 })]),
     ).toBeNull()
   })
 })
