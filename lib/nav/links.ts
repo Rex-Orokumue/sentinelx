@@ -70,3 +70,26 @@ export const FOOTER_SECTIONS: { heading: string; links: NavLink[] }[] = [
   { heading: 'Explore', links: [PILLAR_LINKS[1], PILLAR_LINKS[2], PILLAR_LINKS[3]] },
   { heading: 'More', links: [SECONDARY_LINKS[0], FOOTER_ONLY_LINKS[0], SECONDARY_LINKS[3], SECONDARY_LINKS[4]] },
 ]
+
+// Deduped, ordered merge of any number of NavLink lists — first occurrence
+// of each href wins, in that link's own list's order. Used to build the
+// mobile nav sheet's Site section from NAVBAR_LINKS ∪ PILLAR_LINKS without
+// dropping /tv, which today only appears in PILLAR_LINKS.
+export function mergeNavLinks(...lists: NavLink[][]): NavLink[] {
+  const seen = new Set<string>()
+  const merged: NavLink[] = []
+  for (const list of lists) {
+    for (const link of list) {
+      if (seen.has(link.href)) continue
+      seen.add(link.href)
+      merged.push(link)
+    }
+  }
+  return merged
+}
+
+// The mobile nav sheet's Site section (components/shared/MobileNavSheet.tsx).
+// NAVBAR_LINKS first so Home leads; PILLAR_LINKS only contributes /tv, since
+// Tournaments/Community/Exchange already appear in NAVBAR_LINKS with the
+// same labels.
+export const SHEET_SITE_LINKS: NavLink[] = mergeNavLinks(NAVBAR_LINKS, PILLAR_LINKS)
