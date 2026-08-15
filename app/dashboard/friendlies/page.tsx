@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { bucketFriendlies, type FriendlyMatchRow } from '@/lib/friendly-matches/buckets'
+import { DashboardShell } from '@/components/dashboard/DashboardShell'
 
 export const metadata: Metadata = {
   title: 'Friendlies · SentinelX Esports',
@@ -58,12 +59,12 @@ export default async function FriendliesPage() {
   const { pending, active, completed } = bucketFriendlies(rows, user.id)
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-20 pt-6">
-      <h1 className="mb-6 text-xl font-black text-white">Friendlies</h1>
+    <DashboardShell>
+      <h1 className="text-lg font-bold text-white">Friendlies</h1>
       <Group title="Pending" rows={pending} viewerId={user.id} empty="No pending challenges." />
       <Group title="Active" rows={active} viewerId={user.id} empty="No active friendlies." />
       <Group title="Completed" rows={completed} viewerId={user.id} empty="No completed friendlies yet." />
-    </div>
+    </DashboardShell>
   )
 }
 
