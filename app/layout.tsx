@@ -1,12 +1,12 @@
 import type { Metadata } from 'next'
-import { Suspense } from 'react'
 import localFont from 'next/font/local'
 import { Barlow_Condensed, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SiteHeader } from '@/components/shared/SiteHeader'
 import { SiteFooter } from '@/components/shared/SiteFooter'
-import { BottomTabBar } from '@/components/shared/BottomTabBar'
 import { getNavSession } from '@/lib/nav/session'
+import { ADMIN_NAV, visibleNav, type AdminSheetData } from '@/lib/admin/nav'
+import { getAdminNotificationQueue } from '@/lib/admin/notification-queue'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildOrganizationJsonLd, buildWebsiteJsonLd } from '@/lib/seo/schema/site'
 import { SITE_URL, SITE_NAME, SITE_SHORT_NAME, SITE_DESCRIPTION, DEFAULT_OG_IMAGE } from '@/lib/seo/site'
@@ -63,24 +63,27 @@ const WHATSAPP_COMMUNITY = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL ?? '#'
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const navSession = await getNavSession()
+  const adminNav: AdminSheetData | null = navSession.isStaff
+    ? {
+        items: visibleNav(ADMIN_NAV, navSession.isAdmin),
+        isAdmin: navSession.isAdmin,
+        notifications: await getAdminNotificationQueue(navSession.isAdmin ? 'admin' : 'moderator'),
+      }
+    : null
+
   return (
     <html lang="en" className="dark">
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${barlowCondensed.variable} ${inter.variable} bg-sx-bg font-sans text-white antialiased`}
       >
         <div className="flex min-h-screen flex-col">
-          <SiteHeader session={navSession} whatsappUrl={WHATSAPP_COMMUNITY} />
+          <SiteHeader session={navSession} whatsappUrl={WHATSAPP_COMMUNITY} adminNav={adminNav} />
 
-          {/* pb-16 clears the fixed mobile tab bar; removed at sm+ */}
-          <main className="flex-1 pb-16 sm:pb-0">{children}</main>
+          <main className="flex-1">{children}</main>
 
           <SiteFooter />
         </div>
 
-        {/* useSearchParams requires a Suspense boundary to avoid de-opting pages to CSR */}
-        <Suspense fallback={null}>
-          <BottomTabBar session={navSession} />
-        </Suspense>
         <Analytics />
         <JsonLd data={buildOrganizationJsonLd()} />
         <JsonLd data={buildWebsiteJsonLd()} />
