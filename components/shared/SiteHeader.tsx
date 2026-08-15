@@ -3,18 +3,22 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { AccountMenu } from '@/components/shared/AccountMenu'
 import { NotificationBell } from '@/components/shared/NotificationBell'
+import { MobileNavSheet } from '@/components/shared/MobileNavSheet'
 import type { NavSession } from '@/lib/nav/session'
+import type { AdminSheetData } from '@/lib/admin/nav'
 import { NAVBAR_LINKS } from '@/lib/nav/links'
 
 export function SiteHeader({
   session,
   whatsappUrl,
+  adminNav,
 }: {
   session: NavSession
   whatsappUrl: string
+  adminNav: AdminSheetData | null
 }) {
   const pathname = usePathname()
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -94,88 +98,13 @@ export function SiteHeader({
         </nav>
       </header>
 
-      {/* ── Mobile nav drawer — rendered OUTSIDE header to escape its
-           backdrop-filter stacking context, which would otherwise trap
-           fixed children and prevent them from overlaying page content. ── */}
       {drawerOpen && (
-        <>
-          {/* Backdrop overlay */}
-          <div
-            className="fixed inset-0 z-[60] lg:hidden"
-            style={{ background: 'rgba(0,0,0,0.75)' }}
-            onClick={() => setDrawerOpen(false)}
-            aria-hidden
-          />
-          {/* Drawer panel */}
-          <div
-            className="fixed inset-y-0 right-0 z-[70] flex w-72 max-w-[85vw] flex-col p-5 lg:hidden"
-            style={{ background: '#13131F', borderLeft: '1px solid #1E1E30' }}
-          >
-            <div className="mb-6 flex items-center justify-between">
-              <span className="font-display text-lg font-bold uppercase tracking-wide text-white">
-                Menu
-              </span>
-              <button
-                type="button"
-                onClick={() => setDrawerOpen(false)}
-                aria-label="Close menu"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/10"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="flex flex-1 flex-col gap-1">
-              {NAVBAR_LINKS.map((item) => {
-                const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setDrawerOpen(false)}
-                    className={`rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
-                      active
-                        ? 'text-white'
-                        : 'text-white/70 hover:text-white'
-                    }`}
-                    style={active ? { background: 'rgba(124,58,237,0.15)' } : undefined}
-                  >
-                    {item.label}
-                  </Link>
-                )
-              })}
-            </div>
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 flex items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
-              style={{ background: '#10B981' }}
-            >
-              <WhatsAppIcon className="h-4 w-4" />
-              <span>Community</span>
-            </a>
-            {!session.isLoggedIn && (
-              <div className="mt-3 flex gap-2">
-                <Link
-                  href="/login"
-                  onClick={() => setDrawerOpen(false)}
-                  className="flex-1 rounded-lg py-2.5 text-center text-sm font-bold text-white transition-colors"
-                  style={{ border: '1px solid #1E1E30' }}
-                >
-                  Login
-                </Link>
-                <Link
-                  href="/signup"
-                  onClick={() => setDrawerOpen(false)}
-                  className="flex-1 rounded-lg py-2.5 text-center text-sm font-bold text-white transition-colors"
-                  style={{ background: '#7C3AED' }}
-                >
-                  Register
-                </Link>
-              </div>
-            )}
-          </div>
-        </>
+        <MobileNavSheet
+          session={session}
+          whatsappUrl={whatsappUrl}
+          adminNav={adminNav}
+          onClose={() => setDrawerOpen(false)}
+        />
       )}
     </>
   )
