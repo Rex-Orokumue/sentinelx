@@ -11,6 +11,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: 'Banner', href: '/admin/banners', adminOnly: false },
   { label: 'Games', href: '/admin/games', adminOnly: false },
   { label: 'Results', href: '/admin/results', adminOnly: false },
+  { label: 'Players', href: '/admin/players', adminOnly: false },
   { label: 'Community', href: '/admin/community', adminOnly: false },
   { label: 'TV', href: '/admin/tv', adminOnly: false },
   { label: 'Exchange', href: '/admin/exchange', adminOnly: false },
