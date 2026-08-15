@@ -12,16 +12,29 @@ export function ProfileHeader({
   viewerId,
   friendshipStatus,
   coinBalance,
+  avatarBorderClass,
+  profileThemeClass,
+  usernameColourClass,
 }: {
   profile: ProfileView
   viewerId: string | null
   friendshipStatus: FriendshipStatus
   coinBalance?: number
+  /** Equipped avatar_border cosmetic — a `ring-*` utility, additive with the avatar's own `border-*`. */
+  avatarBorderClass?: string
+  /** Equipped profile_theme cosmetic — REPLACES the default `bg-sx-surface`, never appended (Tailwind's
+   *  generated CSS order isn't guaranteed to match class-string order, so the two `bg-*` utilities can't
+   *  safely coexist — only one may apply). */
+  profileThemeClass?: string
+  /** Equipped username_colour cosmetic — REPLACES the default `text-white`, same reasoning as above. */
+  usernameColourClass?: string
 }) {
   const name = profile.displayName ?? profile.username
   const since = formatMonthYear(profile.createdAt)
   return (
-    <header className="relative overflow-hidden rounded-xl border border-sx-border bg-sx-surface p-6 sm:p-8">
+    <header
+      className={`relative overflow-hidden rounded-xl border border-sx-border p-6 sm:p-8 ${profileThemeClass ?? 'bg-sx-surface'}`}
+    >
       <div
         aria-hidden
         className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-sx-purple/20 blur-[90px]"
@@ -32,10 +45,12 @@ export function ProfileHeader({
           displayName={profile.displayName}
           username={profile.username}
           size={80}
-          className="border-2 border-sx-purple/50 text-3xl"
+          className={`border-2 border-sx-purple/50 text-3xl ${avatarBorderClass ?? ''}`}
         />
         <div className="min-w-0 flex-1">
-          <h1 className="truncate font-display text-2xl font-black text-white sm:text-3xl">{name}</h1>
+          <h1 className={`truncate font-display text-2xl font-black sm:text-3xl ${usernameColourClass ?? 'text-white'}`}>
+            {name}
+          </h1>
           <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-sx-gray sm:justify-start">
             {profile.country && <span>📍 {profile.country}</span>}
             {since && <span>📅 Joined {since}</span>}

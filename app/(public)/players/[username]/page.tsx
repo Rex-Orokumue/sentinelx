@@ -11,6 +11,12 @@ import { scoreStatsByPlayerAndCategory, winsByPlayerAndGame, type GameScopedMatc
 import { CATEGORY_META } from '@/lib/games/categories'
 import { RANKING_MIN_MATCHES } from '@/lib/rankings/leaderboard'
 import { ProfileHeader } from '@/components/player/ProfileHeader'
+import {
+  equippedCosmeticsBySlug,
+  AVATAR_BORDER_CLASSES,
+  PROFILE_THEME_CLASSES,
+  USERNAME_COLOUR_CLASSES,
+} from '@/lib/store/cosmetics'
 import { ProfileStats } from '@/components/player/ProfileStats'
 import { ProfileAchievements } from '@/components/player/ProfileAchievements'
 import { ProfileMatchHistory } from '@/components/player/ProfileMatchHistory'
@@ -182,6 +188,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
     { count: totalRankedPlayers },
     { data: rawAchievements },
     { data: rawPlayerAchievements },
+    { data: rawEquippedItems },
   ] = await Promise.all([
     supabase.rpc('player_rank', { uname: p.username }),
     supabase
@@ -223,7 +230,14 @@ export default async function PlayerProfilePage({ params }: { params: { username
       .gte('total_matches', RANKING_MIN_MATCHES),
     supabase.from('achievements').select('id, slug, name, description').eq('phase', 'phase2').order('sort_order'),
     supabase.from('player_achievements').select('achievement_id').eq('player_id', p.id),
+    supabase
+      .from('player_store_items')
+      .select('item_id, equipped, store_items(slug, category)')
+      .eq('player_id', p.id)
+      .eq('equipped', true),
   ])
+
+  const cosmetics = equippedCosmeticsBySlug(rawEquippedItems ?? [])
 
   const categoryMatches: GameScopedMatch[] = ((rawCategoryMatches as unknown[] | null) ?? []).map((raw) => {
     const m = raw as {
@@ -386,6 +400,9 @@ export default async function PlayerProfilePage({ params }: { params: { username
             viewerId={user?.id ?? null}
             friendshipStatus={friendship}
             coinBalance={coinBalance ?? undefined}
+            avatarBorderClass={cosmetics.avatarBorder ? AVATAR_BORDER_CLASSES[cosmetics.avatarBorder] : undefined}
+            profileThemeClass={cosmetics.profileTheme ? PROFILE_THEME_CLASSES[cosmetics.profileTheme] : undefined}
+            usernameColourClass={cosmetics.usernameColour ? USERNAME_COLOUR_CLASSES[cosmetics.usernameColour] : undefined}
           />
           <ProfileStats profile={profile} />
           <ProfileGamesRow games={gamesPlayed} />
