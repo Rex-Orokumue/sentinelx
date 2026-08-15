@@ -3,9 +3,11 @@ import { Fragment, useState } from 'react'
 import Link from 'next/link'
 import { TierBadge } from '@/components/player/TierBadge'
 import { MembershipBadge } from '@/components/player/MembershipBadge'
+import { HexAvatar } from '@/components/shared/HexAvatar'
 import type { RankedPlayer, LeaderboardMetric } from '@/lib/rankings/leaderboard'
 import { categoryStat } from '@/lib/rankings/game-breakdown'
 import { CATEGORY_META } from '@/lib/games/categories'
+import type { MembershipTier } from '@/lib/membership/tiers'
 
 const METRIC_LABEL: Record<LeaderboardMetric, string> = {
   wins: 'W',
@@ -55,7 +57,6 @@ export function LeaderboardTable({
             // is simply no row here to highlight — expected, not a bug.
             const isMe = currentUserId != null && pl.id === currentUserId
             const name = pl.displayName ?? pl.username ?? 'Anonymous'
-            const initial = (name[0] ?? '?').toUpperCase()
             const isExpanded = expandable && expandedId === pl.id
             return (
               <Fragment key={pl.id}>
@@ -71,9 +72,12 @@ export function LeaderboardTable({
                   </td>
                   <td className="px-2 py-3.5">
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white">
-                        {initial}
-                      </div>
+                      <HexAvatar
+                        src={pl.avatarUrl}
+                        username={name}
+                        tier={(pl.membershipTier ?? 'recruit') as MembershipTier}
+                        size="xs"
+                      />
                       <div className="min-w-0">
                         <p className="truncate font-semibold leading-tight text-white">
                           {pl.username ? (
