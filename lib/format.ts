@@ -104,6 +104,25 @@ export function todayDateLocal(): string {
 }
 
 /**
+ * "2h ago" / "Just now" / "3d ago" — for feed-style timestamps (community
+ * posts, comments). Falls back to `formatDate` past 7 days, where a relative
+ * count stops being useful. Returns null for missing/invalid input.
+ */
+export function formatRelativeTime(iso: string | null | undefined): string | null {
+  const d = toDate(iso)
+  if (!d) return null
+  const seconds = Math.floor((Date.now() - d.getTime()) / 1000)
+  if (seconds < 60) return 'Just now'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return formatDate(iso)
+}
+
+/**
  * A fixture's display date: date-only for a full-day match ("28 Jul 2026"),
  * date + time for a timed one ("8 Jul, 20:00"). Returns null for missing/
  * invalid input — callers fall back to their own "Time TBD" copy.

@@ -24,6 +24,8 @@ import { settleMatchBets, refundMatchBets } from '@/lib/betting/settle'
 import { revalidateAll, revalidateThirdPlaceCredit } from './revalidate'
 import { awardSeasonPoints } from './season-points'
 import { awardMatchEconomy } from './economy-hooks'
+import { onMatchConfirmed } from '@/lib/community/feed-hooks'
+import { revalidatePath } from 'next/cache'
 
 export type VerifyState = { error?: string; success?: boolean } | undefined
 type Admin = ReturnType<typeof createAdminClient>
@@ -395,6 +397,16 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
 
   await syncMatchEvents(admin, id)
   await awardMatchEconomy(admin, id)
+
+  // Feed §10: match_result auto-post + weekly challenge progress. Explicitly
+  // non-blocking — the result confirmation above has already committed, and
+  // a feed/challenge hiccup must never surface as a failed result confirm.
+  try {
+    await onMatchConfirmed(admin, id)
+    revalidatePath('/community')
+  } catch (err) {
+    console.error('[confirmResult] onMatchConfirmed failed (non-blocking)', { matchId: id, err })
+  }
 
   type NameRef =
     | { display_name: string | null; username: string | null }

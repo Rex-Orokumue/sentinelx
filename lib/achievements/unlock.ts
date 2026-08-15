@@ -1,6 +1,7 @@
 import { awardXP } from '@/lib/membership/xp'
 import { awardCoins } from '@/lib/coins/service'
 import { notifyInApp } from '@/lib/notifications/inbox'
+import { createAchievementPost } from '@/lib/community/feed-hooks'
 import type { createAdminClient } from '@/lib/supabase/admin'
 
 type Admin = ReturnType<typeof createAdminClient>
@@ -16,9 +17,11 @@ interface AchievementRow {
   id: string
   slug: string
   name: string
+  description: string
   category: string
   xp_reward: number
   coin_reward: number
+  share_to_feed: boolean
 }
 
 const SCORE_THRESHOLDS: [string, number][] = [
@@ -36,7 +39,7 @@ async function unlockedSlugSet(admin: Admin, playerId: string): Promise<Set<stri
 async function candidateAchievements(admin: Admin, category: string): Promise<AchievementRow[]> {
   const { data } = await admin
     .from('achievements')
-    .select('id, slug, name, category, xp_reward, coin_reward')
+    .select('id, slug, name, description, category, xp_reward, coin_reward, share_to_feed')
     .eq('category', category)
     .eq('phase', 'phase2')
   return (data ?? []) as AchievementRow[]
@@ -53,6 +56,16 @@ async function unlock(admin: Admin, playerId: string, achievement: AchievementRo
   }
   if (achievement.xp_reward > 0) await awardXP(admin, playerId, achievement.xp_reward, 'achievement_unlocked', achievement.id)
   if (achievement.coin_reward > 0) await awardCoins(admin, playerId, achievement.coin_reward, 'achievement_unlocked', achievement.id)
+  if (achievement.share_to_feed) {
+    // Non-blocking — an achievement is unlocked and awarded above regardless
+    // of whether the feed post succeeds (same non-blocking contract as the
+    // match_result hook in feed-hooks.ts#onMatchConfirmed).
+    try {
+      await createAchievementPost(admin, playerId, achievement)
+    } catch (err) {
+      console.error('[unlock] createAchievementPost failed (non-blocking)', { playerId, achievementId: achievement.id, err })
+    }
+  }
   await notifyInApp({
     playerId,
     type: 'achievement_unlocked',

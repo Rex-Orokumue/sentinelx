@@ -23,6 +23,7 @@ export type Database = {
           id: string
           name: string
           phase: string
+          share_to_feed: boolean
           slug: string
           sort_order: number
           xp_reward: number
@@ -35,6 +36,7 @@ export type Database = {
           id?: string
           name: string
           phase?: string
+          share_to_feed?: boolean
           slug: string
           sort_order?: number
           xp_reward?: number
@@ -47,6 +49,7 @@ export type Database = {
           id?: string
           name?: string
           phase?: string
+          share_to_feed?: boolean
           slug?: string
           sort_order?: number
           xp_reward?: number
@@ -88,6 +91,77 @@ export type Database = {
           },
           {
             foreignKeyName: "admin_flags_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      best_play_nominations: {
+        Row: {
+          created_at: string
+          id: string
+          is_winner: boolean
+          post_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_winner?: boolean
+          post_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_winner?: boolean
+          post_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "best_play_nominations_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      best_play_votes: {
+        Row: {
+          created_at: string
+          id: string
+          nomination_id: string
+          player_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nomination_id: string
+          player_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nomination_id?: string
+          player_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "best_play_votes_nomination_id_fkey"
+            columns: ["nomination_id"]
+            isOneToOne: false
+            referencedRelation: "best_play_nominations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "best_play_votes_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -152,62 +226,75 @@ export type Database = {
           },
         ]
       }
-      community_post_images: {
+      community_challenges: {
         Row: {
-          created_at: string
-          display_order: number
+          challenge_type: string
+          coin_reward: number
+          description: string
+          goal: number
           id: string
-          image_url: string
-          post_id: string
+          slug: string
+          title: string
+          xp_reward: number
         }
         Insert: {
-          created_at?: string
-          display_order?: number
+          challenge_type: string
+          coin_reward?: number
+          description: string
+          goal: number
           id?: string
-          image_url: string
-          post_id: string
+          slug: string
+          title: string
+          xp_reward?: number
         }
         Update: {
-          created_at?: string
-          display_order?: number
+          challenge_type?: string
+          coin_reward?: number
+          description?: string
+          goal?: number
           id?: string
-          image_url?: string
-          post_id?: string
+          slug?: string
+          title?: string
+          xp_reward?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "community_post_images_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "community_posts"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       community_posts: {
         Row: {
-          author_id: string
-          body: string
+          author_id: string | null
+          content: string
           created_at: string
-          game_id: string
+          deleted_reason: string | null
           id: string
-          updated_at: string
+          image_url: string | null
+          is_deleted: boolean
+          is_pinned: boolean
+          post_type: string
+          reference_id: string | null
         }
         Insert: {
-          author_id: string
-          body: string
+          author_id?: string | null
+          content: string
           created_at?: string
-          game_id: string
+          deleted_reason?: string | null
           id?: string
-          updated_at?: string
+          image_url?: string | null
+          is_deleted?: boolean
+          is_pinned?: boolean
+          post_type?: string
+          reference_id?: string | null
         }
         Update: {
-          author_id?: string
-          body?: string
+          author_id?: string | null
+          content?: string
           created_at?: string
-          game_id?: string
+          deleted_reason?: string | null
           id?: string
-          updated_at?: string
+          image_url?: string | null
+          is_deleted?: boolean
+          is_pinned?: boolean
+          post_type?: string
+          reference_id?: string | null
         }
         Relationships: [
           {
@@ -215,84 +302,6 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_posts_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      community_replies: {
-        Row: {
-          author_id: string
-          body: string
-          created_at: string
-          id: string
-          post_id: string
-        }
-        Insert: {
-          author_id: string
-          body: string
-          created_at?: string
-          id?: string
-          post_id: string
-        }
-        Update: {
-          author_id?: string
-          body?: string
-          created_at?: string
-          id?: string
-          post_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_replies_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "community_replies_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "community_posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      community_reply_images: {
-        Row: {
-          created_at: string
-          display_order: number
-          id: string
-          image_url: string
-          reply_id: string
-        }
-        Insert: {
-          created_at?: string
-          display_order?: number
-          id?: string
-          image_url: string
-          reply_id: string
-        }
-        Update: {
-          created_at?: string
-          display_order?: number
-          id?: string
-          image_url?: string
-          reply_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "community_reply_images_reply_id_fkey"
-            columns: ["reply_id"]
-            isOneToOne: false
-            referencedRelation: "community_replies"
             referencedColumns: ["id"]
           },
         ]
@@ -1231,6 +1240,51 @@ export type Database = {
           },
         ]
       }
+      player_challenge_progress: {
+        Row: {
+          challenge_id: string
+          completed: boolean
+          id: string
+          player_id: string
+          progress: number
+          rewarded_at: string | null
+          week_start: string
+        }
+        Insert: {
+          challenge_id: string
+          completed?: boolean
+          id?: string
+          player_id: string
+          progress?: number
+          rewarded_at?: string | null
+          week_start: string
+        }
+        Update: {
+          challenge_id?: string
+          completed?: boolean
+          id?: string
+          player_id?: string
+          progress?: number
+          rewarded_at?: string | null
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_challenge_progress_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "community_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_challenge_progress_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_kyc: {
         Row: {
           kyc_failure_reason: string | null
@@ -1354,6 +1408,87 @@ export type Database = {
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_comments: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          is_deleted: boolean
+          post_id: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean
+          post_id: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          player_id: string
+          post_id: string
+          reaction: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          player_id: string
+          post_id: string
+          reaction: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          player_id?: string
+          post_id?: string
+          reaction?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_reactions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
             referencedColumns: ["id"]
           },
         ]

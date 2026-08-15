@@ -1,151 +1,99 @@
 'use client'
-import { useState } from 'react'
-import { useFormState } from 'react-dom'
-import { Avatar } from '@/components/shared/Avatar'
-import { formatDateTime } from '@/lib/format'
-import { deletePost, deleteReply, type DeleteState } from '@/lib/community/actions'
-import { ReplyComposer } from './ReplyComposer'
+import { useState, useTransition } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { HexAvatar } from '@/components/shared/HexAvatar'
+import { TierBadge } from '@/components/player/TierBadge'
+import { formatRelativeTime } from '@/lib/format'
+import type { MembershipTier } from '@/lib/membership/tiers'
+import type { PostView } from '@/lib/community/feed-query'
+import { deletePost } from '@/lib/community/post-actions'
+import { MatchResultCard } from './MatchResultCard'
+import { AnnouncementCard } from './AnnouncementCard'
+import { ReactionBar } from './ReactionBar'
+import { ShareButton } from './ShareButton'
 import { ImageLightbox } from './ImageLightbox'
 
-export interface ReplyView {
-  id: string
-  body: string
-  imageUrls: string[]
-  createdAt: string
-  authorUsername: string | null
-  authorDisplayName: string | null
-  authorAvatarUrl: string | null
-  canDelete: boolean
+// Handles all 4 post types (spec §13). match_result and announcement get a
+// distinct visual treatment and delegate out; manual and achievement share
+// this layout, differing only in border/header accent.
+export function PostCard({ post, loggedIn }: { post: PostView; loggedIn: boolean }) {
+  if (post.postType === 'match_result') return <MatchResultCard post={post} loggedIn={loggedIn} />
+  if (post.postType === 'announcement') return <AnnouncementCard post={post} />
+  return <ManualOrAchievementCard post={post} loggedIn={loggedIn} />
 }
 
-export interface PostView {
-  id: string
-  body: string
-  imageUrls: string[]
-  createdAt: string
-  authorUsername: string | null
-  authorDisplayName: string | null
-  authorAvatarUrl: string | null
-  canDelete: boolean
-  replies: ReplyView[]
-}
+function ManualOrAchievementCard({ post, loggedIn }: { post: PostView; loggedIn: boolean }) {
+  const router = useRouter()
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  const isAchievement = post.postType === 'achievement'
+  const name = post.author.displayName ?? post.author.username ?? 'Player'
 
-function ImageGrid({ urls, className = 'mt-3' }: { urls: string[]; className?: string }) {
-  const [openIndex, setOpenIndex] = useState<number | null>(null)
-  if (urls.length === 0) return null
-  return (
-    <>
-      <div className={`flex flex-wrap gap-2 ${className}`}>
-        {urls.map((url, i) => (
-          <button
-            key={url}
-            type="button"
-            onClick={() => setOpenIndex(i)}
-            aria-label="View image"
-            className="h-28 w-28 overflow-hidden rounded-lg sm:h-36 sm:w-36"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url} alt="" className="h-full w-full object-cover" />
-          </button>
-        ))}
-      </div>
-      {openIndex !== null && (
-        <ImageLightbox
-          urls={urls}
-          index={openIndex}
-          onClose={() => setOpenIndex(null)}
-          onIndexChange={setOpenIndex}
-        />
-      )}
-    </>
-  )
-}
-
-export function PostCard({ post, canReply }: { post: PostView; canReply: boolean }) {
-  const [expanded, setExpanded] = useState(false)
-  const [delState, delAction] = useFormState<DeleteState, FormData>(deletePost, undefined)
-  const authorName = post.authorDisplayName ?? post.authorUsername ?? 'Player'
+  function onDelete() {
+    startTransition(async () => {
+      const fd = new FormData()
+      fd.set('id', post.id)
+      const res = await deletePost(undefined, fd)
+      if (res?.error) setError(res.error)
+      else router.refresh()
+    })
+  }
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
+    <div className={`rounded-2xl border bg-sx-surface p-4 ${isAchievement ? 'border-amber-500/30' : 'border-sx-border'}`}>
+      {isAchievement && <p className="mb-2 text-xs font-black uppercase tracking-widest text-amber-400">🏅 Achievement Unlocked</p>}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-2.5">
-          <Avatar
-            avatarUrl={post.authorAvatarUrl}
-            displayName={post.authorDisplayName}
-            username={post.authorUsername}
-            size={32}
-          />
+        <div className="flex min-w-0 items-center gap-2.5">
+          <HexAvatar src={post.author.avatarUrl} username={name} tier={post.author.membershipTier as MembershipTier} size="xs" />
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-white">{authorName}</p>
-            <p className="text-[11px] text-slate-500">{formatDateTime(post.createdAt)}</p>
+            <p className="truncate text-sm font-bold text-sx-white">
+              {post.author.username ? (
+                <Link href={`/players/${post.author.username}`} className="hover:text-sx-purple-text">
+                  {name}
+                </Link>
+              ) : (
+                name
+              )}
+            </p>
+            <div className="flex items-center gap-1.5">
+              <TierBadge tier={post.author.sentinelTier} />
+              <span className="text-[11px] text-sx-gray">· {formatRelativeTime(post.createdAt)}</span>
+            </div>
           </div>
         </div>
         {post.canDelete && (
-          <form action={delAction}>
-            <input type="hidden" name="id" value={post.id} />
-            <button type="submit" className="shrink-0 text-xs font-semibold text-red-400 hover:text-red-300">
-              Delete
-            </button>
-          </form>
+          <button type="button" onClick={onDelete} disabled={pending} className="shrink-0 text-xs font-semibold text-red-400 hover:text-red-300 disabled:opacity-50">
+            Delete
+          </button>
         )}
       </div>
 
-      <p className="mt-3 whitespace-pre-line text-sm text-slate-200">{post.body}</p>
-      <ImageGrid urls={post.imageUrls} />
-      {delState?.error && <p className="mt-2 text-xs text-red-400">{delState.error}</p>}
+      <p className="mt-3 whitespace-pre-line text-sm text-sx-white/90">{post.content}</p>
+      {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
 
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="mt-3 text-xs font-bold text-violet-400 hover:text-violet-300"
-      >
-        {post.replies.length === 0
-          ? 'Reply'
-          : `${expanded ? 'Hide' : 'Show'} ${post.replies.length} repl${post.replies.length === 1 ? 'y' : 'ies'}`}
-      </button>
-
-      {expanded && (
-        <div className="mt-3 space-y-3 border-l-2 border-slate-800 pl-4">
-          {post.replies.map((r) => (
-            <ReplyRow key={r.id} reply={r} />
-          ))}
-        </div>
+      {post.imageUrl && (
+        <>
+          <button type="button" onClick={() => setLightboxOpen(true)} className="mt-3 block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={post.imageUrl} alt="" className="max-h-80 w-full rounded-lg object-cover" />
+          </button>
+          {lightboxOpen && (
+            <ImageLightbox urls={[post.imageUrl]} index={0} onClose={() => setLightboxOpen(false)} onIndexChange={() => {}} />
+          )}
+        </>
       )}
-      {(expanded || post.replies.length === 0) && canReply && <ReplyComposer postId={post.id} />}
-    </div>
-  )
-}
 
-function ReplyRow({ reply }: { reply: ReplyView }) {
-  const [delState, delAction] = useFormState<DeleteState, FormData>(deleteReply, undefined)
-  const name = reply.authorDisplayName ?? reply.authorUsername ?? 'Player'
-  return (
-    <div className="flex items-start justify-between gap-3">
-      <div className="flex min-w-0 items-start gap-2">
-        <Avatar
-          avatarUrl={reply.authorAvatarUrl}
-          displayName={reply.authorDisplayName}
-          username={reply.authorUsername}
-          size={22}
-        />
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-white">
-            {name} <span className="font-normal text-slate-500">· {formatDateTime(reply.createdAt)}</span>
-          </p>
-          <p className="mt-0.5 whitespace-pre-line text-xs text-slate-300">{reply.body}</p>
-          <ImageGrid urls={reply.imageUrls} className="mt-2" />
-          {delState?.error && <p className="mt-1 text-[11px] text-red-400">{delState.error}</p>}
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <ReactionBar postId={post.id} counts={post.reactionCounts} myReaction={post.myReaction} loggedIn={loggedIn} />
+        <div className="flex items-center gap-3">
+          <Link href={`/community/${post.id}`} className="text-xs font-semibold text-sx-gray hover:text-sx-white">
+            💬 {post.commentCount}
+          </Link>
+          <ShareButton post={post} />
         </div>
       </div>
-      {reply.canDelete && (
-        <form action={delAction}>
-          <input type="hidden" name="id" value={reply.id} />
-          <button type="submit" className="shrink-0 text-[11px] font-semibold text-red-400 hover:text-red-300">
-            Delete
-          </button>
-        </form>
-      )}
     </div>
   )
 }
