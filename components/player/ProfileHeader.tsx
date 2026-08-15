@@ -39,8 +39,12 @@ export function ProfileHeader({
           <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-sx-gray sm:justify-start">
             {profile.country && <span>📍 {profile.country}</span>}
             {since && <span>📅 Joined {since}</span>}
-            <TierBadge tier={profile.sentinelTier} />
-            <MembershipBadge tier={profile.membershipTier} />
+            <span title="SX Score reliability tier">
+              <TierBadge tier={profile.sentinelTier} />
+            </span>
+            <span title="XP membership level">
+              <MembershipBadge tier={profile.membershipTier} />
+            </span>
             <span className="font-semibold text-sx-purple-text">
               {profile.rank != null ? `Ranked #${profile.rank}` : 'Unranked'}
             </span>

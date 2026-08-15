@@ -95,8 +95,12 @@ export function LeaderboardTable({
                           )}
                         </p>
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <TierBadge tier={pl.sentinelTier} />
-                          <MembershipBadge tier={pl.membershipTier} />
+                          <span title="SX Score reliability tier">
+                            <TierBadge tier={pl.sentinelTier} />
+                          </span>
+                          <span title="XP membership level">
+                            <MembershipBadge tier={pl.membershipTier} />
+                          </span>
                         </div>
                       </div>
                     </div>
