@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { requireStaff } from '@/lib/admin/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { matchesPlayerQuery } from '@/lib/admin/search'
+import { HexAvatar } from '@/components/shared/HexAvatar'
+import type { MembershipTier } from '@/lib/membership/tiers'
 
 export const metadata: Metadata = { title: 'Players · Admin · SentinelX' }
 
@@ -15,7 +17,7 @@ export default async function AdminPlayersPage({
   const admin = createAdminClient()
   const { data: players } = await admin
     .from('profiles')
-    .select('id, username, display_name, sx_score, membership_tier, total_matches')
+    .select('id, username, display_name, avatar_url, sx_score, membership_tier, total_matches')
     .order('username')
 
   const q = searchParams.q ?? ''
@@ -49,7 +51,15 @@ export default async function AdminPlayersPage({
           <tbody>
             {filtered.map((p) => (
               <tr key={p.id} className="border-t border-slate-800">
-                <td className="py-2">{p.display_name ?? p.username}</td>
+                <td className="flex items-center gap-2 py-2">
+                  <HexAvatar
+                    src={p.avatar_url}
+                    username={p.display_name ?? p.username ?? '?'}
+                    tier={(p.membership_tier ?? 'recruit') as MembershipTier}
+                    size="xs"
+                  />
+                  {p.display_name ?? p.username}
+                </td>
                 <td>{p.sx_score}</td>
                 <td className="capitalize">{p.membership_tier}</td>
                 <td>{p.total_matches}</td>
