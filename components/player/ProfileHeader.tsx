@@ -35,9 +35,16 @@ export function ProfileHeader({
     <header
       className={`relative overflow-hidden rounded-xl border border-sx-border p-6 sm:p-8 ${profileThemeClass ?? 'bg-sx-surface'}`}
     >
+      {/* Decorative glow. Kept well inside the header's own box (not just
+          relying on overflow-hidden to clip it) — a blur radius wider than
+          its offset can visually bleed past an ancestor's overflow-hidden
+          on some WebKit/iOS renderers, which is the likely real cause of
+          reported horizontal scroll on this page: this was previously the
+          only element on the page whose geometry extended past its
+          container at all. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-sx-purple/20 blur-[90px]"
+        className="pointer-events-none absolute -right-8 -top-8 h-48 w-48 rounded-full bg-sx-purple/20 blur-[50px]"
       />
       <div className="relative flex flex-col items-center gap-4 text-center sm:flex-row sm:items-start sm:gap-6 sm:text-left">
         <Avatar

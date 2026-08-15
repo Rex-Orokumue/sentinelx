@@ -22,7 +22,7 @@ export function CareerStatsRadar() {
         <h2 className="text-sm font-bold uppercase tracking-widest text-white">Career Stats</h2>
       </div>
       <div className="rounded-xl border border-sx-border bg-sx-surface p-4">
-        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="mx-auto w-full max-w-[220px]">
+        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="mx-auto w-full max-w-[220px] overflow-hidden">
           {rings.map((scale) => (
             <polygon
               key={scale}
@@ -36,13 +36,21 @@ export function CareerStatsRadar() {
             <line key={i} x1={CENTER} y1={CENTER} x2={x} y2={y} stroke="rgba(124,58,237,0.25)" strokeWidth={1} />
           ))}
           {AXES.map((label, i) => {
-            const [x, y] = pointAt(i, RADIUS + 22)
+            const [x, y] = pointAt(i, RADIUS + 18)
+            // Anchor direction depends on which side of center the label
+            // sits on, so text always grows INWARD (toward the pentagon)
+            // rather than symmetrically outward from the anchor point —
+            // otherwise a label near the left/right edge (e.g. the longest
+            // words, "Consistency"/"Reaction") renders past the viewBox
+            // boundary and gets clipped. This is robust to any label
+            // length, not tuned to today's specific words.
+            const anchor = x < CENTER - 2 ? 'start' : x > CENTER + 2 ? 'end' : 'middle'
             return (
               <text
                 key={label}
                 x={x}
                 y={y}
-                textAnchor="middle"
+                textAnchor={anchor}
                 dominantBaseline="middle"
                 className="fill-sx-gray text-[9px] font-semibold uppercase"
               >

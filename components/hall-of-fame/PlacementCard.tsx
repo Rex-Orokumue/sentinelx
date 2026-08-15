@@ -21,7 +21,7 @@ export function PlacementCard({
   const initial = (playerName[0] ?? '?').toUpperCase()
   const formattedDate = formatMonthYear(date)
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
+    <div className="min-w-0 flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-lg">
         {icon}
       </div>
