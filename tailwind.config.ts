@@ -85,11 +85,16 @@ const config: Config = {
           '50%':  { filter: 'drop-shadow(0 0 24px rgba(245,158,11,0.9))' },
           '100%': { filter: 'drop-shadow(0 0 20px rgba(239,68,68,0.8))' },
         },
+        float: {
+          '0%, 100%': { transform: 'translateY(-50%)' },
+          '50%': { transform: 'translateY(calc(-50% - 12px))' },
+        },
       },
       animation: {
         "pulse-dot": "pulse-dot 1.6s ease-in-out infinite",
         'sentinel-pulse': 'sentinelPulse 3s ease-in-out infinite',
         'legend-glow': 'legendGlow 6s linear infinite',
+        float: 'float 4s ease-in-out infinite',
       },
     },
   },
