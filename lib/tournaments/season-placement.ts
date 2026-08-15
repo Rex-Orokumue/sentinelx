@@ -82,6 +82,49 @@ export function bandsForPlacements(
   }))
 }
 
+// The guaranteed floor for a still-competing player: the furthest round
+// they've already secured passage into, regardless of whether that round's
+// match has been played (or even generated) yet. Unlike bandsForPlacements
+// (which only assigns a band on a LOSS), this assigns a band the moment a
+// player is KNOWN to be in a given round — a real match listing them as a
+// participant proves they survived everything before it, so "if they lose
+// this exact match" is their honest worst-case outcome right now. Rounds
+// are walked in order so a later appearance always overrides an earlier
+// one. For a player who has already been eliminated mid-tournament, this
+// happens to return the exact same (now-locked) band bandsForPlacements
+// would — there's no remaining uncertainty for them either way.
+export function guaranteedBandsForPlacements(
+  matches: PlacementMatch[],
+  activePlayerIds: string[],
+): PlacementResult[] {
+  const floor = new Map<string, PlacementBand>()
+
+  for (let i = 0; i < ROUND_ORDER.length; i++) {
+    const round = ROUND_ORDER[i]
+    const nextRound = ROUND_ORDER[i + 1] as PlacementBand | undefined
+    const roundMatches = matches.filter((m) => m.round === round)
+
+    for (const match of roundMatches) {
+      if (match.status === 'bye') {
+        // A bye auto-advances its one real participant into the next
+        // round, even if that round's match row doesn't exist in the DB
+        // yet (bracket generation for later rounds waits on this round
+        // finishing).
+        const soloPlayer = match.player_a_id ?? match.player_b_id
+        if (soloPlayer && nextRound) floor.set(soloPlayer, nextRound)
+        continue
+      }
+      if (match.player_a_id) floor.set(match.player_a_id, round as PlacementBand)
+      if (match.player_b_id) floor.set(match.player_b_id, round as PlacementBand)
+    }
+  }
+
+  return activePlayerIds.map((playerId) => ({
+    playerId,
+    band: floor.get(playerId) ?? 'non_advancer',
+  }))
+}
+
 const COMMUNITY_CLUB_POINTS: Record<PlacementBand, number> = {
   champion: 100,
   runner_up: 70,
