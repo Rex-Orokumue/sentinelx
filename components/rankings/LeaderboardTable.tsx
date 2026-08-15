@@ -2,6 +2,7 @@
 import { Fragment, useState } from 'react'
 import Link from 'next/link'
 import { TierBadge } from '@/components/player/TierBadge'
+import { MembershipBadge } from '@/components/player/MembershipBadge'
 import type { RankedPlayer, LeaderboardMetric } from '@/lib/rankings/leaderboard'
 import { categoryStat } from '@/lib/rankings/game-breakdown'
 import { CATEGORY_META } from '@/lib/games/categories'
@@ -15,7 +16,7 @@ const METRIC_LABEL: Record<LeaderboardMetric, string> = {
 }
 const METRIC_VALUE: Record<LeaderboardMetric, (p: RankedPlayer) => number> = {
   wins: (p) => p.wins,
-  score: (p) => p.sentinelScore,
+  score: (p) => p.sxScore,
   football: (p) => categoryStat(p.categoryStats, 'football').scored,
   fighting: (p) => categoryStat(p.categoryStats, 'fighting').scored,
   shooter: (p) => categoryStat(p.categoryStats, 'shooter').scored,
@@ -93,7 +94,10 @@ export function LeaderboardTable({
                             </span>
                           )}
                         </p>
-                        <TierBadge tier={pl.sentinelTier} />
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <TierBadge tier={pl.sentinelTier} />
+                          <MembershipBadge tier={pl.membershipTier} />
+                        </div>
                       </div>
                     </div>
                   </td>

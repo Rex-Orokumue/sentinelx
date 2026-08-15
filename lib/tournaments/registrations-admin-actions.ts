@@ -7,6 +7,7 @@ import { notify } from '@/lib/notifications/notify'
 import { notifyInApp } from '@/lib/notifications/inbox'
 import { disqualifyKey } from '@/lib/notifications/keys'
 import { recomputeGroupStats } from '@/lib/matches/verify-actions'
+import { refreshPlayer } from '@/lib/scoring/apply'
 
 export type DisqualifyState = { error?: string; success?: boolean } | undefined
 
@@ -41,13 +42,18 @@ export async function disqualifyRegistration(_prev: DisqualifyState, formData: F
     return { error: 'This registration is not active (already disqualified or withdrawn).' }
   }
 
-  await admin.from('sentinel_score_events').insert({
+  await admin.from('sx_score_events').insert({
     player_id: playerId,
     match_id: null,
     event_type: 'admin_flag_conduct',
-    points_delta: -5,
+    points_delta: -50,
     note: `Disqualified from ${tournamentTitle}: ${parsed.data.reason}`,
   })
+  // The insert above bypasses matchEventsFor/syncMatchEvents (it's an
+  // authored event, not a match-derived one) — refresh the cached score
+  // directly so profiles.sx_score doesn't go stale until the next unrelated
+  // recompute.
+  await refreshPlayer(admin, playerId)
 
   await notify({
     type: 'player_disqualified',

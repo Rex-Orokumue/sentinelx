@@ -10,7 +10,7 @@ export type BracketState = { error?: string; success?: boolean } | undefined
 
 type Admin = ReturnType<typeof createAdminClient>
 
-// Paid players ordered by sentinel_score desc, ties broken randomly.
+// Paid players ordered by sx_score desc, ties broken randomly.
 async function seededPaidPlayers(admin: Admin, tournamentId: string): Promise<string[]> {
   const { data: regs } = await admin
     .from('tournament_registrations')
@@ -19,8 +19,8 @@ async function seededPaidPlayers(admin: Admin, tournamentId: string): Promise<st
     .eq('payment_status', 'paid')
   const ids = (regs ?? []).map((r) => r.player_id)
   if (ids.length === 0) return []
-  const { data: profs } = await admin.from('profiles').select('id, sentinel_score').in('id', ids)
-  const scoreById = new Map((profs ?? []).map((p) => [p.id, p.sentinel_score]))
+  const { data: profs } = await admin.from('profiles').select('id, sx_score').in('id', ids)
+  const scoreById = new Map((profs ?? []).map((p) => [p.id, p.sx_score]))
   return ids
     .map((id) => ({ id, score: scoreById.get(id) ?? 0, r: Math.random() }))
     .sort((a, b) => b.score - a.score || a.r - b.r)

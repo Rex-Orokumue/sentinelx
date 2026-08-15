@@ -21,8 +21,9 @@ function p(over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput {
     categoryStats: [],
     winsByGame: [],
     totalTitles: 0,
-    sentinelScore: 70,
+    sxScore: 70,
     sentinelTier: null,
+    membershipTier: 'recruit',
     ...over,
   }
 }
@@ -78,9 +79,9 @@ describe('rankPlayersBy', () => {
     )
   })
 
-  it('sorts by Sentinel Score when metric is "score"', () => {
+  it('sorts by SX Score when metric is "score"', () => {
     const r = rankPlayersBy(
-      [p({ id: 'a', sentinelScore: 60, wins: 9 }), p({ id: 'b', sentinelScore: 92, wins: 1 })],
+      [p({ id: 'a', sxScore: 60, wins: 9 }), p({ id: 'b', sxScore: 92, wins: 1 })],
       'score',
     )
     expect(r.map((x) => x.id)).toEqual(['b', 'a'])
@@ -110,7 +111,7 @@ describe('rankPlayersBy', () => {
 
   it('assigns sequential ranks for the chosen metric', () => {
     const r = rankPlayersBy(
-      [p({ id: 'a', sentinelScore: 70 }), p({ id: 'b', sentinelScore: 95 }), p({ id: 'c', sentinelScore: 80 })],
+      [p({ id: 'a', sxScore: 70 }), p({ id: 'b', sxScore: 95 }), p({ id: 'c', sxScore: 80 })],
       'score',
     )
     expect(r.map((x) => x.rank)).toEqual([1, 2, 3])

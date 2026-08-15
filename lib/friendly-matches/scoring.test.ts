@@ -24,7 +24,7 @@ describe('friendlyMatchEventsFor', () => {
     const events = friendlyMatchEventsFor(m({}))
     const winEvents = events.filter((e) => e.event_type === 'win_no_dispute')
     expect(winEvents).toEqual([
-      { player_id: 'a', match_id: null, event_type: 'win_no_dispute', points_delta: 1, note: 'Staked friendly match fm1' },
+      { player_id: 'a', match_id: null, event_type: 'win_no_dispute', points_delta: 90, note: 'Staked friendly match fm1' },
     ])
   })
 

@@ -46,6 +46,10 @@ export const HEADER_LINKS: NavLink[] = [...PILLAR_LINKS, ...SECONDARY_LINKS]
 // show (Seasons) are kept in the nav rather than dropped. /tv, /betting,
 // /hall-of-fame and /players stay reachable from the footer (see FOOTER_SECTIONS
 // below, which SiteFooter's expanded variant renders).
+// Note: '/exchange' below is labeled "Store" per the Phase 1 mockup's own
+// terminology (see comment above) — that's the Gaming Exchange, not the SX
+// Coins cosmetics store. To avoid two nav items both reading "Store", the
+// new /store destination (Task 5.1, Phase 2 Economy) is labeled "Coin Store".
 export const NAVBAR_LINKS: NavLink[] = [
   { href: '/', label: 'Home' },
   { href: '/tournaments', label: 'Tournaments' },
@@ -53,6 +57,7 @@ export const NAVBAR_LINKS: NavLink[] = [
   { href: '/rankings', label: 'Leaderboards' },
   { href: '/seasons/season-1', label: 'Seasons' },
   { href: '/exchange', label: 'Store' },
+  { href: '/store', label: 'Coin Store' },
   { href: '/community', label: 'Community' },
   { href: '/about', label: 'About Us' },
 ]

@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Medal } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getCoinBalance } from '@/lib/coins/service'
 import { getChampion, type BracketMatch } from '@/lib/tournaments/bracket'
 import { matchOutcome, type ProfileView, type ProfileMatch, type ProfileTitle } from '@/lib/players/profile'
 import { friendshipStatus, type FriendshipStatus } from '@/lib/friends/list'
@@ -17,14 +18,15 @@ import { ProfileGamesRow } from '@/components/player/ProfileGamesRow'
 import { ProfileRecentActivity } from '@/components/player/ProfileRecentActivity'
 import { CareerStatsRadar } from '@/components/player/CareerStatsRadar'
 import { ProfileSidebarNav, ProfileTournamentsPromo } from '@/components/player/ProfileSidebarNav'
+import { AchievementsGrid, type AchievementCell } from '@/components/player/AchievementsGrid'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildPlayerJsonLd } from '@/lib/seo/schema/player'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 
 const PROFILE_COLS =
-  'id, username, display_name, avatar_url, country, bio, created_at, sentinel_score, sentinel_tier, ' +
-  'total_matches, wins, losses, goals_scored, goals_conceded, total_titles'
+  'id, username, display_name, avatar_url, country, bio, created_at, sx_score, sentinel_tier, ' +
+  'total_matches, wins, losses, goals_scored, goals_conceded, total_titles, xp, membership_tier'
 
 type ProfileRow = {
   id: string
@@ -34,7 +36,7 @@ type ProfileRow = {
   country: string | null
   bio: string | null
   created_at: string | null
-  sentinel_score: number
+  sx_score: number
   sentinel_tier: string | null
   total_matches: number
   wins: number
@@ -42,6 +44,8 @@ type ProfileRow = {
   goals_scored: number
   goals_conceded: number
   total_titles: number
+  xp: number
+  membership_tier: string
 }
 
 type NameRef =
@@ -117,7 +121,7 @@ export async function generateMetadata({ params }: { params: { username: string 
   if (!p) return { title: 'Player not found — SentinelX Esports' }
   const name = p.display_name ?? p.username
   const title = `${name} (@${p.username}) — SentinelX Esports`
-  const description = `Sentinel Score ${p.sentinel_score} · ${p.wins}W–${p.losses}L · ${p.total_titles} titles on Sentinel X.`
+  const description = `SX Score ${p.sx_score} · ${p.wins}W–${p.losses}L · ${p.total_titles} titles on Sentinel X.`
   return buildMetadata({ title, description, path: `/players/${p.username}` })
 }
 
@@ -176,6 +180,8 @@ export default async function PlayerProfilePage({ params }: { params: { username
     { data: rawCategoryMatches },
     { count: tournamentsPlayed },
     { count: totalRankedPlayers },
+    { data: rawAchievements },
+    { data: rawPlayerAchievements },
   ] = await Promise.all([
     supabase.rpc('player_rank', { uname: p.username }),
     supabase
@@ -215,6 +221,8 @@ export default async function PlayerProfilePage({ params }: { params: { username
       .from('profiles')
       .select('id', { count: 'exact', head: true })
       .gte('total_matches', RANKING_MIN_MATCHES),
+    supabase.from('achievements').select('id, slug, name, description').eq('phase', 'phase2').order('sort_order'),
+    supabase.from('player_achievements').select('achievement_id').eq('player_id', p.id),
   ])
 
   const categoryMatches: GameScopedMatch[] = ((rawCategoryMatches as unknown[] | null) ?? []).map((raw) => {
@@ -283,6 +291,21 @@ export default async function PlayerProfilePage({ params }: { params: { username
     currentStreak++
   }
 
+  const unlockedAchievementIds = new Set(
+    ((rawPlayerAchievements ?? []) as { achievement_id: string }[]).map((r) => r.achievement_id),
+  )
+  const achievementCells: AchievementCell[] = (
+    (rawAchievements ?? []) as { id: string; slug: string; name: string; description: string }[]
+  ).map((a) => ({
+    slug: a.slug,
+    name: a.name,
+    description: a.description,
+    unlocked: unlockedAchievementIds.has(a.id),
+  }))
+
+  // Owner-only (design doc §8) — never show another player's coin balance.
+  const coinBalance = user && user.id === p.id ? await getCoinBalance(createAdminClient(), p.id) : null
+
   const profile: ProfileView = {
     id: p.id,
     username: p.username,
@@ -291,8 +314,9 @@ export default async function PlayerProfilePage({ params }: { params: { username
     country: p.country,
     bio: p.bio,
     createdAt: p.created_at,
-    sentinelScore: p.sentinel_score,
+    sxScore: p.sx_score,
     sentinelTier: p.sentinel_tier,
+    membershipTier: p.membership_tier,
     totalMatches: p.total_matches,
     wins: p.wins,
     losses: p.losses,
@@ -329,7 +353,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
           displayName: p.display_name,
           wins: p.wins,
           totalMatches: p.total_matches,
-          sentinelScore: p.sentinel_score,
+          sxScore: p.sx_score,
           sentinelTier: p.sentinel_tier,
         })}
       />
@@ -357,7 +381,12 @@ export default async function PlayerProfilePage({ params }: { params: { username
 
         {/* ── Main content ──────────────────────────────────── */}
         <div className="min-w-0 space-y-8">
-          <ProfileHeader profile={profile} viewerId={user?.id ?? null} friendshipStatus={friendship} />
+          <ProfileHeader
+            profile={profile}
+            viewerId={user?.id ?? null}
+            friendshipStatus={friendship}
+            coinBalance={coinBalance ?? undefined}
+          />
           <ProfileStats profile={profile} />
           <ProfileGamesRow games={gamesPlayed} />
 
@@ -369,46 +398,9 @@ export default async function PlayerProfilePage({ params }: { params: { username
 
           <ProfileMatchHistory matches={matches} username={params.username} />
 
-          <TrophiesComingSoon />
+          <AchievementsGrid achievements={achievementCells} />
         </div>
       </div>
     </div>
-  )
-}
-
-// Trophy/badge earning logic is Phase 2 (spec §7 Out of Scope). The mockup's
-// grid shape is kept — all 8 badges shown locked/gray, since no earning logic
-// exists yet to say any of them are actually earned. Not a fabricated "earned"
-// grid, just the same layout in an honest all-locked state.
-const BADGE_NAMES = [
-  'DLS Champion',
-  'CODM Legend',
-  'Free Fire Hero',
-  'EA FC Elite',
-  'Consistent Player',
-  'Streak Master',
-  'Clutch King',
-  'SX Veteran',
-]
-
-function TrophiesComingSoon() {
-  return (
-    <section>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-bold uppercase tracking-widest text-white">Trophies &amp; Badges</h2>
-        <span className="text-xs text-sx-gray">Coming soon</span>
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {BADGE_NAMES.map((name) => (
-          <div
-            key={name}
-            className="flex flex-col items-center gap-2 rounded-xl border border-sx-border bg-sx-surface p-4 text-center opacity-50"
-          >
-            <Medal className="h-8 w-8 text-sx-gray" />
-            <p className="text-xs font-semibold text-sx-gray">{name}</p>
-          </div>
-        ))}
-      </div>
-    </section>
   )
 }

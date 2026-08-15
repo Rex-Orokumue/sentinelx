@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { selectInvitees, MIN_SENTINEL_SCORE_FOR_INVITATION, type LeaderboardEntry } from './eligibility'
+import { selectInvitees, MIN_SX_SCORE_FOR_INVITATION, type LeaderboardEntry } from './eligibility'
 
 const board: LeaderboardEntry[] = [
-  { playerId: 'p1', points: 100, sentinelScore: 80 },
-  { playerId: 'p2', points: 90, sentinelScore: 30 }, // below floor
-  { playerId: 'p3', points: 80, sentinelScore: 60 },
-  { playerId: 'p4', points: 70, sentinelScore: 50 },
+  { playerId: 'p1', points: 100, sxScore: 800 },
+  { playerId: 'p2', points: 90, sxScore: 300 }, // below floor
+  { playerId: 'p3', points: 80, sxScore: 600 },
+  { playerId: 'p4', points: 70, sxScore: 500 },
 ]
 
 describe('selectInvitees', () => {
-  it('excludes players below the Sentinel Score floor', () => {
+  it('excludes players below the SX Score floor', () => {
     const result = selectInvitees(board, new Set(), 3)
     expect(result).not.toContain('p2')
   })
@@ -28,7 +28,7 @@ describe('selectInvitees', () => {
     expect(selectInvitees(board, new Set(), 0)).toEqual([])
   })
 
-  it('MIN_SENTINEL_SCORE_FOR_INVITATION is 40', () => {
-    expect(MIN_SENTINEL_SCORE_FOR_INVITATION).toBe(40)
+  it('MIN_SX_SCORE_FOR_INVITATION is 400', () => {
+    expect(MIN_SX_SCORE_FOR_INVITATION).toBe(400)
   })
 })

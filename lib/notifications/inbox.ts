@@ -21,6 +21,8 @@ export type NotificationType =
   | 'champions_cup_invitation'
   | 'invitation_accepted'
   | 'invitation_expired_cascade'
+  | 'tier_upgraded'
+  | 'achievement_unlocked'
 
 // Best-effort — NEVER throws into the caller's primary action, mirroring
 // lib/notifications/notify.ts's WhatsApp helper. A failed in-app notification

@@ -13,6 +13,19 @@ export type WalletTxnType =
   | 'bet_refund'
   | 'deposit'
 
+const DEFAULT_CATEGORY_BY_TYPE: Record<WalletTxnType, string> = {
+  prize: 'tournament_prize',
+  referral: 'referral',
+  friendly_stake: 'bonus',
+  admin_credit: 'bonus',
+  withdrawal_request: 'withdrawal',
+  withdrawal_reversal: 'withdrawal',
+  bet_stake: 'bonus',
+  bet_payout: 'bonus',
+  bet_refund: 'bonus',
+  deposit: 'bonus',
+}
+
 export async function getWalletBalance(
   admin: SupabaseClient<Database>,
   playerId: string,
@@ -52,6 +65,7 @@ export async function creditWallet(
     type,
     reference_id: referenceId,
     note: note ?? null,
+    category: DEFAULT_CATEGORY_BY_TYPE[type],
   })
 }
 
@@ -96,6 +110,7 @@ export async function debitWallet(
     type,
     reference_id: referenceId,
     note: note ?? null,
+    category: DEFAULT_CATEGORY_BY_TYPE[type],
   })
   return { ok: true }
 }

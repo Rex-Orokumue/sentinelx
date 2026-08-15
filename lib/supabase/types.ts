@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string
+          coin_reward: number
+          description: string
+          icon_url: string | null
+          id: string
+          name: string
+          phase: string
+          slug: string
+          sort_order: number
+          xp_reward: number
+        }
+        Insert: {
+          category: string
+          coin_reward?: number
+          description: string
+          icon_url?: string | null
+          id?: string
+          name: string
+          phase?: string
+          slug: string
+          sort_order?: number
+          xp_reward?: number
+        }
+        Update: {
+          category?: string
+          coin_reward?: number
+          description?: string
+          icon_url?: string | null
+          id?: string
+          name?: string
+          phase?: string
+          slug?: string
+          sort_order?: number
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       admin_flags: {
         Row: {
           created_at: string
@@ -1156,6 +1195,42 @@ export type Database = {
           },
         ]
       }
+      player_achievements: {
+        Row: {
+          achievement_id: string
+          id: string
+          player_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          achievement_id: string
+          id?: string
+          player_id: string
+          unlocked_at?: string
+        }
+        Update: {
+          achievement_id?: string
+          id?: string
+          player_id?: string
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_achievements_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_kyc: {
         Row: {
           kyc_failure_reason: string | null
@@ -1244,6 +1319,45 @@ export type Database = {
           },
         ]
       }
+      player_store_items: {
+        Row: {
+          equipped: boolean
+          id: string
+          item_id: string
+          player_id: string
+          purchased_at: string
+        }
+        Insert: {
+          equipped?: boolean
+          id?: string
+          item_id: string
+          player_id: string
+          purchased_at?: string
+        }
+        Update: {
+          equipped?: boolean
+          id?: string
+          item_id?: string
+          player_id?: string
+          purchased_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_store_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "store_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_store_items_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1255,18 +1369,22 @@ export type Database = {
           goals_scored: number
           id: string
           kyc_verified: boolean
+          last_login_date: string | null
+          login_streak: number
           losses: number
+          membership_tier: string
           phone: string | null
           phone_verified_at: string | null
           referred_by: string | null
-          sentinel_score: number
           sentinel_tier: string | null
+          sx_score: number
           total_matches: number
           total_titles: number
           updated_at: string
           username: string | null
           whatsapp_number: string | null
           wins: number
+          xp: number
         }
         Insert: {
           avatar_url?: string | null
@@ -1278,18 +1396,22 @@ export type Database = {
           goals_scored?: number
           id: string
           kyc_verified?: boolean
+          last_login_date?: string | null
+          login_streak?: number
           losses?: number
+          membership_tier?: string
           phone?: string | null
           phone_verified_at?: string | null
           referred_by?: string | null
-          sentinel_score?: number
           sentinel_tier?: string | null
+          sx_score?: number
           total_matches?: number
           total_titles?: number
           updated_at?: string
           username?: string | null
           whatsapp_number?: string | null
           wins?: number
+          xp?: number
         }
         Update: {
           avatar_url?: string | null
@@ -1301,18 +1423,22 @@ export type Database = {
           goals_scored?: number
           id?: string
           kyc_verified?: boolean
+          last_login_date?: string | null
+          login_streak?: number
           losses?: number
+          membership_tier?: string
           phone?: string | null
           phone_verified_at?: string | null
           referred_by?: string | null
-          sentinel_score?: number
           sentinel_tier?: string | null
+          sx_score?: number
           total_matches?: number
           total_titles?: number
           updated_at?: string
           username?: string | null
           whatsapp_number?: string | null
           wins?: number
+          xp?: number
         }
         Relationships: [
           {
@@ -1491,7 +1617,119 @@ export type Database = {
         }
         Relationships: []
       }
-      sentinel_score_events: {
+      store_items: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          preview_url: string | null
+          price_coins: number
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          preview_url?: string | null
+          price_coins: number
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          preview_url?: string | null
+          price_coins?: number
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      sx_coin_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          player_id: string
+          reference_id: string | null
+          source: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          player_id: string
+          reference_id?: string | null
+          source: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          player_id?: string
+          reference_id?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sx_coin_transactions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sx_coins: {
+        Row: {
+          balance: number
+          player_id: string
+          total_earned: number
+          total_spent: number
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          player_id: string
+          total_earned?: number
+          total_spent?: number
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          player_id?: string
+          total_earned?: number
+          total_spent?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sx_coins_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sx_score_events: {
         Row: {
           created_at: string
           event_type: string
@@ -1925,6 +2163,7 @@ export type Database = {
       wallet_transactions: {
         Row: {
           amount: number
+          category: string | null
           created_at: string
           id: string
           note: string | null
@@ -1934,6 +2173,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          category?: string | null
           created_at?: string
           id?: string
           note?: string | null
@@ -1943,6 +2183,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          category?: string | null
           created_at?: string
           id?: string
           note?: string | null
@@ -2026,6 +2267,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "withdrawal_requests_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      xp_events: {
+        Row: {
+          created_at: string
+          id: string
+          player_id: string
+          reference_id: string | null
+          source: string
+          xp: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          player_id: string
+          reference_id?: string | null
+          source: string
+          xp: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          player_id?: string
+          reference_id?: string | null
+          source?: string
+          xp?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xp_events_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "profiles"

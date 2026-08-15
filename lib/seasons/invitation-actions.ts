@@ -39,7 +39,7 @@ async function leaderboardFor(admin: Admin, tournament: InvitableTournament): Pr
     tournament.tournament_type === 'masters'
       ? await getMonthlyLeaderboard(admin, tournament.season_id, new Date(tournament.tournament_start ?? Date.now()))
       : await getSeasonLeaderboard(admin, tournament.season_id)
-  return rows.map((r) => ({ playerId: r.playerId, points: r.points, sentinelScore: r.sentinelScore }))
+  return rows.map((r) => ({ playerId: r.playerId, points: r.points, sxScore: r.sxScore }))
 }
 
 async function acceptedCount(admin: Admin, tournamentId: string): Promise<number> {

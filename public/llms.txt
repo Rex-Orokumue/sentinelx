@@ -18,12 +18,13 @@ Sentinel X is a mobile esports platform built for competitive mobile gamers in N
 - /hall-of-fame — season champions and award winners
 - /tv — live streams, highlights, and replays
 - /exchange — the Gaming Exchange marketplace
+- /store — spend SX Coins on avatar borders, profile themes, username colours, and mascot skins
 - /community — player discussions and announcements
 - /players/{username} — individual player profiles and stats
 
-## Player reputation: Sentinel Score
+## Player reputation: SX Score
 
-Every player has a Sentinel Score from 0-100 (starting at 70) that reflects match conduct and reliability, shown on their profile with a tier badge — Elite, Trusted, Developing, or At Risk.
+Every player has an SX Score, starting at 700 with no upper limit, that reflects match conduct and reliability, shown on their profile with a tier badge — Elite, Trusted, Developing, or At Risk.
 
 ## Contact
 

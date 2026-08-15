@@ -25,8 +25,9 @@ function p(over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput {
     categoryStats: [],
     winsByGame: [],
     totalTitles: 0,
-    sentinelScore: 70,
+    sxScore: 700,
     sentinelTier: null,
+    membershipTier: 'recruit',
     ...over,
   }
 }
@@ -34,37 +35,37 @@ function p(over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput {
 describe('pickMVP', () => {
   it('returns null when no eligible players', () => {
     expect(pickMVP([])).toBeNull()
-    expect(pickMVP([p({ id: 'a', totalMatches: 0, sentinelScore: 99 })])).toBeNull()
+    expect(pickMVP([p({ id: 'a', totalMatches: 0, sxScore: 99 })])).toBeNull()
   })
 
-  it('picks the highest sentinel score', () => {
+  it('picks the highest SX Score', () => {
     const r = pickMVP([
-      p({ id: 'a', totalMatches: 3, sentinelScore: 80 }),
-      p({ id: 'b', totalMatches: 3, sentinelScore: 92 }),
+      p({ id: 'a', totalMatches: 3, sxScore: 80 }),
+      p({ id: 'b', totalMatches: 3, sxScore: 92 }),
     ])
     expect(r?.id).toBe('b')
   })
 
-  it('at launch (flat 70 scores) resolves to most wins', () => {
+  it('at launch (flat 700 scores) resolves to most wins', () => {
     const r = pickMVP([
-      p({ id: 'a', totalMatches: 5, wins: 2, sentinelScore: 70 }),
-      p({ id: 'b', totalMatches: 5, wins: 4, sentinelScore: 70 }),
+      p({ id: 'a', totalMatches: 5, wins: 2, sxScore: 700 }),
+      p({ id: 'b', totalMatches: 5, wins: 4, sxScore: 700 }),
     ])
     expect(r?.id).toBe('b')
   })
 
   it('breaks a score+wins tie by win rate', () => {
     const r = pickMVP([
-      p({ id: 'a', totalMatches: 10, wins: 6, sentinelScore: 70 }), // 60%
-      p({ id: 'b', totalMatches: 8, wins: 6, sentinelScore: 70 }), // 75%
+      p({ id: 'a', totalMatches: 10, wins: 6, sxScore: 700 }), // 60%
+      p({ id: 'b', totalMatches: 8, wins: 6, sxScore: 700 }), // 75%
     ])
     expect(r?.id).toBe('b')
   })
 
   it('excludes ineligible players from selection', () => {
     const r = pickMVP([
-      p({ id: 'a', totalMatches: 0, sentinelScore: 100 }),
-      p({ id: 'b', totalMatches: 1, sentinelScore: 71 }),
+      p({ id: 'a', totalMatches: 0, sxScore: 100 }),
+      p({ id: 'b', totalMatches: 1, sxScore: 71 }),
     ])
     expect(r?.id).toBe('b')
   })

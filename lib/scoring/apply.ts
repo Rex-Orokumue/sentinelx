@@ -3,6 +3,7 @@ import { getChampion, type BracketMatch } from '@/lib/tournaments/bracket'
 import { AUTO_MATCH_EVENT_TYPES, matchEventsFor } from './events'
 import { computeAggregates, type CompletedMatch } from './stats'
 import { computeScore } from './score'
+import { checkAndUnlockAchievements } from '@/lib/achievements/unlock'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -63,12 +64,12 @@ const SEASON_NO_SHOW_PENALTY = -15
 // the ids of players whose scoring is affected. No refresh here.
 async function regenerateMatchEvents(admin: Admin, match: MatchRow): Promise<string[]> {
   await admin
-    .from('sentinel_score_events')
+    .from('sx_score_events')
     .delete()
     .eq('match_id', match.id)
     .in('event_type', [...AUTO_MATCH_EVENT_TYPES])
   const events = matchEventsFor(match)
-  if (events.length > 0) await admin.from('sentinel_score_events').insert(events)
+  if (events.length > 0) await admin.from('sx_score_events').insert(events)
 
   // Regenerate season_noshow_penalties for this match the same way — delete
   // then reinsert, so a dispute overturning a walkover clears the penalty too.
@@ -91,8 +92,11 @@ async function regenerateMatchEvents(admin: Admin, match: MatchRow): Promise<str
   return [match.player_a_id, match.player_b_id].filter((x): x is string => !!x)
 }
 
-// Recompute aggregates + score for one player and write both caches to profiles.
-async function refreshPlayer(admin: Admin, playerId: string): Promise<void> {
+// Recompute aggregates + score for one player and write both caches to
+// profiles. Exported so authored-event writers outside this file (e.g. the
+// admin disqualify action, which inserts directly into sx_score_events
+// rather than going through matchEventsFor) can refresh the cache too.
+export async function refreshPlayer(admin: Admin, playerId: string): Promise<void> {
   const { data: rawMatches } = await admin
     .from('matches')
     .select('player_a_id, player_b_id, score_a, score_b, round, status')
@@ -117,15 +121,17 @@ async function refreshPlayer(admin: Admin, playerId: string): Promise<void> {
   const aggregates = computeAggregates(playerId, completed, titlesWon)
 
   const { data: events } = await admin
-    .from('sentinel_score_events')
+    .from('sx_score_events')
     .select('points_delta')
     .eq('player_id', playerId)
-  const sentinel_score = computeScore(events ?? [])
+  const sx_score = computeScore(events ?? [])
 
   await admin
     .from('profiles')
-    .update({ ...aggregates, sentinel_score })
+    .update({ ...aggregates, sx_score })
     .eq('id', playerId)
+
+  await checkAndUnlockAchievements(admin, playerId, { type: 'sx_score_updated', newScore: sx_score })
 }
 
 // Confirm/dispute hook: regenerate one match's events, then refresh both players.
@@ -147,7 +153,7 @@ export async function syncMatchEvents(admin: Admin, matchId: string): Promise<vo
 // completed match, then refreshes every profile.
 export async function recomputeAllScoring(admin: Admin): Promise<{ players: number }> {
   await admin
-    .from('sentinel_score_events')
+    .from('sx_score_events')
     .delete()
     .in('event_type', [...AUTO_MATCH_EVENT_TYPES])
 
@@ -157,7 +163,7 @@ export async function recomputeAllScoring(admin: Admin): Promise<{ players: numb
     .in('status', ['completed', 'forfeited'])
   for (const m of matches ?? []) {
     const events = matchEventsFor(m)
-    if (events.length > 0) await admin.from('sentinel_score_events').insert(events)
+    if (events.length > 0) await admin.from('sx_score_events').insert(events)
   }
 
   const { data: profiles } = await admin.from('profiles').select('id')

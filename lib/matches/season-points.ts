@@ -6,6 +6,9 @@ import {
   type PlacementMatch,
   type SeasonTournamentType,
 } from '@/lib/tournaments/season-placement'
+import { awardCoins } from '@/lib/coins/service'
+import { awardXP } from '@/lib/membership/xp'
+import { checkAndUnlockAchievements } from '@/lib/achievements/unlock'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -13,18 +16,23 @@ function isSeasonTournamentType(t: string): t is SeasonTournamentType {
   return t === 'community_club' || t === 'masters'
 }
 
-// No-op for 'open'/'champions_cup' tournaments or ones with no season_id
-// (spec §3.4 — Champions Cup placement doesn't affect the season
-// leaderboard). Idempotent via upsert on the (season_id, player_id,
-// tournament_id) unique constraint, so re-running after a dispute
-// resolution simply overwrites the prior points for that tournament.
+// design doc §3.2 placement tiers, keyed by the same numeric placement
+// placementForBand() already produces (1, 2, 3, 5, 9, 17).
+const PLACEMENT_COINS: Record<number, number> = { 1: 500, 2: 300, 3: 150, 5: 75, 9: 30, 17: 10 }
+const PLACEMENT_XP: Record<number, number> = { 1: 500, 2: 300, 3: 200, 5: 100 }
+
+// Runs for EVERY tournament type once a tournament completes — coins/XP/
+// achievement checks are not gated on having a season, only the
+// season_ranking_points write is (Global Constraints #3: Champions Cup
+// deliberately doesn't join the season leaderboard, but its players still
+// earn coins/XP and can unlock champions_cup_* achievements).
 export async function awardSeasonPoints(admin: Admin, tournamentId: string): Promise<void> {
   const { data: tournament } = await admin
     .from('tournaments')
     .select('id, tournament_type, season_id')
     .eq('id', tournamentId)
     .maybeSingle()
-  if (!tournament || !tournament.season_id || !isSeasonTournamentType(tournament.tournament_type)) return
+  if (!tournament) return
 
   const { data: registrations } = await admin
     .from('tournament_registrations')
@@ -40,14 +48,34 @@ export async function awardSeasonPoints(admin: Admin, tournamentId: string): Pro
     .eq('tournament_id', tournamentId)
 
   const placements = bandsForPlacements((matches ?? []) as PlacementMatch[], activePlayerIds)
-  const tournamentType = tournament.tournament_type
-  const rows = placements.map(({ playerId, band }) => ({
-    season_id: tournament.season_id as string,
-    player_id: playerId,
-    tournament_id: tournamentId,
-    points: pointsForBand(tournamentType, band),
-    placement: placementForBand(tournamentType, band),
-  }))
 
-  await admin.from('season_ranking_points').upsert(rows, { onConflict: 'season_id,player_id,tournament_id' })
+  if (tournament.season_id && isSeasonTournamentType(tournament.tournament_type)) {
+    const tournamentType = tournament.tournament_type
+    const rows = placements.map(({ playerId, band }) => ({
+      season_id: tournament.season_id as string,
+      player_id: playerId,
+      tournament_id: tournamentId,
+      points: pointsForBand(tournamentType, band),
+      placement: placementForBand(tournamentType, band),
+    }))
+    await admin.from('season_ranking_points').upsert(rows, { onConflict: 'season_id,player_id,tournament_id' })
+  }
+
+  // Placement is only meaningful relative to *some* tournament type's bands
+  // — reuse community_club's band->number mapping for coin/XP tiers since
+  // it's the finer-grained one (masters collapses several bands to the same
+  // number); the coin/XP table keys off the numeric placement, not the band.
+  for (const { playerId, band } of placements) {
+    const placement = placementForBand('community_club', band)
+    const coins = PLACEMENT_COINS[placement]
+    if (coins) await awardCoins(admin, playerId, coins, 'tournament_placement', tournamentId)
+    const xp = PLACEMENT_XP[placement]
+    if (xp) await awardXP(admin, playerId, xp, 'tournament_placement', tournamentId)
+    await checkAndUnlockAchievements(admin, playerId, {
+      type: 'tournament_completed',
+      tournamentId,
+      placement,
+      tournamentType: tournament.tournament_type,
+    })
+  }
 }

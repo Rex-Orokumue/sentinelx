@@ -57,7 +57,7 @@ export async function confirmFriendlyResult(
     .eq('id', id)
   if (error) return { error: 'Could not confirm the result. Please try again.' }
 
-  // Staked friendlies only — Sentinel Score events + balance eligibility.
+  // Staked friendlies only — SX Score events + balance eligibility.
   if (fm.stake_amount) {
     const events = friendlyMatchEventsFor({
       id: fm.id,
@@ -67,16 +67,16 @@ export async function confirmFriendlyResult(
       scoreOpponent: parsed.data.scoreOpponent,
       winnerId,
     })
-    await admin.from('sentinel_score_events').insert(events)
+    await admin.from('sx_score_events').insert(events)
 
     for (const playerId of [fm.challenger_id, fm.opponent_id]) {
       const { data: scoreEvents } = await admin
-        .from('sentinel_score_events')
+        .from('sx_score_events')
         .select('points_delta')
         .eq('player_id', playerId)
       await admin
         .from('profiles')
-        .update({ sentinel_score: computeScore(scoreEvents ?? []) })
+        .update({ sx_score: computeScore(scoreEvents ?? []) })
         .eq('id', playerId)
     }
 

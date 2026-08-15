@@ -23,6 +23,7 @@ describe('staticSitemapEntries', () => {
       `${SITE_URL}/games`,
       `${SITE_URL}/about`,
       `${SITE_URL}/betting`,
+      `${SITE_URL}/store`,
     ])
   })
 })

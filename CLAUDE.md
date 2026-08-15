@@ -56,7 +56,7 @@ npx supabase gen types typescript --project-id <project-id> > lib/supabase/types
 | `/matches/[id]` | Match Centre — Player A vs B, live stream embed, replay, stats |
 | `/tv` | Sentinel X TV — live, highlights, finals, replays |
 | `/rankings` | Overall, season, game-specific leaderboards |
-| `/players/[username]` | Player profile — stats, achievements, Sentinel Score, match history |
+| `/players/[username]` | Player profile — stats, achievements, SX Score, match history |
 | `/hall-of-fame` | Season champions, MVP, Golden Boot, Best Goal |
 | `/exchange` | Gaming Exchange (Zolarux integration) |
 | `/community` | Posts, announcements, discussions |
@@ -87,31 +87,31 @@ Admin can override before publishing. After groups, it's single elimination knoc
 
 ---
 
-## Sentinel Score System
+## SX Score System
 
-Every player starts at **70/100**. Range is 0–100.
+Every player starts at **700**. Open-ended — no upper cap, floored at 0. (Phase 2 rename + ×10 rescale of the original 0–100 "Sentinel Score" — see `docs/superpowers/specs/2026-08-05-phase2-economy-design.md` §2.)
 
 **Points earned:**
-- Complete a match (showed up + finished): +2
-- Win with no dispute: +1
-- Receive 5-star opponent rating: +2
-- Receive 4-star opponent rating: +1
+- Complete a match (showed up + finished): +10
+- Win with no dispute (bonus, stacks with the above — a win totals 100): +90
+- Receive 5-star opponent rating: +20
+- Receive 4-star opponent rating: +10
 
 **Points lost:**
-- No-show: −10
-- Abandoned / rage-quit: −8
-- Lost a dispute (false result): −15
-- Receive 1–2 star rating: −2
-- Admin flag (conduct): −5
-- Admin flag (cheating): −20 + suspension
+- No-show: −100
+- Abandoned / rage-quit: −80
+- Lost a dispute (false result): −150
+- Receive 1–2 star rating: −20
+- Admin flag (conduct): −50
+- Admin flag (cheating): −200 + suspension
 
-**Tiers displayed on profile:**
-- 90–100 → 🟢 Elite
-- 75–89 → 🔵 Trusted
-- 60–74 → 🟡 Developing
-- <60 → 🔴 At Risk
+**Tiers displayed on profile** (unchanged concept, thresholds rescaled ×10 — this is `sentinel_tier`, a *different* stat from the new XP-based `membership_tier`, see "Membership / Level System" below):
+- ≥900 → 🟢 Elite
+- 750–899 → 🔵 Trusted
+- 600–749 → 🟡 Developing
+- <600 → 🔴 At Risk
 
-Every score change must be logged in `sentinel_score_events`.
+Every score change must be logged in `sx_score_events`.
 
 ---
 
@@ -122,7 +122,7 @@ Every score change must be logged in `sentinel_score_events`.
 3. Admin reviews submission in Admin Dashboard
 4. Admin confirms or disputes result
 5. Bracket / group table updates only after admin confirms
-6. If disputed: admin reviews both players' recordings → rules → Sentinel Scores update accordingly
+6. If disputed: admin reviews both players' recordings → rules → SX Scores update accordingly
 
 ---
 
@@ -211,12 +211,12 @@ These are the only things needed to run the next tournament:
 10. WhatsApp share buttons on all pages
 11. Mobile-first throughout
 
-**Not in v1.0:** Player profiles, Sentinel Score display, Sentinel X TV, Gaming Exchange, notifications, multi-game support.
+**Not in v1.0:** Player profiles, SX Score display, Sentinel X TV, Gaming Exchange, notifications, multi-game support.
 
 ---
 
 ## v2.0 Scope
-- Player profiles with full stats and Sentinel Score
+- Player profiles with full stats and SX Score
 - Sentinel X TV page
 - Full YouTube streaming workflow
 - WhatsApp Business API notifications (Termii)
@@ -238,6 +238,6 @@ These are the only things needed to run the next tournament:
 3. Never expose admin routes to non-admin users — check role server-side
 4. All Paystack payment verification must happen server-side (webhook or API route) — never trust the client
 5. Bracket updates only happen after admin confirms a result — never auto-update from player submissions
-6. Every Sentinel Score change must write a row to `sentinel_score_events` — never update the score directly without logging
+6. Every SX Score change must write a row to `sx_score_events` — never update the score directly without logging
 7. Tournament slug must be URL-safe and unique — used in all public URLs
 8. Use Next.js Server Components by default; only use `"use client"` when you need interactivity

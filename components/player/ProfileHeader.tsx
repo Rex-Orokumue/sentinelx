@@ -1,5 +1,6 @@
 import { Avatar } from '@/components/shared/Avatar'
 import { TierBadge } from '@/components/player/TierBadge'
+import { MembershipBadge } from './MembershipBadge'
 import { AddFriendButton } from '@/components/player/AddFriendButton'
 import { ChallengeButton } from '@/components/player/ChallengeButton'
 import { formatMonthYear } from '@/lib/format'
@@ -10,10 +11,12 @@ export function ProfileHeader({
   profile,
   viewerId,
   friendshipStatus,
+  coinBalance,
 }: {
   profile: ProfileView
   viewerId: string | null
   friendshipStatus: FriendshipStatus
+  coinBalance?: number
 }) {
   const name = profile.displayName ?? profile.username
   const since = formatMonthYear(profile.createdAt)
@@ -37,9 +40,15 @@ export function ProfileHeader({
             {profile.country && <span>📍 {profile.country}</span>}
             {since && <span>📅 Joined {since}</span>}
             <TierBadge tier={profile.sentinelTier} />
+            <MembershipBadge tier={profile.membershipTier} />
             <span className="font-semibold text-sx-purple-text">
               {profile.rank != null ? `Ranked #${profile.rank}` : 'Unranked'}
             </span>
+            {coinBalance != null && (
+              <span className="rounded-full border border-sx-border bg-sx-bg px-2.5 py-0.5 text-[11px] font-bold text-white">
+                🪙 {coinBalance.toLocaleString()}
+              </span>
+            )}
           </div>
           {profile.bio && (
             <p className="mt-3 whitespace-pre-line text-sm italic text-sx-gray">&ldquo;{profile.bio}&rdquo;</p>

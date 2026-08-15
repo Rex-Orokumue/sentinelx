@@ -62,7 +62,7 @@ export default async function HomePage() {
       .limit(4),
     supabase
       .from('profiles')
-      .select('id, username, display_name, wins, total_matches, sentinel_score, sentinel_tier')
+      .select('id, username, display_name, wins, total_matches, sx_score, sentinel_tier')
       .order('wins', { ascending: false })
       .gt('total_matches', 0)
       .limit(5),
@@ -202,7 +202,7 @@ export default async function HomePage() {
                       {player.total_matches}
                     </td>
                     <td className="hidden px-4 py-3.5 text-right font-bold text-sx-purple-text sm:table-cell">
-                      {player.sentinel_score}
+                      {player.sx_score}
                     </td>
                   </tr>
                 ))}
