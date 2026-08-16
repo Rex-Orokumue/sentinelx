@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import localFont from 'next/font/local'
 import { Barlow_Condensed, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SiteHeader } from '@/components/shared/SiteHeader'
 import { SiteFooter } from '@/components/shared/SiteFooter'
+import { NavTransitionProvider } from '@/components/transitions/NavTransitionProvider'
 import { getNavSession } from '@/lib/nav/session'
 import { ADMIN_NAV, visibleNav, type AdminSheetData } from '@/lib/admin/nav'
 import { getAdminNotificationQueue } from '@/lib/admin/notification-queue'
@@ -76,6 +78,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${barlowCondensed.variable} ${inter.variable} bg-sx-bg font-sans text-white antialiased`}
       >
+        <Suspense fallback={null}>
+          <NavTransitionProvider />
+        </Suspense>
         <div className="flex min-h-screen flex-col">
           <SiteHeader session={navSession} whatsappUrl={WHATSAPP_COMMUNITY} adminNav={adminNav} />
 
