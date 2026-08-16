@@ -26,6 +26,8 @@ export interface ProfileView {
   totalTitles: number
   categoryStats: CategoryStat[]
   rank: number | null // null = unranked
+  /** Current season leaderboard rank, from getSeasonLeaderboard(). Null = unranked or no active season. */
+  seasonRank: number | null
   /** Distinct tournaments this player has a paid registration in. */
   tournamentsPlayed: number
   /** Consecutive wins ending at their most recent completed match (0 if none/loss/draw last). */

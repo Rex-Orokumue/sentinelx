@@ -1,7 +1,9 @@
 import { z } from 'zod'
+import { usernameSchema } from '@/lib/auth/schema'
 
 export const profileEditSchema = z.object({
   displayName: z.string().trim().min(1, 'Display name is required').max(60, 'Display name is too long'),
+  username: z.union([z.literal(''), usernameSchema]),
   whatsapp: z.union([
     z.literal(''),
     z.string().trim().regex(/^\+?[0-9]{10,15}$/, 'Enter a valid WhatsApp number'),

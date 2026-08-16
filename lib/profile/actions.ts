@@ -19,6 +19,7 @@ export async function updateProfile(
 
   const parsed = profileEditSchema.safeParse({
     displayName: formData.get('displayName') ?? '',
+    username: formData.get('username') ?? '',
     whatsapp: formData.get('whatsapp') ?? '',
     country: formData.get('country') ?? '',
     bio: formData.get('bio') ?? '',
@@ -27,6 +28,25 @@ export async function updateProfile(
   const d = parsed.data
 
   const avatarUrl = formData.get('avatarUrl')
+  const avatarPatch = typeof avatarUrl === 'string' && avatarUrl ? { avatar_url: avatarUrl } : {}
+
+  // Username: server-side one-change enforcement (spec §6). A locked/unchanged
+  // field submits '' and is skipped entirely — this branch only runs when the
+  // player actually typed a new username.
+  let usernamePatch: { username?: string; username_changed_at?: string } = {}
+  if (d.username) {
+    const { data: current } = await supabase
+      .from('profiles')
+      .select('username, username_changed_at')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (current && current.username !== d.username) {
+      if (current.username_changed_at) {
+        return { error: 'Username has already been changed once.' }
+      }
+      usernamePatch = { username: d.username, username_changed_at: new Date().toISOString() }
+    }
+  }
 
   const { error } = await supabase
     .from('profiles')
@@ -35,10 +55,12 @@ export async function updateProfile(
       whatsapp_number: d.whatsapp || null,
       country: d.country || null,
       bio: d.bio || null,
-      ...(typeof avatarUrl === 'string' && avatarUrl ? { avatar_url: avatarUrl } : {}),
+      ...avatarPatch,
+      ...usernamePatch,
     })
     .eq('id', user.id)
   if (error) {
+    if (error.code === '23505') return { error: 'That username is already taken.' }
     console.error('updateProfile: update failed', error)
     return { error: 'Could not save your profile. Please try again.' }
   }
@@ -46,6 +68,7 @@ export async function updateProfile(
   await checkAndUnlockAchievements(createAdminClient(), user.id, { type: 'profile_updated' })
 
   revalidatePath('/dashboard')
+  revalidatePath('/dashboard/settings')
   revalidatePath('/players/[username]', 'page')
   revalidatePath('/', 'layout')
   return { success: true }

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { HexAvatar } from '@/components/shared/HexAvatar'
 import { TierBadge } from '@/components/player/TierBadge'
 import { MembershipBadge } from './MembershipBadge'
@@ -35,6 +36,8 @@ export function ProfileHeader({
 }) {
   const name = profile.displayName ?? profile.username
   const since = formatMonthYear(profile.createdAt)
+  const isOwner = viewerId === profile.id
+
   return (
     <header
       className={`relative overflow-hidden rounded-xl border border-sx-border p-6 sm:p-8 ${profileThemeClass ?? 'bg-sx-surface'}`}
@@ -60,9 +63,19 @@ export function ProfileHeader({
           avatarBorderClass={avatarBorderClass}
         />
         <div className="min-w-0 flex-1">
-          <h1 className={`truncate font-display text-2xl font-black sm:text-3xl ${usernameColourClass ?? 'text-white'}`}>
-            {name}
-          </h1>
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+            <h1 className={`truncate font-display text-2xl font-black sm:text-3xl ${usernameColourClass ?? 'text-white'}`}>
+              {name}
+            </h1>
+            {isOwner && (
+              <Link
+                href="/dashboard/settings"
+                className="rounded-lg border border-sx-border px-2.5 py-1 text-xs font-semibold text-sx-gray hover:border-sx-purple/50 hover:text-white"
+              >
+                Edit Profile
+              </Link>
+            )}
+          </div>
           <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-sx-gray sm:justify-start">
             {profile.country && <span>📍 {profile.country}</span>}
             {since && <span>📅 Joined {since}</span>}
@@ -73,7 +86,7 @@ export function ProfileHeader({
               <MembershipBadge tier={profile.membershipTier} />
             </span>
             <span className="font-semibold text-sx-purple-text">
-              {profile.rank != null ? `Ranked #${profile.rank}` : 'Unranked'}
+              {profile.seasonRank != null ? `Season Rank #${profile.seasonRank}` : 'Season: Unranked'}
             </span>
             {coinBalance != null && (
               <span className="rounded-full border border-sx-border bg-sx-bg px-2.5 py-0.5 text-[11px] font-bold text-white">
@@ -84,7 +97,7 @@ export function ProfileHeader({
           {profile.bio && (
             <p className="mt-3 whitespace-pre-line text-sm italic text-sx-gray">&ldquo;{profile.bio}&rdquo;</p>
           )}
-          {viewerId && viewerId !== profile.id && (
+          {viewerId && !isOwner && (
             <div className="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start">
               <FriendStatusAction status={friendshipStatus} profileId={profile.id} />
               <ChallengeButton opponentId={profile.id} />

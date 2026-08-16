@@ -83,6 +83,22 @@ migrated into the new schema rather than dropped. v1's known deferred gaps
 real-time delivery, no nested replies, no editing, per-game only) are moot
 now that it's retired.
 
+## Phase 3 — Player Profile & Settings
+
+| # | Task | Route | Status |
+|---|------|-------|--------|
+| — | Player Profile & Settings — season rank, XP bar, achievement showcase (rarity-sorted, locked achievements no longer leak name/description), community posts, `/dashboard/settings` (profile w/ one-time username change + compressed avatar upload, notification prefs, achievement-sharing prefs, account & security incl. delete account) | `/players/[username]`, `/dashboard/settings` | ✅ |
+
+**★ Phase 3 Profile & Settings COMPLETE, 2026-08-16.** Gap-fill pass over the
+already-built `/players/[username]` page (spec:
+`docs/superpowers/specs/2026-08-16-player-profile-settings-design.md`, plan:
+`docs/superpowers/plans/2026-08-16-player-profile-settings.md`). Also fixed
+two real bugs found during the pass: the achievement query filtered to
+`phase='phase2'` only (Phase 3 achievements never showed), and locked
+achievements leaked their name/description via a tooltip. `/dashboard/profile`
+now redirects to the new `/dashboard/settings`. Followers/following/likes
+were discussed and explicitly deferred, not built.
+
 ## v4.0 — Scale
 
 | # | Task | Status |

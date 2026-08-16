@@ -1,11 +1,5 @@
 import { Medal } from 'lucide-react'
-
-export interface AchievementCell {
-  slug: string
-  name: string
-  description: string
-  unlocked: boolean
-}
+import type { AchievementCell } from '@/lib/players/achievement-rarity'
 
 export function AchievementsGrid({ achievements }: { achievements: AchievementCell[] }) {
   return (
@@ -20,13 +14,22 @@ export function AchievementsGrid({ achievements }: { achievements: AchievementCe
         {achievements.map((a) => (
           <div
             key={a.slug}
-            title={a.description}
+            title={a.unlocked ? a.description : undefined}
             className={`flex flex-col items-center gap-2 rounded-xl border p-4 text-center ${
-              a.unlocked ? 'border-sx-purple/40 bg-sx-surface' : 'border-sx-border bg-sx-surface opacity-50'
+              a.unlocked ? 'border-sx-purple/40 bg-sx-surface' : 'border-sx-border bg-sx-surface opacity-40'
             }`}
           >
-            <Medal className={`h-8 w-8 ${a.unlocked ? 'text-sx-purple-text' : 'text-sx-gray'}`} />
-            <p className={`text-xs font-semibold ${a.unlocked ? 'text-white' : 'text-sx-gray'}`}>{a.name}</p>
+            {a.unlocked ? (
+              <>
+                <Medal className="h-8 w-8 text-sx-purple-text" />
+                <p className="text-xs font-semibold text-white">{a.name}</p>
+              </>
+            ) : (
+              <>
+                <span className="text-2xl text-sx-gray">🔒</span>
+                <p className="text-xs font-semibold text-sx-gray">Locked</p>
+              </>
+            )}
           </div>
         ))}
       </div>

@@ -13,7 +13,7 @@ export const DASHBOARD_NAV_ITEMS: DashboardNavItem[] = [
   { label: 'Marketplace', href: '/dashboard/marketplace' },
   { label: 'Friends', href: '/dashboard/friends' },
   { label: 'Referrals', href: '/dashboard/referrals' },
-  { label: 'Profile', href: '/dashboard/profile' },
+  { label: 'Settings', href: '/dashboard/settings' },
 ]
 
 // '/dashboard' is a literal prefix of every other item's href, so Overview
