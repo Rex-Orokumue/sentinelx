@@ -19,7 +19,7 @@ export default async function AdminFriendliesPage() {
   const { data } = await supabase
     .from('friendly_matches')
     .select(
-      'id, stake_amount, challenger_id, opponent_id, ' +
+      'id, stake_amount, stake_currency, challenger_id, opponent_id, ' +
         'challenger:profiles!friendly_matches_challenger_id_fkey(username, display_name), ' +
         'opponent:profiles!friendly_matches_opponent_id_fkey(username, display_name)',
     )
@@ -29,6 +29,7 @@ export default async function AdminFriendliesPage() {
   const matches = ((data as unknown[] | null) ?? []) as {
     id: string
     stake_amount: number | null
+    stake_currency: 'naira' | 'coins' | null
     challenger_id: string
     opponent_id: string
     challenger: ProfileRef
@@ -70,6 +71,7 @@ export default async function AdminFriendliesPage() {
         challengerName: nameOf(m.challenger),
         opponentName: nameOf(m.opponent),
         stakeAmount: m.stake_amount,
+        stakeCurrency: m.stake_currency,
         submissions: withUrls,
         prefillScoreChallenger: prefill?.scoreA ?? null,
         prefillScoreOpponent: prefill?.scoreB ?? null,

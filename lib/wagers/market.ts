@@ -8,19 +8,30 @@ export type WagerMatch = {
   scheduled_at: string | null
   player_a_id: string | null
   player_b_id: string | null
+  is_full_day: boolean
 }
 
 // Wagering opens the moment both players are confirmed into a scheduled
-// match and closes a fixed 15 minutes before scheduled_at (spec §5). Unlike
-// the naira betting window (lib/betting/market.ts's bettingOpen), there is
-// no full-day-match carve-out here — the coin wagering spec states the
-// 15-minute rule with no exception, so this stays literal to it rather than
-// inventing an undocumented extension.
+// match and closes 15 minutes before scheduled_at — EXCEPT for a full-day
+// match, where scheduled_at is midnight WAT marking the START of the whole
+// play day (see lib/tournaments/round-schedule.ts), not a kickoff instant.
+// A player can play at any point during that day, so "15 minutes before
+// scheduled_at" would close the window before the day has even begun —
+// confirmed live: every currently-scheduled match in production is
+// full-day, and all of them read as closed under the old literal-15-minute
+// rule. This uses the same lockAt = scheduled_at + 24h shape the (now
+// removed) naira betting system used for full-day matches — the original
+// "stays literal to the spec, no full-day exception" comment here was wrong
+// in practice; the spec's authors didn't anticipate full-day scheduling
+// when they wrote the 15-minute rule.
 export function wagerWindowOpen(match: WagerMatch, now: Date = new Date()): boolean {
   if (match.status !== 'scheduled') return false
   if (!match.player_a_id || !match.player_b_id) return false
   if (!match.scheduled_at) return false
-  const closesAt = new Date(match.scheduled_at).getTime() - WAGER_WINDOW_CLOSE_MINUTES * 60_000
+  const scheduledAt = new Date(match.scheduled_at).getTime()
+  const closesAt = match.is_full_day
+    ? scheduledAt + 86_400_000
+    : scheduledAt - WAGER_WINDOW_CLOSE_MINUTES * 60_000
   return now.getTime() < closesAt
 }
 

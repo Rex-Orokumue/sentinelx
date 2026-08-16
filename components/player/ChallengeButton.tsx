@@ -26,13 +26,23 @@ export function ChallengeButton({ opponentId }: { opponentId: string }) {
         </label>
       </div>
       {showStake && (
-        <input
-          name="stakeAmount"
-          type="number"
-          min={100}
-          placeholder="Stake amount (₦)"
-          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
-        />
+        <>
+          <input
+            name="stakeAmount"
+            type="number"
+            min={1}
+            placeholder="Stake amount"
+            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
+          />
+          <div className="flex gap-4 text-xs text-slate-400">
+            <label className="flex items-center gap-1.5">
+              <input type="radio" name="stakeCurrency" value="coins" defaultChecked /> 🪙 Coins
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input type="radio" name="stakeCurrency" value="naira" /> ₦ Naira
+            </label>
+          </div>
+        </>
       )}
       <button
         type="submit"

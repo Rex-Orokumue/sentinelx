@@ -25,7 +25,6 @@ export const SECONDARY_LINKS: NavLink[] = [
   { href: '/rankings', label: 'Leaderboards' },
   { href: '/seasons/season-1', label: 'Seasons' },
   { href: '/about', label: 'About' },
-  { href: '/betting', label: 'Betting' },
 ]
 
 // Reachable from the footer only — too many for the header, and the mobile
@@ -43,9 +42,9 @@ export const HEADER_LINKS: NavLink[] = [...PILLAR_LINKS, ...SECONDARY_LINKS]
 // than every secondary destination HEADER_LINKS carries. The mockup itself only
 // covers Home/Tournaments/Games/Leaderboards/Store/Community/About — it's a style
 // reference, not an exhaustive page list, so real destinations the mockup doesn't
-// show (Seasons) are kept in the nav rather than dropped. /tv, /betting,
-// /hall-of-fame and /players stay reachable from the footer (see FOOTER_SECTIONS
-// below, which SiteFooter's expanded variant renders).
+// show (Seasons) are kept in the nav rather than dropped. /tv, /hall-of-fame
+// and /players stay reachable from the footer (see FOOTER_SECTIONS below,
+// which SiteFooter's expanded variant renders).
 // '/exchange' was originally labeled "Store" per the Phase 1 mockup's own
 // terminology, colliding with the new /store (SX Coins cosmetics store,
 // Task 5.1, Phase 2 Economy). Renamed to "Exchange" (matching PILLAR_LINKS,
@@ -68,7 +67,7 @@ export const NAVBAR_LINKS: NavLink[] = [
 export const FOOTER_SECTIONS: { heading: string; links: NavLink[] }[] = [
   { heading: 'Compete', links: [PILLAR_LINKS[0], SECONDARY_LINKS[1], SECONDARY_LINKS[2], FOOTER_ONLY_LINKS[1]] },
   { heading: 'Explore', links: [PILLAR_LINKS[1], PILLAR_LINKS[2], PILLAR_LINKS[3]] },
-  { heading: 'More', links: [SECONDARY_LINKS[0], FOOTER_ONLY_LINKS[0], SECONDARY_LINKS[3], SECONDARY_LINKS[4]] },
+  { heading: 'More', links: [SECONDARY_LINKS[0], FOOTER_ONLY_LINKS[0], SECONDARY_LINKS[3]] },
 ]
 
 // Deduped, ordered merge of any number of NavLink lists — first occurrence

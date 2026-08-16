@@ -30,7 +30,7 @@ export default async function MatchRoomPage({ params }: { params: { id: string }
   const { data: raw } = await supabase
     .from('friendly_matches')
     .select(
-      'id, challenger_id, opponent_id, stake_amount, status, challenger_paid, opponent_paid, ' +
+      'id, challenger_id, opponent_id, stake_amount, stake_currency, status, challenger_paid, opponent_paid, ' +
         'game_code, score_challenger, score_opponent, winner_id, ' +
         'challenger:profiles!friendly_matches_challenger_id_fkey(username, display_name, whatsapp_number, country), ' +
         'opponent:profiles!friendly_matches_opponent_id_fkey(username, display_name, whatsapp_number, country)',
@@ -45,6 +45,7 @@ export default async function MatchRoomPage({ params }: { params: { id: string }
     challenger_id: string
     opponent_id: string
     stake_amount: number | null
+    stake_currency: 'naira' | 'coins' | null
     status: string
     challenger_paid: boolean
     opponent_paid: boolean
@@ -81,12 +82,17 @@ export default async function MatchRoomPage({ params }: { params: { id: string }
       <h1 className="mb-1 text-xl font-black text-white">Match Room</h1>
       <p className="mb-6 text-sm text-slate-400">
         {nameOf(me)} vs {nameOf(opponent)}
-        {data.stake_amount ? ` · ₦${data.stake_amount} stake` : ' · Free friendly'}
+        {data.stake_amount
+          ? data.stake_currency === 'coins'
+            ? ` · ${data.stake_amount} coins stake`
+            : ` · ₦${data.stake_amount} stake`
+          : ' · Free friendly'}
       </p>
       <MatchRoom
         matchId={data.id}
         status={data.status}
         stakeAmount={data.stake_amount}
+        stakeCurrency={data.stake_currency}
         isChallenger={isChallenger}
         challengerPaid={data.challenger_paid}
         opponentPaid={data.opponent_paid}

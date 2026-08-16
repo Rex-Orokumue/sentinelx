@@ -7,11 +7,9 @@ type Admin = SupabaseClient<Database>
 
 export type SettleWager = { id: string; bettorId: string; pickPlayerId: string; stakeCoins: number }
 
-// Pure pro-rata split, the coin-wagering twin of
-// lib/betting/settle.ts's computePariMutuelPayouts — same shape, 5%
-// platform fee (WAGER_FEE_RATE) instead of the naira system's 10% RAKE_RATE,
-// and also returns the fee cut so the caller can log it to
-// platform_coin_reserve.
+// Pure pro-rata split — a 5% platform fee (WAGER_FEE_RATE) is deducted from
+// the losing side's pool before distributing to winners, and the fee cut is
+// also returned so the caller can log it to platform_coin_reserve.
 export function computeWagerPayouts(
   wagers: SettleWager[],
   winnerId: string,

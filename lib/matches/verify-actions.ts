@@ -20,7 +20,6 @@ import { notifyInApp } from '@/lib/notifications/inbox'
 import { resultKey } from '@/lib/notifications/keys'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 import { creditWallet } from '@/lib/wallet/service'
-import { settleMatchBets, refundMatchBets } from '@/lib/betting/settle'
 import { settleMatchWagers, refundMatchWagers } from '@/lib/wagers/settle'
 import { revalidateAll, revalidateThirdPlaceCredit } from './revalidate'
 import { awardSeasonPoints } from './season-points'
@@ -360,12 +359,8 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
   if (scoreA === scoreB) {
     // Knockout matches can't reach this point in a draw (rejected above) —
     // this only fires for a group-stage draw, a push with no side to
-    // redistribute the bet/wager pool to.
-    await refundMatchBets(admin, id)
+    // redistribute the wager pool to.
     await refundMatchWagers(admin, id)
-  } else {
-    const winningSide = scoreA > scoreB ? 'player_a' : 'player_b'
-    await settleMatchBets(admin, id, winningSide)
   }
 
   await admin

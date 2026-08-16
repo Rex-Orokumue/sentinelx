@@ -8,18 +8,21 @@ import { CommentList } from '@/components/community/CommentList'
 import { CommentInput } from '@/components/community/CommentInput'
 import { buildMetadata } from '@/lib/seo/metadata'
 
-// `image` is only passed when the post has a real uploaded photo — an
-// explicit image always overrides Next's opengraph-image.tsx file-convention
-// resolution (see buildMetadata's own comment), so a text-only post falls
-// through to this segment's own opengraph-image.tsx instead of the generic
-// site-wide default, carrying the actual post content on its share card.
+// Every post shares via this segment's own opengraph-image.tsx (branded
+// card, author avatar + content) rather than the generic site-wide default.
+// This used to pass an explicit `image` override to the post's raw uploaded
+// photo whenever one existed, which per Next's metadata resolution
+// bypassed opengraph-image.tsx entirely — so the author's avatar/branding
+// never appeared for any post with an image (confirmed live). The branded
+// card now shows the post's own photo as a thumbnail (see
+// lib/og/community-post-card.tsx) instead of losing it, so nothing is
+// visually lost by removing this override.
 export async function generateMetadata({ params }: { params: { postId: string } }): Promise<Metadata> {
   const { post } = (await fetchPostDetail(params.postId, null)) ?? {}
   return buildMetadata({
     title: post ? `${post.content.slice(0, 80)} — Sentinel X Community` : 'Community Post — Sentinel X',
     description: post?.content.slice(0, 160) ?? 'A post from the SentinelX community feed.',
     path: `/community/${params.postId}`,
-    ...(post?.imageUrl ? { image: post.imageUrl } : {}),
   })
 }
 

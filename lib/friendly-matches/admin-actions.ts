@@ -6,6 +6,7 @@ import { notifyInApp } from '@/lib/notifications/inbox'
 import { friendlyMatchEventsFor } from './scoring'
 import { computeScore } from '@/lib/scoring/score'
 import { creditWallet } from '@/lib/wallet/service'
+import { recordCoinTransaction } from '@/lib/coins/service'
 import { friendlyResultSchema } from './result-schema'
 
 export type FriendlyAdminState = { error?: string; success?: boolean } | undefined
@@ -27,7 +28,7 @@ export async function confirmFriendlyResult(
   const admin = createAdminClient()
   const { data: fm } = await admin
     .from('friendly_matches')
-    .select('id, challenger_id, opponent_id, stake_amount, status')
+    .select('id, challenger_id, opponent_id, stake_amount, stake_currency, status')
     .eq('id', id)
     .maybeSingle()
   if (!fm) return { error: 'Match not found.' }
@@ -82,7 +83,11 @@ export async function confirmFriendlyResult(
 
     // winnerId is guaranteed non-null here — a draw on a staked match was
     // already rejected above, before this block can be reached.
-    await creditWallet(admin, winnerId as string, fm.stake_amount * 2, 'friendly_stake', fm.id)
+    if (fm.stake_currency === 'coins') {
+      await recordCoinTransaction(admin, winnerId as string, fm.stake_amount * 2, 'friendly_stake_payout', fm.id, 'Friendly match won — stake payout')
+    } else {
+      await creditWallet(admin, winnerId as string, fm.stake_amount * 2, 'friendly_stake', fm.id)
+    }
   }
 
   for (const playerId of [fm.challenger_id, fm.opponent_id]) {

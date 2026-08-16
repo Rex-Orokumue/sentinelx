@@ -35,7 +35,6 @@ const EXPANDED_SECTIONS: { heading: string; links: { href: string; label: string
       { href: '/tv', label: 'Sentinel X TV' },
       { href: '/hall-of-fame', label: 'Hall of Fame' },
       { href: '/players', label: 'Players' },
-      { href: '/betting', label: 'Betting' },
     ],
   },
   {
@@ -61,8 +60,8 @@ const EXPANDED_SECTIONS: { heading: string; links: { href: string; label: string
 
 // Two variants (spec §2.2). `simple` — Home, Tournaments, Leaderboards; `expanded`
 // — Games, About Us, Community, Store. Every real destination not shown in the
-// tightened Navbar (TV, Seasons, Betting, Hall of Fame, Players) still lives here
-// so nothing on the site becomes unreachable. Variant is derived from the route
+// tightened Navbar (TV, Seasons, Hall of Fame, Players) still lives here so
+// nothing on the site becomes unreachable. Variant is derived from the route
 // rather than passed down, so it stays correct through client-side navigation
 // without every page having to know about it.
 export function SiteFooter() {
