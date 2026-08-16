@@ -11,7 +11,7 @@ export async function getCoinBalance(admin: Admin, playerId: string): Promise<nu
 // negative balance) — a negative award larger than the current balance
 // clamps rather than erroring, matching sx_score's MAX(0, ...) clamp rule.
 // Always logs a ledger row, mirroring wallet_transactions/sx_score_events.
-export async function awardCoins(
+export async function recordCoinTransaction(
   admin: Admin,
   playerId: string,
   amount: number,

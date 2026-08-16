@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { awardCoins, getCoinBalance } from './service'
+import { recordCoinTransaction, getCoinBalance } from './service'
 
 function fakeAdmin(existing: { balance: number; total_earned: number; total_spent: number } | null) {
   const upserts: Record<string, unknown>[] = []
@@ -32,10 +32,10 @@ describe('getCoinBalance', () => {
   })
 })
 
-describe('awardCoins', () => {
+describe('recordCoinTransaction', () => {
   it('creates a wallet row lazily and logs the ledger row', async () => {
     const { client, upserts, inserts } = fakeAdmin(null)
-    const newBalance = await awardCoins(client as never, 'p1', 20, 'match_played', 'm1')
+    const newBalance = await recordCoinTransaction(client as never, 'p1', 20, 'match_played', 'm1')
     expect(newBalance).toBe(20)
     expect(upserts[0]).toMatchObject({ player_id: 'p1', balance: 20, total_earned: 20, total_spent: 0 })
     expect(inserts[0]).toMatchObject({ player_id: 'p1', amount: 20, balance_after: 20, source: 'match_played', reference_id: 'm1' })
@@ -43,13 +43,13 @@ describe('awardCoins', () => {
 
   it('adds to an existing balance', async () => {
     const { client } = fakeAdmin({ balance: 100, total_earned: 100, total_spent: 0 })
-    const newBalance = await awardCoins(client as never, 'p1', 30, 'match_won', 'm1')
+    const newBalance = await recordCoinTransaction(client as never, 'p1', 30, 'match_won', 'm1')
     expect(newBalance).toBe(130)
   })
 
   it('supports negative amounts for admin deductions without going below 0', async () => {
     const { client } = fakeAdmin({ balance: 40, total_earned: 100, total_spent: 60 })
-    const newBalance = await awardCoins(client as never, 'p1', -100, 'admin_deduct', null)
+    const newBalance = await recordCoinTransaction(client as never, 'p1', -100, 'admin_deduct', null)
     expect(newBalance).toBe(0)
   })
 })

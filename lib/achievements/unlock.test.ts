@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { checkAndUnlockAchievements } from './unlock'
 
 vi.mock('@/lib/membership/xp', () => ({ awardXP: vi.fn() }))
-vi.mock('@/lib/coins/service', () => ({ awardCoins: vi.fn() }))
+vi.mock('@/lib/coins/service', () => ({ recordCoinTransaction: vi.fn() }))
 vi.mock('@/lib/notifications/inbox', () => ({ notifyInApp: vi.fn() }))
 
 function fakeAdmin(opts: {
@@ -116,7 +116,7 @@ describe('checkAndUnlockAchievements — sx_score_updated', () => {
 describe('checkAndUnlockAchievements — awards + notification', () => {
   it('awards xp and coins and sends an achievement_unlocked notification on unlock', async () => {
     const { awardXP } = await import('@/lib/membership/xp')
-    const { awardCoins } = await import('@/lib/coins/service')
+    const { recordCoinTransaction } = await import('@/lib/coins/service')
     const { notifyInApp } = await import('@/lib/notifications/inbox')
     const { client } = fakeAdmin({
       achievements: [{ id: 'a1', slug: 'first_match', name: 'First Blood', category: 'matches', xp_reward: 50, coin_reward: 20 }],
@@ -124,7 +124,7 @@ describe('checkAndUnlockAchievements — awards + notification', () => {
     })
     await checkAndUnlockAchievements(client as never, 'p1', { type: 'match_completed', matchId: 'm1', won: false })
     expect(awardXP).toHaveBeenCalledWith(client, 'p1', 50, 'achievement_unlocked', 'a1')
-    expect(awardCoins).toHaveBeenCalledWith(client, 'p1', 20, 'achievement_unlocked', 'a1')
+    expect(recordCoinTransaction).toHaveBeenCalledWith(client, 'p1', 20, 'achievement_unlocked', 'a1')
     expect(notifyInApp).toHaveBeenCalledWith(expect.objectContaining({ playerId: 'p1', type: 'achievement_unlocked' }))
   })
 })

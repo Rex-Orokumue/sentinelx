@@ -4,7 +4,7 @@ import { requireStaff } from '@/lib/admin/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { postContentSchema } from './schema'
 import { currentWeekStart } from './challenges'
-import { awardCoins } from '@/lib/coins/service'
+import { recordCoinTransaction } from '@/lib/coins/service'
 import { awardXP } from '@/lib/membership/xp'
 
 export type AdminActionState = { error?: string } | undefined
@@ -102,7 +102,7 @@ export async function confirmBestPlayWinner(_prev: AdminActionState, formData: F
   const { error: markErr } = await admin.from('best_play_nominations').update({ is_winner: true }).eq('id', nominationId)
   if (markErr) return { error: 'Could not confirm the winner.' }
 
-  await awardCoins(admin, winnerId, 500, 'best_play_winner', nominationId)
+  await recordCoinTransaction(admin, winnerId, 500, 'best_play_winner', nominationId)
   await awardXP(admin, winnerId, 200, 'best_play_winner', nominationId)
   await unlockBestPlayAchievement(admin, winnerId, nominationId)
 
@@ -156,6 +156,6 @@ async function awardRunnerUp(admin: ReturnType<typeof createAdminClient>, weekSt
   }
   if (!best || !best.postAuthorId || best.votes === 0) return
 
-  await awardCoins(admin, best.postAuthorId, 200, 'best_play_runner_up', best.id)
+  await recordCoinTransaction(admin, best.postAuthorId, 200, 'best_play_runner_up', best.id)
   await awardXP(admin, best.postAuthorId, 100, 'best_play_runner_up', best.id)
 }

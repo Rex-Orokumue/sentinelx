@@ -1,5 +1,5 @@
 import { nextLoginState } from './streak'
-import { awardCoins } from '@/lib/coins/service'
+import { recordCoinTransaction } from '@/lib/coins/service'
 import { awardXP } from '@/lib/membership/xp'
 import type { createAdminClient } from '@/lib/supabase/admin'
 
@@ -35,14 +35,14 @@ export async function recordDailyLogin(admin: Admin, playerId: string, now: Date
       .update({ last_login_date: state.todayWAT, login_streak: state.newStreak })
       .eq('id', playerId)
 
-    await awardCoins(admin, playerId, 5, 'daily_login', null)
+    await recordCoinTransaction(admin, playerId, 5, 'daily_login', null)
     await awardXP(admin, playerId, 20, 'daily_login', null)
 
     if (state.newStreak % 30 === 0) {
-      await awardCoins(admin, playerId, 200, 'login_streak', null)
+      await recordCoinTransaction(admin, playerId, 200, 'login_streak', null)
       await awardXP(admin, playerId, 500, 'login_streak', null)
     } else if (state.newStreak % 7 === 0) {
-      await awardCoins(admin, playerId, 50, 'login_streak', null)
+      await recordCoinTransaction(admin, playerId, 50, 'login_streak', null)
       await awardXP(admin, playerId, 100, 'login_streak', null)
     }
   } catch (err) {

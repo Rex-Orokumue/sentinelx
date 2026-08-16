@@ -1,4 +1,4 @@
-import { awardCoins } from '@/lib/coins/service'
+import { recordCoinTransaction } from '@/lib/coins/service'
 import { awardXP } from '@/lib/membership/xp'
 import type { createAdminClient } from '@/lib/supabase/admin'
 
@@ -78,7 +78,7 @@ export async function incrementChallenge(
       if (!row || row.rewarded_at) continue
 
       await admin.from('player_challenge_progress').update({ rewarded_at: new Date().toISOString() }).eq('id', row.id)
-      if (challenge.coin_reward > 0) await awardCoins(admin, playerId, challenge.coin_reward, 'weekly_challenge', challenge.id)
+      if (challenge.coin_reward > 0) await recordCoinTransaction(admin, playerId, challenge.coin_reward, 'weekly_challenge', challenge.id)
       if (challenge.xp_reward > 0) await awardXP(admin, playerId, challenge.xp_reward, 'weekly_challenge', challenge.id)
     }
   }

@@ -7,7 +7,7 @@ import {
   type PlacementBand,
   type SeasonTournamentType,
 } from '@/lib/tournaments/season-placement'
-import { awardCoins } from '@/lib/coins/service'
+import { recordCoinTransaction } from '@/lib/coins/service'
 import { awardXP } from '@/lib/membership/xp'
 import { checkAndUnlockAchievements } from '@/lib/achievements/unlock'
 
@@ -105,7 +105,7 @@ export async function awardSeasonPoints(admin: Admin, tournamentId: string): Pro
   for (const { playerId, band } of placements) {
     const placement = isChampionsCup ? CHAMPIONS_CUP_PLACEMENT[band] : placementForBand(coinXpTournamentType, band)
     const coins = isChampionsCup ? CHAMPIONS_CUP_COINS[placement] : PLACEMENT_COINS[placement]
-    if (coins) await awardCoins(admin, playerId, coins, 'tournament_placement', tournamentId)
+    if (coins) await recordCoinTransaction(admin, playerId, coins, 'tournament_placement', tournamentId)
     const xp = isChampionsCup ? CHAMPIONS_CUP_XP[placement] : PLACEMENT_XP[placement]
     if (xp) await awardXP(admin, playerId, xp, 'tournament_placement', tournamentId)
     await checkAndUnlockAchievements(admin, playerId, {
