@@ -2,7 +2,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { X } from 'lucide-react'
+import { ChevronRight, X } from 'lucide-react'
 import { signOut } from '@/lib/auth/actions'
 import { SHEET_SITE_LINKS } from '@/lib/nav/links'
 import { isAdminNavActive, type AdminSheetData } from '@/lib/admin/nav'
@@ -11,8 +11,34 @@ import type { NavSession } from '@/lib/nav/session'
 
 const activeLinkStyle = { background: 'rgba(124,58,237,0.15)' }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <span className="mb-2 block text-xs font-bold uppercase tracking-widest text-sx-gray">{children}</span>
+// Each menu section is its own <details> — the sheet stacks up to ~28 links
+// for a staff account (13 admin + 10 site + 5 account) and scrolling through
+// all of them open at once was the complaint this fixes. `<summary>` gives
+// keyboard toggling (Enter/Space) and a11y semantics for free; the chevron
+// rotates via the `[open]` attribute selector, no extra state needed.
+function NavSection({
+  label,
+  defaultOpen,
+  badge,
+  children,
+}: {
+  label: string
+  defaultOpen: boolean
+  badge?: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <details className="group mb-4" open={defaultOpen}>
+      <summary className="flex cursor-pointer list-none items-center justify-between py-1 [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center gap-2">
+          <ChevronRight className="h-3.5 w-3.5 text-sx-gray transition-transform group-open:rotate-90" />
+          <span className="text-xs font-bold uppercase tracking-widest text-sx-gray">{label}</span>
+        </span>
+        {badge}
+      </summary>
+      <div className="mt-2 flex flex-col gap-1">{children}</div>
+    </details>
+  )
 }
 
 function SheetLink({
@@ -91,13 +117,15 @@ export function MobileNavSheet({
 
         {adminNav && (
           <>
-            <div className="mb-2 flex items-center justify-between">
-              <SectionLabel>Admin</SectionLabel>
-              <span className="rounded-full border border-sx-border px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-sx-gray">
-                {adminNav.isAdmin ? 'Admin' : 'Moderator'}
-              </span>
-            </div>
-            <div className="mb-4 flex flex-col gap-1">
+            <NavSection
+              label="Admin"
+              defaultOpen={false}
+              badge={
+                <span className="rounded-full border border-sx-border px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-sx-gray">
+                  {adminNav.isAdmin ? 'Admin' : 'Moderator'}
+                </span>
+              }
+            >
               {adminNav.items.map((item) => {
                 const active = isAdminNavActive(item.href, pathname)
                 const count = badgeCounts[item.href] ?? 0
@@ -120,13 +148,12 @@ export function MobileNavSheet({
                   </Link>
                 )
               })}
-            </div>
+            </NavSection>
             <div className="mb-4 h-px bg-sx-border" />
           </>
         )}
 
-        <SectionLabel>Site</SectionLabel>
-        <div className="mb-4 flex flex-col gap-1">
+        <NavSection label="Site" defaultOpen={true}>
           {SHEET_SITE_LINKS.map((item) => {
             const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
             return (
@@ -135,12 +162,11 @@ export function MobileNavSheet({
               </SheetLink>
             )
           })}
-        </div>
+        </NavSection>
 
         <div className="mb-4 h-px bg-sx-border" />
 
-        <SectionLabel>Account</SectionLabel>
-        <div className="mb-4 flex flex-col gap-1">
+        <NavSection label="Account" defaultOpen={false}>
           {session.isLoggedIn ? (
             <>
               <SheetLink
@@ -193,7 +219,7 @@ export function MobileNavSheet({
               </Link>
             </div>
           )}
-        </div>
+        </NavSection>
 
         <a
           href={whatsappUrl}
