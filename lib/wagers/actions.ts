@@ -26,7 +26,7 @@ export async function placeWager(_prev: WagerState, formData: FormData): Promise
   const admin = createAdminClient()
   const { data: match } = await admin
     .from('matches')
-    .select('id, status, scheduled_at, player_a_id, player_b_id')
+    .select('id, status, scheduled_at, player_a_id, player_b_id, is_full_day')
     .eq('id', matchId)
     .maybeSingle()
   if (!match) return { error: 'Match not found.' }

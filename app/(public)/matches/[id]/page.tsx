@@ -200,7 +200,7 @@ export default async function MatchCentrePage({
       : null
   const wagerDisabledReason = isParticipant
     ? 'You cannot wager on your own match.'
-    : !wagerWindowOpen({ status: m.status, scheduled_at: m.scheduled_at, player_a_id: m.player_a_id, player_b_id: m.player_b_id })
+    : !wagerWindowOpen({ status: m.status, scheduled_at: m.scheduled_at, player_a_id: m.player_a_id, player_b_id: m.player_b_id, is_full_day: m.is_full_day })
       ? 'Wagering is closed. Results pending.'
       : null
   const wagerCoinBalance = user ? await getCoinBalance(admin, user.id) : 0
