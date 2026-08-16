@@ -1689,22 +1689,31 @@ export type Database = {
       }
       referrals: {
         Row: {
+          coins_awarded: number | null
+          converted_at: string | null
           created_at: string
           id: string
           referred_id: string
           referrer_id: string
+          status: string
         }
         Insert: {
+          coins_awarded?: number | null
+          converted_at?: string | null
           created_at?: string
           id?: string
           referred_id: string
           referrer_id: string
+          status?: string
         }
         Update: {
+          coins_awarded?: number | null
+          converted_at?: string | null
           created_at?: string
           id?: string
           referred_id?: string
           referrer_id?: string
+          status?: string
         }
         Relationships: [
           {
