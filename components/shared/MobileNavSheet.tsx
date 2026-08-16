@@ -1,5 +1,5 @@
 'use client'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ChevronRight, X } from 'lucide-react'
@@ -11,24 +11,47 @@ import type { NavSession } from '@/lib/nav/session'
 
 const activeLinkStyle = { background: 'rgba(124,58,237,0.15)' }
 
+function sectionOpenKey(id: string) {
+  return `sx-nav-sheet-open:${id}`
+}
+
 // Each menu section is its own <details> — the sheet stacks up to ~28 links
 // for a staff account (13 admin + 10 site + 5 account) and scrolling through
 // all of them open at once was the complaint this fixes. `<summary>` gives
 // keyboard toggling (Enter/Space) and a11y semantics for free; the chevron
-// rotates via the `[open]` attribute selector, no extra state needed.
+// rotates via the `[open]` attribute selector.
+//
+// Open/closed state persists per section in localStorage, read synchronously
+// in the initializer — safe because MobileNavSheet only ever mounts after
+// the hamburger is tapped (SiteHeader renders it as `{drawerOpen && <MobileNavSheet />}`),
+// never during SSR/initial hydration, so there's no server/client mismatch
+// to guard against here (unlike SentinelBubble's dismiss flag, which does
+// need the "hidden until an effect resolves" dance since it renders on
+// first paint). A first-time visitor has no stored value yet — falls back
+// to closed, matching the default every section already starts at.
 function NavSection({
+  id,
   label,
-  defaultOpen,
   badge,
   children,
 }: {
+  id: string
   label: string
-  defaultOpen: boolean
   badge?: React.ReactNode
   children: React.ReactNode
 }) {
+  const [open, setOpen] = useState(() => localStorage.getItem(sectionOpenKey(id)) === '1')
+
   return (
-    <details className="group mb-4" open={defaultOpen}>
+    <details
+      className="group mb-4"
+      open={open}
+      onToggle={(e) => {
+        const next = e.currentTarget.open
+        setOpen(next)
+        localStorage.setItem(sectionOpenKey(id), next ? '1' : '0')
+      }}
+    >
       <summary className="flex cursor-pointer list-none items-center justify-between py-1 [&::-webkit-details-marker]:hidden">
         <span className="flex items-center gap-2">
           <ChevronRight className="h-3.5 w-3.5 text-sx-gray transition-transform group-open:rotate-90" />
@@ -118,8 +141,8 @@ export function MobileNavSheet({
         {adminNav && (
           <>
             <NavSection
+              id="admin"
               label="Admin"
-              defaultOpen={false}
               badge={
                 <span className="rounded-full border border-sx-border px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-sx-gray">
                   {adminNav.isAdmin ? 'Admin' : 'Moderator'}
@@ -153,7 +176,7 @@ export function MobileNavSheet({
           </>
         )}
 
-        <NavSection label="Site" defaultOpen={false}>
+        <NavSection id="site" label="Site">
           {SHEET_SITE_LINKS.map((item) => {
             const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
             return (
@@ -166,7 +189,7 @@ export function MobileNavSheet({
 
         <div className="mb-4 h-px bg-sx-border" />
 
-        <NavSection label="Account" defaultOpen={false}>
+        <NavSection id="account" label="Account">
           {session.isLoggedIn ? (
             <>
               <SheetLink
