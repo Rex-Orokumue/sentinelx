@@ -153,7 +153,7 @@ export function MobileNavSheet({
           </>
         )}
 
-        <NavSection label="Site" defaultOpen={true}>
+        <NavSection label="Site" defaultOpen={false}>
           {SHEET_SITE_LINKS.map((item) => {
             const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
             return (
