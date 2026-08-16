@@ -1604,6 +1604,7 @@ export type Database = {
           login_streak: number
           losses: number
           membership_tier: string
+          notification_prefs: Json
           phone: string | null
           phone_verified_at: string | null
           referred_by: string | null
@@ -1613,6 +1614,7 @@ export type Database = {
           total_titles: number
           updated_at: string
           username: string | null
+          username_changed_at: string | null
           whatsapp_number: string | null
           wins: number
           xp: number
@@ -1631,6 +1633,7 @@ export type Database = {
           login_streak?: number
           losses?: number
           membership_tier?: string
+          notification_prefs?: Json
           phone?: string | null
           phone_verified_at?: string | null
           referred_by?: string | null
@@ -1640,6 +1643,7 @@ export type Database = {
           total_titles?: number
           updated_at?: string
           username?: string | null
+          username_changed_at?: string | null
           whatsapp_number?: string | null
           wins?: number
           xp?: number
@@ -1658,6 +1662,7 @@ export type Database = {
           login_streak?: number
           losses?: number
           membership_tier?: string
+          notification_prefs?: Json
           phone?: string | null
           phone_verified_at?: string | null
           referred_by?: string | null
@@ -1667,6 +1672,7 @@ export type Database = {
           total_titles?: number
           updated_at?: string
           username?: string | null
+          username_changed_at?: string | null
           whatsapp_number?: string | null
           wins?: number
           xp?: number
@@ -2554,6 +2560,10 @@ export type Database = {
       expire_full_day_matches: { Args: never; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      jsonb_merge_notification_prefs: {
+        Args: { p_id: string; p_key: string; p_patch: Json }
+        Returns: undefined
+      }
       player_rank: { Args: { uname: string }; Returns: number }
     }
     Enums: {

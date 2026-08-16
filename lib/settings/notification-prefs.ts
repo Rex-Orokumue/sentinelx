@@ -30,10 +30,6 @@ function boolFromForm(formData: FormData, key: string): boolean {
 // jsonb_merge_notification_prefs Postgres function (migration 062) — atomic
 // under concurrent saves of different sub-keys, and preserves every other
 // key (push, achievement_sharing, future additions) untouched.
-//
-// NOTE: this RPC isn't in the generated lib/supabase/types.ts yet (migration
-// 062 applied ahead of live-DB connectivity being restored — see plan Task
-// 1/13) — the `as never` casts are temporary until types are regenerated.
 export async function updateWhatsappPrefs(_prev: PrefsState, formData: FormData): Promise<PrefsState> {
   const supabase = createClient()
   const {
@@ -51,11 +47,11 @@ export async function updateWhatsappPrefs(_prev: PrefsState, formData: FormData)
   })
   if (!parsed.success) return { error: 'Invalid preferences.' }
 
-  const { error } = await supabase.rpc('jsonb_merge_notification_prefs' as never, {
+  const { error } = await supabase.rpc('jsonb_merge_notification_prefs', {
     p_id: user.id,
     p_key: 'whatsapp',
     p_patch: parsed.data,
-  } as never)
+  })
   if (error) {
     console.error('updateWhatsappPrefs failed', error)
     return { error: 'Could not save your preferences. Please try again.' }
@@ -80,11 +76,11 @@ export async function updateAchievementSharingPrefs(_prev: PrefsState, formData:
   })
   if (!parsed.success) return { error: 'Invalid preferences.' }
 
-  const { error } = await supabase.rpc('jsonb_merge_notification_prefs' as never, {
+  const { error } = await supabase.rpc('jsonb_merge_notification_prefs', {
     p_id: user.id,
     p_key: 'achievement_sharing',
     p_patch: parsed.data,
-  } as never)
+  })
   if (error) {
     console.error('updateAchievementSharingPrefs failed', error)
     return { error: 'Could not save your preferences. Please try again.' }

@@ -24,7 +24,7 @@ export function QuickActions({
       label: walletBalance > 0 ? 'Withdraw Prize' : 'Wallet',
       sub: walletBalance > 0 ? formatNaira(walletBalance) : undefined,
     },
-    { href: '/dashboard/profile', icon: '⚙', label: 'Profile' },
+    { href: '/dashboard/settings', icon: '⚙', label: 'Settings' },
   ]
 
   return (

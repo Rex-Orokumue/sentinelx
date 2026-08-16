@@ -33,19 +33,13 @@ export async function updateProfile(
   // Username: server-side one-change enforcement (spec §6). A locked/unchanged
   // field submits '' and is skipped entirely — this branch only runs when the
   // player actually typed a new username.
-  //
-  // NOTE: username/username_changed_at were added in migration 062, applied
-  // ahead of live-DB connectivity being restored (see plan Task 1) — the
-  // generated lib/supabase/types.ts doesn't know about them yet, so the two
-  // `as never`/cast points below are temporary until `npx supabase gen types`
-  // is re-run against the applied migration (tracked in plan Task 13).
   let usernamePatch: { username?: string; username_changed_at?: string } = {}
   if (d.username) {
-    const { data: current } = (await supabase
+    const { data: current } = await supabase
       .from('profiles')
       .select('username, username_changed_at')
       .eq('id', user.id)
-      .maybeSingle()) as unknown as { data: { username: string; username_changed_at: string | null } | null }
+      .maybeSingle()
     if (current && current.username !== d.username) {
       if (current.username_changed_at) {
         return { error: 'Username has already been changed once.' }
@@ -63,7 +57,7 @@ export async function updateProfile(
       bio: d.bio || null,
       ...avatarPatch,
       ...usernamePatch,
-    } as never)
+    })
     .eq('id', user.id)
   if (error) {
     if (error.code === '23505') return { error: 'That username is already taken.' }
