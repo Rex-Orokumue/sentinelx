@@ -66,14 +66,22 @@ live countdown to the registration deadline.
 
 | # | Task | Status |
 |---|------|--------|
-| — | Community pillar v1 — per-game discussion feed, one-level replies, optional post images, admin moderation | ✅ |
+| — | ~~Community pillar v1 — per-game discussion feed, one-level replies, optional post images, admin moderation~~ (superseded, see note) | ✅ |
 
-**★ v3.6 COMPLETE.** The 🤝 Community pillar is live at `/community` — public
-per-game feed, posts + one-level replies, optional post images, live-then-moderate
-(no approval queue). Known deferred gaps (documented, not bugs): no image
-pre-moderation, no orphaned-image cleanup on delete (same accepted gap as Gaming
-Exchange listing images), no real-time delivery, no nested replies, no editing,
-per-game only (not per-tournament).
+**★ v3.6 COMPLETE, superseded 2026-08-16.** This per-game discussion-board
+version of `/community` (per-game feed, one-level replies, no reactions,
+login-gated read) was replaced outright by the Phase 3 Social Feed — see
+`docs/superpowers/specs/2026-08-15-phase3-social-feed-design.md` and
+`docs/superpowers/plans/2026-08-15-phase3-social-feed.md`. `/community` is
+now one shared public feed (not per-game, no login required to read), with
+post types (manual/match_result/achievement/announcement), 4-emoji
+reactions, threaded comments, weekly challenges, and Best Play of the Week
+voting. The `community_posts`/`community_replies` schema this v1 row
+described no longer exists — the 11 v1 posts / 19 replies (QA data) were
+migrated into the new schema rather than dropped. v1's known deferred gaps
+(no image pre-moderation, no orphaned-image cleanup on delete, no
+real-time delivery, no nested replies, no editing, per-game only) are moot
+now that it's retired.
 
 ## v4.0 — Scale
 
