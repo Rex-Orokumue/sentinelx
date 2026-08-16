@@ -99,6 +99,29 @@ achievements leaked their name/description via a tooltip. `/dashboard/profile`
 now redirects to the new `/dashboard/settings`. Followers/following/likes
 were discussed and explicitly deferred, not built.
 
+**Betting/wager fixes + coin-staked friendlies, DONE 2026-08-16** (plan:
+`docs/superpowers/plans/2026-08-16-betting-fixes-and-share-cards.md`). Fixed
+a real bug where coin wagering (`match_wagers`) closed its window before a
+full-day match's play day had even begun — `wagerWindowOpen` had no
+full-day carve-out, unlike the (now-removed) naira betting system, so every
+currently-scheduled match in production read as unwagerable; confirmed live
+via `execute_sql` before fixing. **Removed real-money betting entirely**
+(`/betting`, `BettingPanel`, admin bet-lock/void tooling, `match_bets` table
++ `matches.betting_locked` column dropped — zero live rows, confirmed
+before dropping) — coin wagering is now the only betting mechanism.
+**Staked friendlies can now be denominated in coins as well as naira**
+(`friendly_matches.stake_currency`, one currency per challenge, symmetric
+stake; coin stakes settle instantly, no Paystack/webhook). Also fixed two
+share-card bugs that dropped the sharer's avatar: community posts with an
+uploaded image were bypassing the branded OG card entirely (raw photo used
+as `og:image`, so the author's avatar never appeared — now the branded card
+always renders and shows the post's photo as a thumbnail alongside the
+avatar); and some real user avatars are large phone-camera PNGs with
+embedded EXIF/ICC profiles that Satori's decoder silently fails on
+(confirmed live: a 6.2MB avatar rendered blank) — image fetches for OG
+cards now route through Supabase Storage's image-transform endpoint, which
+re-encodes and strips the offending metadata.
+
 ## v4.0 — Scale
 
 | # | Task | Status |
