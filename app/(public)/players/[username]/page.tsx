@@ -10,6 +10,8 @@ import { friendshipStatus, type FriendshipStatus } from '@/lib/friends/list'
 import { scoreStatsByPlayerAndCategory, winsByPlayerAndGame, type GameScopedMatch, type CategoryStat } from '@/lib/rankings/game-breakdown'
 import { CATEGORY_META } from '@/lib/games/categories'
 import { RANKING_MIN_MATCHES } from '@/lib/rankings/leaderboard'
+import { getSeasonLeaderboard, getMonthlyLeaderboard } from '@/lib/seasons/data'
+import { buildAchievementCells, type AchievementCell } from '@/lib/players/achievement-rarity'
 import { ProfileHeader } from '@/components/player/ProfileHeader'
 import {
   equippedCosmeticsBySlug,
@@ -24,7 +26,10 @@ import { ProfileGamesRow } from '@/components/player/ProfileGamesRow'
 import { ProfileRecentActivity } from '@/components/player/ProfileRecentActivity'
 import { CareerStatsRadar } from '@/components/player/CareerStatsRadar'
 import { ProfileSidebarNav, ProfileTournamentsPromo } from '@/components/player/ProfileSidebarNav'
-import { AchievementsGrid, type AchievementCell } from '@/components/player/AchievementsGrid'
+import { AchievementShowcase } from '@/components/player/AchievementShowcase'
+import { XPProgressPanel } from '@/components/dashboard/XPProgressPanel'
+import { SeasonStandingCard } from '@/components/dashboard/SeasonStandingCard'
+import { ProfileCommunityPosts } from '@/components/player/ProfileCommunityPosts'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildPlayerJsonLd } from '@/lib/seo/schema/player'
@@ -189,6 +194,8 @@ export default async function PlayerProfilePage({ params }: { params: { username
     { data: rawAchievements },
     { data: rawPlayerAchievements },
     { data: rawEquippedItems },
+    { data: rawAllUnlocks },
+    { data: rawProfilePosts },
   ] = await Promise.all([
     supabase.rpc('player_rank', { uname: p.username }),
     supabase
@@ -228,13 +235,24 @@ export default async function PlayerProfilePage({ params }: { params: { username
       .from('profiles')
       .select('id', { count: 'exact', head: true })
       .gte('total_matches', RANKING_MIN_MATCHES),
-    supabase.from('achievements').select('id, slug, name, description').eq('phase', 'phase2').order('sort_order'),
-    supabase.from('player_achievements').select('achievement_id').eq('player_id', p.id),
+    supabase.from('achievements').select('id, slug, name, description, category').order('sort_order'),
+    supabase.from('player_achievements').select('achievement_id, unlocked_at').eq('player_id', p.id),
     supabase
       .from('player_store_items')
       .select('item_id, equipped, store_items(slug, category)')
       .eq('player_id', p.id)
       .eq('equipped', true),
+    // Full scan — how many players (across the whole platform) hold each
+    // achievement, the rarity signal for the showcase (Task 2). Small table
+    // (~30 achievements), same "full eligible scan" convention as Hall of Fame.
+    supabase.from('player_achievements').select('achievement_id'),
+    supabase
+      .from('community_posts')
+      .select('id, content, post_type, created_at')
+      .eq('author_id', p.id)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false })
+      .limit(5),
   ])
 
   const cosmetics = equippedCosmeticsBySlug(rawEquippedItems ?? [])
@@ -305,22 +323,60 @@ export default async function PlayerProfilePage({ params }: { params: { username
     currentStreak++
   }
 
-  const unlockedAchievementIds = new Set(
-    ((rawPlayerAchievements ?? []) as { achievement_id: string }[]).map((r) => r.achievement_id),
+  const isOwner = !!user && user.id === p.id
+
+  // Global rarity counts — how many players hold each achievement, across
+  // the whole platform (Task 2/6). Table is small (~30 achievements); a full
+  // scan matches the existing convention (Hall of Fame does the same over
+  // all eligible players).
+  const unlockCounts = new Map<string, number>()
+  for (const row of (rawAllUnlocks ?? []) as { achievement_id: string }[]) {
+    unlockCounts.set(row.achievement_id, (unlockCounts.get(row.achievement_id) ?? 0) + 1)
+  }
+
+  const achievementCells: AchievementCell[] = buildAchievementCells(
+    (rawAchievements ?? []) as { id: string; slug: string; name: string; description: string; category: string }[],
+    (rawPlayerAchievements ?? []) as { achievement_id: string; unlocked_at: string }[],
+    unlockCounts,
   )
-  const achievementCells: AchievementCell[] = (
-    (rawAchievements ?? []) as { id: string; slug: string; name: string; description: string }[]
-  ).map((a) => ({
-    slug: a.slug,
-    name: a.name,
-    description: a.description,
-    unlocked: unlockedAchievementIds.has(a.id),
+  const unlockedSlugs = achievementCells.filter((a) => a.unlocked).map((a) => a.slug)
+
+  const profilePosts = (
+    (rawProfilePosts ?? []) as { id: string; content: string; post_type: string; created_at: string }[]
+  ).map((r) => ({
+    id: r.id,
+    content: r.content,
+    postType: r.post_type,
+    createdAt: r.created_at,
   }))
 
   // Owner-only (design doc §8) — never show another player's coin balance.
-  const coinBalance = user && user.id === p.id ? await getCoinBalance(createAdminClient(), p.id) : null
+  const coinBalance = isOwner ? await getCoinBalance(createAdminClient(), p.id) : null
 
-  const unlockedSlugs = achievementCells.filter((a) => a.unlocked).map((a) => a.slug)
+  // ── Season standing (spec §2.1 hero pill + §2.7 owner-only card) ─────────
+  const { data: activeSeason } = await supabase.from('seasons').select('id').eq('status', 'active').maybeSingle()
+
+  let seasonRank: number | null = null
+  let seasonPoints = 0
+  let pointsAtRankSixteen = 0
+  let monthlyRank: number | null = null
+  let monthlyPoints = 0
+  if (activeSeason) {
+    const seasonAdmin = createAdminClient()
+    const seasonBoard = await getSeasonLeaderboard(seasonAdmin, activeSeason.id)
+    const idx = seasonBoard.findIndex((r) => r.playerId === p.id)
+    seasonRank = idx >= 0 ? idx + 1 : null
+    seasonPoints = idx >= 0 ? seasonBoard[idx].points : 0
+    pointsAtRankSixteen = seasonBoard[15]?.points ?? 0
+    // Monthly board is only needed for the owner-only Season Standing card —
+    // skip the extra query entirely for public visitors.
+    if (isOwner) {
+      const monthlyBoard = await getMonthlyLeaderboard(seasonAdmin, activeSeason.id, new Date())
+      const monthlyIdx = monthlyBoard.findIndex((r) => r.playerId === p.id)
+      monthlyRank = monthlyIdx >= 0 ? monthlyIdx + 1 : null
+      monthlyPoints = monthlyIdx >= 0 ? monthlyBoard[monthlyIdx].points : 0
+    }
+  }
 
   const profile: ProfileView = {
     id: p.id,
@@ -341,6 +397,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
     totalTitles: p.total_titles,
     categoryStats,
     rank: (rankData as number | null) ?? null,
+    seasonRank,
     tournamentsPlayed: tournamentsPlayed ?? 0,
     currentStreak,
     totalRankedPlayers: totalRankedPlayers ?? null,
@@ -391,7 +448,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
       <div id="top" className="grid gap-6 pb-4 lg:grid-cols-[240px_1fr]">
         {/* ── Left sidebar ──────────────────────────────────── */}
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <ProfileSidebarNav isOwner={!!user && user.id === p.id} />
+          <ProfileSidebarNav isOwner={isOwner} />
           <ProfileTournamentsPromo />
         </aside>
 
@@ -408,6 +465,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
             usernameColourClass={cosmetics.usernameColour ? USERNAME_COLOUR_CLASSES[cosmetics.usernameColour] : undefined}
           />
           <ProfileStats profile={profile} />
+          <XPProgressPanel xp={p.xp} coinBalance={isOwner ? (coinBalance ?? 0) : undefined} />
           <ProfileGamesRow games={gamesPlayed} />
 
           <div className="grid gap-8 lg:grid-cols-3">
@@ -416,9 +474,21 @@ export default async function PlayerProfilePage({ params }: { params: { username
             <ProfileRecentActivity matches={matches} />
           </div>
 
+          <AchievementShowcase achievements={achievementCells} />
+
           <ProfileMatchHistory matches={matches} username={params.username} />
 
-          <AchievementsGrid achievements={achievementCells} />
+          <ProfileCommunityPosts posts={profilePosts} username={params.username} />
+
+          {isOwner && (
+            <SeasonStandingCard
+              seasonRank={seasonRank}
+              seasonPoints={seasonPoints}
+              pointsAtRankSixteen={pointsAtRankSixteen}
+              monthlyRank={monthlyRank}
+              monthlyPoints={monthlyPoints}
+            />
+          )}
         </div>
       </div>
     </div>
