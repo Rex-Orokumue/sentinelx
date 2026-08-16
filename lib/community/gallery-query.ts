@@ -7,6 +7,11 @@ export interface GalleryItem {
   authorName: string
 }
 
+export interface GalleryPage {
+  items: GalleryItem[]
+  hasMore: boolean
+}
+
 export function truncateCaption(content: string, max = 40): string {
   const trimmed = content.trim()
   if (trimmed.length <= max) return trimmed
@@ -25,7 +30,10 @@ function authorName(a: AuthorRef): string {
 // Most recent posts (any post_type) that have an image, captioned by author +
 // truncated content. No video overlay/duration badge — Sentinel X doesn't
 // store video (spec §4.7); YouTube embeds live only on Match Centre.
-export async function fetchCommunityGallery(limit = 8): Promise<GalleryItem[]> {
+//
+// Fetches limit+1 to detect hasMore without a separate count query — same
+// trick as fetchFeedPage.
+export async function fetchCommunityGallery(offset: number, limit = 8): Promise<GalleryPage> {
   const supabase = createClient()
   const { data } = await supabase
     .from('community_posts')
@@ -33,12 +41,19 @@ export async function fetchCommunityGallery(limit = 8): Promise<GalleryItem[]> {
     .eq('is_deleted', false)
     .not('image_url', 'is', null)
     .order('created_at', { ascending: false })
-    .limit(limit)
+    .range(offset, offset + limit)
 
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    imageUrl: row.image_url as string,
-    caption: truncateCaption(row.content),
-    authorName: authorName(row.author as AuthorRef),
-  }))
+  const rows = data ?? []
+  const hasMore = rows.length > limit
+  const pageRows = hasMore ? rows.slice(0, limit) : rows
+
+  return {
+    items: pageRows.map((row) => ({
+      id: row.id,
+      imageUrl: row.image_url as string,
+      caption: truncateCaption(row.content),
+      authorName: authorName(row.author as AuthorRef),
+    })),
+    hasMore,
+  }
 }

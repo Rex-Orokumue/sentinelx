@@ -22,15 +22,22 @@ export async function fetchChallengeWidget(viewerId: string | null): Promise<{ w
   const weekStart = currentWeekStart()
 
   const [{ data: challenges }, { data: progress }] = await Promise.all([
-    supabase.from('community_challenges').select('id, slug, title, description, goal, coin_reward, xp_reward'),
+    supabase.from('community_challenges').select('id, slug, title, description, goal, coin_reward, xp_reward').eq('active', true),
     supabase.from('player_challenge_progress').select('challenge_id, progress, completed').eq('player_id', viewerId).eq('week_start', weekStart),
   ])
   if (!challenges) return null
 
   // Fixed display order matching the spec §8 widget mockup — the table has
-  // no sort column, so sort here by the seeded slug order instead.
+  // no sort column, so sort here by the seeded slug order instead. A
+  // challenge created later via the admin CRUD page (§061) has a slug not
+  // in this list — indexOf returns -1, which the `?? SLUG_ORDER.length`
+  // fallback pushes to the end rather than (via a raw -1) sorting it first.
   const SLUG_ORDER = ['weekly_grind', 'weekly_winner', 'weekly_post', 'weekly_react']
-  challenges.sort((a, b) => SLUG_ORDER.indexOf(a.slug) - SLUG_ORDER.indexOf(b.slug))
+  const orderOf = (slug: string) => {
+    const i = SLUG_ORDER.indexOf(slug)
+    return i === -1 ? SLUG_ORDER.length : i
+  }
+  challenges.sort((a, b) => orderOf(a.slug) - orderOf(b.slug))
 
   const progressByChallenge = new Map((progress ?? []).map((p) => [p.challenge_id, p]))
   const monday = new Date(`${weekStart}T00:00:00+01:00`)

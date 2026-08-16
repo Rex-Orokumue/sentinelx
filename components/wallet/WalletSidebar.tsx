@@ -2,13 +2,20 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { WALLET_NAV_ITEMS } from '@/lib/wallet/nav'
+import { WalletSidebarInfoCards } from '@/components/wallet/WalletSidebarInfoCards'
 
 // Needs 'use client' for usePathname to highlight the active tab — the only
 // client component in the wallet section besides BalanceHeroCard's toggle.
+//
+// min-w-0 on the root is load-bearing: without it, this flex item's
+// automatic minimum width defaults to its content's min-content size, which
+// includes the nav's full unwrapped pill list — that forced the whole page
+// to scroll horizontally on any viewport narrower than the pill list's
+// total width, not just the nav's own overflow-x-auto strip.
 export function WalletSidebar() {
   const pathname = usePathname()
   return (
-    <div className="sm:w-48 sm:shrink-0">
+    <div className="min-w-0 sm:w-48 sm:shrink-0">
       <p className="mb-2 hidden text-[11px] font-bold uppercase tracking-widest text-sx-purple-text sm:block">Wallet</p>
       <nav className="flex gap-2 overflow-x-auto scrollbar-hide sm:flex-col sm:gap-1">
         {WALLET_NAV_ITEMS.map((item) => {
@@ -44,6 +51,9 @@ export function WalletSidebar() {
           Settings
         </Link>
       </nav>
+      <div className="hidden sm:block">
+        <WalletSidebarInfoCards />
+      </div>
     </div>
   )
 }
