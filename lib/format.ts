@@ -3,6 +3,19 @@ export function formatNaira(n: number): string {
   return `₦${n.toLocaleString('en-NG')}`
 }
 
+// Abbreviated form ("24.5K", "1M") for tight spaces — the header balance
+// chips need this below the `sm:` breakpoint, where the header has no room
+// for a fully grouped number next to the logo, notification bell, and
+// hamburger button.
+export function formatCompactNumber(n: number): string {
+  return new Intl.NumberFormat('en-NG', { notation: 'compact', maximumFractionDigits: 1 }).format(n)
+}
+
+// ₦ + the compact form — same use case as formatCompactNumber, naira-specific.
+export function formatNairaCompact(n: number): string {
+  return `₦${formatCompactNumber(n)}`
+}
+
 // ---------------------------------------------------------------------------
 // Dates & times — always rendered in West Africa Time (WAT).
 //
