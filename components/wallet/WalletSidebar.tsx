@@ -51,9 +51,7 @@ export function WalletSidebar() {
           Settings
         </Link>
       </nav>
-      <div className="hidden sm:block">
-        <WalletSidebarInfoCards />
-      </div>
+      <WalletSidebarInfoCards />
     </div>
   )
 }

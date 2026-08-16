@@ -1,10 +1,17 @@
 import { fetchPostDetail } from '@/lib/community/feed-query'
 import { renderCommunityPostCard } from '@/lib/og/community-post-card'
+import { renderMatchCard } from '@/lib/og/match-card'
+import { resultWinnerSide, type CardPlayer } from '@/lib/og/match-card-data'
 import { OG_SIZE } from '@/lib/og/template'
+import type { PlayerRef } from '@/lib/community/feed-query'
 
 export const runtime = 'edge'
 export const size = OG_SIZE
 export const contentType = 'image/png'
+
+function toCardPlayer(p: PlayerRef | null): CardPlayer {
+  return { displayName: p?.displayName ?? null, username: p?.username ?? null, avatarUrl: p?.avatarUrl ?? null }
+}
 
 // Only reached for posts with no uploaded image — generateMetadata passes
 // an explicit `image` (the real upload) for posts that have one, which
@@ -12,6 +19,14 @@ export const contentType = 'image/png'
 // comment). This route exists so a text-only post still shares as a
 // branded card carrying the actual post content, not the generic
 // site-wide default banner.
+//
+// match_result posts are system-generated (author_id is null — see
+// onMatchConfirmed in lib/community/feed-hooks.ts) and always lack an
+// image, so they always land here. The generic author+content card would
+// have shown a blank "A player" avatar and the raw templated text — using
+// the same rich two-player score card as Match Centre's own OG image
+// (lib/og/match-card.tsx) instead actually shows the match: both players,
+// avatars, and the score.
 export default async function Image({ params }: { params: { postId: string } }) {
   const result = await fetchPostDetail(params.postId, null)
   if (!result) {
@@ -26,6 +41,20 @@ export default async function Image({ params }: { params: { postId: string } }) 
     })
   }
   const { post } = result
+
+  if (post.postType === 'match_result' && post.matchResult) {
+    const m = post.matchResult
+    return renderMatchCard({
+      variant: 'result',
+      tournamentTitle: m.tournamentTitle,
+      playerA: toCardPlayer(m.playerA),
+      playerB: toCardPlayer(m.playerB),
+      scoreA: m.scoreA ?? 0,
+      scoreB: m.scoreB ?? 0,
+      winnerSide: resultWinnerSide(m.scoreA, m.scoreB),
+    })
+  }
+
   const reactionCount = Object.values(post.reactionCounts).reduce((sum, n) => sum + n, 0)
   return renderCommunityPostCard({
     authorName: post.author.displayName ?? post.author.username ?? 'A player',
