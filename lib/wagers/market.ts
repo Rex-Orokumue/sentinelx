@@ -19,11 +19,11 @@ export type WagerMatch = {
 // scheduled_at" would close the window before the day has even begun —
 // confirmed live: every currently-scheduled match in production is
 // full-day, and all of them read as closed under the old literal-15-minute
-// rule. This now mirrors lib/betting/market.ts's bettingOpen, which already
-// got this right (lockAt = scheduled_at + 24h for full-day matches) — the
-// original "stays literal to the spec, no full-day exception" comment here
-// was wrong in practice; the spec's authors didn't anticipate full-day
-// scheduling when they wrote the 15-minute rule.
+// rule. This uses the same lockAt = scheduled_at + 24h shape the (now
+// removed) naira betting system used for full-day matches — the original
+// "stays literal to the spec, no full-day exception" comment here was wrong
+// in practice; the spec's authors didn't anticipate full-day scheduling
+// when they wrote the 15-minute rule.
 export function wagerWindowOpen(match: WagerMatch, now: Date = new Date()): boolean {
   if (match.status !== 'scheduled') return false
   if (!match.player_a_id || !match.player_b_id) return false

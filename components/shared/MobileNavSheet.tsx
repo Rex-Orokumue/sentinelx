@@ -212,9 +212,6 @@ export function MobileNavSheet({
               <SheetLink href="/dashboard/friendlies" active={pathname.startsWith('/dashboard/friendlies')} onClose={onClose}>
                 Friendlies
               </SheetLink>
-              <SheetLink href="/betting" active={pathname.startsWith('/betting')} onClose={onClose}>
-                Betting
-              </SheetLink>
               <form action={signOut}>
                 <button
                   type="submit"

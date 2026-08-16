@@ -14,8 +14,6 @@ import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 import { formatFixtureDate } from '@/lib/format'
 import { resolveBackLink } from '@/lib/nav/back-link'
 import { buildRecordingWhatsAppUrl } from '@/lib/matches/recording-whatsapp'
-import { BettingPanel } from '@/components/match/BettingPanel'
-import { bettingOpen, type Side } from '@/lib/betting/market'
 import { ShareCardButton } from '@/components/match/ShareCardButton'
 import { HexAvatar } from '@/components/shared/HexAvatar'
 import type { MembershipTier } from '@/lib/membership/tiers'
@@ -44,7 +42,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 }
 
 const MATCH_SELECT =
-  'id, round, status, score_a, score_b, scheduled_at, is_full_day, betting_locked, youtube_stream_url, replay_url, player_a_id, player_b_id, ' +
+  'id, round, status, score_a, score_b, scheduled_at, is_full_day, youtube_stream_url, replay_url, player_a_id, player_b_id, ' +
   'tournaments(title, slug), ' +
   'player_a:profiles!matches_player_a_id_fkey(username, display_name, avatar_url, membership_tier), ' +
   'player_b:profiles!matches_player_b_id_fkey(username, display_name, avatar_url, membership_tier)'
@@ -57,7 +55,6 @@ type MatchRow = {
   score_b: number | null
   scheduled_at: string | null
   is_full_day: boolean
-  betting_locked: boolean
   youtube_stream_url: string | null
   replay_url: string | null
   player_a_id: string | null
@@ -158,30 +155,6 @@ export default async function MatchCentrePage({
   // left to be present for.
   const showCheckIn =
     isParticipant && dayReached && (m.status === 'scheduled' || m.status === 'live')
-
-  const { data: betRows } = await supabase
-    .from('match_bets')
-    .select('side, stake_amount, status, player_id')
-    .eq('match_id', m.id)
-  const bets = (betRows ?? []) as { side: Side; stake_amount: number; status: string; player_id: string }[]
-  const pools = {
-    playerA: bets
-      .filter((b) => b.side === 'player_a' && b.status !== 'voided' && b.status !== 'refunded')
-      .reduce((s, b) => s + b.stake_amount, 0),
-    playerB: bets
-      .filter((b) => b.side === 'player_b' && b.status !== 'voided' && b.status !== 'refunded')
-      .reduce((s, b) => s + b.stake_amount, 0),
-  }
-  const myBets = user
-    ? bets
-        .filter((b) => b.player_id === user.id)
-        .map((b) => ({ side: b.side, stakeAmount: b.stake_amount, status: b.status }))
-    : []
-  const bettingDisabledReason = isParticipant
-    ? 'You cannot bet on your own match.'
-    : !bettingOpen({ status: m.status, scheduled_at: m.scheduled_at, betting_locked: m.betting_locked, is_full_day: m.is_full_day })
-      ? 'Betting is closed for this match.'
-      : null
 
   const { data: wagerRows } = await supabase
     .from('match_wagers')
@@ -312,15 +285,6 @@ export default async function MatchCentrePage({
           ✅ Result confirmed by an admin.
         </div>
       )}
-
-      <BettingPanel
-        matchId={m.id}
-        playerAName={nameOf(m.player_a)}
-        playerBName={nameOf(m.player_b)}
-        pools={pools}
-        myBets={myBets}
-        disabledReason={bettingDisabledReason}
-      />
 
       {!isParticipant && (
         <WagerWidget

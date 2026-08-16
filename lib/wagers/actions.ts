@@ -48,9 +48,8 @@ export async function placeWager(_prev: WagerState, formData: FormData): Promise
   // Changing an existing wager (spec §5: "can change stake up until window
   // closes") refunds the old stake before checking/deducting the new one —
   // never double-charges for the same wager. Both coin movements reference
-  // matchId, not the wager row's id — mirrors placeBet's debitWallet call
-  // (lib/betting/actions.ts), which references matchId for the same reason:
-  // at debit time there's no settled row id to point to yet.
+  // matchId, not the wager row's id — there's no settled row id to point to
+  // yet at debit time.
   const previousStake = existing?.stake_coins ?? 0
   const balance = await getCoinBalance(admin, user.id)
   if (balance + previousStake < stakeCoins) return { error: 'Not enough SX Coins for this stake.' }
@@ -73,9 +72,8 @@ export async function placeWager(_prev: WagerState, formData: FormData): Promise
     { onConflict: 'match_id,bettor_id' },
   )
   if (upsertErr) {
-    // Undo the debit — mirrors placeBet's rollback-on-insert-failure pattern
-    // (lib/betting/actions.ts). A player must never lose coins for a wager
-    // that wasn't actually recorded.
+    // Undo the debit — a player must never lose coins for a wager that
+    // wasn't actually recorded.
     await recordCoinTransaction(admin, user.id, stakeCoins, 'wager_refund', matchId, 'Wager save failed — auto-reversed')
     return { error: 'Could not place your wager. Please try again.' }
   }

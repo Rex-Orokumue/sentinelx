@@ -8,9 +8,6 @@ export type WalletTxnType =
   | 'admin_credit'
   | 'withdrawal_request'
   | 'withdrawal_reversal'
-  | 'bet_stake'
-  | 'bet_payout'
-  | 'bet_refund'
   | 'deposit'
 
 const DEFAULT_CATEGORY_BY_TYPE: Record<WalletTxnType, string> = {
@@ -20,9 +17,6 @@ const DEFAULT_CATEGORY_BY_TYPE: Record<WalletTxnType, string> = {
   admin_credit: 'bonus',
   withdrawal_request: 'withdrawal',
   withdrawal_reversal: 'withdrawal',
-  bet_stake: 'bonus',
-  bet_payout: 'bonus',
-  bet_refund: 'bonus',
   deposit: 'bonus',
 }
 

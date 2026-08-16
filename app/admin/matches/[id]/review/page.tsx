@@ -11,8 +11,6 @@ import { MarkBothNoShowForm } from '@/components/admin/MarkBothNoShowForm'
 import { canMarkBothNoShow } from '@/lib/matches/noshow-eligibility'
 import { resolveBackLink } from '@/lib/nav/back-link'
 import { checkInVerdict, soleAttendee } from '@/lib/matches/check-in'
-import { VoidBetsList } from '@/components/admin/VoidBetsList'
-import { BettingLockToggle } from '@/components/admin/BettingLockToggle'
 
 export const metadata: Metadata = { title: 'Review · Admin · SentinelX' }
 
@@ -33,7 +31,7 @@ export default async function ReviewMatchPage({
   const { data: mRaw } = await supabase
     .from('matches')
     .select(
-      'id, status, resolution, admin_note, noshow_flagged_at, tournament_id, betting_locked, ' +
+      'id, status, resolution, admin_note, noshow_flagged_at, tournament_id, ' +
         'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
         'player_b:profiles!matches_player_b_id_fkey(id, username, display_name)',
     )
@@ -47,7 +45,6 @@ export default async function ReviewMatchPage({
     admin_note: string | null
     noshow_flagged_at: string | null
     tournament_id: string
-    betting_locked: boolean
     player_a: ProfileRef
     player_b: ProfileRef
   }
@@ -126,20 +123,6 @@ export default async function ReviewMatchPage({
     submissionCount: submissions.length,
   })
 
-  const { data: betRows } = await supabase
-    .from('match_bets')
-    .select('id, stake_amount, side, player:profiles!match_bets_player_id_fkey(username, display_name)')
-    .eq('match_id', params.id)
-    .eq('status', 'active')
-  const activeBets = ((betRows ?? []) as { id: string; stake_amount: number; side: 'player_a' | 'player_b'; player: ProfileRef }[]).map(
-    (b) => ({
-      id: b.id,
-      playerName: nameOf(b.player),
-      side: b.side,
-      stakeAmount: b.stake_amount,
-    }),
-  )
-
   return (
     <section className="max-w-xl">
       <Link href={backLink.href} className="text-sm text-violet-400 hover:text-violet-300">
@@ -149,11 +132,6 @@ export default async function ReviewMatchPage({
         {playerA} vs {playerB}
       </h2>
       <p className="mb-4 text-xs text-slate-500">Status: {m.status}</p>
-
-      <div className="mb-4">
-        <BettingLockToggle matchId={m.id} alreadyLocked={m.betting_locked} />
-        <VoidBetsList bets={activeBets} />
-      </div>
 
       {m.admin_note && (
         <p className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
