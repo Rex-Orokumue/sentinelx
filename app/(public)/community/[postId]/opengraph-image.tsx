@@ -13,12 +13,11 @@ function toCardPlayer(p: PlayerRef | null): CardPlayer {
   return { displayName: p?.displayName ?? null, username: p?.username ?? null, avatarUrl: p?.avatarUrl ?? null }
 }
 
-// Only reached for posts with no uploaded image — generateMetadata passes
-// an explicit `image` (the real upload) for posts that have one, which
-// overrides this file-convention route entirely (see buildMetadata's own
-// comment). This route exists so a text-only post still shares as a
-// branded card carrying the actual post content, not the generic
-// site-wide default banner.
+// Every post (with or without an uploaded image) renders through this
+// route — generateMetadata no longer overrides it with the raw upload (see
+// that file's comment for why). A post's own image, if any, renders as a
+// thumbnail inside the branded card (lib/og/community-post-card.tsx)
+// alongside the author's avatar, rather than instead of it.
 //
 // match_result posts are system-generated (author_id is null — see
 // onMatchConfirmed in lib/community/feed-hooks.ts) and always lack an
@@ -38,6 +37,7 @@ export default async function Image({ params }: { params: { postId: string } }) 
       content: 'A post from the SentinelX community feed.',
       reactionCount: 0,
       commentCount: 0,
+      postImageUrl: null,
     })
   }
   const { post } = result
@@ -64,5 +64,6 @@ export default async function Image({ params }: { params: { postId: string } }) 
     content: post.content,
     reactionCount,
     commentCount: post.commentCount,
+    postImageUrl: post.imageUrl,
   })
 }
