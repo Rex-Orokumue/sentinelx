@@ -66,7 +66,7 @@ export default async function CommunityPage() {
     fetchCommunityStats(),
     fetchTopCommunityMembers(5),
     fetchUpcomingCommunityEvents(3),
-    fetchCommunityGallery(8),
+    fetchCommunityGallery(0, 8),
   ])
 
   return (
@@ -114,7 +114,7 @@ export default async function CommunityPage() {
         <CommunityServersCard whatsappUrl={WHATSAPP_COMMUNITY} />
       </div>
       <div className="mt-6">
-        <CommunityGallery items={gallery} />
+        <CommunityGallery initialItems={gallery.items} initialHasMore={gallery.hasMore} />
       </div>
       <div className="mt-6">
         <CommunityFooterCta />
