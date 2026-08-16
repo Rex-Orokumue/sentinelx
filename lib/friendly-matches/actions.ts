@@ -13,6 +13,7 @@ export async function sendChallenge(
   const parsed = challengeSchema.safeParse({
     opponentId: formData.get('opponentId') ?? '',
     stakeAmount: formData.get('stakeAmount') ?? '',
+    stakeCurrency: formData.get('stakeCurrency') ?? '',
     gameCode: formData.get('gameCode') ?? '',
   })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
@@ -25,6 +26,7 @@ export async function sendChallenge(
   if (user.id === parsed.data.opponentId) return { error: "You can't challenge yourself." }
 
   const stakeAmount = parsed.data.stakeAmount === '' ? null : parsed.data.stakeAmount
+  const stakeCurrency = parsed.data.stakeCurrency === '' ? null : parsed.data.stakeCurrency
   const gameCode = parsed.data.gameCode === '' ? null : parsed.data.gameCode
 
   const { data: created, error } = await supabase
@@ -33,6 +35,7 @@ export async function sendChallenge(
       challenger_id: user.id,
       opponent_id: parsed.data.opponentId,
       stake_amount: stakeAmount,
+      stake_currency: stakeCurrency,
       game_code: gameCode,
       status: 'pending',
     })
@@ -45,7 +48,9 @@ export async function sendChallenge(
     type: 'friend_request', // reuses the friend_request bell type — a challenge is a social invite, same category
     title: stakeAmount ? 'Staked challenge received' : 'Friendly challenge received',
     body: stakeAmount
-      ? `You've been challenged to a ₦${stakeAmount} staked friendly.`
+      ? stakeCurrency === 'coins'
+        ? `You've been challenged to a ${stakeAmount}-coin staked friendly.`
+        : `You've been challenged to a ₦${stakeAmount} staked friendly.`
       : "You've been challenged to a friendly match.",
     link: `/dashboard/friendlies/${created.id}`,
   })

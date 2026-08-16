@@ -15,6 +15,7 @@ export interface PendingFriendlyMatch {
   challengerName: string
   opponentName: string
   stakeAmount: number | null
+  stakeCurrency: 'naira' | 'coins' | null
   submissions: FriendlySubmission[]
   prefillScoreChallenger: number | null
   prefillScoreOpponent: number | null
@@ -30,7 +31,11 @@ export function FriendlyQueueRow({ req }: { req: PendingFriendlyMatch }) {
         <p className="min-w-0 truncate font-bold text-white">
           {req.challengerName} <span className="text-slate-500">vs</span> {req.opponentName}
         </p>
-        {req.stakeAmount && <p className="shrink-0 text-sm font-semibold text-violet-400">{formatNaira(req.stakeAmount)} stake</p>}
+        {req.stakeAmount && (
+          <p className="shrink-0 text-sm font-semibold text-violet-400">
+            {req.stakeCurrency === 'coins' ? `${req.stakeAmount} coins` : formatNaira(req.stakeAmount)} stake
+          </p>
+        )}
       </div>
 
       <div className="mt-2 space-y-2">

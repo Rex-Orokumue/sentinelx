@@ -12,6 +12,7 @@ export function MatchRoom({
   matchId,
   status,
   stakeAmount,
+  stakeCurrency,
   isChallenger,
   challengerPaid,
   opponentPaid,
@@ -25,6 +26,7 @@ export function MatchRoom({
   matchId: string
   status: string
   stakeAmount: number | null
+  stakeCurrency: 'naira' | 'coins' | null
   isChallenger: boolean
   challengerPaid: boolean
   opponentPaid: boolean
@@ -37,6 +39,7 @@ export function MatchRoom({
 }) {
   const myPaid = isChallenger ? challengerPaid : opponentPaid
   const [payState, payAction] = useFormState<PayStakeState, FormData>(payStake, undefined)
+  const stakeLabel = stakeCurrency === 'coins' ? `${stakeAmount} coins` : `₦${stakeAmount}`
 
   if (status === 'pending') {
     return <PendingChallenge matchId={matchId} isChallenger={isChallenger} />
@@ -46,7 +49,7 @@ export function MatchRoom({
     return (
       <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 text-center">
         <p className="mb-3 text-sm text-slate-300">
-          Both players must pay ₦{stakeAmount} to unlock the Match Room.
+          Both players must pay {stakeLabel} to unlock the Match Room.
         </p>
         {myPaid ? (
           <p className="text-sm font-semibold text-emerald-400">You&apos;ve paid — waiting on your opponent.</p>
@@ -54,7 +57,7 @@ export function MatchRoom({
           <form action={payAction}>
             <input type="hidden" name="id" value={matchId} />
             <button type="submit" className="rounded-xl bg-violet-600 px-6 py-3 text-sm font-bold text-white hover:bg-violet-500">
-              Pay ₦{stakeAmount}
+              Pay {stakeLabel}
             </button>
             {payState?.error && <p className="mt-2 text-xs text-red-400">{payState.error}</p>}
           </form>
