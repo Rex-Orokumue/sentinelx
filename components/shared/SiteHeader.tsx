@@ -29,7 +29,7 @@ export function SiteHeader({
       <header className="sticky top-0 z-50 border-b border-sx-border bg-sx-bg/95 backdrop-blur-md">
         <nav className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <Link href="/" className="flex shrink-0 items-center gap-2">
-            <Image src="/logo-icon.png" alt="SentinelX Esports" width={32} height={32} priority />
+            <Image src="/logo-icon.png" alt="SentinelX Esports" width={32} height={32} priority className="animate-idle-pulse" />
             <span className="flex flex-col leading-none">
               <span className="whitespace-nowrap font-display text-lg font-bold uppercase tracking-wide text-white sm:text-xl">
                 Sentinel<span className="text-sx-purple-text">X</span>

@@ -89,12 +89,17 @@ const config: Config = {
           '0%, 100%': { transform: 'translateY(-50%)' },
           '50%': { transform: 'translateY(calc(-50% - 12px))' },
         },
+        idlePulse: {
+          '0%, 100%': { filter: 'drop-shadow(0 0 14px rgba(124,58,237,.45))' },
+          '50%':      { filter: 'drop-shadow(0 0 34px rgba(124,58,237,.9))' },
+        },
       },
       animation: {
         "pulse-dot": "pulse-dot 1.6s ease-in-out infinite",
         'sentinel-pulse': 'sentinelPulse 3s ease-in-out infinite',
         'legend-glow': 'legendGlow 6s linear infinite',
         float: 'float 4s ease-in-out infinite',
+        'idle-pulse': 'idlePulse 3.4s ease-in-out infinite',
       },
     },
   },
