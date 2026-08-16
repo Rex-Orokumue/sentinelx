@@ -19,16 +19,18 @@ export function ProfileStats({ profile }: { profile: ProfileView }) {
 
   return (
     <section id="stats" className="mb-8 scroll-mt-24">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
         <Stat
           label="SX Score"
           value={profile.sxScore}
           sub={topPercent ? `Top ${topPercent}% of players` : undefined}
         />
+        <Stat label="Win Rate" value={winPercent(profile.wins, profile.totalMatches)} />
+        <Stat label="Total Wins" value={profile.wins} />
+        <Stat label="Goals Scored" value={profile.goalsScored} />
         <Stat label="Titles Won" value={profile.totalTitles} />
         <Stat label="Tournaments" value={profile.tournamentsPlayed} sub="Participated" />
-        <Stat label="Matches Played" value={profile.totalMatches} sub={`${profile.wins} Wins`} />
-        <Stat label="Win Rate" value={winPercent(profile.wins, profile.totalMatches)} />
+        <Stat label="Matches Played" value={profile.totalMatches} />
         <Stat label="Current Streak" value={profile.currentStreak} sub={profile.currentStreak > 0 ? 'Wins' : undefined} />
       </div>
     </section>
