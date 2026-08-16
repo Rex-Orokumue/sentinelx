@@ -1,5 +1,5 @@
 import { awardXP } from '@/lib/membership/xp'
-import { awardCoins } from '@/lib/coins/service'
+import { recordCoinTransaction } from '@/lib/coins/service'
 import { notifyInApp } from '@/lib/notifications/inbox'
 import { createAchievementPost } from '@/lib/community/feed-hooks'
 import type { createAdminClient } from '@/lib/supabase/admin'
@@ -55,7 +55,7 @@ async function unlock(admin: Admin, playerId: string, achievement: AchievementRo
     return
   }
   if (achievement.xp_reward > 0) await awardXP(admin, playerId, achievement.xp_reward, 'achievement_unlocked', achievement.id)
-  if (achievement.coin_reward > 0) await awardCoins(admin, playerId, achievement.coin_reward, 'achievement_unlocked', achievement.id)
+  if (achievement.coin_reward > 0) await recordCoinTransaction(admin, playerId, achievement.coin_reward, 'achievement_unlocked', achievement.id)
   if (achievement.share_to_feed) {
     // Non-blocking — an achievement is unlocked and awarded above regardless
     // of whether the feed post succeeds (same non-blocking contract as the

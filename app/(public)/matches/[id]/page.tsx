@@ -19,6 +19,9 @@ import { bettingOpen, type Side } from '@/lib/betting/market'
 import { ShareCardButton } from '@/components/match/ShareCardButton'
 import { HexAvatar } from '@/components/shared/HexAvatar'
 import type { MembershipTier } from '@/lib/membership/tiers'
+import { WagerWidget } from '@/components/match/WagerWidget'
+import { wagerWindowOpen } from '@/lib/wagers/market'
+import { getCoinBalance } from '@/lib/coins/service'
 
 type ProfileRef = {
   username: string | null
@@ -88,6 +91,7 @@ export default async function MatchCentrePage({
   const supabase = createClient()
   const m = await getMatch(params.id)
   if (!m) notFound()
+  const admin = createAdminClient()
 
   const {
     data: { user },
@@ -116,7 +120,6 @@ export default async function MatchCentrePage({
   // Signed URL for the participant's own screenshot — generated fresh each load.
   let screenshotUrl: string | null = null
   if (myResult?.screenshot_url) {
-    const admin = createAdminClient()
     const { data } = await admin.storage.from('match-evidence').createSignedUrl(myResult.screenshot_url, 3600)
     screenshotUrl = data?.signedUrl ?? null
   }
@@ -179,6 +182,28 @@ export default async function MatchCentrePage({
     : !bettingOpen({ status: m.status, scheduled_at: m.scheduled_at, betting_locked: m.betting_locked, is_full_day: m.is_full_day })
       ? 'Betting is closed for this match.'
       : null
+
+  const { data: wagerRows } = await supabase
+    .from('match_wagers')
+    .select('bettor_id, pick_player_id, stake_coins, status, payout_coins')
+    .eq('match_id', m.id)
+  const wagers = (wagerRows ?? []) as { bettor_id: string; pick_player_id: string; stake_coins: number; status: string; payout_coins: number | null }[]
+  const wagerPools = {
+    playerA: wagers.filter((w) => w.pick_player_id === m.player_a_id && w.status !== 'refunded').reduce((s, w) => s + w.stake_coins, 0),
+    playerB: wagers.filter((w) => w.pick_player_id === m.player_b_id && w.status !== 'refunded').reduce((s, w) => s + w.stake_coins, 0),
+  }
+  const myWagerRow = user ? wagers.find((w) => w.bettor_id === user.id) ?? null : null
+  const myWager = myWagerRow ? { pickPlayerId: myWagerRow.pick_player_id, stakeCoins: myWagerRow.stake_coins } : null
+  const wagerOutcome =
+    myWagerRow && (myWagerRow.status === 'won' || myWagerRow.status === 'lost')
+      ? { won: myWagerRow.status === 'won', payoutCoins: myWagerRow.payout_coins ?? 0, stakeCoins: myWagerRow.stake_coins }
+      : null
+  const wagerDisabledReason = isParticipant
+    ? 'You cannot wager on your own match.'
+    : !wagerWindowOpen({ status: m.status, scheduled_at: m.scheduled_at, player_a_id: m.player_a_id, player_b_id: m.player_b_id })
+      ? 'Wagering is closed. Results pending.'
+      : null
+  const wagerCoinBalance = user ? await getCoinBalance(admin, user.id) : 0
 
   const shareText = `${nameOf(m.player_a)} vs ${nameOf(m.player_b)} on Sentinel X 🎮 ${SITE_URL}/matches/${m.id}`
 
@@ -296,6 +321,25 @@ export default async function MatchCentrePage({
         myBets={myBets}
         disabledReason={bettingDisabledReason}
       />
+
+      {!isParticipant && (
+        <WagerWidget
+          matchId={m.id}
+          playerAId={m.player_a_id ?? ''}
+          playerBId={m.player_b_id ?? ''}
+          playerAName={nameOf(m.player_a)}
+          playerBName={nameOf(m.player_b)}
+          playerAAvatar={m.player_a?.avatar_url ?? null}
+          playerBAvatar={m.player_b?.avatar_url ?? null}
+          playerATier={(m.player_a?.membership_tier ?? 'recruit') as MembershipTier}
+          playerBTier={(m.player_b?.membership_tier ?? 'recruit') as MembershipTier}
+          pools={wagerPools}
+          myWager={myWager}
+          coinBalance={wagerCoinBalance}
+          disabledReason={wagerDisabledReason}
+          outcome={wagerOutcome}
+        />
+      )}
 
       {/* Participant: presence, before any result exists to submit */}
       {showCheckIn && (

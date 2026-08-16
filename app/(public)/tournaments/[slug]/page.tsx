@@ -13,6 +13,7 @@ import { SITE_URL } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildTournamentJsonLd } from '@/lib/seo/schema/event'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
+import { getCoinBalance } from '@/lib/coins/service'
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   active:              { label: 'LIVE',        cls: 'bg-red-500/20 text-red-400 border-red-500/30' },
@@ -79,8 +80,9 @@ export default async function TournamentDetailPage({
   let existingStatus: string | null = null
   let registrationStatus: string | null = null
   let prefill = { displayName: '', whatsapp: '' }
+  let coinBalance = 0
   if (user) {
-    const [{ data: reg }, { data: profile }] = await Promise.all([
+    const [{ data: reg }, { data: profile }, balance] = await Promise.all([
       supabase
         .from('tournament_registrations')
         .select('payment_status, status')
@@ -88,10 +90,12 @@ export default async function TournamentDetailPage({
         .eq('player_id', user.id)
         .maybeSingle(),
       supabase.from('profiles').select('display_name, whatsapp_number').eq('id', user.id).maybeSingle(),
+      getCoinBalance(admin, user.id),
     ])
     existingStatus = reg?.payment_status ?? null
     registrationStatus = reg?.status ?? null
     prefill = { displayName: profile?.display_name ?? '', whatsapp: profile?.whatsapp_number ?? '' }
+    coinBalance = balance
   }
 
   const view = resolveRegistrationView({
@@ -197,6 +201,7 @@ export default async function TournamentDetailPage({
           prefill={prefill}
           hasRules={!!t.rules}
           loggedIn={!!user}
+          coinBalance={coinBalance}
         />
       </div>
 

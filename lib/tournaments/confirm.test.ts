@@ -67,4 +67,13 @@ describe('decideConfirmation', () => {
       }),
     ).toBe('not_successful')
   })
+
+  it('accepts a half-price payment when expectedKobo already reflects the coin discount', () => {
+    const result = decideConfirmation({
+      existing: { payment_status: 'pending' },
+      verify: { status: 'success', amountKobo: 25000 }, // ₦250
+      expectedKobo: 25000, // registration_fee ₦500 - coin_discount_naira ₦250, computed by the caller
+    })
+    expect(result).toBe('confirmed')
+  })
 })

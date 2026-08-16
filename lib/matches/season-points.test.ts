@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { awardSeasonPoints } from './season-points'
 
-vi.mock('@/lib/coins/service', () => ({ awardCoins: vi.fn() }))
+vi.mock('@/lib/coins/service', () => ({ recordCoinTransaction: vi.fn() }))
 vi.mock('@/lib/membership/xp', () => ({ awardXP: vi.fn() }))
 vi.mock('@/lib/achievements/unlock', () => ({ checkAndUnlockAchievements: vi.fn() }))
 
@@ -29,7 +29,7 @@ const championMatch = { round: 'final', status: 'completed', player_a_id: 'winne
 
 describe('awardSeasonPoints', () => {
   it('writes season_ranking_points AND awards placement coins/xp for a community_club tournament', async () => {
-    const { awardCoins } = await import('@/lib/coins/service')
+    const { recordCoinTransaction } = await import('@/lib/coins/service')
     const { client, upserts } = fakeAdmin({
       tournament: { id: 't1', tournament_type: 'community_club', season_id: 's1' },
       registrations: [{ player_id: 'winner' }, { player_id: 'loser' }],
@@ -37,12 +37,12 @@ describe('awardSeasonPoints', () => {
     })
     await awardSeasonPoints(client as never, 't1')
     expect(upserts.length).toBe(2)
-    expect(awardCoins).toHaveBeenCalledWith(client, 'winner', 500, 'tournament_placement', 't1')
+    expect(recordCoinTransaction).toHaveBeenCalledWith(client, 'winner', 500, 'tournament_placement', 't1')
   })
 
   it('awards placement coins/xp for a champions_cup tournament even though it writes no season_ranking_points', async () => {
-    const { awardCoins } = await import('@/lib/coins/service')
-    vi.mocked(awardCoins).mockClear()
+    const { recordCoinTransaction } = await import('@/lib/coins/service')
+    vi.mocked(recordCoinTransaction).mockClear()
     const { client, upserts } = fakeAdmin({
       tournament: { id: 't2', tournament_type: 'champions_cup', season_id: null },
       registrations: [{ player_id: 'winner' }, { player_id: 'loser' }],
@@ -53,13 +53,13 @@ describe('awardSeasonPoints', () => {
     // Champions Cup gets its own, higher reward scale (Task 4.3) — not
     // community_club's 500, which this assertion used to (incorrectly)
     // expect before Champions Cup had its own table.
-    expect(awardCoins).toHaveBeenCalledWith(client, 'winner', 2000, 'tournament_placement', 't2')
+    expect(recordCoinTransaction).toHaveBeenCalledWith(client, 'winner', 2000, 'tournament_placement', 't2')
   })
 
   it('awards Champions Cup its own full placement table, not Community Club\'s', async () => {
-    const { awardCoins } = await import('@/lib/coins/service')
+    const { recordCoinTransaction } = await import('@/lib/coins/service')
     const { awardXP } = await import('@/lib/membership/xp')
-    vi.mocked(awardCoins).mockClear()
+    vi.mocked(recordCoinTransaction).mockClear()
     vi.mocked(awardXP).mockClear()
     const { client } = fakeAdmin({
       tournament: { id: 't4', tournament_type: 'champions_cup', season_id: null },
@@ -67,9 +67,9 @@ describe('awardSeasonPoints', () => {
       matches: [championMatch],
     })
     await awardSeasonPoints(client as never, 't4')
-    expect(awardCoins).toHaveBeenCalledWith(client, 'winner', 2000, 'tournament_placement', 't4')
+    expect(recordCoinTransaction).toHaveBeenCalledWith(client, 'winner', 2000, 'tournament_placement', 't4')
     expect(awardXP).toHaveBeenCalledWith(client, 'winner', 3000, 'tournament_placement', 't4')
-    expect(awardCoins).toHaveBeenCalledWith(client, 'loser', 1200, 'tournament_placement', 't4')
+    expect(recordCoinTransaction).toHaveBeenCalledWith(client, 'loser', 1200, 'tournament_placement', 't4')
     expect(awardXP).toHaveBeenCalledWith(client, 'loser', 2000, 'tournament_placement', 't4')
   })
 
@@ -82,14 +82,14 @@ describe('awardSeasonPoints', () => {
     // numeric placement in both tables today. (PLACEMENT_XP has no entry
     // for placement 9 at all — a separate, pre-existing gap unrelated to
     // this fix, so no XP assertion here; only coins meaningfully diverge.)
-    const { awardCoins } = await import('@/lib/coins/service')
-    vi.mocked(awardCoins).mockClear()
+    const { recordCoinTransaction } = await import('@/lib/coins/service')
+    vi.mocked(recordCoinTransaction).mockClear()
     const { client } = fakeAdmin({
       tournament: { id: 't5', tournament_type: 'masters', season_id: 's1' },
       registrations: [{ player_id: 'winner' }, { player_id: 'loser' }, { player_id: 'bystander' }],
       matches: [championMatch], // bystander never appears in any match -> non_advancer
     })
     await awardSeasonPoints(client as never, 't5')
-    expect(awardCoins).toHaveBeenCalledWith(client, 'bystander', 30, 'tournament_placement', 't5')
+    expect(recordCoinTransaction).toHaveBeenCalledWith(client, 'bystander', 30, 'tournament_placement', 't5')
   })
 })

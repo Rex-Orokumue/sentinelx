@@ -33,7 +33,7 @@ export async function confirmRegistration(reference: string): Promise<ConfirmRes
 
   const { data: existing } = await db
     .from('tournament_registrations')
-    .select('id, payment_status, player_id, fee_waived, tournament:tournaments(title, registration_fee)')
+    .select('id, payment_status, player_id, fee_waived, coin_discount_naira, tournament:tournaments(title, registration_fee)')
     .eq('paystack_reference', reference)
     .maybeSingle()
 
@@ -45,7 +45,11 @@ export async function confirmRegistration(reference: string): Promise<ConfirmRes
     | { title: string; registration_fee: number }[]
     | null
   const tournamentInfo = Array.isArray(tv) ? tv[0] : tv
-  const expectedKobo = (tournamentInfo?.registration_fee ?? 0) * 100
+  // A discounted registration's Paystack checkout was opened for
+  // registration_fee - coin_discount_naira (see registerForTournament) — the
+  // underpayment check below must expect that same reduced amount, or a
+  // legitimately discounted half-price payment fails verification.
+  const expectedKobo = ((tournamentInfo?.registration_fee ?? 0) - (existing.coin_discount_naira ?? 0)) * 100
 
   let verify: { status: string; amountKobo: number } | null = null
   try {

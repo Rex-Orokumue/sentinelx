@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getCoinBalance } from '@/lib/coins/service'
 import { StoreGrid } from '@/components/store/StoreGrid'
 import { buildMetadata } from '@/lib/seo/metadata'
+import { CoinDisclaimerTooltip } from '@/components/coins/CoinDisclaimerTooltip'
 
 export const metadata: Metadata = buildMetadata({
   title: 'Store — Sentinel X',
@@ -56,6 +57,7 @@ export default async function StorePage() {
           </a>
         )}
       </header>
+      {user && <CoinDisclaimerTooltip />}
       <StoreGrid items={items ?? []} ownedItemIds={ownedItemIds} equippedItemIds={equippedItemIds} isLoggedIn={!!user} />
     </div>
   )

@@ -21,6 +21,7 @@ import { resultKey } from '@/lib/notifications/keys'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 import { creditWallet } from '@/lib/wallet/service'
 import { settleMatchBets, refundMatchBets } from '@/lib/betting/settle'
+import { settleMatchWagers, refundMatchWagers } from '@/lib/wagers/settle'
 import { revalidateAll, revalidateThirdPlaceCredit } from './revalidate'
 import { awardSeasonPoints } from './season-points'
 import { awardMatchEconomy } from './economy-hooks'
@@ -359,8 +360,9 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
   if (scoreA === scoreB) {
     // Knockout matches can't reach this point in a draw (rejected above) —
     // this only fires for a group-stage draw, a push with no side to
-    // redistribute the bet pool to.
+    // redistribute the bet/wager pool to.
     await refundMatchBets(admin, id)
+    await refundMatchWagers(admin, id)
   } else {
     const winningSide = scoreA > scoreB ? 'player_a' : 'player_b'
     await settleMatchBets(admin, id, winningSide)
@@ -398,14 +400,23 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
   await syncMatchEvents(admin, id)
   await awardMatchEconomy(admin, id)
 
-  // Feed §10: match_result auto-post + weekly challenge progress. Explicitly
+  // Feed §10: match_result auto-post + weekly challenge progress. Coin
+  // wagering §5 step 3: settle wagers pro-rata. Both explicitly
   // non-blocking — the result confirmation above has already committed, and
-  // a feed/challenge hiccup must never surface as a failed result confirm.
+  // a feed/challenge/wager hiccup must never surface as a failed result confirm.
   try {
     await onMatchConfirmed(admin, id)
     revalidatePath('/community')
   } catch (err) {
     console.error('[confirmResult] onMatchConfirmed failed (non-blocking)', { matchId: id, err })
+  }
+  if (scoreA !== scoreB) {
+    try {
+      const winnerId = scoreA > scoreB ? m.player_a_id : m.player_b_id
+      if (winnerId) await settleMatchWagers(admin, id, winnerId)
+    } catch (err) {
+      console.error('[confirmResult] settleMatchWagers failed (non-blocking)', { matchId: id, err })
+    }
   }
 
   type NameRef =
@@ -486,6 +497,13 @@ export async function disputeResult(_prev: VerifyState, formData: FormData): Pro
     .eq('id', id)
   if (error) return { error: 'Could not save the dispute.' }
   await admin.from('match_results').update({ status: 'disputed' }).eq('match_id', id)
+
+  // Spec §5: "If match result is disputed ... wagers refunded to all
+  // bettors." disputeResult only ever runs on a still-scheduled/live match
+  // (never on an already-completed one — see review-queue.ts's mutually
+  // exclusive bucketing), so any wagers here are still 'pending'; refund is
+  // always correct, never a reversal of an already-settled payout.
+  await refundMatchWagers(admin, id)
 
   await syncMatchEvents(admin, id)
 

@@ -4,7 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { initializeTransaction, buildReference } from '@/lib/paystack/server'
 import { checkCanRegister } from './guard'
-import { registrationDetailsSchema } from './registration-schema'
+import { registrationDetailsSchema, coinsUsedSchema } from './registration-schema'
+import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
+import { NAIRA_PER_COIN } from '@/lib/coins/value'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
 
@@ -24,6 +26,8 @@ export async function registerForTournament(
     ignTag: formData.get('ignTag') ?? '',
   })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
+  const coinsUsedParsed = coinsUsedSchema.safeParse(formData.get('coinsUsed') ?? '0')
+  const coinsUsed = coinsUsedParsed.success ? coinsUsedParsed.data : 0
 
   const supabase = createClient()
   const {
@@ -160,6 +164,45 @@ export async function registerForTournament(
     redirect(`/tournaments/${tournament.slug}?paid=1`)
   }
 
+  // Coin discount — spec §4. Only reachable once fee > 0 and there was no
+  // waiver. Discount only applies at ₦500+; a malformed/forged coinsUsed on
+  // a cheaper tournament is simply ignored rather than erroring, since the
+  // UI never offers the radio below ₦500 in the first place.
+  let coinDiscountNaira = 0
+  if (coinsUsed > 0 && tournament.registration_fee >= 500) {
+    const balance = await getCoinBalance(admin, user.id)
+    if (balance < coinsUsed) return { error: 'Not enough SX Coins for this discount.' }
+    coinDiscountNaira = Math.round(coinsUsed * NAIRA_PER_COIN)
+    await recordCoinTransaction(admin, user.id, -coinsUsed, 'entry_discount', tournamentId, `Tournament entry discount — ${tournament.slug}`)
+  }
+  const netFee = tournament.registration_fee - coinDiscountNaira
+
+  // Free entry (1,000 coins): the discount already brought the fee to ₦0 —
+  // confirm registration immediately, skip Paystack entirely (spec §4).
+  if (netFee <= 0) {
+    const freeRegRow = {
+      tournament_id: tournamentId,
+      player_id: user.id,
+      payment_status: 'paid',
+      fee_waived: false,
+      paystack_reference: null,
+      coins_used: coinsUsed,
+      coin_discount_naira: coinDiscountNaira,
+      ...regFields,
+    }
+    if (!existing) {
+      const { error: insertErr } = await admin.from('tournament_registrations').insert(freeRegRow)
+      if (insertErr) return { error: 'Could not complete registration. Please try again.' }
+    } else {
+      await admin
+        .from('tournament_registrations')
+        .update({ payment_status: 'paid', fee_waived: false, paystack_reference: null, coins_used: coinsUsed, coin_discount_naira: coinDiscountNaira, ...regFields })
+        .eq('id', existing.id)
+    }
+
+    redirect(`/tournaments/${tournament.slug}?paid=1`)
+  }
+
   // Always mint a fresh reference for this attempt. Paystack rejects
   // /transaction/initialize with a reference it has already seen — even if
   // that prior attempt was abandoned and never paid — with "Duplicate
@@ -172,13 +215,15 @@ export async function registerForTournament(
       player_id: user.id,
       payment_status: 'pending',
       paystack_reference: reference,
+      coins_used: coinsUsed,
+      coin_discount_naira: coinDiscountNaira,
       ...regFields,
     })
     if (insertErr) return { error: 'Could not start registration. Please try again.' }
   } else {
     await admin
       .from('tournament_registrations')
-      .update({ paystack_reference: reference, ...regFields })
+      .update({ paystack_reference: reference, coins_used: coinsUsed, coin_discount_naira: coinDiscountNaira, ...regFields })
       .eq('id', existing.id)
   }
 
@@ -186,7 +231,7 @@ export async function registerForTournament(
   try {
     authorizationUrl = await initializeTransaction({
       email: user.email!,
-      amountKobo: tournament.registration_fee * 100,
+      amountKobo: netFee * 100,
       reference,
       callbackUrl: `${SITE_URL}/api/paystack/callback`,
       metadata: { tournament_id: tournamentId, player_id: user.id, slug: tournament.slug },

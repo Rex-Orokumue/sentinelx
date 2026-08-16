@@ -262,6 +262,7 @@ export type Database = {
       community_posts: {
         Row: {
           author_id: string | null
+          boosted_until: string | null
           content: string
           created_at: string
           deleted_reason: string | null
@@ -274,6 +275,7 @@ export type Database = {
         }
         Insert: {
           author_id?: string | null
+          boosted_until?: string | null
           content: string
           created_at?: string
           deleted_reason?: string | null
@@ -286,6 +288,7 @@ export type Database = {
         }
         Update: {
           author_id?: string | null
+          boosted_until?: string | null
           content?: string
           created_at?: string
           deleted_reason?: string | null
@@ -960,6 +963,64 @@ export type Database = {
           },
         ]
       }
+      match_wagers: {
+        Row: {
+          bettor_id: string
+          created_at: string
+          id: string
+          match_id: string
+          payout_coins: number | null
+          pick_player_id: string
+          stake_coins: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          bettor_id: string
+          created_at?: string
+          id?: string
+          match_id: string
+          payout_coins?: number | null
+          pick_player_id: string
+          stake_coins: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          bettor_id?: string
+          created_at?: string
+          id?: string
+          match_id?: string
+          payout_coins?: number | null
+          pick_player_id?: string
+          stake_coins?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_wagers_bettor_id_fkey"
+            columns: ["bettor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_wagers_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_wagers_pick_player_id_fkey"
+            columns: ["pick_player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matches: {
         Row: {
           admin_note: string | null
@@ -1200,6 +1261,38 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_coin_reserve: {
+        Row: {
+          coins: number
+          created_at: string
+          id: string
+          match_id: string | null
+          source: string
+        }
+        Insert: {
+          coins: number
+          created_at?: string
+          id?: string
+          match_id?: string | null
+          source?: string
+        }
+        Update: {
+          coins?: number
+          created_at?: string
+          id?: string
+          match_id?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_coin_reserve_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
             referencedColumns: ["id"]
           },
         ]
@@ -2011,6 +2104,8 @@ export type Database = {
       }
       tournament_registrations: {
         Row: {
+          coin_discount_naira: number
+          coins_used: number
           disqualification_note: string | null
           disqualified_at: string | null
           fee_waived: boolean
@@ -2028,6 +2123,8 @@ export type Database = {
           tournament_id: string
         }
         Insert: {
+          coin_discount_naira?: number
+          coins_used?: number
           disqualification_note?: string | null
           disqualified_at?: string | null
           fee_waived?: boolean
@@ -2045,6 +2142,8 @@ export type Database = {
           tournament_id: string
         }
         Update: {
+          coin_discount_naira?: number
+          coins_used?: number
           disqualification_note?: string | null
           disqualified_at?: string | null
           fee_waived?: boolean

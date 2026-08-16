@@ -14,6 +14,7 @@ import { getNotifiableStaffIds } from '@/lib/admin/staff'
 import { canMarkBothNoShow } from './noshow-eligibility'
 import { resolvePlayerPhone } from './admin-whatsapp'
 import { refundMatchBets } from '@/lib/betting/settle'
+import { refundMatchWagers } from '@/lib/wagers/settle'
 import { awardMatchEconomy } from './economy-hooks'
 
 type Admin = ReturnType<typeof createAdminClient>
@@ -213,8 +214,9 @@ export async function declareNoShowWinner(_prev: NoShowState, formData: FormData
   if (upErr) return { error: 'Could not save the result. Please try again.' }
 
   // A walkover isn't a real contest — refund rather than settle, so nobody
-  // can profit from betting on the declared winner after the fact.
+  // can profit from betting/wagering on the declared winner after the fact.
   await refundMatchBets(admin, id)
+  await refundMatchWagers(admin, id)
 
   if (m.round === 'group' && m.group_id) {
     await recomputeGroupAndMaybeAdvance(admin, m.tournament_id, m.group_id)
@@ -314,6 +316,7 @@ export async function markBothNoShow(_prev: NoShowState, formData: FormData): Pr
   }
   await syncMatchEvents(admin, id)
   await refundMatchBets(admin, id)
+  await refundMatchWagers(admin, id)
 
   const t = firstOf(m.tournament as { slug: string } | { slug: string }[] | null)
   revalidateAll(m.tournament_id, t?.slug ?? '', id)

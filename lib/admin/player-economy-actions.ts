@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/admin/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { awardCoins } from '@/lib/coins/service'
+import { recordCoinTransaction } from '@/lib/coins/service'
 import { awardXP } from '@/lib/membership/xp'
 import { notifyInApp } from '@/lib/notifications/inbox'
 import { validateGrantAmount } from './player-economy-validate'
@@ -25,7 +25,7 @@ export async function grantCoins(_prev: EconomyActionState, formData: FormData):
   if (typeof reason !== 'string') return reason
 
   const admin = createAdminClient()
-  await awardCoins(admin, playerId, amount, 'admin_grant', null, reason)
+  await recordCoinTransaction(admin, playerId, amount, 'admin_grant', null, reason)
   await notifyInApp({
     playerId,
     type: 'wallet_credited',
@@ -47,7 +47,7 @@ export async function deductCoins(_prev: EconomyActionState, formData: FormData)
   if (typeof reason !== 'string') return reason
 
   const admin = createAdminClient()
-  await awardCoins(admin, playerId, -amount, 'admin_deduct', null, reason)
+  await recordCoinTransaction(admin, playerId, -amount, 'admin_deduct', null, reason)
   revalidatePath(`/admin/players/${playerId}`)
   return { success: true }
 }

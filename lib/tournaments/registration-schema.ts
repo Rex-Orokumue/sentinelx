@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { COINS_HALF_ENTRY, COINS_PER_ENTRY } from '@/lib/coins/value'
 
 export const registrationDetailsSchema = z.object({
   displayName: z.string().trim().min(1, 'Display name is required').max(60, 'Display name is too long'),
@@ -12,3 +13,10 @@ export const registrationDetailsSchema = z.object({
 })
 
 export type RegistrationDetailsInput = z.infer<typeof registrationDetailsSchema>
+
+// The three radio positions on the entry-fee discount widget (spec §4). '0'
+// means no discount applied — the default, pre-existing behavior.
+export const coinsUsedSchema = z
+  .union([z.literal('0'), z.literal(String(COINS_HALF_ENTRY)), z.literal(String(COINS_PER_ENTRY))])
+  .default('0')
+  .transform(Number)

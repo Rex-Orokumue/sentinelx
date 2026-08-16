@@ -1,4 +1,4 @@
-import { awardCoins } from '@/lib/coins/service'
+import { recordCoinTransaction } from '@/lib/coins/service'
 import { awardXP } from '@/lib/membership/xp'
 import { checkAndUnlockAchievements } from '@/lib/achievements/unlock'
 import type { createAdminClient } from '@/lib/supabase/admin'
@@ -34,13 +34,13 @@ export async function awardMatchEconomy(admin: Admin, matchId: string): Promise<
 
   for (const playerId of completedPlayerIds) {
     if (!(await alreadyPaid(admin, playerId, 'match_played', matchId))) {
-      await awardCoins(admin, playerId, 20, 'match_played', matchId)
+      await recordCoinTransaction(admin, playerId, 20, 'match_played', matchId)
       await awardXP(admin, playerId, 50, 'match_played', matchId)
     }
   }
   for (const playerId of winnerIds) {
     if (!(await alreadyPaid(admin, playerId, 'match_won', matchId))) {
-      await awardCoins(admin, playerId, 30, 'match_won', matchId)
+      await recordCoinTransaction(admin, playerId, 30, 'match_won', matchId)
       await awardXP(admin, playerId, 50, 'match_won', matchId)
     }
   }
