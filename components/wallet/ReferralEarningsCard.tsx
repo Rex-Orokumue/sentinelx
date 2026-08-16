@@ -1,16 +1,15 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { formatNaira } from '@/lib/format'
 
 export function ReferralEarningsCard({
   referralLink,
-  totalReferrals,
-  totalEarned,
+  convertedReferrals,
+  totalCoinsEarned,
 }: {
   referralLink: string
-  totalReferrals: number
-  totalEarned: number
+  convertedReferrals: number
+  totalCoinsEarned: number
 }) {
   const [copied, setCopied] = useState(false)
   function copyLink() {
@@ -28,12 +27,12 @@ export function ReferralEarningsCard({
       </div>
       <div className="flex items-center justify-between text-sm">
         <div>
-          <p className="text-[10px] uppercase text-sx-gray">Total Referrals</p>
-          <p className="font-display text-lg font-black text-white">{totalReferrals}</p>
+          <p className="text-[10px] uppercase text-sx-gray">Converted Referrals</p>
+          <p className="font-display text-lg font-black text-white">{convertedReferrals}</p>
         </div>
         <div className="text-right">
-          <p className="text-[10px] uppercase text-sx-gray">Total Earned</p>
-          <p className="font-display text-lg font-black text-emerald-400">{formatNaira(totalEarned)}</p>
+          <p className="text-[10px] uppercase text-sx-gray">Coins Earned</p>
+          <p className="font-display text-lg font-black text-emerald-400">🪙 {totalCoinsEarned.toLocaleString()}</p>
         </div>
       </div>
       <p className="mt-3 text-[11px] text-sx-gray">Your Referral Link</p>
@@ -47,7 +46,7 @@ export function ReferralEarningsCard({
           {copied ? 'Copied!' : 'Copy'}
         </button>
       </div>
-      <p className="mt-2 text-[11px] text-sx-gray">Earn ₦100 from every referral&apos;s tournament entry.</p>
+      <p className="mt-2 text-[11px] text-sx-gray">Earn 250 SX Coins when your referral plays their first tournament.</p>
     </div>
   )
 }

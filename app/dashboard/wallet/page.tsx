@@ -30,7 +30,7 @@ export default async function WalletOverviewPage() {
   if (!user) redirect('/login?next=/dashboard/wallet')
 
   const admin = createAdminClient()
-  const [walletRes, allTxnRes, pendingWithdrawalsRes, profileRes, coinBalance, kycRes, referralsRes] = await Promise.all([
+  const [walletRes, allTxnRes, pendingWithdrawalsRes, profileRes, coinBalance, kycRes, referralsRes, referralCoinTxRes] = await Promise.all([
     admin.from('wallets').select('balance').eq('player_id', user.id).maybeSingle(),
     admin
       .from('wallet_transactions')
@@ -45,7 +45,8 @@ export default async function WalletOverviewPage() {
       .select('payout_bank_name, payout_account_number, payout_account_name')
       .eq('player_id', user.id)
       .maybeSingle(),
-    admin.from('referrals').select('id', { count: 'exact', head: true }).eq('referrer_id', user.id),
+    admin.from('referrals').select('id', { count: 'exact', head: true }).eq('referrer_id', user.id).eq('status', 'converted'),
+    admin.from('sx_coin_transactions').select('amount').eq('player_id', user.id).in('source', ['referral_reward', 'referral_milestone']),
   ])
 
   const allTxnRows = (allTxnRes.data ?? []) as RawWalletTxnRow[]
@@ -63,6 +64,7 @@ export default async function WalletOverviewPage() {
   const recentTransactions = mapTransactionRows(recentRaw, withdrawalStatusById)
 
   const breakdown = summarizeEarningsByCategory(allTxnRows)
+  const referralCoinsEarned = ((referralCoinTxRes.data ?? []) as { amount: number }[]).reduce((sum, t) => sum + t.amount, 0)
   const tournamentPrizeTrendPct = monthOverMonthChange(allTxnRows, 'tournament_prize', new Date())
   const balance = walletRes.data?.balance ?? 0
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
@@ -100,8 +102,8 @@ export default async function WalletOverviewPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <ReferralEarningsCard
           referralLink={`${siteUrl}/signup?ref=${profileRes.data?.username ?? ''}`}
-          totalReferrals={referralsRes.count ?? 0}
-          totalEarned={breakdown.referral ?? 0}
+          convertedReferrals={referralsRes.count ?? 0}
+          totalCoinsEarned={referralCoinsEarned}
         />
         <RewardsProgressWidget xp={profileRes.data?.xp ?? 0} />
         <WalletSecurityBadges kycVerified={profileRes.data?.kyc_verified ?? false} />
