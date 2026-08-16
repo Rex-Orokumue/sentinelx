@@ -1,11 +1,13 @@
 'use client'
 import Link from 'next/link'
 import { useFormState, useFormStatus } from 'react-dom'
+import { useState } from 'react'
 import { registerForTournament, type RegisterState } from '@/lib/tournaments/actions'
 import { joinWaitlist, type JoinWaitlistState } from '@/lib/tournaments/waitlist-actions'
 import type { RegView } from '@/lib/tournaments/view'
 import { formatNaira } from '@/lib/format'
 import { Field } from '@/components/dashboard/FormField'
+import { COINS_HALF_ENTRY, COINS_PER_ENTRY, NAIRA_PER_COIN } from '@/lib/coins/value'
 
 function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
   const { pending } = useFormStatus()
@@ -31,6 +33,7 @@ export function RegistrationPanel({
   prefill,
   hasRules,
   loggedIn,
+  coinBalance,
 }: {
   view: RegView
   tournamentId: string
@@ -40,6 +43,7 @@ export function RegistrationPanel({
   prefill: { displayName: string; whatsapp: string }
   hasRules: boolean
   loggedIn: boolean
+  coinBalance: number
 }) {
   const bracketHref = `/tournaments/${slug}/bracket`
 
@@ -65,19 +69,9 @@ export function RegistrationPanel({
           fee={fee}
           prefill={prefill}
           hasRules={hasRules}
-          label={
-            view === 'complete_payment'
-              ? 'Complete payment →'
-              : fee === 0
-                ? 'Register — Free'
-                : `Register — ${formatNaira(fee)}`
-          }
+          coinBalance={coinBalance}
+          isCompletingPayment={view === 'complete_payment'}
         />
-        <p className="mt-2 text-center text-xs text-slate-500">
-          {fee === 0
-            ? 'Free entry — no payment required.'
-            : `Secure payment via Paystack. Entry fee ${formatNaira(fee)}.`}
-        </p>
       </div>
     )
   }
@@ -210,46 +204,102 @@ function WaitlistForm({
   )
 }
 
+type CoinTier = '0' | '500' | '1000'
+
 function RegisterForm({
   tournamentId,
-  label,
   fee,
   prefill,
   hasRules,
+  coinBalance,
+  isCompletingPayment,
 }: {
   tournamentId: string
-  label: string
   fee: number
   prefill: { displayName: string; whatsapp: string }
   hasRules: boolean
+  coinBalance: number
+  isCompletingPayment: boolean
 }) {
   const [state, formAction] = useFormState<RegisterState, FormData>(registerForTournament, undefined)
+  const [tier, setTier] = useState<CoinTier>('0')
+
+  // Spec §4: discount only offered at ₦500+ fee, and only once resuming an
+  // already-pending (unpaid) registration doesn't apply — a fresh coin
+  // deduction on top of an existing pending Paystack attempt would double-charge coins.
+  const discountEligible = fee >= 500 && !isCompletingPayment
+  const canHalf = discountEligible && coinBalance >= COINS_HALF_ENTRY
+  const canFree = discountEligible && coinBalance >= COINS_PER_ENTRY
+
+  const discountNaira = tier === '500' ? Math.round(COINS_HALF_ENTRY * NAIRA_PER_COIN) : tier === '1000' ? Math.round(COINS_PER_ENTRY * NAIRA_PER_COIN) : 0
+  const youPay = Math.max(0, fee - discountNaira)
+  const label = isCompletingPayment
+    ? 'Complete payment →'
+    : youPay === 0
+      ? 'Pay ₦0 — Confirm Registration'
+      : `Register — ${formatNaira(youPay)}`
+  const pendingLabel = youPay === 0 ? 'Registering…' : 'Redirecting to payment…'
+
   return (
-    <form action={formAction} className="space-y-3">
-      <input type="hidden" name="tournamentId" value={tournamentId} />
-      <Field name="displayName" label="Display name" defaultValue={prefill.displayName} />
-      <Field
-        name="whatsapp"
-        label="WhatsApp number"
-        type="tel"
-        defaultValue={prefill.whatsapp}
-        placeholder="+234…"
-      />
-      <Field name="clubName" label="Club name" placeholder="Your in-game club/team" />
-      <Field
-        name="ignTag"
-        label="In-game player ID / tag (optional)"
-        placeholder="Your IGN or player tag"
-        required={false}
-      />
-      {hasRules && (
-        <label className="flex items-start gap-2 text-xs text-slate-400">
-          <input type="checkbox" name="agreedToRules" value="true" required className="mt-0.5 accent-violet-600" />
-          <span>I have read and agree to the tournament rules.</span>
-        </label>
-      )}
-      {state?.error && <p className="text-center text-sm text-red-400">{state.error}</p>}
-      <SubmitButton label={label} pendingLabel={fee === 0 ? 'Registering…' : 'Redirecting to payment…'} />
-    </form>
+    <>
+      <form action={formAction} className="space-y-3">
+        <input type="hidden" name="tournamentId" value={tournamentId} />
+        <Field name="displayName" label="Display name" defaultValue={prefill.displayName} />
+        <Field
+          name="whatsapp"
+          label="WhatsApp number"
+          type="tel"
+          defaultValue={prefill.whatsapp}
+          placeholder="+234…"
+        />
+        <Field name="clubName" label="Club name" placeholder="Your in-game club/team" />
+        <Field
+          name="ignTag"
+          label="In-game player ID / tag (optional)"
+          placeholder="Your IGN or player tag"
+          required={false}
+        />
+        {(canHalf || canFree) && (
+          <div className="rounded-xl border border-slate-700 bg-slate-950 p-3">
+            <p className="mb-2 flex items-center justify-between text-xs font-bold text-white">
+              <span>🪙 Use SX Coins?</span>
+              <span className="font-normal text-slate-500">Your balance: {coinBalance.toLocaleString()} coins</span>
+            </p>
+            <div className="space-y-1.5 text-sm text-slate-300">
+              <label className="flex items-center gap-2">
+                <input type="radio" name="coinsUsed" value="0" checked={tier === '0'} onChange={() => setTier('0')} className="accent-violet-600" />
+                No discount
+              </label>
+              {canHalf && (
+                <label className="flex items-center gap-2">
+                  <input type="radio" name="coinsUsed" value="500" checked={tier === '500'} onChange={() => setTier('500')} className="accent-violet-600" />
+                  {COINS_HALF_ENTRY.toLocaleString()} coins — Pay {formatNaira(Math.max(0, fee - Math.round(COINS_HALF_ENTRY * NAIRA_PER_COIN)))} (save {formatNaira(Math.round(COINS_HALF_ENTRY * NAIRA_PER_COIN))})
+                </label>
+              )}
+              {canFree && (
+                <label className="flex items-center gap-2">
+                  <input type="radio" name="coinsUsed" value="1000" checked={tier === '1000'} onChange={() => setTier('1000')} className="accent-violet-600" />
+                  {COINS_PER_ENTRY.toLocaleString()} coins — Free entry (save {formatNaira(Math.round(COINS_PER_ENTRY * NAIRA_PER_COIN))})
+                </label>
+              )}
+            </div>
+            <p className="mt-2 text-right text-xs font-bold text-white">You pay: {formatNaira(youPay)}</p>
+          </div>
+        )}
+        {hasRules && (
+          <label className="flex items-start gap-2 text-xs text-slate-400">
+            <input type="checkbox" name="agreedToRules" value="true" required className="mt-0.5 accent-violet-600" />
+            <span>I have read and agree to the tournament rules.</span>
+          </label>
+        )}
+        {state?.error && <p className="text-center text-sm text-red-400">{state.error}</p>}
+        <SubmitButton label={label} pendingLabel={pendingLabel} />
+      </form>
+      <p className="mt-2 text-center text-xs text-slate-500">
+        {youPay === 0 && tier !== '0'
+          ? 'Free entry — coins cover the full fee.'
+          : `Secure payment via Paystack. Entry fee ${formatNaira(youPay)}${tier === '500' ? ' after coin discount' : ''}.`}
+      </p>
+    </>
   )
 }
