@@ -7,6 +7,7 @@ import { checkCanRegister } from './guard'
 import { registrationDetailsSchema, coinsUsedSchema } from './registration-schema'
 import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
 import { NAIRA_PER_COIN } from '@/lib/coins/value'
+import { settleReferralForPaidEntry } from '@/lib/referrals/credit'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
 
@@ -199,6 +200,11 @@ export async function registerForTournament(
         .update({ payment_status: 'paid', fee_waived: false, paystack_reference: null, coins_used: coinsUsed, coin_discount_naira: coinDiscountNaira, ...regFields })
         .eq('id', existing.id)
     }
+
+    await settleReferralForPaidEntry(admin, user.id, {
+      registrationFee: tournament.registration_fee,
+      feeWaived: false,
+    })
 
     redirect(`/tournaments/${tournament.slug}?paid=1`)
   }

@@ -1,17 +1,12 @@
 import type { createAdminClient } from '@/lib/supabase/admin'
-import { creditWallet } from '@/lib/wallet/service'
-import { notifyInApp } from '@/lib/notifications/inbox'
-import { REFERRAL_CREDIT_NGN } from './constants'
+import { settleReferral } from './actions'
 
 type Admin = ReturnType<typeof createAdminClient>
 
 // A referral is earned by bringing in a player who actually pays to compete —
-// not by bringing in an email address. Crediting on signup alone made a
-// throwaway inbox worth ₦100, and paid out on free tournaments where the
-// platform earns nothing.
-//
-// A comped entry (fee_waived) doesn't qualify either: no money changed hands,
-// so there's nothing for the referral to be a share of.
+// not by bringing in an email address. A comped entry (fee_waived) doesn't
+// qualify either: no money changed hands, so there's nothing for the
+// referral to be a share of.
 export function qualifiesForReferralCredit(args: {
   registrationFee: number
   feeWaived: boolean
@@ -23,10 +18,16 @@ export function qualifiesForReferralCredit(args: {
 // confirmation, and a referral bookkeeping failure must not fail a
 // registration the player has already been charged for.
 //
-// Idempotent via referrals.referred_id's UNIQUE constraint — a player can only
-// ever earn their referrer one credit, no matter how many tournaments they
-// later pay for. A 23505 means they were already counted and is ignored.
-export async function creditReferralForPaidEntry(
+// Converts the referred player's existing 'pending' referrals row (created
+// at signup by handle_new_user()) to 'converted'. Falls back to inserting a
+// fresh 'converted' row for players who signed up before this pending-row
+// migration landed (profiles.referred_by set, no referrals row yet) —
+// mirrors the pre-redesign insert-at-conversion behaviour for that legacy
+// population. Idempotent either way: the pending->converted UPDATE only
+// ever affects a 'pending' row (0 rows the second time), and the fallback
+// INSERT relies on referrals.referred_id's UNIQUE constraint (a 23505 means
+// this player already converted, and is silently ignored).
+export async function settleReferralForPaidEntry(
   admin: Admin,
   playerId: string,
   args: { registrationFee: number; feeWaived: boolean },
@@ -34,40 +35,49 @@ export async function creditReferralForPaidEntry(
   try {
     if (!qualifiesForReferralCredit(args)) return
 
-    const { data: profile } = await admin
-      .from('profiles')
-      .select('referred_by')
-      .eq('id', playerId)
-      .maybeSingle()
-    if (!profile?.referred_by) return
-
-    const { data: referral, error } = await admin
+    const { data: converted } = await admin
       .from('referrals')
-      .insert({ referrer_id: profile.referred_by, referred_id: playerId })
-      .select('id')
-      .single()
-    if (error || !referral) {
-      if ((error as { code?: string })?.code !== '23505') {
-        console.error('[referrals] credit failed', {
-          playerId,
-          code: (error as { code?: string })?.code,
-          message: error?.message,
+      .update({ status: 'converted', converted_at: new Date().toISOString() })
+      .eq('referred_id', playerId)
+      .eq('status', 'pending')
+      .select('id, referrer_id')
+
+    let referral = converted?.[0] ?? null
+
+    if (!referral) {
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('referred_by')
+        .eq('id', playerId)
+        .maybeSingle()
+      if (!profile?.referred_by) return
+
+      const { data: inserted, error } = await admin
+        .from('referrals')
+        .insert({
+          referrer_id: profile.referred_by,
+          referred_id: playerId,
+          status: 'converted',
+          converted_at: new Date().toISOString(),
         })
+        .select('id, referrer_id')
+        .single()
+      if (error || !inserted) {
+        if ((error as { code?: string })?.code !== '23505') {
+          console.error('[referrals] legacy conversion insert failed', {
+            playerId,
+            code: (error as { code?: string })?.code,
+            message: error?.message,
+          })
+        }
+        return
       }
-      return
+      referral = inserted
     }
 
-    await creditWallet(admin, profile.referred_by, REFERRAL_CREDIT_NGN, 'referral', referral.id)
-
-    await notifyInApp({
-      playerId: profile.referred_by,
-      type: 'referral_credited',
-      title: 'Referral credited',
-      body: `Someone you referred just paid to enter a tournament — ₦${REFERRAL_CREDIT_NGN} added to your wallet.`,
-      link: '/dashboard#referrals',
-    })
+    await settleReferral(admin, referral.id, referral.referrer_id, playerId)
   } catch (err) {
-    console.error('[referrals] credit threw', {
+    console.error('[referrals] settleReferralForPaidEntry threw', {
       playerId,
       message: err instanceof Error ? err.message : String(err),
     })

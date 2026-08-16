@@ -2,7 +2,7 @@ import { verifyTransaction } from '@/lib/paystack/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notify } from '@/lib/notifications/notify'
 import { regKey } from '@/lib/notifications/keys'
-import { creditReferralForPaidEntry } from '@/lib/referrals/credit'
+import { settleReferralForPaidEntry } from '@/lib/referrals/credit'
 
 export type ConfirmResult = 'confirmed' | 'already_paid' | 'not_found' | 'not_successful'
 
@@ -87,7 +87,7 @@ export async function confirmRegistration(reference: string): Promise<ConfirmRes
   // flipped the row pays out — the callback and the webhook both land here for
   // the same reference by design.
   if (claimed && claimed.length > 0) {
-    await creditReferralForPaidEntry(db, existing.player_id, {
+    await settleReferralForPaidEntry(db, existing.player_id, {
       registrationFee: tournamentInfo?.registration_fee ?? 0,
       feeWaived: existing.fee_waived ?? false,
     })
