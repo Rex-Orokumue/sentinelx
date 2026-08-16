@@ -99,6 +99,24 @@ achievements leaked their name/description via a tooltip. `/dashboard/profile`
 now redirects to the new `/dashboard/settings`. Followers/following/likes
 were discussed and explicitly deferred, not built.
 
+## Phase 3 — Referral System (Coin Economy Redesign)
+
+| # | Task | Route | Status |
+|---|------|-------|--------|
+| — | Referral system redesign — #22's flat ₦100-per-referral naira credit replaced with SX Coins: +250 coins on the referred player's first paid tournament entry, milestone bonuses at 5/10/25/50 converted referrals (matching `referral_first`…`referral_legend` achievements), `/admin/referrals` read-only analytics | `/dashboard/referrals`, `/dashboard/wallet`, `/admin/referrals` | ✅ |
+
+**★ Referral Coin Economy Redesign COMPLETE, 2026-08-16.** Superseded #22's
+naira model (spec: `docs/superpowers/specs/2026-08-16-referral-system-design.md`,
+plan: `docs/superpowers/plans/2026-08-16-referral-system.md`). The existing
+`referrals` table (019) was `ALTER`ed, not recreated — pre-existing rows were
+backfilled `status = 'converted'`; their historical ₦100 credits stay
+untouched in `wallet_transactions`. Conversion still fires on first *paid*
+tournament entry (Paystack or the coin-discount free-entry path — that part
+was already fixed post-#22, no longer at email verification); only the
+reward itself changed, naira → coins + milestones. `sx_coin_transactions.source`
+gained `referral_reward`/`referral_milestone`; `achievements.category` gained
+`social` for the 5 new milestone achievements.
+
 ## v4.0 — Scale
 
 | # | Task | Status |
