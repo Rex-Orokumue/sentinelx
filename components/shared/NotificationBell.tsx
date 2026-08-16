@@ -108,7 +108,17 @@ export function NotificationBell({
         )}
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 max-h-96 w-80 overflow-y-auto rounded-xl border border-sx-border bg-sx-surface py-1 shadow-xl">
+        // w-80 (320px) fixed width, right-0 anchored to a 36px bell wrapper
+        // that isn't flush with the viewport edge (header padding + the
+        // hamburger button sit to its right) — on a narrow phone the left
+        // edge landed off-screen. Capping width to the smaller of 20rem and
+        // (viewport - 2rem margin) keeps it fully on-screen at any width
+        // without changing how it's anchored or styled otherwise — a
+        // tactical fix only; the full notification-center rebuild
+        // (docs/superpowers/specs/2026-08-16-notification-center-design.md)
+        // replaces this dropdown with a drawer, so a deeper redesign here
+        // would be wasted/conflicting work.
+        <div className="absolute right-0 mt-2 max-h-96 w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-sx-border bg-sx-surface py-1 shadow-xl">
           {notifications.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-sx-gray">No notifications yet.</p>
           ) : (
