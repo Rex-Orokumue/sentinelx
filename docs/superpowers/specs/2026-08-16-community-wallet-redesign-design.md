@@ -27,7 +27,7 @@ walletBalance: number   // naira, wallets.balance
 coinBalance: number     // sx_coins.balance
 ```
 
-`getNavSession()` fetches both via `createAdminClient()` (same pattern the wallet page already uses to read `wallets`/`sx_coins`, which are not player-readable via the anon client) in the same `Promise.all` as the existing profile/notification queries. Missing rows (no wallet/coins row yet) resolve to `0`, not an error.
+`getNavSession()` fetches both via `createAdminClient()` (same pattern the wallet page already uses to read `wallets`/`sx_coins`, which are not player-readable via the anon client) in the same `Promise.all` as the existing profile/notification queries. Both reads use `.maybeSingle()` and resolve with `data?.balance ?? 0` — this covers both cases that must never break the header: no row yet (new player, `data` is `null`) and a query-level error (`data` is also `null`, `error` is set — Supabase-js returns `{data, error}` rather than throwing, so this is a genuine runtime guard, not just a TypeScript-level assumption). The header must render with `0` balances rather than fail in either case.
 
 `SiteHeader` renders a new `BalanceChips` component between the WhatsApp CTA and the notification bell, only when `session.isLoggedIn`:
 
@@ -47,7 +47,11 @@ This is primarily a **visual pass** — the existing component tree (`BalanceHer
 - **Quick actions row**: restyle the 4 tiles (Deposit/Withdraw/Transfer🔒/Rewards🔒) to the mockup's icon-tile look.
 - **Earnings overview**: restyle the 4-card grid (Tournament Winnings / Referral Rewards / Community Rewards🔒 / Cashback) to match the mockup's card look, keep trend-% display.
 - **Recent transactions + withdrawal panel**: two-column layout matching the mockup — transactions list on the left (restyle `RecentTransactionsList`/`TransactionRow`), a new compact withdrawal-status panel on the right showing the linked payment method (from `payment_methods`, already fetched in `/dashboard/wallet/payment-methods`) + available-to-withdraw amount + "Request Withdrawal" CTA (routes to `/dashboard/wallet/withdraw`, no new logic).
-- **Right rail**: referral-earnings card (reuses `ReferralPanel`'s existing query — referral count, ₦ total, copyable link — restyled into the mockup's compact sidebar-card look, not the current full-width panel look), `RewardsProgressWidget` (existing, restyled), `WalletSecurityBadges` (existing, restyled — Zolarux Escrow / Verified Account / Escrow Enabled).
+- **Right rail**: new compact `ReferralEarningsCard` (a sidebar-sized sibling to `ReferralPanel`, not a reuse of it — `ReferralPanel` is a full-width settings-page panel and, verified against its source, only ever renders a referral **count** + copyable link + a static "₦100 each" rate line; it does not compute a cumulative total, so it cannot be reused as-is for the mockup's "Total Earned: ₦2,500" figure). The new card sources:
+  - **Total Referrals** — same `referrals` table count `ReferralPanel`/`/dashboard/referrals` already query (`COUNT(*) FROM referrals WHERE referrer_id = user.id`)
+  - **Total Earned** — the wallet overview page's own `breakdown.referral` value (already computed server-side from real `wallet_transactions` rows, category `referral` — the same number the Earnings Overview grid shows), not a new/invented figure
+  - **Referral link** — same construction as `ReferralPanel` (`${siteUrl}/signup?ref=${username}`), copy-to-clipboard
+  `RewardsProgressWidget` (existing, restyled), `WalletSecurityBadges` (existing, restyled — Zolarux Escrow / Verified Account / Escrow Enabled).
 - **"Your winnings are safe here" mascot card**: static content block (Zolarux escrow messaging + mascot art), no data.
 
 No schema changes, no new Server Actions. Every number shown is already computed by the existing page.
@@ -73,9 +77,9 @@ New query function `lib/community/stats-query.ts::fetchCommunityStats()`.
 ### 4.3 Quick-action tiles
 Five tiles, mapped to real destinations:
 
-| Mockup label | Destination |
+| Tile label | Destination |
 |---|---|
-| Find Teammates | `/dashboard/friends` |
+| **Find Friends** *(relabeled from the mockup's "Find Teammates" — that destination is `/dashboard/friends`, your existing circle, not a stranger-discovery tool. Renaming the tile to match what it actually does avoids a bait-and-switch; a real teammate-finder is a Phase 3 roadmap item, not built yet)* | `/dashboard/friends` |
 | Create Team | `/coming-soon?feature=Teams` |
 | Join Discussions | anchors to the feed below |
 | Share Content | opens the existing post composer (`NewPostLauncher`) |
