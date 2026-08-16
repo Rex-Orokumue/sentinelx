@@ -2011,6 +2011,8 @@ export type Database = {
       }
       tournament_registrations: {
         Row: {
+          coin_discount_naira: number
+          coins_used: number
           disqualification_note: string | null
           disqualified_at: string | null
           fee_waived: boolean
@@ -2028,6 +2030,8 @@ export type Database = {
           tournament_id: string
         }
         Insert: {
+          coin_discount_naira?: number
+          coins_used?: number
           disqualification_note?: string | null
           disqualified_at?: string | null
           fee_waived?: boolean
@@ -2045,6 +2049,8 @@ export type Database = {
           tournament_id: string
         }
         Update: {
+          coin_discount_naira?: number
+          coins_used?: number
           disqualification_note?: string | null
           disqualified_at?: string | null
           fee_waived?: boolean
