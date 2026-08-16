@@ -86,7 +86,7 @@ export default async function WalletOverviewPage() {
         referral={breakdown.referral ?? 0}
         bonus={breakdown.bonus ?? 0}
       />
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <RecentTransactionsList transactions={recentTransactions} />
         </div>
@@ -97,7 +97,7 @@ export default async function WalletOverviewPage() {
           availableToWithdraw={balance}
         />
       </div>
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <ReferralEarningsCard
           referralLink={`${siteUrl}/signup?ref=${profileRes.data?.username ?? ''}`}
           totalReferrals={referralsRes.count ?? 0}

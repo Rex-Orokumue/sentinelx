@@ -51,7 +51,12 @@ export function WalletSidebar() {
           Settings
         </Link>
       </nav>
-      <WalletSidebarInfoCards />
+      {/* Desktop only — on mobile these render at the bottom of the page
+          instead (layout.tsx), not squeezed between the nav and the actual
+          wallet content. */}
+      <div className="hidden sm:block">
+        <WalletSidebarInfoCards />
+      </div>
     </div>
   )
 }
