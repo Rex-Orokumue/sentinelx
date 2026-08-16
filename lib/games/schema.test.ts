@@ -13,11 +13,11 @@ describe('gameSchema', () => {
   })
 
   it('rejects an invalid category', () => {
-    expect(gameSchema.safeParse({ ...valid, category: 'racing' }).success).toBe(false)
+    expect(gameSchema.safeParse({ ...valid, category: 'basketball' }).success).toBe(false)
   })
 
   it('accepts each valid category', () => {
-    for (const category of ['football', 'fighting', 'shooter', 'other']) {
+    for (const category of ['football', 'fighting', 'shooter', 'other', 'racing']) {
       expect(gameSchema.safeParse({ ...valid, category }).success).toBe(true)
     }
   })
