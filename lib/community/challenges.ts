@@ -34,6 +34,7 @@ export async function incrementChallenge(
     .from('community_challenges')
     .select('id, goal, coin_reward, xp_reward')
     .eq('challenge_type', challengeType)
+    .eq('active', true)
   const weekStart = currentWeekStart()
 
   for (const challenge of challenges ?? []) {

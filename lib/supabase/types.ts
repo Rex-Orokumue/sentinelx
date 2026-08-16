@@ -228,6 +228,7 @@ export type Database = {
       }
       community_challenges: {
         Row: {
+          active: boolean
           challenge_type: string
           coin_reward: number
           description: string
@@ -238,6 +239,7 @@ export type Database = {
           xp_reward: number
         }
         Insert: {
+          active?: boolean
           challenge_type: string
           coin_reward?: number
           description: string
@@ -248,6 +250,7 @@ export type Database = {
           xp_reward?: number
         }
         Update: {
+          active?: boolean
           challenge_type?: string
           coin_reward?: number
           description?: string
