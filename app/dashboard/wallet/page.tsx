@@ -12,6 +12,7 @@ import { mapTransactionRows, type RawWalletTxnRow } from '@/lib/wallet/transacti
 import { monthOverMonthChange } from '@/lib/wallet/earnings-trend'
 import { summarizeEarningsByCategory } from '@/lib/wallet/breakdown'
 import { getCoinBalance } from '@/lib/coins/service'
+import { CoinDisclaimerTooltip } from '@/components/coins/CoinDisclaimerTooltip'
 
 export const metadata: Metadata = {
   title: 'Wallet · SentinelX Esports',
@@ -64,6 +65,7 @@ export default async function WalletOverviewPage() {
 
   return (
     <>
+      <CoinDisclaimerTooltip />
       <BalanceHeroCard balance={walletRes.data?.balance ?? 0} pendingWithdrawal={pendingWithdrawalTotal} />
       <QuickActionsRow />
       <EarningsOverview

@@ -262,6 +262,7 @@ export type Database = {
       community_posts: {
         Row: {
           author_id: string | null
+          boosted_until: string | null
           content: string
           created_at: string
           deleted_reason: string | null
@@ -274,6 +275,7 @@ export type Database = {
         }
         Insert: {
           author_id?: string | null
+          boosted_until?: string | null
           content: string
           created_at?: string
           deleted_reason?: string | null
@@ -286,6 +288,7 @@ export type Database = {
         }
         Update: {
           author_id?: string | null
+          boosted_until?: string | null
           content?: string
           created_at?: string
           deleted_reason?: string | null

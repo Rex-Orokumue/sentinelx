@@ -32,9 +32,11 @@ export interface PostView {
   imageUrl: string | null
   referenceId: string | null
   isPinned: boolean
+  boostedUntil: string | null
   createdAt: string
   author: PlayerRef
   canDelete: boolean
+  canBoost: boolean
   reactionCounts: Record<ReactionType, number>
   myReaction: ReactionType | null
   commentCount: number
@@ -74,6 +76,7 @@ type RawPost = {
   post_type: PostType
   reference_id: string | null
   is_pinned: boolean
+  boosted_until: string | null
   created_at: string
   author: ProfileRef
 }
@@ -149,9 +152,15 @@ async function hydratePosts(rows: RawPost[], viewerId: string | null): Promise<P
     imageUrl: r.image_url,
     referenceId: r.reference_id,
     isPinned: r.is_pinned,
+    boostedUntil: r.boosted_until,
     createdAt: r.created_at,
     author: toPlayerRef(firstProfile(r.author)),
     canDelete: r.post_type === 'manual' && viewerId != null && viewerId === r.author_id,
+    canBoost:
+      r.post_type === 'manual' &&
+      viewerId != null &&
+      viewerId === r.author_id &&
+      (!r.boosted_until || new Date(r.boosted_until) <= new Date()),
     reactionCounts: reactionCountsByPost.get(r.id) ?? { fire: 0, crown: 0, strong: 0, wow: 0 },
     myReaction: myReactionByPost.get(r.id) ?? null,
     commentCount: commentCountByPost.get(r.id) ?? 0,
@@ -160,7 +169,7 @@ async function hydratePosts(rows: RawPost[], viewerId: string | null): Promise<P
 }
 
 const POST_SELECT =
-  'id, author_id, content, image_url, post_type, reference_id, is_pinned, created_at, ' +
+  'id, author_id, content, image_url, post_type, reference_id, is_pinned, boosted_until, created_at, ' +
   `author:profiles!community_posts_author_id_fkey(${PROFILE_FIELDS})`
 
 export interface FeedPage {
@@ -182,6 +191,7 @@ export async function fetchFeedPage(opts: { offset: number; limit: number; viewe
       .select(POST_SELECT)
       .eq('is_deleted', false)
       .eq('is_pinned', false)
+      .order('boosted_until', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .range(opts.offset, opts.offset + opts.limit), // fetch one extra to detect "has more"
   ])

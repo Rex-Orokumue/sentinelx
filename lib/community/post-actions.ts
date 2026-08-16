@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { postContentSchema } from './schema'
 import { incrementChallenge } from './challenges'
+import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
 
 export type DeleteState = { error?: string } | undefined
 
@@ -51,4 +52,65 @@ export async function deletePost(_prev: DeleteState, formData: FormData): Promis
   revalidatePath('/community')
   revalidatePath(`/community/${id}`)
   return undefined
+}
+
+export type BoostState = { error?: string; success?: boolean } | undefined
+
+const BOOST_COST_COINS = 200
+const BOOST_DURATION_MS = 24 * 60 * 60 * 1000
+
+// Spec §6: 200 coins pins one manual post the player authored to the top of
+// the feed for 24h; only one active boost per player at a time. Goes
+// through createAdminClient() throughout — community_posts has no
+// player-facing UPDATE policy that would permit writing boosted_until
+// directly (community_posts_player_delete's WITH CHECK requires
+// is_deleted = true on the new row), same reason purchaseStoreItem
+// (lib/coins/actions.ts) uses the admin client for its writes.
+export async function boostPost(_prev: BoostState, formData: FormData): Promise<BoostState> {
+  const postId = String(formData.get('id') ?? '')
+  if (!postId) return { error: 'Missing post.' }
+
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Please log in.' }
+
+  const admin = createAdminClient()
+  const { data: post } = await admin
+    .from('community_posts')
+    .select('id, author_id, post_type, boosted_until')
+    .eq('id', postId)
+    .maybeSingle()
+  if (!post || post.author_id !== user.id || post.post_type !== 'manual') {
+    return { error: 'You can only boost your own post.' }
+  }
+
+  const now = new Date()
+  if (post.boosted_until && new Date(post.boosted_until) > now) {
+    return { error: 'This post is already boosted.' }
+  }
+  const { count: activeBoostCount } = await admin
+    .from('community_posts')
+    .select('id', { count: 'exact', head: true })
+    .eq('author_id', user.id)
+    .gt('boosted_until', now.toISOString())
+  if (activeBoostCount && activeBoostCount > 0) {
+    return { error: 'You already have an active boost on another post.' }
+  }
+
+  const balance = await getCoinBalance(admin, user.id)
+  if (balance < BOOST_COST_COINS) return { error: 'Not enough SX Coins to boost.' }
+
+  await recordCoinTransaction(admin, user.id, -BOOST_COST_COINS, 'post_boost', postId, 'Boosted a community post')
+  const boostedUntil = new Date(now.getTime() + BOOST_DURATION_MS).toISOString()
+  const { error } = await admin.from('community_posts').update({ boosted_until: boostedUntil }).eq('id', postId)
+  if (error) {
+    // Refund — mirrors purchaseStoreItem's already-owned rollback pattern.
+    await recordCoinTransaction(admin, user.id, BOOST_COST_COINS, 'post_boost', postId, 'Boost failed — auto-reversed')
+    return { error: 'Could not boost this post. Please try again.' }
+  }
+
+  revalidatePath('/community')
+  return { success: true }
 }
