@@ -2,12 +2,15 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { findOptionalPublicImage } from '@/lib/media/optional-image'
 import { BalanceHeroCard } from '@/components/wallet/BalanceHeroCard'
 import { QuickActionsRow } from '@/components/wallet/QuickActionsRow'
 import { EarningsOverview } from '@/components/wallet/EarningsOverview'
 import { RecentTransactionsList } from '@/components/wallet/RecentTransactionsList'
 import { WalletSecurityBadges } from '@/components/wallet/WalletSecurityBadges'
 import { RewardsProgressWidget } from '@/components/wallet/RewardsProgressWidget'
+import { ReferralEarningsCard } from '@/components/wallet/ReferralEarningsCard'
+import { WithdrawalStatusPanel } from '@/components/wallet/WithdrawalStatusPanel'
 import { mapTransactionRows, type RawWalletTxnRow } from '@/lib/wallet/transactions'
 import { monthOverMonthChange } from '@/lib/wallet/earnings-trend'
 import { summarizeEarningsByCategory } from '@/lib/wallet/breakdown'
@@ -27,7 +30,7 @@ export default async function WalletOverviewPage() {
   if (!user) redirect('/login?next=/dashboard/wallet')
 
   const admin = createAdminClient()
-  const [walletRes, allTxnRes, pendingWithdrawalsRes, profileRes, coinBalance] = await Promise.all([
+  const [walletRes, allTxnRes, pendingWithdrawalsRes, profileRes, coinBalance, kycRes, referralsRes] = await Promise.all([
     admin.from('wallets').select('balance').eq('player_id', user.id).maybeSingle(),
     admin
       .from('wallet_transactions')
@@ -35,8 +38,14 @@ export default async function WalletOverviewPage() {
       .eq('player_id', user.id)
       .order('created_at', { ascending: false }),
     admin.from('withdrawal_requests').select('id, amount, status').eq('player_id', user.id).eq('status', 'pending'),
-    admin.from('profiles').select('xp, kyc_verified').eq('id', user.id).maybeSingle(),
+    admin.from('profiles').select('xp, kyc_verified, username').eq('id', user.id).maybeSingle(),
     getCoinBalance(admin, user.id),
+    admin
+      .from('player_kyc')
+      .select('payout_bank_name, payout_account_number, payout_account_name')
+      .eq('player_id', user.id)
+      .maybeSingle(),
+    admin.from('referrals').select('id', { count: 'exact', head: true }).eq('referrer_id', user.id),
   ])
 
   const allTxnRows = (allTxnRes.data ?? []) as RawWalletTxnRow[]
@@ -55,6 +64,9 @@ export default async function WalletOverviewPage() {
 
   const breakdown = summarizeEarningsByCategory(allTxnRows)
   const tournamentPrizeTrendPct = monthOverMonthChange(allTxnRows, 'tournament_prize', new Date())
+  const balance = walletRes.data?.balance ?? 0
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+  const mascotUrl = findOptionalPublicImage('mascot', 'mascot-wallet')
 
   const { data: coinTxRows } = await admin
     .from('sx_coin_transactions')
@@ -66,7 +78,7 @@ export default async function WalletOverviewPage() {
   return (
     <>
       <CoinDisclaimerTooltip />
-      <BalanceHeroCard balance={walletRes.data?.balance ?? 0} pendingWithdrawal={pendingWithdrawalTotal} />
+      <BalanceHeroCard balance={balance} pendingWithdrawal={pendingWithdrawalTotal} mascotUrl={mascotUrl} />
       <QuickActionsRow />
       <EarningsOverview
         tournamentPrize={breakdown.tournament_prize ?? 0}
@@ -78,31 +90,42 @@ export default async function WalletOverviewPage() {
         <div className="lg:col-span-2">
           <RecentTransactionsList transactions={recentTransactions} />
         </div>
-        <div className="space-y-4">
-          <RewardsProgressWidget xp={profileRes.data?.xp ?? 0} />
-          <WalletSecurityBadges kycVerified={profileRes.data?.kyc_verified ?? false} />
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">SX Coins</p>
-              <p className="font-display text-xl font-black text-white">🪙 {coinBalance.toLocaleString()}</p>
-            </div>
-            {(coinTxRows ?? []).length === 0 ? (
-              <p className="text-xs text-slate-500">No coin activity yet.</p>
-            ) : (
-              <ul className="space-y-1.5 text-xs text-slate-400">
-                {(coinTxRows ?? []).map((tx) => (
-                  <li key={tx.id} className="flex items-center justify-between gap-2">
-                    <span className="truncate">{tx.description ?? tx.source.replace(/_/g, ' ')}</span>
-                    <span className={tx.amount >= 0 ? 'font-semibold text-emerald-400' : 'font-semibold text-red-400'}>
-                      {tx.amount >= 0 ? '+' : ''}
-                      {tx.amount.toLocaleString()}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+        <WithdrawalStatusPanel
+          linkedBankName={kycRes.data?.payout_bank_name ?? null}
+          linkedAccountNumber={kycRes.data?.payout_account_number ?? null}
+          linkedAccountName={kycRes.data?.payout_account_name ?? null}
+          availableToWithdraw={balance}
+        />
+      </div>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <ReferralEarningsCard
+          referralLink={`${siteUrl}/signup?ref=${profileRes.data?.username ?? ''}`}
+          totalReferrals={referralsRes.count ?? 0}
+          totalEarned={breakdown.referral ?? 0}
+        />
+        <RewardsProgressWidget xp={profileRes.data?.xp ?? 0} />
+        <WalletSecurityBadges kycVerified={profileRes.data?.kyc_verified ?? false} />
+      </div>
+      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">SX Coins</p>
+          <p className="font-display text-xl font-black text-white">🪙 {coinBalance.toLocaleString()}</p>
         </div>
+        {(coinTxRows ?? []).length === 0 ? (
+          <p className="text-xs text-slate-500">No coin activity yet.</p>
+        ) : (
+          <ul className="space-y-1.5 text-xs text-slate-400">
+            {(coinTxRows ?? []).map((tx) => (
+              <li key={tx.id} className="flex items-center justify-between gap-2">
+                <span className="truncate">{tx.description ?? tx.source.replace(/_/g, ' ')}</span>
+                <span className={tx.amount >= 0 ? 'font-semibold text-emerald-400' : 'font-semibold text-red-400'}>
+                  {tx.amount >= 0 ? '+' : ''}
+                  {tx.amount.toLocaleString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </>
   )

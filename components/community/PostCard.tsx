@@ -53,7 +53,7 @@ function ManualOrAchievementCard({ post, loggedIn }: { post: PostView; loggedIn:
   }
 
   return (
-    <div className={`rounded-2xl border bg-sx-surface p-4 ${isAchievement ? 'border-amber-500/30' : isBoosted ? 'border-amber-400/50' : 'border-sx-border'}`}>
+    <div className={`rounded-2xl border bg-sx-surface p-4 sm:p-5 ${isAchievement ? 'border-amber-500/30' : isBoosted ? 'border-amber-400/50' : 'border-sx-border'}`}>
       {isAchievement && <p className="mb-2 text-xs font-black uppercase tracking-widest text-amber-400">🏅 Achievement Unlocked</p>}
       {isBoosted && <p className="mb-2 text-xs font-black uppercase tracking-widest text-amber-400">🚀 Boosted</p>}
       <div className="flex items-start justify-between gap-3">

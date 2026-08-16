@@ -21,6 +21,8 @@ export interface NavSession {
   avatarUrl: string | null
   unreadNotificationCount: number
   recentNotifications: NotificationItem[]
+  walletBalance: number
+  coinBalance: number
 }
 
 const LOGGED_OUT: NavSession = {
@@ -33,6 +35,8 @@ const LOGGED_OUT: NavSession = {
   avatarUrl: null,
   unreadNotificationCount: 0,
   recentNotifications: [],
+  walletBalance: 0,
+  coinBalance: 0,
 }
 
 export async function getNavSession(): Promise<NavSession> {
@@ -42,21 +46,24 @@ export async function getNavSession(): Promise<NavSession> {
   } = await supabase.auth.getUser()
   if (!user) return LOGGED_OUT
 
-  const [{ data: profile }, staff, { count: unreadCount }, { data: notifRows }] = await Promise.all([
-    supabase.from('profiles').select('username, display_name, avatar_url').eq('id', user.id).maybeSingle(),
-    getStaffContext(),
-    supabase
-      .from('player_notifications')
-      .select('id', { count: 'exact', head: true })
-      .eq('player_id', user.id)
-      .eq('read', false),
-    supabase
-      .from('player_notifications')
-      .select('id, type, title, body, link, read, created_at')
-      .eq('player_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(20),
-  ])
+  const [{ data: profile }, staff, { count: unreadCount }, { data: notifRows }, { data: walletRow }, { data: coinsRow }] =
+    await Promise.all([
+      supabase.from('profiles').select('username, display_name, avatar_url').eq('id', user.id).maybeSingle(),
+      getStaffContext(),
+      supabase
+        .from('player_notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('player_id', user.id)
+        .eq('read', false),
+      supabase
+        .from('player_notifications')
+        .select('id, type, title, body, link, read, created_at')
+        .eq('player_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      supabase.from('wallets').select('balance').eq('player_id', user.id).maybeSingle(),
+      supabase.from('sx_coins').select('balance').eq('player_id', user.id).maybeSingle(),
+    ])
 
   const recentNotifications: NotificationItem[] = (notifRows ?? []).map((n) => ({
     id: n.id,
@@ -78,5 +85,10 @@ export async function getNavSession(): Promise<NavSession> {
     avatarUrl: profile?.avatar_url ?? null,
     unreadNotificationCount: unreadCount ?? 0,
     recentNotifications,
+    // .maybeSingle() + `?? 0` covers both "no row yet" (new player) and a
+    // query-level error (Supabase-js returns {data:null, error}, never
+    // throws) — the header must never break on either case.
+    walletBalance: walletRow?.balance ?? 0,
+    coinBalance: coinsRow?.balance ?? 0,
   }
 }

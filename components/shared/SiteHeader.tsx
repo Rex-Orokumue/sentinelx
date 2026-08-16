@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu } from 'lucide-react'
 import { AccountMenu } from '@/components/shared/AccountMenu'
+import { BalanceChips } from '@/components/shared/BalanceChips'
 import { NotificationBell } from '@/components/shared/NotificationBell'
 import { MobileNavSheet } from '@/components/shared/MobileNavSheet'
 import type { NavSession } from '@/lib/nav/session'
@@ -73,10 +74,13 @@ export function SiteHeader({
 
             {/* Notifications — every breakpoint, never in the bottom tab bar */}
             {session.isLoggedIn && (
-              <NotificationBell
-                initialNotifications={session.recentNotifications}
-                initialUnreadCount={session.unreadNotificationCount}
-              />
+              <>
+                <BalanceChips walletBalance={session.walletBalance} coinBalance={session.coinBalance} />
+                <NotificationBell
+                  initialNotifications={session.recentNotifications}
+                  initialUnreadCount={session.unreadNotificationCount}
+                />
+              </>
             )}
 
             {/* Account — desktop only; mobile uses the bottom tab bar */}
