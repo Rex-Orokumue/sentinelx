@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/admin/auth'
 import { notifyInApp } from '@/lib/notifications/inbox'
+import { pushToPlayer } from '@/lib/notifications/push'
 import { formatNaira } from '@/lib/format'
 import { creditWallet } from './service'
 
@@ -47,16 +48,24 @@ export async function resolveWalletWithdrawal(
 
   await notifyInApp({
     playerId: wr.player_id,
-    type: action === 'paid' ? 'withdrawal_paid' : 'withdrawal_rejected',
-    title: action === 'paid' ? 'Withdrawal paid' : 'Withdrawal rejected',
+    type: action === 'paid' ? 'prize_credited' : 'withdrawal_rejected',
+    title: action === 'paid' ? 'Prize credited' : 'Withdrawal rejected',
     body:
       action === 'paid'
-        ? `Your withdrawal of ${formatNaira(wr.amount)} has been paid.`
+        ? `${formatNaira(wr.amount)} has been approved for withdrawal.`
         : note
           ? `Your withdrawal request was rejected: ${note}`
           : 'Your withdrawal request was rejected.',
     link: '/dashboard#wallet',
   })
+  if (action === 'paid') {
+    void pushToPlayer(
+      wr.player_id,
+      'prize_credited',
+      { title: 'Prize credited', body: `${formatNaira(wr.amount)} has been approved for withdrawal.` },
+      { url: '/dashboard#wallet' },
+    )
+  }
 
   revalidatePath('/admin/wallet')
   revalidatePath('/dashboard')
