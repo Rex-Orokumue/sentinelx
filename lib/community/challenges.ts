@@ -1,5 +1,7 @@
 import { recordCoinTransaction } from '@/lib/coins/service'
 import { awardXP } from '@/lib/membership/xp'
+import { notifyInApp } from '@/lib/notifications/inbox'
+import { pushToPlayer } from '@/lib/notifications/push'
 import type { createAdminClient } from '@/lib/supabase/admin'
 
 type Admin = ReturnType<typeof createAdminClient>
@@ -32,7 +34,7 @@ export async function incrementChallenge(
 ): Promise<void> {
   const { data: challenges } = await admin
     .from('community_challenges')
-    .select('id, goal, coin_reward, xp_reward')
+    .select('id, title, goal, coin_reward, xp_reward')
     .eq('challenge_type', challengeType)
     .eq('active', true)
   const weekStart = currentWeekStart()
@@ -81,6 +83,19 @@ export async function incrementChallenge(
       await admin.from('player_challenge_progress').update({ rewarded_at: new Date().toISOString() }).eq('id', row.id)
       if (challenge.coin_reward > 0) await recordCoinTransaction(admin, playerId, challenge.coin_reward, 'weekly_challenge', challenge.id)
       if (challenge.xp_reward > 0) await awardXP(admin, playerId, challenge.xp_reward, 'weekly_challenge', challenge.id)
+      void notifyInApp({
+        playerId,
+        type: 'wallet_credited',
+        title: 'Challenge complete!',
+        body: `${challenge.title} — +${challenge.coin_reward} SX Coins, +${challenge.xp_reward} XP.`,
+        link: '/community',
+      })
+      void pushToPlayer(
+        playerId,
+        'challenge_completed',
+        { title: 'Challenge complete!', body: `${challenge.title} — +${challenge.coin_reward} SX Coins, +${challenge.xp_reward} XP.` },
+        { url: '/community' },
+      )
     }
   }
 }

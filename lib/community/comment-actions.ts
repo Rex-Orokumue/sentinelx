@@ -2,6 +2,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { commentContentSchema } from './schema'
+import { notifyInApp } from '@/lib/notifications/inbox'
+import { pushToPlayer } from '@/lib/notifications/push'
 
 export type DeleteState = { error?: string } | undefined
 
@@ -24,6 +26,24 @@ export async function createComment(input: { postId: string; content: string }):
   if (error || !comment) {
     console.error('[createComment] post_comments insert failed', { postId: input.postId, authorId: user.id, code: error?.code, message: error?.message })
     return { error: 'Could not post your comment. Please try again.' }
+  }
+
+  const { data: post } = await supabase.from('community_posts').select('author_id, content').eq('id', input.postId).maybeSingle()
+  if (post?.author_id && post.author_id !== user.id) {
+    const excerpt = parsed.data.length > 60 ? `${parsed.data.slice(0, 60)}…` : parsed.data
+    void notifyInApp({
+      playerId: post.author_id,
+      type: 'post_comment',
+      title: 'New comment',
+      body: excerpt,
+      link: `/community/${input.postId}`,
+    })
+    void pushToPlayer(
+      post.author_id,
+      'post_comment',
+      { title: 'New comment', body: excerpt },
+      { url: `/community/${input.postId}` },
+    )
   }
 
   revalidatePath(`/community/${input.postId}`)

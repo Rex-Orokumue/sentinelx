@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { reactionSchema, type ReactionType } from './schema'
 import { incrementChallenge } from './challenges'
+import { notifyInApp } from '@/lib/notifications/inbox'
 
 export type ToggleReactionResult = { error?: string } | undefined
 
@@ -45,5 +46,16 @@ export async function toggleReaction(postId: string, reaction: ReactionType): Pr
 
   const admin = createAdminClient()
   await incrementChallenge(admin, user.id, 'reactions_given')
+
+  const { data: post } = await admin.from('community_posts').select('author_id').eq('id', postId).maybeSingle()
+  if (post?.author_id && post.author_id !== user.id) {
+    void notifyInApp({
+      playerId: post.author_id,
+      type: 'post_reaction',
+      title: 'New reaction',
+      body: `Someone reacted ${parsed.data} to your post.`,
+      link: `/community/${postId}`,
+    })
+  }
   return undefined
 }
