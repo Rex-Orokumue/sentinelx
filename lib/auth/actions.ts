@@ -119,6 +119,17 @@ export async function resetPassword(_prev: ActionState, formData: FormData): Pro
 
 export async function signOut(): Promise<void> {
   const supabase = createClient()
+  // Best-effort — a failed token cleanup must never block sign-out. Uses
+  // the request-scoped client (not createAdminClient) so fcm_tokens_owner's
+  // RLS policy (player_id = auth.uid()) does the scoping for us.
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) await supabase.from('fcm_tokens').delete().eq('player_id', user.id)
+  } catch {
+    // ignore
+  }
   await supabase.auth.signOut()
   revalidatePath('/', 'layout')
   redirect('/')
