@@ -312,6 +312,38 @@ export type Database = {
           },
         ]
       }
+      fcm_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          last_active: string
+          player_id: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_active?: string
+          player_id: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_active?: string
+          player_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fcm_tokens_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       friendly_match_results: {
         Row: {
           created_at: string
