@@ -24,7 +24,7 @@ export async function requestPushPermission(): Promise<boolean> {
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') return false
 
-  const registration = await navigator.serviceWorker.register(`/firebase-messaging-sw.js?${swQueryString()}`)
+  const registration = await navigator.serviceWorker.register(`/sw.js?${swQueryString()}`)
   const { getMessaging, getToken } = await import('firebase/messaging')
   const messaging = getMessaging(app)
   const token = await getToken(messaging, {
@@ -50,7 +50,7 @@ export async function disablePush(): Promise<void> {
   await fetch('/api/notifications/fcm-token', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}' })
 }
 
-// firebase-messaging-sw.js's onBackgroundMessage only fires when the tab is
+// sw.js's onBackgroundMessage only fires when the tab is
 // NOT focused — that's how FCM web push works by design, not a bug in the
 // service worker. When the tab IS focused (the common case: a player is
 // actively on the site when e.g. their weekly challenge completes),
