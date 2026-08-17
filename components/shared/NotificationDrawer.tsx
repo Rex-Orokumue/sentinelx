@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { X, Bell, Trophy, MessageCircle, Coins, Award, Megaphone, AlertTriangle } from 'lucide-react'
 import type { NotificationItem } from '@/lib/nav/session'
@@ -65,7 +66,17 @@ export function NotificationDrawer({
     setLoadingMore(false)
   }
 
-  return (
+  // Portaled to document.body — SiteHeader's <header> has backdrop-blur-md
+  // (a CSS backdrop-filter), and per spec a filter/backdrop-filter on an
+  // ancestor creates a new containing block for `position: fixed`
+  // descendants. Rendered in place (as NotificationBell's child, which is a
+  // header descendant), this drawer's `fixed inset-0` sized itself against
+  // the header's own ~60px box instead of the viewport — the drawer showed
+  // as a sliver clipped to the header's height instead of covering the
+  // screen. Portaling to body sidesteps the containing-block chain
+  // entirely, matching how MobileNavSheet avoids the same trap by being a
+  // sibling of <header> rather than a descendant.
+  return createPortal(
     <div className="fixed inset-0 z-[60]">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
       <div className="absolute right-0 top-0 flex h-full w-full max-w-sm flex-col border-l border-sx-border bg-sx-bg shadow-2xl">
@@ -120,6 +131,7 @@ export function NotificationDrawer({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
