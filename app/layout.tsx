@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Suspense } from 'react'
 import localFont from 'next/font/local'
 import { Barlow_Condensed, Inter } from 'next/font/google'
@@ -59,6 +59,18 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     images: [DEFAULT_OG_IMAGE],
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: SITE_SHORT_NAME,
+  },
+}
+
+// Next.js 14 moved themeColor out of the metadata export into its own
+// viewport export — setting it inside metadata is deprecated and silently
+// ignored.
+export const viewport: Viewport = {
+  themeColor: '#0B0B0F',
 }
 
 const WHATSAPP_COMMUNITY = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL ?? '#'
