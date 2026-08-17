@@ -9,6 +9,9 @@ import { Hero } from '@/components/home/Hero'
 import { LiveTournamentStrip } from '@/components/home/LiveTournamentStrip'
 import { FourPillars } from '@/components/home/FourPillars'
 import { LeaderboardRow } from '@/components/home/LeaderboardRow'
+import { HallOfFameTeaser } from '@/components/home/HallOfFameTeaser'
+import { buildHallOfFameTeaserData, type HallOfFameTeaserData } from '@/lib/home/hall-of-fame-teaser'
+import type { BracketMatch } from '@/lib/tournaments/bracket'
 import { SentinelBubble } from '@/components/ui/SentinelBubble'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { homepageDescription } from '@/lib/seo/homepage-description'
@@ -78,6 +81,85 @@ export default async function HomePage() {
   ])
 
   const prizesPaidOut = (completedTournaments ?? []).reduce((sum, t) => sum + (t.prize_pool ?? 0), 0)
+
+  const { data: championsCupRow } = await supabase
+    .from('tournaments')
+    .select('id, slug, title, tournament_end, prize_pool, games(name)')
+    .eq('tournament_type', 'champions_cup')
+    .eq('status', 'completed')
+    .order('tournament_end', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  let hallOfFameTeaserData: HallOfFameTeaserData | null = null
+  if (championsCupRow) {
+    const { data: rawFinalMatchRow } = await supabase
+      .from('matches')
+      .select(
+        'id, round, status, score_a, score_b, ' +
+          'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
+          'player_b:profiles!matches_player_b_id_fkey(id, username, display_name)',
+      )
+      .eq('tournament_id', championsCupRow.id)
+      .eq('round', 'final')
+      .eq('status', 'completed')
+      .maybeSingle()
+
+    // Supabase's typegen can't resolve this FK-embed select shape (falls back
+    // to a GenericStringError type) — same issue
+    // app/(public)/hall-of-fame/page.tsx works around with an explicit cast.
+    // The embed can also arrive as an object or a single-element array
+    // depending on the inferred relationship; normalized below, matching that
+    // file's `newFinalRows` handling for the identical join.
+    type EmbeddedProfile = { id: string; username: string | null; display_name: string | null }
+    const finalMatchRow = rawFinalMatchRow as unknown as {
+      id: string
+      round: string
+      status: string
+      score_a: number | null
+      score_b: number | null
+      player_a: EmbeddedProfile | EmbeddedProfile[] | null
+      player_b: EmbeddedProfile | EmbeddedProfile[] | null
+    } | null
+
+    const firstProfile = (p: EmbeddedProfile | EmbeddedProfile[] | null): EmbeddedProfile | null =>
+      Array.isArray(p) ? (p[0] ?? null) : p
+
+    const playerA = finalMatchRow ? firstProfile(finalMatchRow.player_a) : null
+    const playerB = finalMatchRow ? firstProfile(finalMatchRow.player_b) : null
+
+    const finalMatch: BracketMatch | null = finalMatchRow
+      ? {
+          id: finalMatchRow.id,
+          round: finalMatchRow.round,
+          group_id: null,
+          groupName: null,
+          status: finalMatchRow.status,
+          score_a: finalMatchRow.score_a,
+          score_b: finalMatchRow.score_b,
+          scheduled_at: null,
+          is_full_day: false,
+          playerA: { id: playerA?.id ?? '', name: playerA?.display_name ?? playerA?.username ?? 'TBD' },
+          playerB: { id: playerB?.id ?? '', name: playerB?.display_name ?? playerB?.username ?? 'TBD' },
+        }
+      : null
+
+    const gameName = Array.isArray(championsCupRow.games)
+      ? (championsCupRow.games[0]?.name ?? null)
+      : (championsCupRow.games?.name ?? null)
+
+    hallOfFameTeaserData = buildHallOfFameTeaserData(
+      {
+        id: championsCupRow.id,
+        slug: championsCupRow.slug,
+        title: championsCupRow.title,
+        tournament_end: championsCupRow.tournament_end,
+        prize_pool: championsCupRow.prize_pool,
+        gameName,
+      },
+      finalMatch,
+    )
+  }
 
   const banner = rawBanner
     ? { title: rawBanner.title, imageUrl: rawBanner.image_url, linkUrl: rawBanner.link_url }
@@ -151,6 +233,8 @@ export default async function HomePage() {
           </div>
         )}
       </section>
+
+      <HallOfFameTeaser data={hallOfFameTeaserData} />
 
       {/* ── WhatsApp Community CTA ───────────────────────────── */}
       <section className="rounded-xl border border-[#25D366]/20 bg-[#25D366]/5 p-8 text-center">
