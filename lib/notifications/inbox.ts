@@ -55,3 +55,34 @@ export async function notifyInApp(input: {
     // best-effort — swallow so the caller's action is never affected
   }
 }
+
+// Bulk in-app insert for broadcast-scale events (tournament_announced,
+// new_announcement). Chunked at 500 rows/insert — same batch size as the
+// FCM multicast limit in fcm.ts, no deep reason they need to match, just
+// convenient symmetry.
+export async function broadcastInApp(input: {
+  type: NotificationType
+  title: string
+  body: string
+  link?: string
+}): Promise<void> {
+  try {
+    const admin = createAdminClient()
+    const { data: players } = await admin.from('profiles').select('id')
+    const ids = (players ?? []).map((p) => p.id as string)
+    for (let i = 0; i < ids.length; i += 500) {
+      const chunk = ids.slice(i, i + 500)
+      await admin.from('player_notifications').insert(
+        chunk.map((playerId) => ({
+          player_id: playerId,
+          type: input.type,
+          title: input.title,
+          body: input.body,
+          link: input.link ?? null,
+        })),
+      )
+    }
+  } catch (err) {
+    console.error('[inbox] broadcastInApp failed (non-blocking)', { type: input.type, err })
+  }
+}
