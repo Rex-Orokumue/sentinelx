@@ -31,7 +31,7 @@ export function CommunityHero() {
               Join the Community
             </Link>
             <Link
-              href="/coming-soon?feature=Community+Rules"
+              href="/community-rules"
               className="rounded-lg border border-sx-border px-5 py-2.5 text-sm font-bold text-white hover:border-sx-purple/40"
             >
               Community Rules

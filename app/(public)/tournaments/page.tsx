@@ -303,7 +303,7 @@ function HowToJoinCard() {
         ))}
       </div>
       <Link
-        href="/coming-soon?feature=Tournament+Guide"
+        href="/tournament-guide"
         className="mt-5 block rounded-lg border border-sx-border px-4 py-2.5 text-center text-xs font-bold text-white transition-colors hover:border-sx-purple/40"
       >
         View Full Guide ↗
@@ -327,7 +327,7 @@ function TournamentFaqCard() {
         ))}
       </div>
       <Link
-        href="/coming-soon?feature=Tournament+FAQs"
+        href="/tournament-faqs"
         className="mt-4 block text-center text-xs font-bold text-sx-purple-text hover:text-white"
       >
         View All FAQs →

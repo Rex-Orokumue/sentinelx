@@ -11,7 +11,7 @@ const TILES = [
   { label: 'Create Team', icon: '👥', href: '/coming-soon?feature=Teams' },
   { label: 'Join Discussions', icon: '💬', href: '#feed' },
   { label: 'Share Content', icon: '📤', href: '#new-post-launcher' },
-  { label: 'Get Help', icon: '❓', href: '/coming-soon?feature=Help+Center' },
+  { label: 'Get Help', icon: '❓', href: '/contact' },
 ]
 
 export function QuickActionTiles() {
