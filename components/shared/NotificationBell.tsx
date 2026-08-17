@@ -84,7 +84,7 @@ export function NotificationBell({
     }
   }, [])
 
-  // Foreground push: onBackgroundMessage in firebase-messaging-sw.js only
+  // Foreground push: onBackgroundMessage in sw.js only
   // fires when this tab isn't focused. Without this, a push that arrives
   // while the player is actively on the site is received by the SDK and
   // silently dropped — no OS toast, nothing. See useFCM.ts for the
