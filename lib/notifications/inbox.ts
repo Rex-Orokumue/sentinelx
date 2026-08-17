@@ -23,6 +23,14 @@ export type NotificationType =
   | 'invitation_expired_cascade'
   | 'tier_upgraded'
   | 'achievement_unlocked'
+  | 'prize_credited'
+  | 'tournament_announced'
+  | 'new_announcement'
+  | 'post_comment'
+  | 'post_reaction'
+  | 'wager_settled'
+  | 'bracket_released'
+  | 'match_reminder'
 
 // Best-effort — NEVER throws into the caller's primary action, mirroring
 // lib/notifications/notify.ts's WhatsApp helper. A failed in-app notification
