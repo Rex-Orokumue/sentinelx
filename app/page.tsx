@@ -10,6 +10,7 @@ import { LiveTournamentStrip } from '@/components/home/LiveTournamentStrip'
 import { FourPillars } from '@/components/home/FourPillars'
 import { LeaderboardRow } from '@/components/home/LeaderboardRow'
 import { HallOfFameTeaser } from '@/components/home/HallOfFameTeaser'
+import { HowItWorks } from '@/components/home/HowItWorks'
 import { buildHallOfFameTeaserData, type HallOfFameTeaserData } from '@/lib/home/hall-of-fame-teaser'
 import type { BracketMatch } from '@/lib/tournaments/bracket'
 import { SentinelBubble } from '@/components/ui/SentinelBubble'
@@ -235,6 +236,8 @@ export default async function HomePage() {
       </section>
 
       <HallOfFameTeaser data={hallOfFameTeaserData} />
+
+      <HowItWorks />
 
       {/* ── WhatsApp Community CTA ───────────────────────────── */}
       <section className="rounded-xl border border-[#25D366]/20 bg-[#25D366]/5 p-8 text-center">
