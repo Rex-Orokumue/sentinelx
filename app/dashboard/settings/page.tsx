@@ -19,13 +19,18 @@ export default async function DashboardSettingsPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/dashboard/settings')
 
-  const [{ data: row }, { data: kyc }] = await Promise.all([
+  const [{ data: row }, { data: kyc }, { count: fcmTokenCount }] = await Promise.all([
     supabase
       .from('profiles')
       .select('display_name, username, avatar_url, membership_tier, whatsapp_number, country, bio, kyc_verified, username_changed_at, notification_prefs')
       .eq('id', user.id)
       .maybeSingle(),
     createAdminClient().from('player_kyc').select('kyc_status').eq('player_id', user.id).maybeSingle(),
+    // Whether push shows "Enabled" — a stored token is the only reliable
+    // signal, since Notification.permission alone can't be revoked from JS
+    // (it would still read 'granted' even after the player clicked
+    // Disable and their token was deleted).
+    supabase.from('fcm_tokens').select('id', { count: 'exact', head: true }).eq('player_id', user.id),
   ])
 
   const prefs = (row?.notification_prefs ?? {}) as {
@@ -77,7 +82,7 @@ export default async function DashboardSettingsPage() {
             match_assigned: prefs.push?.match_assigned ?? true,
             prize_credited: prefs.push?.prize_credited ?? true,
           }}
-          enabled={false}
+          enabled={(fcmTokenCount ?? 0) > 0}
         />
         <AchievementSharingForm
           prefs={{
