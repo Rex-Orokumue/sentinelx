@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
-import { Crown } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { TournamentCard } from '@/components/tournament/TournamentCard'
 import type { TournamentCardData } from '@/components/tournament/TournamentCard'
@@ -8,12 +7,9 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { TierBadge } from '@/components/player/TierBadge'
 import { PromoBanner } from '@/components/home/PromoBanner'
 import { Hero } from '@/components/home/Hero'
-import { TrustedByStrip } from '@/components/home/TrustedByStrip'
+import { LiveTournamentStrip } from '@/components/home/LiveTournamentStrip'
 import { FeatureGrid } from '@/components/home/FeatureGrid'
-import { StatsBar } from '@/components/home/StatsBar'
-import { LiveTournamentCard } from '@/components/home/LiveTournamentCard'
 import { SentinelBubble } from '@/components/ui/SentinelBubble'
-import { dedupeGamesByName } from '@/lib/games/dedupe'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { homepageDescription } from '@/lib/seo/homepage-description'
 import { FaqSection } from '@/components/home/FaqSection'
@@ -48,7 +44,7 @@ export default async function HomePage() {
     { data: rawTournaments },
     { data: players },
     { data: rawBanner },
-    { data: rawGames },
+    { data: completedTournaments },
     { count: playerCount },
     { count: tournamentCount },
   ] = await Promise.all([
@@ -62,7 +58,7 @@ export default async function HomePage() {
       .limit(4),
     supabase
       .from('profiles')
-      .select('id, username, display_name, wins, total_matches, sx_score, sentinel_tier')
+      .select('id, username, display_name, avatar_url, wins, total_matches, sx_score, sentinel_tier, membership_tier')
       .order('wins', { ascending: false })
       .gt('total_matches', 0)
       .limit(5),
@@ -73,12 +69,15 @@ export default async function HomePage() {
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    supabase.from('games').select('name, slug, icon_url, active, created_at'),
+    // Hero's "Prizes Paid Out" stat. Summed client-side (not a huge dataset —
+    // one row per completed tournament) rather than a DB aggregate/RPC, matching
+    // this file's existing style of plain selects + counts.
+    supabase.from('tournaments').select('prize_pool').eq('status', 'completed'),
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
     supabase.from('tournaments').select('*', { count: 'exact', head: true }).neq('status', 'draft'),
   ])
 
-  const games = dedupeGamesByName(rawGames ?? [])
+  const prizesPaidOut = (completedTournaments ?? []).reduce((sum, t) => sum + (t.prize_pool ?? 0), 0)
 
   const banner = rawBanner
     ? { title: rawBanner.title, imageUrl: rawBanner.image_url, linkUrl: rawBanner.link_url }
@@ -100,32 +99,15 @@ export default async function HomePage() {
   return (
     <div className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
 
-      <Hero />
+      <Hero
+        playerCount={playerCount ?? 0}
+        tournamentCount={tournamentCount ?? 0}
+        prizesPaidOut={prizesPaidOut}
+      />
 
-      <TrustedByStrip games={games} />
+      <LiveTournamentStrip tournament={featured} />
 
       <FeatureGrid />
-
-      {/* ── Stats Overview + Live Tournament ─────────────────── */}
-      <section className="mb-10 grid gap-6 lg:grid-cols-2">
-        <StatsBar
-          playerCount={playerCount ?? 0}
-          tournamentCount={tournamentCount ?? 0}
-          gameCount={games.length}
-        />
-        <LiveTournamentCard tournament={featured} />
-      </section>
-
-      {/* ── Tagline banner ────────────────────────────────────── */}
-      <section className="mb-10 rounded-xl border border-sx-border bg-sx-surface px-6 py-10 text-center">
-        <Crown className="mx-auto mb-3 h-7 w-7 text-sx-purple-text" />
-        <p className="font-display text-2xl font-black uppercase tracking-wide text-white sm:text-3xl">
-          One Guardian. Every Moment.
-        </p>
-        <p className="mt-2 font-display text-sm font-bold uppercase tracking-widest text-sx-purple-text">
-          Where Gamers Unite. Champions Rise.
-        </p>
-      </section>
 
       <PromoBanner banner={banner} />
 
