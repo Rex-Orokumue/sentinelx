@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { computeWagerPayouts } from './settle'
 
 describe('computeWagerPayouts', () => {
@@ -31,5 +31,40 @@ describe('computeWagerPayouts', () => {
     const { payouts, platformFee } = computeWagerPayouts(wagers, 'methio')
     expect(platformFee).toBe(0)
     expect(payouts.get('w1')).toBe(500)
+  })
+})
+
+describe('settleMatchWagers notifications', () => {
+  it('notifies both a winning and a losing bettor with different messages', async () => {
+    vi.resetModules()
+    const notifyInApp = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('@/lib/notifications/inbox', () => ({ notifyInApp }))
+    const pushToPlayer = vi.fn().mockResolvedValue(undefined)
+    vi.doMock('@/lib/notifications/push', () => ({ pushToPlayer }))
+    vi.doMock('@/lib/coins/service', () => ({ recordCoinTransaction: vi.fn().mockResolvedValue(undefined) }))
+
+    const rows = [
+      { id: 'w1', bettor_id: 'winner-1', pick_player_id: 'player-A', stake_coins: 100 },
+      { id: 'w2', bettor_id: 'loser-1', pick_player_id: 'player-B', stake_coins: 50 },
+    ]
+    const admin = {
+      from: vi.fn((table: string) => {
+        if (table === 'match_wagers') {
+          return {
+            select: vi.fn(() => ({ eq: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: rows }) })) })),
+            update: vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) })),
+          }
+        }
+        return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) }
+      }),
+    } as unknown as Parameters<typeof import('./settle').settleMatchWagers>[0]
+
+    const { settleMatchWagers } = await import('./settle')
+    await settleMatchWagers(admin, 'match-1', 'player-A')
+
+    expect(notifyInApp).toHaveBeenCalledWith(expect.objectContaining({ playerId: 'winner-1', type: 'wager_settled' }))
+    expect(notifyInApp).toHaveBeenCalledWith(expect.objectContaining({ playerId: 'loser-1', type: 'wager_settled' }))
+    expect(pushToPlayer).toHaveBeenCalledWith('winner-1', 'wager_settled', expect.anything(), expect.anything())
+    expect(pushToPlayer).toHaveBeenCalledWith('loser-1', 'wager_settled', expect.anything(), expect.anything())
   })
 })

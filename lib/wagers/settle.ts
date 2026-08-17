@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
 import { recordCoinTransaction } from '@/lib/coins/service'
+import { notifyInApp } from '@/lib/notifications/inbox'
+import { pushToPlayer } from '@/lib/notifications/push'
 import { WAGER_FEE_RATE } from './market'
 
 type Admin = SupabaseClient<Database>
@@ -62,6 +64,12 @@ export async function settleMatchWagers(admin: Admin, matchId: string, winnerId:
       // (placeWager) — no further coin movement, only the status update.
       await admin.from('match_wagers').update({ status: 'lost', payout_coins: 0, updated_at: now }).eq('id', w.id)
     }
+    const won = payout > 0
+    const body = won
+      ? `You won ${payout} SX Coins on this match.`
+      : `Your ${w.stakeCoins}-coin wager didn't hit this time.`
+    void notifyInApp({ playerId: w.bettorId, type: 'wager_settled', title: won ? 'Wager won!' : 'Wager settled', body, link: `/matches/${matchId}` })
+    void pushToPlayer(w.bettorId, 'wager_settled', { title: won ? 'Wager won!' : 'Wager settled', body }, { url: `/matches/${matchId}` })
   }
 
   if (platformFee > 0) {
