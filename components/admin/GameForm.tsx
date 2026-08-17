@@ -25,6 +25,7 @@ export function GameForm() {
         <option value="football">Football</option>
         <option value="fighting">Fighting</option>
         <option value="shooter">Shooter</option>
+        <option value="racing">Racing</option>
         <option value="other">Other</option>
       </select>
       <input

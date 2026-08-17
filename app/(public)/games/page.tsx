@@ -19,16 +19,17 @@ export const metadata = buildMetadata({
   image: DEFAULT_OG_IMAGE,
 })
 
-// Real DB category taxonomy is currently football / fighting / shooter / other
-// (see supabase/migrations/027_multi_game_categories.sql) — the mockup's wider
-// genre set (Battle Royale, Racing, Strategy, Adventure) is gated behind
-// roadmap #21 "multi-game support" and isn't real data yet, so those tabs
-// aren't shown here rather than being dead filters with no matches.
+// Real DB category taxonomy is football / fighting / shooter / racing / other
+// (see supabase/migrations/027_multi_game_categories.sql + 065_racing_category.sql)
+// — the mockup's wider genre set (Battle Royale, Strategy, Adventure) is
+// gated behind roadmap #21 "multi-game support" and isn't real data yet, so
+// those tabs aren't shown here rather than being dead filters with no matches.
 const GENRES: { key: string; label: string }[] = [
   { key: 'all', label: '🎮 All Games' },
   { key: 'football', label: '⚽ Sports' },
   { key: 'shooter', label: '🔫 Shooter' },
   { key: 'fighting', label: '🥊 Fighting' },
+  { key: 'racing', label: '🏎️ Racing' },
   { key: 'other', label: '🎲 Other' },
 ]
 
@@ -44,12 +45,14 @@ const DESCRIPTIONS: Record<string, string> = {
   'PUBG Mobile': 'Survive. Loot. Conquer. Be the last one standing.',
   'Free Fire': "10-minute battles. Non-stop action. Booyah your way to the top.",
   'Mortal Kombat Mobile': 'Fight, finish, and climb the ranks in this classic brawler.',
+  'Asphalt': 'Floor it. High-speed multiplayer racing, no brakes allowed.',
 }
 
 const FALLBACK_BY_CATEGORY: Record<string, string> = {
   football: 'The beautiful game, on the go. Prove your football IQ.',
   fighting: 'Fast reflexes, sharp combos — prove you\'re the best fighter.',
   shooter: 'Squad up and dominate the battlefield.',
+  racing: 'Floor it. Drift, boost, and cross the line first.',
   other: 'Compete for glory in this arena.',
 }
 

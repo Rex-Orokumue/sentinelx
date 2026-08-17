@@ -12,4 +12,5 @@ export const CATEGORY_META: Record<string, CategoryMeta> = {
   football: { statLabel: 'Goals', awardName: 'Golden Boot', awardEmoji: '⚽' },
   fighting: { statLabel: 'Rounds Won', awardName: 'Iron Fist', awardEmoji: '🥊' },
   shooter: { statLabel: 'Kills', awardName: 'Sharpshooter', awardEmoji: '🎯' },
+  racing: { statLabel: 'Race Wins', awardName: 'Speed Demon', awardEmoji: '🏎️' },
 }
