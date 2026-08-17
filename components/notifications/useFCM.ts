@@ -12,11 +12,33 @@ function swQueryString(): string {
   return p.toString()
 }
 
+// Registers the service worker unconditionally for every visitor,
+// regardless of login state or push permission — required for PWA
+// installability. Chrome (and other browsers) will not offer to install a
+// site without an active, controlling service worker that has a fetch
+// handler, and that has nothing to do with notification permission:
+// registering a service worker itself never prompts the user for
+// anything. This was missing entirely — the only place sw.js ever got
+// registered was inside requestPushPermission() below, gated behind the
+// "Enable Push Notifications" button, so almost no visitor ever triggered
+// registration at all and the site was never actually installable.
+// Registers without the Firebase query-string params (sw.js only sets up
+// push messaging when those are present, guarding against a crash on
+// missing config) — requestPushPermission() below re-registers the same
+// scope with real params when the player opts into push, which is a
+// normal, harmless service-worker update, not a conflict.
+export function registerServiceWorker(): void {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
+  navigator.serviceWorker.register('/sw.js').catch((err) => {
+    console.error('[pwa] service worker registration failed', err)
+  })
+}
+
 // Called only from an explicit user action (Settings' "Enable Push
 // Notifications" button, or PushPermissionPrompt after a meaningful event)
-// — never on page load. Returns false if push isn't available (no Firebase
-// project configured, permission denied, or unsupported browser) so the
-// caller can show an appropriate message instead of assuming success.
+// — never automatically. Returns false if push isn't available (no
+// Firebase project configured, permission denied, or unsupported browser)
+// so the caller can show an appropriate message instead of assuming success.
 export async function requestPushPermission(): Promise<boolean> {
   const app = getFirebaseApp()
   if (!app || typeof window === 'undefined' || !('Notification' in window)) return false
