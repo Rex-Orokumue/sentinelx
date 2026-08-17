@@ -6,6 +6,8 @@ import { postContentSchema } from './schema'
 import { currentWeekStart } from './challenges'
 import { recordCoinTransaction } from '@/lib/coins/service'
 import { awardXP } from '@/lib/membership/xp'
+import { broadcastInApp } from '@/lib/notifications/inbox'
+import { broadcastPush } from '@/lib/notifications/push'
 
 export type AdminActionState = { error?: string } | undefined
 
@@ -26,6 +28,10 @@ export async function createAnnouncement(_prev: AdminActionState, formData: Form
     is_pinned: true,
   })
   if (error) return { error: 'Could not create the announcement.' }
+
+  const excerpt = parsed.data.length > 80 ? `${parsed.data.slice(0, 80)}…` : parsed.data || 'Check the community feed.'
+  void broadcastInApp({ type: 'new_announcement', title: 'New announcement', body: excerpt, link: '/community' })
+  void broadcastPush('new_announcement', { title: 'New announcement', body: excerpt }, { url: '/community' })
 
   revalidatePath('/community')
   revalidatePath('/admin/community')

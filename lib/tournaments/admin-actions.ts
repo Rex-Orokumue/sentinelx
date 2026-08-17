@@ -9,6 +9,8 @@ import { missingForPublish } from './readiness'
 import { manualCreditWallet } from '@/lib/admin/wallet-actions'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { recomputeGroupStats } from '@/lib/matches/verify-actions'
+import { broadcastInApp } from '@/lib/notifications/inbox'
+import { broadcastPush } from '@/lib/notifications/push'
 
 export type TournamentFormState = { error?: string; success?: boolean } | undefined
 export type PublishState = { error?: string; fieldErrors?: string[]; success?: boolean } | undefined
@@ -180,7 +182,7 @@ export async function openRegistration(
   const { data: t } = await supabase
     .from('tournaments')
     .select(
-      'status, game_id, max_players, registration_fee, prize_pool, registration_start, registration_end, tournament_start, tournament_end',
+      'status, title, game_id, max_players, registration_fee, prize_pool, registration_start, registration_end, tournament_start, tournament_end',
     )
     .eq('id', id)
     .maybeSingle()
@@ -202,6 +204,18 @@ export async function openRegistration(
     .update({ status: 'registration_open' })
     .eq('id', id)
   if (error) return { error: 'Could not open registration.' }
+
+  void broadcastInApp({
+    type: 'tournament_announced',
+    title: 'New tournament!',
+    body: `${t.title} is open for registration.`,
+    link: '/tournaments',
+  })
+  void broadcastPush(
+    'tournament_announced',
+    { title: 'New tournament!', body: `${t.title} is open for registration.` },
+    { url: '/tournaments' },
+  )
 
   revalidatePath('/admin/tournaments')
   revalidatePath('/tournaments')
