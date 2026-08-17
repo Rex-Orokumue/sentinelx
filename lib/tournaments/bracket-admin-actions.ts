@@ -5,6 +5,8 @@ import { requireStaff } from '@/lib/admin/auth'
 import { resolveGroupCount, snakeDistribute, roundRobinPairs, knockoutRound1 } from './draw'
 import { nextRoundScheduledAt } from './round-schedule'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
+import { notifyInApp } from '@/lib/notifications/inbox'
+import { pushToPlayer } from '@/lib/notifications/push'
 
 export type BracketState = { error?: string; success?: boolean } | undefined
 
@@ -233,7 +235,7 @@ export async function publishBracket(
   const admin = createAdminClient()
   const { data: t } = await admin
     .from('tournaments')
-    .select('status, slug')
+    .select('status, slug, title')
     .eq('id', id)
     .maybeSingle()
   if (!t) return { error: 'Tournament not found.' }
@@ -263,6 +265,27 @@ export async function publishBracket(
       isFullDay: m.is_full_day,
     })),
   )
+
+  // Separate from the per-match match_assigned notification above —
+  // bracket_released tells every registered player their tournament's
+  // bracket is live, including anyone whose first match is a bye and so
+  // never received a match_assigned notification.
+  const registeredPlayers = await seededPaidPlayers(admin, id)
+  for (const playerId of registeredPlayers) {
+    void notifyInApp({
+      playerId,
+      type: 'bracket_released',
+      title: 'Bracket is live!',
+      body: `${t.title}'s bracket has been published.`,
+      link: `/tournaments/${t.slug}/bracket`,
+    })
+    void pushToPlayer(
+      playerId,
+      'bracket_released',
+      { title: 'Bracket is live!', body: `${t.title}'s bracket has been published.` },
+      { url: `/tournaments/${t.slug}/bracket` },
+    )
+  }
 
   revalidateAdmin(id)
   revalidatePath(`/tournaments/${t.slug}`)
