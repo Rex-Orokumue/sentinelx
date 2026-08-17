@@ -8,7 +8,7 @@ import { TierBadge } from '@/components/player/TierBadge'
 import { PromoBanner } from '@/components/home/PromoBanner'
 import { Hero } from '@/components/home/Hero'
 import { LiveTournamentStrip } from '@/components/home/LiveTournamentStrip'
-import { FeatureGrid } from '@/components/home/FeatureGrid'
+import { FourPillars } from '@/components/home/FourPillars'
 import { SentinelBubble } from '@/components/ui/SentinelBubble'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { homepageDescription } from '@/lib/seo/homepage-description'
@@ -107,7 +107,7 @@ export default async function HomePage() {
 
       <LiveTournamentStrip tournament={featured} />
 
-      <FeatureGrid />
+      <FourPillars />
 
       <PromoBanner banner={banner} />
 
