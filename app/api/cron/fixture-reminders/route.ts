@@ -1,5 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notify } from '@/lib/notifications/notify'
+import { notifyInApp } from '@/lib/notifications/inbox'
+import { pushToPlayer } from '@/lib/notifications/push'
 import { reminderKey } from '@/lib/notifications/keys'
 import { isWithinReminderWindow } from '@/lib/notifications/window'
 
@@ -71,6 +73,20 @@ export async function POST(req: Request) {
         tournament,
         matchUrl,
       })
+      const opponent = pid === m.player_a_id ? b : a
+      void notifyInApp({
+        playerId: pid,
+        type: 'match_reminder',
+        title: 'Match in 1 hour',
+        body: `${tournament} · vs ${opponent}`,
+        link: matchUrl,
+      })
+      void pushToPlayer(
+        pid,
+        'match_reminder',
+        { title: 'Match in 1 hour', body: `${tournament} · vs ${opponent}` },
+        { url: matchUrl },
+      )
       reminded += 1
     }
   }

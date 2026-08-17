@@ -17,6 +17,7 @@ import { sortStandings, type MembershipInput } from '@/lib/tournaments/standings
 import { syncMatchEvents } from '@/lib/scoring/apply'
 import { notify } from '@/lib/notifications/notify'
 import { notifyInApp } from '@/lib/notifications/inbox'
+import { pushToPlayer } from '@/lib/notifications/push'
 import { resultKey } from '@/lib/notifications/keys'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 import { creditWallet } from '@/lib/wallet/service'
@@ -464,6 +465,12 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
         body: `${a} ${scoreA} – ${scoreB} ${b} — confirmed for ${title}.`,
         link: `/matches/${id}`,
       })
+      void pushToPlayer(
+        pid,
+        'result_confirmed',
+        { title: 'Result confirmed', body: `${a} ${scoreA} – ${scoreB} ${b} — confirmed for ${title}.` },
+        { url: `/matches/${id}` },
+      )
     }
   }
 

@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notify } from './notify'
 import { notifyInApp } from './inbox'
+import { pushToPlayer } from './push'
 import { fixtureKey } from './keys'
 import { formatFixtureDate } from '@/lib/format'
 import { SITE_URL } from '@/lib/seo/site'
@@ -58,6 +59,12 @@ export async function notifyNewFixtures(admin: Admin, rows: NewFixtureRow[]): Pr
         body: `${a} vs ${b} — ${tournament}${whenLabel ? ` · ${whenLabel}` : ''}`,
         link: `/matches/${r.id}`,
       })
+      void pushToPlayer(
+        pid,
+        'match_assigned',
+        { title: 'New fixture', body: `${a} vs ${b} — ${tournament}` },
+        { url: matchUrl },
+      )
     }
   }
 }

@@ -1,6 +1,7 @@
 import { awardXP } from '@/lib/membership/xp'
 import { recordCoinTransaction } from '@/lib/coins/service'
 import { notifyInApp } from '@/lib/notifications/inbox'
+import { pushToPlayer } from '@/lib/notifications/push'
 import { createAchievementPost } from '@/lib/community/feed-hooks'
 import type { createAdminClient } from '@/lib/supabase/admin'
 
@@ -73,6 +74,12 @@ async function unlock(admin: Admin, playerId: string, achievement: AchievementRo
     body: `${achievement.name} — +${achievement.xp_reward} XP, +${achievement.coin_reward} SX Coins.`,
     link: `/dashboard`,
   })
+  void pushToPlayer(
+    playerId,
+    'achievement_unlocked',
+    { title: 'Achievement unlocked!', body: `${achievement.name} — +${achievement.xp_reward} XP, +${achievement.coin_reward} SX Coins.` },
+    { url: '/dashboard' },
+  )
 }
 
 async function unlockIfDue(
