@@ -12,6 +12,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-16-notification-center-design.md`, `docs/superpowers/specs/2026-08-16-whatsapp-notifications-design.md` — read both; this plan deviates from them in the specific ways called out above and per-task below, and those deviations are intentional, not omissions.
 
+**Post-merge correction (2026-08-17):** after this plan's branch merged, the user reported their actual Firebase project setup uses a single `FIREBASE_SERVICE_ACCOUNT_JSON` env var (the full downloaded service-account key file, pasted as one JSON string) rather than the three separate `FIREBASE_PROJECT_ID`/`FIREBASE_CLIENT_EMAIL`/`FIREBASE_PRIVATE_KEY` vars this plan specifies below. `lib/notifications/fcm.ts`, its test, `.env.local.example`, and `lib/firebase/client.ts` (added `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`) were updated post-merge to match — this document's task text below still shows the original three-var design and was intentionally left as the historical record rather than rewritten; the shipped code is the source of truth.
+
 ## Global Constraints
 
 - Every new notification call is **non-blocking and best-effort**: wrap in try/catch (or reuse a helper that already does), log on failure, never throw into the caller's primary action — same contract as the existing `notify()` and `notifyInApp()`.

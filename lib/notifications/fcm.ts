@@ -9,25 +9,32 @@ export interface FCMNotification {
 
 let cachedMessaging: Messaging | null | undefined // undefined = not attempted, null = unavailable
 
-// Dormant until all three server credentials are set — same contract as
+// Dormant until FIREBASE_SERVICE_ACCOUNT_JSON is set — same contract as
 // sendWhatsApp() in termii.ts for TERMII_API_KEY. NOTE: this deliberately
 // does NOT use the legacy fcm.googleapis.com/fcm/send + "server key"
 // endpoint the original design doc specified — Google decommissioned that
 // endpoint in June 2024. firebase-admin + a service account is the current
-// supported path.
+// supported path. The full downloaded service-account JSON is passed as a
+// single env var (rather than splitting project_id/client_email/private_key
+// into three vars) — one blob avoids the private_key newline-escaping
+// footgun that comes with putting a PEM block in a single-line env var UI.
 function getFirebaseMessaging(): Messaging | null {
   if (cachedMessaging !== undefined) return cachedMessaging
-  const projectId = process.env.FIREBASE_PROJECT_ID
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY
-  if (!projectId || !clientEmail || !privateKey) {
-    console.warn('[FCM] Firebase server credentials not set — push skipped')
+  const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
+  if (!serviceAccountJson) {
+    console.warn('[FCM] FIREBASE_SERVICE_ACCOUNT_JSON not set — push skipped')
     cachedMessaging = null
     return null
   }
-  const app: App = getApps()[0] ?? initializeApp({
-    credential: cert({ projectId, clientEmail, privateKey: privateKey.replace(/\\n/g, '\n') }),
-  })
+  let serviceAccount: object
+  try {
+    serviceAccount = JSON.parse(serviceAccountJson)
+  } catch {
+    console.error('[FCM] FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON — push skipped')
+    cachedMessaging = null
+    return null
+  }
+  const app: App = getApps()[0] ?? initializeApp({ credential: cert(serviceAccount) })
   cachedMessaging = getMessaging(app)
   return cachedMessaging
 }

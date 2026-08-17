@@ -19,9 +19,14 @@ vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: () => ({ from }) }))
 
 describe('sendToTokens', () => {
   beforeEach(() => {
-    vi.stubEnv('FIREBASE_PROJECT_ID', 'sx-test')
-    vi.stubEnv('FIREBASE_CLIENT_EMAIL', 'sa@sx-test.iam.gserviceaccount.com')
-    vi.stubEnv('FIREBASE_PRIVATE_KEY', '-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----\\n')
+    vi.stubEnv(
+      'FIREBASE_SERVICE_ACCOUNT_JSON',
+      JSON.stringify({
+        project_id: 'sx-test',
+        client_email: 'sa@sx-test.iam.gserviceaccount.com',
+        private_key: '-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n',
+      }),
+    )
     sendEachForMulticast.mockReset()
     deleteIn.mockClear()
   })
@@ -44,6 +49,15 @@ describe('sendToTokens', () => {
 
   it('does not call FCM when credentials are unset', async () => {
     vi.unstubAllEnvs()
+    vi.resetModules()
+    const { sendToTokens } = await import('./fcm')
+    await sendToTokens([{ id: 'row-1', token: 'tok-1' }], { title: 'Hi', body: 'There' }, { url: '/x' })
+    expect(sendEachForMulticast).not.toHaveBeenCalled()
+  })
+
+  it('does not call FCM when the JSON is malformed', async () => {
+    vi.unstubAllEnvs()
+    vi.stubEnv('FIREBASE_SERVICE_ACCOUNT_JSON', '{not valid json')
     vi.resetModules()
     const { sendToTokens } = await import('./fcm')
     await sendToTokens([{ id: 'row-1', token: 'tok-1' }], { title: 'Hi', body: 'There' }, { url: '/x' })
