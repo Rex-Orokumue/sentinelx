@@ -4,11 +4,11 @@ import { createClient } from '@/lib/supabase/server'
 import { TournamentCard } from '@/components/tournament/TournamentCard'
 import type { TournamentCardData } from '@/components/tournament/TournamentCard'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { TierBadge } from '@/components/player/TierBadge'
 import { PromoBanner } from '@/components/home/PromoBanner'
 import { Hero } from '@/components/home/Hero'
 import { LiveTournamentStrip } from '@/components/home/LiveTournamentStrip'
 import { FourPillars } from '@/components/home/FourPillars'
+import { LeaderboardRow } from '@/components/home/LeaderboardRow'
 import { SentinelBubble } from '@/components/ui/SentinelBubble'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { homepageDescription } from '@/lib/seo/homepage-description'
@@ -137,61 +137,19 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-sx-border bg-sx-surface">
-          {leaderboard.length === 0 ? (
-            <EmptyState
-              icon="🏅"
-              title="Rankings coming soon"
-              body="Be the first to compete and claim the top spot."
-            />
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-sx-border text-[11px] uppercase tracking-widest text-sx-gray">
-                  <th className="px-4 py-3 text-left">#</th>
-                  <th className="px-4 py-3 text-left">Player</th>
-                  <th className="px-4 py-3 text-right">Wins</th>
-                  <th className="hidden px-4 py-3 text-right sm:table-cell">Matches</th>
-                  <th className="hidden px-4 py-3 text-right sm:table-cell">SX Score</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaderboard.map((player, i) => (
-                  <tr
-                    key={player.id}
-                    className="border-b border-sx-border/60 transition-colors last:border-0 hover:bg-white/[0.03]"
-                  >
-                    <td className="px-4 py-3.5 font-bold text-sx-gray">
-                      {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white">
-                          {((player.username ?? player.display_name ?? '?')[0] ?? '?').toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-semibold leading-tight text-white">
-                            {player.display_name ?? player.username ?? 'Anonymous'}
-                          </p>
-                          <TierBadge tier={player.sentinel_tier} />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-bold text-sx-green">
-                      {player.wins}
-                    </td>
-                    <td className="hidden px-4 py-3.5 text-right text-sx-gray sm:table-cell">
-                      {player.total_matches}
-                    </td>
-                    <td className="hidden px-4 py-3.5 text-right font-bold text-sx-purple-text sm:table-cell">
-                      {player.sx_score}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        {leaderboard.length === 0 ? (
+          <EmptyState
+            icon="🏅"
+            title="Rankings coming soon"
+            body="Be the first to compete and claim the top spot."
+          />
+        ) : (
+          <div className="flex flex-col gap-2">
+            {leaderboard.map((player, i) => (
+              <LeaderboardRow key={player.id} player={player} rank={i + 1} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ── WhatsApp Community CTA ───────────────────────────── */}
