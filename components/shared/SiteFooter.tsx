@@ -16,10 +16,10 @@ const SOCIALS = [
 ]
 
 const LEGAL_LINKS = [
-  { href: '/coming-soon?feature=Terms+of+Service', label: 'Terms of Service' },
-  { href: '/coming-soon?feature=Privacy+Policy', label: 'Privacy Policy' },
-  { href: '/coming-soon?feature=Help+Center', label: 'Help Center' },
-  { href: '/coming-soon?feature=Contact+Us', label: 'Contact Us' },
+  { href: '/terms', label: 'Terms of Service' },
+  { href: '/privacy', label: 'Privacy Policy' },
+  { href: '/help', label: 'Help Center' },
+  { href: '/contact', label: 'Contact Us' },
 ]
 
 const EXPANDED_SECTIONS: { heading: string; links: { href: string; label: string }[] }[] = [
@@ -40,20 +40,20 @@ const EXPANDED_SECTIONS: { heading: string; links: { href: string; label: string
   {
     heading: 'Support',
     links: [
-      { href: '/coming-soon?feature=Help+Center', label: 'Help Center' },
-      { href: '/coming-soon?feature=Safety+Tips', label: 'Safety Tips' },
-      { href: '/coming-soon?feature=How+It+Works', label: 'How It Works' },
-      { href: '/coming-soon?feature=Contact+Us', label: 'Contact Us' },
-      { href: '/coming-soon?feature=Rules', label: 'Rules' },
+      { href: '/help', label: 'Help Center' },
+      { href: '/safety', label: 'Safety Tips' },
+      { href: '/how-it-works', label: 'How It Works' },
+      { href: '/contact', label: 'Contact Us' },
+      { href: '/rules', label: 'Rules' },
     ],
   },
   {
     heading: 'Company',
     links: [
       { href: '/about', label: 'About Us' },
-      { href: '/coming-soon?feature=Terms+of+Service', label: 'Terms of Service' },
-      { href: '/coming-soon?feature=Privacy+Policy', label: 'Privacy Policy' },
-      { href: '/coming-soon?feature=Refund+Policy', label: 'Refund Policy' },
+      { href: '/terms', label: 'Terms of Service' },
+      { href: '/privacy', label: 'Privacy Policy' },
+      { href: '/refund-policy', label: 'Refund Policy' },
     ],
   },
 ]

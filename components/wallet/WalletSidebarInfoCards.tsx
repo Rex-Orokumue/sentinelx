@@ -12,7 +12,7 @@ export function WalletSidebarInfoCards() {
           All wallet transactions are protected by Zolarux Escrow. 100% Safe. 100% Trusted.
         </p>
         <a
-          href="/coming-soon?feature=Zolarux+Escrow"
+          href="/escrow"
           className="mt-2 inline-block text-xs font-bold text-sx-purple-text hover:text-sx-purple-light"
         >
           Learn More →
@@ -24,7 +24,7 @@ export function WalletSidebarInfoCards() {
         </p>
         <p className="mt-2 text-xs leading-relaxed text-sx-gray">Our support team is available 24/7.</p>
         <a
-          href="/coming-soon?feature=Contact+Support"
+          href="/contact"
           className="mt-2 inline-block text-xs font-bold text-sx-purple-text hover:text-sx-purple-light"
         >
           Contact Support →
