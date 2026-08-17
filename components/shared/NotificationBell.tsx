@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import { Bell } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { NotificationDrawer } from './NotificationDrawer'
+import { listenForegroundMessages } from '@/components/notifications/useFCM'
 import type { NotificationItem } from '@/lib/nav/session'
 
 export function NotificationBell({
@@ -81,6 +82,16 @@ export function NotificationBell({
       cancelled = true
       if (channel) createClient().removeChannel(channel)
     }
+  }, [])
+
+  // Foreground push: onBackgroundMessage in firebase-messaging-sw.js only
+  // fires when this tab isn't focused. Without this, a push that arrives
+  // while the player is actively on the site is received by the SDK and
+  // silently dropped — no OS toast, nothing. See useFCM.ts for the
+  // showNotification() call this triggers. No-op if push was never
+  // enabled/configured; safe to call unconditionally.
+  useEffect(() => {
+    listenForegroundMessages()
   }, [])
 
   return (

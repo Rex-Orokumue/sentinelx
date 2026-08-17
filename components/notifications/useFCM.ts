@@ -49,3 +49,32 @@ export async function requestPushPermission(): Promise<boolean> {
 export async function disablePush(): Promise<void> {
   await fetch('/api/notifications/fcm-token', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: '{}' })
 }
+
+// firebase-messaging-sw.js's onBackgroundMessage only fires when the tab is
+// NOT focused — that's how FCM web push works by design, not a bug in the
+// service worker. When the tab IS focused (the common case: a player is
+// actively on the site when e.g. their weekly challenge completes),
+// Firebase routes the message to this page-level onMessage() listener
+// instead, and without one registered here, the message was received by
+// the SDK and silently dropped — no toast, nothing in the OS notification
+// tray. Reuses the same already-registered service worker's
+// showNotification() so foreground and background pushes look identical
+// and both funnel through the SW's existing `notificationclick` handler.
+// Call once per session from an always-mounted client component (NotificationBell) —
+// safe to call unconditionally; it's a no-op until a message actually arrives.
+export function listenForegroundMessages(): void {
+  const app = getFirebaseApp()
+  if (!app || typeof window === 'undefined' || !('Notification' in window) || !('serviceWorker' in navigator)) return
+
+  import('firebase/messaging').then(({ getMessaging, onMessage }) => {
+    const messaging = getMessaging(app)
+    onMessage(messaging, async (payload) => {
+      const registration = await navigator.serviceWorker.ready
+      await registration.showNotification(payload.notification?.title ?? 'SentinelX', {
+        body: payload.notification?.body,
+        icon: '/logo-icon.png',
+        data: payload.data,
+      })
+    })
+  })
+}
