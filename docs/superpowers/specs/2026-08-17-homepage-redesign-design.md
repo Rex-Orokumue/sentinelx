@@ -47,9 +47,10 @@ motion/animation and HUD-style chrome ("gamey" per the user's ask).
 
 **Removed:** `TrustedByStrip`, `StatsBar` (folded into Hero's animated stats + Four
 Pillars), the "One Guardian. Every Moment." tagline banner (redundant with the new hero's
-tag line). The dedicated WhatsApp CTA section is removed; the WhatsApp community link
-still lives in the footer (already there) — homepage no longer duplicates it as a full
-section.
+tag line). The dedicated WhatsApp CTA section (join-community + share-on-WhatsApp buttons)
+is removed; the "Join WhatsApp Community" link already lives in `SiteHeader` (unchanged,
+out of scope) per CLAUDE.md's v1.0 requirement, so this isn't the only entry point —
+homepage no longer duplicates it as a full body section.
 
 ## Component-by-component
 
@@ -99,14 +100,15 @@ drifted from the documented pillars). Static content:
 
 Restyle to match mockup's `.tc`: game tag + status pill top row, name, 2x2 stat grid,
 block CTA button. Two variants:
-- **Standard** (open/upcoming): Prize Pool / Format / Entry Fee / Spots-Left-or-Starts.
-- **Champion** (season-championship/invitational, gated on `tournament_type` — already
-  in the existing query select, no new column): gradient background wash, gold border,
-  gold name text, gold ghost CTA, and the stat grid swaps to Prize Pool / Format /
-  Eligibility / Qualifier, matching the mockup — these tournaments don't have a
-  conventional entry fee or open spots count, so reusing the standard fields would show
-  nonsensical data. `Eligibility`/`Qualifier` are static copy per tournament
-  (`tournament_type`-driven), not new DB columns.
+- **Standard** (`tournament_type` ∈ `'open' | 'community_club' | 'masters'`): Prize Pool /
+  Format / Entry Fee / Spots-Left-or-Starts.
+- **Champion** (`tournament_type === 'champions_cup'` — the annual invitational flagship;
+  values already confirmed in `047_season_system.sql`'s check constraint, no new column):
+  gradient background wash, gold border, gold name text, gold ghost CTA, and the stat grid
+  swaps to Prize Pool / Format / Eligibility / Qualifier, matching the mockup — Champions
+  Cup entries don't have a conventional entry fee or open spots count, so reusing the
+  standard fields would show nonsensical data. `Eligibility`/`Qualifier` are static copy
+  ("Top 16 Players" / "Auto — Season Points"), not new DB columns.
 
 ### Leaderboard Preview (in `page.tsx`, rebuilt inline or extracted)
 
@@ -124,11 +126,27 @@ in `page.tsx` and passing it to `HexAvatar` — no schema change, the column alr
 
 ### HallOfFameTeaser (`components/home/HallOfFameTeaser.tsx`, new)
 
-Gold-accented card: trophy emoji, "Season N Champion · {Game}" label, champion name,
-one-line detail (tournament + record + prize), `View Hall of Fame →` link to
-`/hall-of-fame`. Data: latest completed season's champion — reuse whatever query/helper
-`/hall-of-fame` already uses to determine this (do not reimplement season-champion logic
-from scratch). **Empty state:** if no season has completed yet, omit the section entirely.
+Gold-accented card: trophy emoji, "Champions Cup · {Game}" label, champion name, one-line
+detail (tournament title + prize), `View Hall of Fame →` link to `/hall-of-fame`.
+
+There is no "season champion" concept in the current schema (checked against
+`app/(public)/hall-of-fame/page.tsx`) — the closest, correct analog to the mockup's
+"Season N Champion" teaser is the latest **Champions Cup** result, the site's annual
+invitational flagship (same `tournament_type` used for the TournamentCard champion
+variant above). Data flow mirrors the Hall of Fame page's own Champions Cup section but
+scoped down to "latest only":
+1. Query `tournaments` where `tournament_type = 'champions_cup'` and `status =
+   'completed'`, select `id, slug, title, tournament_end, prize_pool, games(name)`,
+   order by `tournament_end` desc, `limit(1)`.
+2. If a row exists, query its final match (`matches` where `tournament_id = <id>` and
+   `round = 'final'` and `status = 'completed'`, joining `player_a`/`player_b` display
+   name) — same shape the Hall of Fame page already builds for `newFinalByTournament`.
+3. Feed both into the existing `deriveTournamentResults` (`lib/hall-of-fame/tournament-
+   results.ts`) — reuse it rather than reimplementing champion-resolution logic — and
+   read `.champion.name` off the single resulting entry.
+
+**Empty state:** if no Champions Cup tournament has completed yet, omit the section
+entirely.
 
 ### HowItWorks (`components/home/HowItWorks.tsx`, new)
 
