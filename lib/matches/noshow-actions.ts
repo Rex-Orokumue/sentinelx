@@ -9,6 +9,7 @@ import { revalidateAll } from './revalidate'
 import { syncMatchEvents } from '@/lib/scoring/apply'
 import { notify } from '@/lib/notifications/notify'
 import { notifyInApp } from '@/lib/notifications/inbox'
+import { pushToPlayer } from '@/lib/notifications/push'
 import { resultKey, noshowKey } from '@/lib/notifications/keys'
 import { getNotifiableStaffIds } from '@/lib/admin/staff'
 import { canMarkBothNoShow } from './noshow-eligibility'
@@ -140,6 +141,12 @@ export async function resolvePendingNoShowMatches(
         body: `${tournamentTitle} — ${playerA} vs ${playerB} passed its deadline with no confirmed result.`,
         link: `/admin/matches/${m.id}/review`,
       })
+      void pushToPlayer(
+        staffId,
+        'noshow_needs_decision',
+        { title: 'No-show needs a decision', body: `${tournamentTitle} — ${playerA} vs ${playerB} passed its deadline with no confirmed result.` },
+        { url: `/admin/matches/${m.id}/review` },
+      )
     }
   }
   return { flagged: due.length }
