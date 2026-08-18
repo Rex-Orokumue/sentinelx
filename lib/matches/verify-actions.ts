@@ -489,7 +489,14 @@ export async function disputeResult(_prev: VerifyState, formData: FormData): Pro
 
   const admin = createAdminClient()
   type NameRef = { display_name: string | null; username: string | null } | { display_name: string | null; username: string | null }[] | null
-  const { data: m } = await admin
+  type DisputeMatchRow = {
+    id: string
+    tournament_id: string
+    tournament: { slug: string; title: string } | { slug: string; title: string }[] | null
+    player_a: NameRef
+    player_b: NameRef
+  }
+  const { data: mRaw } = await admin
     .from('matches')
     .select(
       'id, tournament_id, tournament:tournaments(slug, title), ' +
@@ -498,6 +505,7 @@ export async function disputeResult(_prev: VerifyState, formData: FormData): Pro
     )
     .eq('id', id)
     .maybeSingle()
+  const m = (mRaw ?? null) as unknown as DisputeMatchRow | null
   if (!m) return { error: 'Match not found.' }
 
   const { error } = await admin
@@ -530,8 +538,7 @@ export async function disputeResult(_prev: VerifyState, formData: FormData): Pro
   })
   void notifyStaff(admin, 'result_disputed', { title: notification.title, body: notification.body, link: notification.link }, staff.userId)
 
-  const t = firstStr(m.tournament as { slug: string } | { slug: string }[] | null)
-  revalidateAll(m.tournament_id, t?.slug ?? '', id)
+  revalidateAll(m.tournament_id, tRef?.slug ?? '', id)
   return { success: true }
 }
 

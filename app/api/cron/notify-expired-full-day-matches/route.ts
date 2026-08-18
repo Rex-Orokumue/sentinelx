@@ -4,6 +4,7 @@ import { noSubmissionNotification } from '@/lib/admin/notification-copy'
 
 type NameRef = { display_name: string | null; username: string | null } | { display_name: string | null; username: string | null }[] | null
 type TournamentRef = { title: string } | { title: string }[] | null
+type ExpiredMatchRow = { id: string; player_a: NameRef; player_b: NameRef; tournament: TournamentRef }
 
 function nameOf(x: NameRef): string {
   const r = Array.isArray(x) ? x[0] ?? null : x
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
     .eq('auto_expired', true)
     .is('full_day_alert_sent_at', null)
 
-  const rows = data ?? []
+  const rows = ((data ?? []) as unknown[]) as ExpiredMatchRow[]
   for (const m of rows) {
     const tRef = m.tournament as TournamentRef
     const t = Array.isArray(tRef) ? tRef[0] : tRef

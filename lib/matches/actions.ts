@@ -81,7 +81,8 @@ export async function submitMatchResult(
   if (!priorSubmissionCount) {
     const admin = createAdminClient()
     type NameRef = { display_name: string | null; username: string | null } | { display_name: string | null; username: string | null }[] | null
-    const { data: md } = await admin
+    type ReviewMatchRow = { player_a: NameRef; player_b: NameRef; tournament: { title: string } | { title: string }[] | null }
+    const { data: mdRaw } = await admin
       .from('matches')
       .select(
         'player_a:profiles!matches_player_a_id_fkey(display_name, username), ' +
@@ -90,6 +91,7 @@ export async function submitMatchResult(
       )
       .eq('id', matchId)
       .maybeSingle()
+    const md = (mdRaw ?? null) as unknown as ReviewMatchRow | null
     if (md) {
       const nameOf = (x: NameRef) => {
         const r = Array.isArray(x) ? x[0] ?? null : x
