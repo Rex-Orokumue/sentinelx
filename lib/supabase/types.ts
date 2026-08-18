@@ -1011,6 +1011,7 @@ export type Database = {
           auto_expired: boolean
           completed_at: string | null
           created_at: string
+          full_day_alert_sent_at: string | null
           group_id: string | null
           id: string
           is_full_day: boolean
@@ -1033,6 +1034,7 @@ export type Database = {
           auto_expired?: boolean
           completed_at?: string | null
           created_at?: string
+          full_day_alert_sent_at?: string | null
           group_id?: string | null
           id?: string
           is_full_day?: boolean
@@ -1055,6 +1057,7 @@ export type Database = {
           auto_expired?: boolean
           completed_at?: string | null
           created_at?: string
+          full_day_alert_sent_at?: string | null
           group_id?: string | null
           id?: string
           is_full_day?: boolean

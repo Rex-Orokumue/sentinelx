@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { walletWithdrawalSchema } from './schema'
 import { getWalletBalance, debitWallet } from './service'
+import { notifyStaff } from '@/lib/admin/staff'
+import { withdrawalNotification } from '@/lib/admin/notification-copy'
 
 export type WalletWithdrawalState = { error?: string; success?: boolean } | undefined
 
@@ -68,6 +70,15 @@ export async function requestWalletWithdrawal(
     await admin.from('withdrawal_requests').delete().eq('id', inserted.id)
     return { error: 'That amount is more than your available balance.' }
   }
+
+  const { data: requester } = await admin.from('profiles').select('display_name, username').eq('id', user.id).maybeSingle()
+  const notification = withdrawalNotification({
+    type: 'withdrawal_pending',
+    username: requester?.display_name ?? requester?.username ?? 'A player',
+    amount: parsed.data.amount,
+    createdAt: new Date().toISOString(),
+  })
+  void notifyStaff(admin, 'withdrawal_pending', { title: notification.title, body: notification.body, link: notification.link })
 
   revalidatePath('/dashboard')
   return { success: true }
