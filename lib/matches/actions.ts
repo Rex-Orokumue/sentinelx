@@ -1,7 +1,10 @@
 'use server'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { submitResultSchema } from './schema'
+import { notifyStaff } from '@/lib/admin/staff'
+import { resultNotification } from '@/lib/admin/notification-copy'
 
 export type SubmitResultState = { error?: string; success?: boolean } | undefined
 
@@ -50,6 +53,11 @@ export async function submitMatchResult(
     return { error: 'Your submission is under review and can no longer be edited.' }
   }
 
+  const { count: priorSubmissionCount } = await supabase
+    .from('match_results')
+    .select('id', { count: 'exact', head: true })
+    .eq('match_id', matchId)
+
   const finalScreenshot = screenshotPath || existing?.screenshot_url || null
   if (!finalScreenshot) return { error: 'A screenshot is required.' }
 
@@ -69,6 +77,35 @@ export async function submitMatchResult(
     { onConflict: 'match_id,submitted_by' },
   )
   if (error) return { error: 'Could not submit your result. Please try again.' }
+
+  if (!priorSubmissionCount) {
+    const admin = createAdminClient()
+    type NameRef = { display_name: string | null; username: string | null } | { display_name: string | null; username: string | null }[] | null
+    const { data: md } = await admin
+      .from('matches')
+      .select(
+        'player_a:profiles!matches_player_a_id_fkey(display_name, username), ' +
+          'player_b:profiles!matches_player_b_id_fkey(display_name, username), ' +
+          'tournament:tournaments(title)',
+      )
+      .eq('id', matchId)
+      .maybeSingle()
+    if (md) {
+      const nameOf = (x: NameRef) => {
+        const r = Array.isArray(x) ? x[0] ?? null : x
+        return r?.display_name ?? r?.username ?? 'Player'
+      }
+      const tRef = Array.isArray(md.tournament) ? md.tournament[0] : md.tournament
+      const notification = resultNotification({
+        type: 'result_needs_review',
+        tournamentTitle: tRef?.title ?? 'Tournament',
+        playerAName: nameOf(md.player_a as NameRef),
+        playerBName: nameOf(md.player_b as NameRef),
+        createdAt: new Date().toISOString(),
+      })
+      void notifyStaff(admin, 'result_needs_review', { title: notification.title, body: notification.body, link: notification.link })
+    }
+  }
 
   revalidatePath(`/matches/${matchId}`)
   return { success: true }
