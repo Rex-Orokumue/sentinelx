@@ -31,6 +31,11 @@ export type NotificationType =
   | 'wager_settled'
   | 'bracket_released'
   | 'match_reminder'
+  | 'withdrawal_pending'
+  | 'exchange_listing_pending'
+  | 'result_needs_review'
+  | 'result_disputed'
+  | 'result_no_submission'
 
 // Best-effort — NEVER throws into the caller's primary action, mirroring
 // lib/notifications/notify.ts's WhatsApp helper. A failed in-app notification
