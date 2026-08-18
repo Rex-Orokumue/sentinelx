@@ -20,6 +20,8 @@ import { notifyInApp } from '@/lib/notifications/inbox'
 import { pushToPlayer } from '@/lib/notifications/push'
 import { resultKey } from '@/lib/notifications/keys'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
+import { notifyStaff } from '@/lib/admin/staff'
+import { resultNotification } from '@/lib/admin/notification-copy'
 import { creditWallet } from '@/lib/wallet/service'
 import { settleMatchWagers, refundMatchWagers } from '@/lib/wagers/settle'
 import { revalidateAll, revalidateThirdPlaceCredit } from './revalidate'
@@ -479,16 +481,21 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
 }
 
 export async function disputeResult(_prev: VerifyState, formData: FormData): Promise<VerifyState> {
-  await requireStaff()
+  const staff = await requireStaff()
   const id = String(formData.get('id') ?? '')
   const note = String(formData.get('note') ?? '').trim()
   if (!id) return { error: 'Missing match.' }
   if (!note) return { error: 'Enter a reason for the dispute.' }
 
   const admin = createAdminClient()
+  type NameRef = { display_name: string | null; username: string | null } | { display_name: string | null; username: string | null }[] | null
   const { data: m } = await admin
     .from('matches')
-    .select('id, tournament_id, tournament:tournaments(slug)')
+    .select(
+      'id, tournament_id, tournament:tournaments(slug, title), ' +
+        'player_a:profiles!matches_player_a_id_fkey(display_name, username), ' +
+        'player_b:profiles!matches_player_b_id_fkey(display_name, username)',
+    )
     .eq('id', id)
     .maybeSingle()
   if (!m) return { error: 'Match not found.' }
@@ -508,6 +515,20 @@ export async function disputeResult(_prev: VerifyState, formData: FormData): Pro
   await refundMatchWagers(admin, id)
 
   await syncMatchEvents(admin, id)
+
+  const nameOf = (x: NameRef) => {
+    const r = Array.isArray(x) ? x[0] ?? null : x
+    return r?.display_name ?? r?.username ?? 'Player'
+  }
+  const tRef = Array.isArray(m.tournament) ? m.tournament[0] : m.tournament
+  const notification = resultNotification({
+    type: 'result_disputed',
+    tournamentTitle: tRef?.title ?? 'Tournament',
+    playerAName: nameOf(m.player_a as NameRef),
+    playerBName: nameOf(m.player_b as NameRef),
+    createdAt: new Date().toISOString(),
+  })
+  void notifyStaff(admin, 'result_disputed', { title: notification.title, body: notification.body, link: notification.link }, staff.userId)
 
   const t = firstStr(m.tournament as { slug: string } | { slug: string }[] | null)
   revalidateAll(m.tournament_id, t?.slug ?? '', id)
