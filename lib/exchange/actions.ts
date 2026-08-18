@@ -1,8 +1,11 @@
 'use server'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { listingSchema } from './schema'
 import { validateImageCount } from './images'
+import { notifyStaff } from '@/lib/admin/staff'
+import { exchangeListingNotification } from '@/lib/admin/notification-copy'
 
 export type ActionState = { error?: string; success?: boolean } | undefined
 
@@ -55,6 +58,14 @@ export async function createListing(input: {
     const rows = urls.map((url, i) => ({ listing_id: listing.id, image_url: url, display_order: i }))
     await supabase.from('listing_images').insert(rows)
   }
+
+  const { data: seller } = await supabase.from('profiles').select('display_name, username').eq('id', user.id).maybeSingle()
+  const notification = exchangeListingNotification({
+    title: d.title,
+    sellerName: seller?.display_name ?? seller?.username ?? 'A player',
+    createdAt: new Date().toISOString(),
+  })
+  void notifyStaff(createAdminClient(), 'exchange_listing_pending', { title: notification.title, body: notification.body, link: notification.link })
 
   revalidatePath('/exchange')
   revalidatePath('/dashboard')
