@@ -3,7 +3,10 @@ import Link from 'next/link'
 // CLAUDE.md's Four Pillars, verbatim — replaces the old FeatureGrid, whose
 // six-item list had drifted from the documented pillars (Compete/Watch/
 // Community/Trade).
-const PILLARS = [
+//
+// Exported so the Guide System's visitor tour (components/guide/GuidePanel.tsx)
+// can render the same four pillars without re-authoring the copy.
+export const PILLARS = [
   {
     emoji: '🎮',
     accent: 'bg-sx-purple/10 text-sx-purple-text',

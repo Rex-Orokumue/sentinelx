@@ -1,4 +1,6 @@
-const STEPS = [
+// Exported so the Guide System's visitor tour (components/guide/GuidePanel.tsx)
+// can render a condensed version without re-authoring the copy.
+export const STEPS = [
   {
     num: '01',
     icon: '👤',
