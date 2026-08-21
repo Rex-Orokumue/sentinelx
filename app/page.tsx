@@ -14,7 +14,6 @@ import { HowItWorks } from '@/components/home/HowItWorks'
 import { HomeFinalCta } from '@/components/home/HomeFinalCta'
 import { buildHallOfFameTeaserData, type HallOfFameTeaserData } from '@/lib/home/hall-of-fame-teaser'
 import type { BracketMatch } from '@/lib/tournaments/bracket'
-import { SentinelBubble } from '@/components/ui/SentinelBubble'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { homepageDescription } from '@/lib/seo/homepage-description'
 import { FaqSection } from '@/components/home/FaqSection'
@@ -240,7 +239,6 @@ export default async function HomePage() {
       <FaqSection items={HOMEPAGE_FAQS} />
       <JsonLd data={buildFaqJsonLd(HOMEPAGE_FAQS)} />
 
-      <SentinelBubble variant="home" />
     </div>
   )
 }

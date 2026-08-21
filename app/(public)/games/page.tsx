@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/server'
 import { dedupeGamesByName } from '@/lib/games/dedupe'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
-import { SentinelBubble } from '@/components/ui/SentinelBubble'
 import { GameGenreTabs } from '@/components/games/GameGenreTabs'
 import { NotifyMeButton } from '@/components/games/NotifyMeButton'
 import { findOptionalPublicImage } from '@/lib/media/optional-image'
@@ -198,7 +197,6 @@ export default async function GamesPage({
         <WhyItem icon={Users} label="For Everyone" body="From casual players to competitive pros." />
       </section>
 
-      <SentinelBubble variant="games" />
     </div>
   )
 }

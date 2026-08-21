@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/server'
 import { TournamentCard } from '@/components/tournament/TournamentCard'
 import type { TournamentCardData } from '@/components/tournament/TournamentCard'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { SentinelBubble } from '@/components/ui/SentinelBubble'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { SITE_URL, DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { formatNaira } from '@/lib/format'
@@ -261,7 +260,6 @@ export default async function TournamentsPage({ searchParams }: { searchParams: 
       </div>
 
       <ShareCta />
-      <SentinelBubble variant="tournaments" />
     </div>
   )
 }

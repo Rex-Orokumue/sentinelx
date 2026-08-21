@@ -7,7 +7,6 @@ import { winsByPlayerAndGame, scoreStatsByPlayerAndCategory, type GameScopedMatc
 import { CATEGORY_META } from '@/lib/games/categories'
 import { LeaderboardTabs } from '@/components/rankings/LeaderboardTabs'
 import { EmptyState } from '@/components/shared/EmptyState'
-import { SentinelBubble } from '@/components/ui/SentinelBubble'
 import { buildMetadata } from '@/lib/seo/metadata'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { formatNaira } from '@/lib/format'
@@ -209,7 +208,6 @@ export default async function RankingsPage() {
         </div>
       </section>
 
-      <SentinelBubble variant="leaderboards" />
     </div>
   )
 }
