@@ -43,6 +43,7 @@ export default async function DashboardSettingsPage() {
     <DashboardShell>
       <h1 className="mb-4 text-lg font-bold text-white">Settings</h1>
       <div className="space-y-5">
+        <div id="guide-target-profile">
         <ProfileForm
           profile={{
             displayName: row?.display_name ?? null,
@@ -55,6 +56,7 @@ export default async function DashboardSettingsPage() {
             bio: row?.bio ?? null,
           }}
         />
+        </div>
         <NotificationPrefsForm
           prefs={{
             match_reminder: prefs.whatsapp?.match_reminder ?? true,

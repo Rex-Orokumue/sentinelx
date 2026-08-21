@@ -179,7 +179,7 @@ export default async function TournamentsPage({ searchParams }: { searchParams: 
         </aside>
 
         {/* ── Left column ───────────────────────────────────── */}
-        <div className="min-w-0 lg:order-first">
+        <div id="guide-target-tournaments" className="min-w-0 lg:order-first">
           {gameFilter && (
             <div className="mb-4">
               <Link

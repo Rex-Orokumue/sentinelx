@@ -213,7 +213,7 @@ export default async function DashboardMatchesPage() {
         <DataSupportPanel username={profileRes.data?.username ?? ''} eligibility={dataSupportEligibility} />
       )}
 
-      <section>
+      <section id="guide-target-matches">
         <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-sx-gray">Active</h2>
         <TournamentStatusBanners banners={tournamentBanners} />
         <ActiveFixtures fixtures={{ live: fixtures.live, upcoming: fixtures.upcoming }} />
