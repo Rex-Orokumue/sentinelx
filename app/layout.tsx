@@ -7,6 +7,7 @@ import { SiteHeader } from '@/components/shared/SiteHeader'
 import { SiteFooter } from '@/components/shared/SiteFooter'
 import { NavTransitionProvider } from '@/components/transitions/NavTransitionProvider'
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
+import { GuideLauncher } from '@/components/guide/GuideLauncher'
 import { getNavSession } from '@/lib/nav/session'
 import { ADMIN_NAV, visibleNav, type AdminSheetData } from '@/lib/admin/nav'
 import { getAdminNotificationQueue } from '@/lib/admin/notification-queue'
@@ -102,6 +103,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
           <SiteFooter />
         </div>
+
+        <GuideLauncher isLoggedIn={navSession.isLoggedIn} username={navSession.username} avatarUrl={navSession.avatarUrl} />
 
         <Analytics />
         <JsonLd data={buildOrganizationJsonLd()} />
