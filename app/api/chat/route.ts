@@ -17,7 +17,13 @@ import { getAccountSnapshot } from '@/lib/chat/account-snapshot'
 
 export const runtime = 'nodejs'
 
-const MODEL = 'llama-3.3-70b-versatile'
+// llama-3.3-70b-versatile (the model this plan originally specified) was
+// removed from Groq's catalog before this route could be manually verified
+// (confirmed via groq.models.list() — no longer present). openai/gpt-oss-120b
+// is the replacement: verified here to handle both a plain FAQ completion and
+// tool-calling (get_account_snapshot) correctly. Re-check console.groq.com's
+// model list if this route ever 404s on model_not_found again.
+const MODEL = 'openai/gpt-oss-120b'
 const ANON_COOKIE = 'sx-chat-anon-id'
 
 type Admin = ReturnType<typeof createAdminClient>
