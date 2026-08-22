@@ -11,6 +11,7 @@ import { STEPS } from '@/components/home/HowItWorks'
 import { getQuestStatus, claimBattleReadyBadge } from '@/lib/guide/actions'
 import type { QuestStatus } from '@/lib/guide/quest-status'
 import { Spotlight } from './Spotlight'
+import { ChatTab } from './ChatTab'
 
 type QuestKey = 'profileComplete' | 'firstTournamentEntered' | 'firstMatchCompleted'
 
@@ -50,6 +51,7 @@ export function GuidePanel({
   onClose: () => void
 }) {
   const router = useRouter()
+  const [tab, setTab] = useState<'guide' | 'chat'>('guide')
   const [visitorSlide, setVisitorSlide] = useState(0)
   const [status, setStatus] = useState<QuestStatus | null>(null)
   const [alreadyClaimed, setAlreadyClaimed] = useState(false)
@@ -116,8 +118,31 @@ export function GuidePanel({
           </button>
         </div>
 
-        <div className="flex-1 p-4">
-          {!isLoggedIn ? (
+        <div className="flex border-b border-sx-border">
+          <button
+            type="button"
+            onClick={() => setTab('guide')}
+            className={`flex-1 py-2 text-xs font-bold uppercase tracking-wide ${
+              tab === 'guide' ? 'border-b-2 border-sx-purple text-white' : 'text-sx-gray'
+            }`}
+          >
+            Guide
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('chat')}
+            className={`flex-1 py-2 text-xs font-bold uppercase tracking-wide ${
+              tab === 'chat' ? 'border-b-2 border-sx-purple text-white' : 'text-sx-gray'
+            }`}
+          >
+            Chat
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          {tab === 'chat' ? (
+            <ChatTab isLoggedIn={isLoggedIn} />
+          ) : !isLoggedIn ? (
             <VisitorTour
               slide={visitorSlide}
               onNext={() => setVisitorSlide((s) => Math.min(3, s + 1))}
