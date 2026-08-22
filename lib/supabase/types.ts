@@ -226,6 +226,56 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          player_id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          player_id: string
+          role: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          player_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_rate_limit_events: {
+        Row: {
+          created_at: string
+          id: string
+          subject_key: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          subject_key: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          subject_key?: string
+        }
+        Relationships: []
+      }
       community_challenges: {
         Row: {
           active: boolean
