@@ -50,13 +50,19 @@ export async function sendToTokens(
   const messaging = getFirebaseMessaging()
   if (!messaging || tokens.length === 0) return
   const admin = createAdminClient()
+  // title/body travel inside `data`, never as a top-level `notification`
+  // field — a `notification` payload makes the browser auto-display the
+  // push itself, on top of the display our own onBackgroundMessage/
+  // onMessage handlers (sw.js, useFCM.ts) already trigger, producing a
+  // duplicate notification. Data-only leaves exactly one code path in
+  // control of showNotification().
+  const payloadData = { ...data, title: notification.title, body: notification.body }
 
   for (let i = 0; i < tokens.length; i += 500) {
     const chunk = tokens.slice(i, i + 500)
     const res = await messaging.sendEachForMulticast({
       tokens: chunk.map((t) => t.token),
-      notification,
-      data,
+      data: payloadData,
       webpush: { fcmOptions: { link: data.url } },
     })
     const staleIds: string[] = []

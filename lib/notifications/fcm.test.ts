@@ -63,4 +63,19 @@ describe('sendToTokens', () => {
     await sendToTokens([{ id: 'row-1', token: 'tok-1' }], { title: 'Hi', body: 'There' }, { url: '/x' })
     expect(sendEachForMulticast).not.toHaveBeenCalled()
   })
+
+  // A top-level `notification` field makes browsers auto-display the push
+  // themselves, on top of the display our own onBackgroundMessage/onMessage
+  // handlers already trigger — the player sees the same notification twice.
+  // Sending data-only (title/body folded into `data`) leaves exactly one
+  // code path in control of showNotification().
+  it('sends title/body via data only, not a top-level notification field', async () => {
+    sendEachForMulticast.mockResolvedValueOnce({ responses: [{ success: true }] })
+    vi.resetModules()
+    const { sendToTokens } = await import('./fcm')
+    await sendToTokens([{ id: 'row-1', token: 'tok-1' }], { title: 'Hi', body: 'There' }, { url: '/x', type: 'result_confirmed' })
+    const call = sendEachForMulticast.mock.calls[0][0]
+    expect(call.notification).toBeUndefined()
+    expect(call.data).toMatchObject({ title: 'Hi', body: 'There', url: '/x', type: 'result_confirmed' })
+  })
 })

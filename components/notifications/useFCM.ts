@@ -91,9 +91,11 @@ export function listenForegroundMessages(): void {
   import('firebase/messaging').then(({ getMessaging, onMessage }) => {
     const messaging = getMessaging(app)
     onMessage(messaging, async (payload) => {
+      // title/body arrive inside payload.data, not payload.notification —
+      // see the comment on sendToTokens in lib/notifications/fcm.ts.
       const registration = await navigator.serviceWorker.ready
-      await registration.showNotification(payload.notification?.title ?? 'SentinelX', {
-        body: payload.notification?.body,
+      await registration.showNotification(payload.data?.title ?? 'SentinelX', {
+        body: payload.data?.body,
         icon: '/logo-icon.png',
         data: payload.data,
       })
