@@ -30,10 +30,14 @@ if (firebaseApiKey) {
 
   const messaging = firebase.messaging()
 
+  // title/body arrive inside payload.data, not payload.notification — see
+  // the comment on sendToTokens in lib/notifications/fcm.ts for why: a
+  // top-level `notification` field makes the browser auto-display the push
+  // itself in addition to this handler, producing a duplicate notification.
   messaging.onBackgroundMessage((payload) => {
-    const title = payload.notification?.title ?? 'SentinelX'
+    const title = payload.data?.title ?? 'SentinelX'
     self.registration.showNotification(title, {
-      body: payload.notification?.body,
+      body: payload.data?.body,
       icon: '/logo-icon.png',
       data: payload.data,
     })
