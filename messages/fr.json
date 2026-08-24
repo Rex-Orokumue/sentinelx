@@ -1,7 +1,12 @@
 {
   "common": {
     "siteName": "SentinelX",
-    "viewAll": "Voir tout"
+    "viewAll": "Voir tout",
+    "menu": "Menu",
+    "closeMenu": "Fermer le menu",
+    "joinWhatsapp": "Rejoindre la communauté WhatsApp",
+    "admin": "Administrateur",
+    "moderator": "Modérateur"
   },
   "nav": {
     "home": "Accueil",
@@ -12,11 +17,56 @@
     "exchange": "Échange",
     "store": "Boutique",
     "community": "Communauté",
-    "about": "À propos"
+    "about": "À propos",
+    "tv": "TV"
   },
   "home": {
     "upcomingHeading": "À venir",
     "topPlayersHeading": "Meilleurs joueurs",
     "fullRankingsLink": "Classement complet"
+  },
+  "account": {
+    "myProfile": "Mon profil",
+    "dashboard": "Tableau de bord",
+    "wallet": "Portefeuille",
+    "friendlies": "Matchs amicaux",
+    "signOut": "Se déconnecter",
+    "login": "Connexion",
+    "register": "S'inscrire"
+  },
+  "footer": {
+    "tagline1": "Un gardien. Chaque instant.",
+    "taglineHighlight": "Où les gamers s'unissent.",
+    "taglineRest": "Les champions s'élèvent.",
+    "sectionPlatform": "Plateforme",
+    "sectionSupport": "Assistance",
+    "sectionCompany": "Entreprise",
+    "stayConnected": "Restez connecté",
+    "emailAddressLabel": "Adresse e-mail",
+    "emailPlaceholder": "Entrez votre e-mail",
+    "subscribe": "S'abonner",
+    "subscribed": "Envoyé !",
+    "copyright": "© {year} SentinelX Esports. Tous droits réservés.",
+    "poweredBy": "Propulsé par",
+    "links": {
+      "tournaments": "Tournois",
+      "games": "Jeux",
+      "rankings": "Classements",
+      "seasons": "Saisons",
+      "exchange": "Boutique (Échange)",
+      "community": "Communauté",
+      "tv": "Sentinel X TV",
+      "hallOfFame": "Temple de la renommée",
+      "players": "Joueurs",
+      "help": "Centre d'aide",
+      "safety": "Conseils de sécurité",
+      "howItWorks": "Comment ça marche",
+      "contact": "Nous contacter",
+      "rules": "Règles",
+      "about": "À propos",
+      "terms": "Conditions d'utilisation",
+      "privacy": "Politique de confidentialité",
+      "refundPolicy": "Politique de remboursement"
+    }
   }
 }

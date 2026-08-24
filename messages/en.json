@@ -1,7 +1,12 @@
 {
   "common": {
     "siteName": "SentinelX",
-    "viewAll": "View all"
+    "viewAll": "View all",
+    "menu": "Menu",
+    "closeMenu": "Close menu",
+    "joinWhatsapp": "Join WhatsApp Community",
+    "admin": "Admin",
+    "moderator": "Moderator"
   },
   "nav": {
     "home": "Home",
@@ -12,11 +17,56 @@
     "exchange": "Exchange",
     "store": "Store",
     "community": "Community",
-    "about": "About Us"
+    "about": "About Us",
+    "tv": "TV"
   },
   "home": {
     "upcomingHeading": "Upcoming",
     "topPlayersHeading": "Top Players",
     "fullRankingsLink": "Full Rankings"
+  },
+  "account": {
+    "myProfile": "My Profile",
+    "dashboard": "Dashboard",
+    "wallet": "Wallet",
+    "friendlies": "Friendlies",
+    "signOut": "Sign out",
+    "login": "Login",
+    "register": "Register"
+  },
+  "footer": {
+    "tagline1": "One Guardian. Every Moment.",
+    "taglineHighlight": "Where Gamers Unite.",
+    "taglineRest": "Champions Rise.",
+    "sectionPlatform": "Platform",
+    "sectionSupport": "Support",
+    "sectionCompany": "Company",
+    "stayConnected": "Stay Connected",
+    "emailAddressLabel": "Email address",
+    "emailPlaceholder": "Enter your email",
+    "subscribe": "Subscribe",
+    "subscribed": "Sent!",
+    "copyright": "© {year} SentinelX Esports. All rights reserved.",
+    "poweredBy": "Powered by",
+    "links": {
+      "tournaments": "Tournaments",
+      "games": "Games",
+      "rankings": "Leaderboards",
+      "seasons": "Seasons",
+      "exchange": "Store (Exchange)",
+      "community": "Community",
+      "tv": "Sentinel X TV",
+      "hallOfFame": "Hall of Fame",
+      "players": "Players",
+      "help": "Help Center",
+      "safety": "Safety Tips",
+      "howItWorks": "How It Works",
+      "contact": "Contact Us",
+      "rules": "Rules",
+      "about": "About Us",
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy",
+      "refundPolicy": "Refund Policy"
+    }
   }
 }
