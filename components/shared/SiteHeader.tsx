@@ -8,6 +8,7 @@ import { AccountMenu } from '@/components/shared/AccountMenu'
 import { BalanceChips } from '@/components/shared/BalanceChips'
 import { NotificationBell } from '@/components/shared/NotificationBell'
 import { MobileNavSheet } from '@/components/shared/MobileNavSheet'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 import type { NavSession } from '@/lib/nav/session'
 import type { AdminSheetData } from '@/lib/admin/nav'
 import { NAVBAR_LINKS } from '@/lib/nav/links'
@@ -61,6 +62,8 @@ export function SiteHeader({
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
+            <LanguageSwitcher />
+
             {/* WhatsApp community CTA — all breakpoints */}
             <a
               href={whatsappUrl}
