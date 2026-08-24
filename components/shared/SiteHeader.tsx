@@ -4,10 +4,12 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { AccountMenu } from '@/components/shared/AccountMenu'
 import { BalanceChips } from '@/components/shared/BalanceChips'
 import { NotificationBell } from '@/components/shared/NotificationBell'
 import { MobileNavSheet } from '@/components/shared/MobileNavSheet'
+import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 import type { NavSession } from '@/lib/nav/session'
 import type { AdminSheetData } from '@/lib/admin/nav'
 import { NAVBAR_LINKS } from '@/lib/nav/links'
@@ -23,6 +25,18 @@ export function SiteHeader({
 }) {
   const pathname = usePathname()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const t = useTranslations('nav')
+  const NAV_LABEL_KEYS: Record<string, string> = {
+    '/': 'home',
+    '/tournaments': 'tournaments',
+    '/games': 'games',
+    '/rankings': 'rankings',
+    '/seasons/season-1': 'seasons',
+    '/exchange': 'exchange',
+    '/store': 'store',
+    '/community': 'community',
+    '/about': 'about',
+  }
 
   return (
     <>
@@ -54,13 +68,15 @@ export function SiteHeader({
                       : 'border-transparent text-white/70 hover:text-white'
                   }`}
                 >
-                  {item.label}
+                  {t(NAV_LABEL_KEYS[item.href] ?? 'tournaments')}
                 </Link>
               )
             })}
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
+            <LanguageSwitcher />
+
             {/* WhatsApp community CTA — all breakpoints */}
             <a
               href={whatsappUrl}

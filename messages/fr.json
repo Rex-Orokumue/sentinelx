@@ -1,0 +1,22 @@
+{
+  "common": {
+    "siteName": "SentinelX",
+    "viewAll": "Voir tout"
+  },
+  "nav": {
+    "home": "Accueil",
+    "tournaments": "Tournois",
+    "games": "Jeux",
+    "rankings": "Classements",
+    "seasons": "Saisons",
+    "exchange": "Échange",
+    "store": "Boutique",
+    "community": "Communauté",
+    "about": "À propos"
+  },
+  "home": {
+    "upcomingHeading": "À venir",
+    "topPlayersHeading": "Meilleurs joueurs",
+    "fullRankingsLink": "Classement complet"
+  }
+}

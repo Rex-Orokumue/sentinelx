@@ -1,7 +1,9 @@
 'use server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { LOCALES } from '@/i18n/locales'
 import {
   loginSchema,
   signupSchema,
@@ -67,7 +69,7 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
 
   // The email link format (token_hash + type + next) is controlled by the
   // Supabase "Confirm signup" template, which routes to /auth/confirm.
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -85,6 +87,14 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
       message: error.message,
     })
     return { error: mapSignupError(error) }
+  }
+
+  // Seeds the new player's language from whatever they were browsing in —
+  // see docs/superpowers/specs/2026-08-23-multi-language-support-design.md §5.
+  const cookieLocale = cookies().get('NEXT_LOCALE')?.value
+  const locale = LOCALES.includes(cookieLocale as (typeof LOCALES)[number]) ? cookieLocale : 'en'
+  if (data.user) {
+    await supabase.from('profiles').update({ locale }).eq('id', data.user.id)
   }
 
   return { success: 'check-email' }

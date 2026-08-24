@@ -6,6 +6,7 @@ import {
   playerSitemapEntry,
   matchSitemapEntry,
   listingSitemapEntry,
+  expandToLocales,
 } from '@/lib/seo/sitemap-entries'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -26,5 +27,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .map(playerSitemapEntry),
     ...(matches ?? []).map(matchSitemapEntry),
     ...(listings ?? []).map(listingSitemapEntry),
-  ]
+  ].flatMap(expandToLocales)
 }

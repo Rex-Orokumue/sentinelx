@@ -1,5 +1,23 @@
 import type { MetadataRoute } from 'next'
 import { SITE_URL } from './site'
+import { LOCALES } from '@/i18n/locales'
+import { withLocalePrefix } from '@/lib/i18n/locale-path'
+
+// Expands one canonical (English, unprefixed) sitemap entry into one entry
+// per locale — /tournaments/x, /fr/tournaments/x, /pcm/tournaments/x —
+// each carrying an alternates.languages block covering all three, so search
+// engines see every language variant instead of treating them as
+// duplicate/unrelated pages. Every other field (lastModified, priority,
+// changeFrequency) carries over unchanged onto each locale variant.
+export function expandToLocales(entry: MetadataRoute.Sitemap[number]): MetadataRoute.Sitemap {
+  const path = entry.url.replace(SITE_URL, '') || '/'
+  const languages = Object.fromEntries(LOCALES.map((l) => [l, `${SITE_URL}${withLocalePrefix(path, l)}`]))
+  return LOCALES.map((locale) => ({
+    ...entry,
+    url: `${SITE_URL}${withLocalePrefix(path, locale)}`,
+    alternates: { languages },
+  }))
+}
 
 export function staticSitemapEntries(): MetadataRoute.Sitemap {
   const paths = [

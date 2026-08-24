@@ -1632,6 +1632,7 @@ export type Database = {
           id: string
           kyc_verified: boolean
           last_login_date: string | null
+          locale: string
           login_streak: number
           losses: number
           membership_tier: string
@@ -1661,6 +1662,7 @@ export type Database = {
           id: string
           kyc_verified?: boolean
           last_login_date?: string | null
+          locale?: string
           login_streak?: number
           losses?: number
           membership_tier?: string
@@ -1690,6 +1692,7 @@ export type Database = {
           id?: string
           kyc_verified?: boolean
           last_login_date?: string | null
+          locale?: string
           login_streak?: number
           losses?: number
           membership_tier?: string

@@ -5,6 +5,7 @@ import {
   playerSitemapEntry,
   matchSitemapEntry,
   listingSitemapEntry,
+  expandToLocales,
 } from './sitemap-entries'
 import { SITE_URL } from './site'
 
@@ -54,5 +55,23 @@ describe('listingSitemapEntry', () => {
   it('builds a url from a listing row', () => {
     const entry = listingSitemapEntry({ id: 'listing-1', updated_at: '2026-07-03T00:00:00.000Z' })
     expect(entry.url).toBe(`${SITE_URL}/exchange/listing-1`)
+  })
+})
+
+describe('expandToLocales', () => {
+  it('produces one entry per locale, each with hreflang alternates covering all three', () => {
+    const entries = expandToLocales({ url: `${SITE_URL}/tournaments/x`, priority: 0.8 })
+    expect(entries.map((e) => e.url)).toEqual([
+      `${SITE_URL}/tournaments/x`,
+      `${SITE_URL}/fr/tournaments/x`,
+      `${SITE_URL}/pcm/tournaments/x`,
+    ])
+    expect(entries[0].alternates?.languages).toEqual({
+      en: `${SITE_URL}/tournaments/x`,
+      fr: `${SITE_URL}/fr/tournaments/x`,
+      pcm: `${SITE_URL}/pcm/tournaments/x`,
+    })
+    // Other fields (priority, etc.) carry over onto every locale variant.
+    entries.forEach((e) => expect(e.priority).toBe(0.8))
   })
 })

@@ -56,10 +56,20 @@ self.addEventListener('notificationclick', (event) => {
 // whole site — is network-only, falling back to /offline (never a stale
 // copy) when the network is unavailable.
 const SHELL_CACHE = 'sx-shell-v1'
+// '/about', '/games', '/coming-soon' each now exist at three locale
+// variants (see docs/superpowers/specs/2026-08-23-multi-language-support-design.md
+// §4) — all nine are precached. '/offline' and the icon/manifest assets stay
+// unprefixed and locale-invariant.
 const SHELL_URLS = [
   '/about',
+  '/fr/about',
+  '/pcm/about',
   '/games',
+  '/fr/games',
+  '/pcm/games',
   '/coming-soon',
+  '/fr/coming-soon',
+  '/pcm/coming-soon',
   '/offline',
   '/icon-192.png',
   '/icon-512.png',
