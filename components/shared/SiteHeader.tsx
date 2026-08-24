@@ -26,17 +26,6 @@ export function SiteHeader({
   const pathname = usePathname()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const t = useTranslations('nav')
-  const NAV_LABEL_KEYS: Record<string, string> = {
-    '/': 'home',
-    '/tournaments': 'tournaments',
-    '/games': 'games',
-    '/rankings': 'rankings',
-    '/seasons/season-1': 'seasons',
-    '/exchange': 'exchange',
-    '/store': 'store',
-    '/community': 'community',
-    '/about': 'about',
-  }
 
   return (
     <>
@@ -68,7 +57,7 @@ export function SiteHeader({
                       : 'border-transparent text-white/70 hover:text-white'
                   }`}
                 >
-                  {t(NAV_LABEL_KEYS[item.href] ?? 'tournaments')}
+                  {t(item.labelKey)}
                 </Link>
               )
             })}

@@ -1,6 +1,6 @@
 export interface NavLink {
   href: string
-  label: string
+  labelKey: string
 }
 
 export interface PillarLink extends NavLink {
@@ -13,25 +13,25 @@ export interface PillarLink extends NavLink {
 // destinations — previously the header said "Store"/"Tournaments" while the
 // bottom bar said "Trade"/"Compete" for the same pages.
 export const PILLAR_LINKS: PillarLink[] = [
-  { key: 'compete', href: '/tournaments', label: 'Tournaments' },
-  { key: 'watch', href: '/tv', label: 'TV' },
-  { key: 'community', href: '/community', label: 'Community' },
-  { key: 'trade', href: '/exchange', label: 'Exchange' },
+  { key: 'compete', href: '/tournaments', labelKey: 'tournaments' },
+  { key: 'watch', href: '/tv', labelKey: 'tv' },
+  { key: 'community', href: '/community', labelKey: 'community' },
+  { key: 'trade', href: '/exchange', labelKey: 'exchange' },
 ]
 
 // Secondary destinations that earn a slot in the desktop header.
 export const SECONDARY_LINKS: NavLink[] = [
-  { href: '/games', label: 'Games' },
-  { href: '/rankings', label: 'Leaderboards' },
-  { href: '/seasons/season-1', label: 'Seasons' },
-  { href: '/about', label: 'About' },
+  { href: '/games', labelKey: 'games' },
+  { href: '/rankings', labelKey: 'rankings' },
+  { href: '/seasons/season-1', labelKey: 'seasons' },
+  { href: '/about', labelKey: 'about' },
 ]
 
 // Reachable from the footer only — too many for the header, and the mobile
 // bottom bar is capped at the four pillars + Account.
 export const FOOTER_ONLY_LINKS: NavLink[] = [
-  { href: '/players', label: 'Players' },
-  { href: '/hall-of-fame', label: 'Hall of Fame' },
+  { href: '/players', labelKey: 'players' },
+  { href: '/hall-of-fame', labelKey: 'hallOfFame' },
 ]
 
 // Desktop header, in order. The logo is the Home link, so '/' is not repeated.
@@ -50,20 +50,20 @@ export const HEADER_LINKS: NavLink[] = [...PILLAR_LINKS, ...SECONDARY_LINKS]
 // Task 5.1, Phase 2 Economy). Renamed to "Exchange" (matching PILLAR_LINKS,
 // which already calls it that) so /store can carry the plain "Store" label.
 export const NAVBAR_LINKS: NavLink[] = [
-  { href: '/', label: 'Home' },
-  { href: '/tournaments', label: 'Tournaments' },
-  { href: '/games', label: 'Games' },
-  { href: '/rankings', label: 'Leaderboards' },
-  { href: '/seasons/season-1', label: 'Seasons' },
-  { href: '/exchange', label: 'Exchange' },
-  { href: '/store', label: 'Store' },
-  { href: '/community', label: 'Community' },
-  { href: '/about', label: 'About Us' },
+  { href: '/', labelKey: 'home' },
+  { href: '/tournaments', labelKey: 'tournaments' },
+  { href: '/games', labelKey: 'games' },
+  { href: '/rankings', labelKey: 'rankings' },
+  { href: '/seasons/season-1', labelKey: 'seasons' },
+  { href: '/exchange', labelKey: 'exchange' },
+  { href: '/store', labelKey: 'store' },
+  { href: '/community', labelKey: 'community' },
+  { href: '/about', labelKey: 'about' },
 ]
 
-// The footer is the one surface that renders every destination on every
-// breakpoint — it's what makes /tv reachable on desktop and /rankings,
-// /games, /about reachable on mobile.
+// The footer is a separate, independent data source (components/shared/SiteFooter.tsx)
+// and does not consume this export — kept only as a pre-existing structural
+// reference; not rendered anywhere.
 export const FOOTER_SECTIONS: { heading: string; links: NavLink[] }[] = [
   { heading: 'Compete', links: [PILLAR_LINKS[0], SECONDARY_LINKS[1], SECONDARY_LINKS[2], FOOTER_ONLY_LINKS[1]] },
   { heading: 'Explore', links: [PILLAR_LINKS[1], PILLAR_LINKS[2], PILLAR_LINKS[3]] },

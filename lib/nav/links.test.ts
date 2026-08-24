@@ -3,36 +3,36 @@ import { mergeNavLinks, SHEET_SITE_LINKS, NAVBAR_LINKS, PILLAR_LINKS, type NavLi
 
 describe('mergeNavLinks', () => {
   it('keeps every link from the first list, in order', () => {
-    const a: NavLink[] = [{ href: '/a', label: 'A' }, { href: '/b', label: 'B' }]
+    const a: NavLink[] = [{ href: '/a', labelKey: 'A' }, { href: '/b', labelKey: 'B' }]
     expect(mergeNavLinks(a, [])).toEqual(a)
   })
 
   it('appends links from later lists whose href is not already present', () => {
-    const a: NavLink[] = [{ href: '/a', label: 'A' }]
-    const b: NavLink[] = [{ href: '/b', label: 'B' }]
+    const a: NavLink[] = [{ href: '/a', labelKey: 'A' }]
+    const b: NavLink[] = [{ href: '/b', labelKey: 'B' }]
     expect(mergeNavLinks(a, b)).toEqual([
-      { href: '/a', label: 'A' },
-      { href: '/b', label: 'B' },
+      { href: '/a', labelKey: 'A' },
+      { href: '/b', labelKey: 'B' },
     ])
   })
 
   it('drops a later-list link whose href already appeared, keeping the first occurrence', () => {
-    const a: NavLink[] = [{ href: '/shared', label: 'First label' }]
-    const b: NavLink[] = [{ href: '/shared', label: 'Second label' }, { href: '/only-b', label: 'Only B' }]
+    const a: NavLink[] = [{ href: '/shared', labelKey: 'First label' }]
+    const b: NavLink[] = [{ href: '/shared', labelKey: 'Second label' }, { href: '/only-b', labelKey: 'Only B' }]
     expect(mergeNavLinks(a, b)).toEqual([
-      { href: '/shared', label: 'First label' },
-      { href: '/only-b', label: 'Only B' },
+      { href: '/shared', labelKey: 'First label' },
+      { href: '/only-b', labelKey: 'Only B' },
     ])
   })
 
   it('merges three or more lists', () => {
-    const a: NavLink[] = [{ href: '/a', label: 'A' }]
-    const b: NavLink[] = [{ href: '/a', label: 'A dup' }, { href: '/b', label: 'B' }]
-    const c: NavLink[] = [{ href: '/c', label: 'C' }]
+    const a: NavLink[] = [{ href: '/a', labelKey: 'A' }]
+    const b: NavLink[] = [{ href: '/a', labelKey: 'A dup' }, { href: '/b', labelKey: 'B' }]
+    const c: NavLink[] = [{ href: '/c', labelKey: 'C' }]
     expect(mergeNavLinks(a, b, c)).toEqual([
-      { href: '/a', label: 'A' },
-      { href: '/b', label: 'B' },
-      { href: '/c', label: 'C' },
+      { href: '/a', labelKey: 'A' },
+      { href: '/b', labelKey: 'B' },
+      { href: '/c', labelKey: 'C' },
     ])
   })
 })
@@ -55,11 +55,11 @@ describe('SHEET_SITE_LINKS', () => {
 
   it('contains every PILLAR_LINKS entry (by href — PillarLink carries an extra `key` field NavLink does not)', () => {
     for (const pillar of PILLAR_LINKS) {
-      expect(SHEET_SITE_LINKS.some((l) => l.href === pillar.href && l.label === pillar.label)).toBe(true)
+      expect(SHEET_SITE_LINKS.some((l) => l.href === pillar.href && l.labelKey === pillar.labelKey)).toBe(true)
     }
   })
 
   it('leads with Home, from NAVBAR_LINKS', () => {
-    expect(SHEET_SITE_LINKS[0]).toEqual({ href: '/', label: 'Home' })
+    expect(SHEET_SITE_LINKS[0]).toEqual({ href: '/', labelKey: 'home' })
   })
 })
