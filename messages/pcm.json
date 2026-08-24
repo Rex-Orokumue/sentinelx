@@ -1,0 +1,22 @@
+{
+  "common": {
+    "siteName": "SentinelX",
+    "viewAll": "See all"
+  },
+  "nav": {
+    "home": "Home",
+    "tournaments": "Tournaments",
+    "games": "Games",
+    "rankings": "Leaderboard",
+    "seasons": "Seasons",
+    "exchange": "Exchange",
+    "store": "Store",
+    "community": "Community",
+    "about": "About Us"
+  },
+  "home": {
+    "upcomingHeading": "Wetin dey come",
+    "topPlayersHeading": "Top Players",
+    "fullRankingsLink": "Full Ranking"
+  }
+}
