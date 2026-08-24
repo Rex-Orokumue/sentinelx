@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { ChevronRight, X } from 'lucide-react'
 import { signOut } from '@/lib/auth/actions'
 import { SHEET_SITE_LINKS } from '@/lib/nav/links'
@@ -101,6 +102,9 @@ export function MobileNavSheet({
   onClose: () => void
 }) {
   const pathname = usePathname()
+  const tNav = useTranslations('nav')
+  const tAccount = useTranslations('account')
+  const tCommon = useTranslations('common')
 
   // Same lifecycle as components/tv/VideoModal.tsx: Escape closes, body
   // scroll locks while the sheet is mounted.
@@ -127,11 +131,11 @@ export function MobileNavSheet({
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.25rem)' }}
       >
         <div className="mb-4 flex items-center justify-between">
-          <span className="font-display text-lg font-bold uppercase tracking-wide text-white">Menu</span>
+          <span className="font-display text-lg font-bold uppercase tracking-wide text-white">{tCommon('menu')}</span>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close menu"
+            aria-label={tCommon('closeMenu')}
             className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/10"
           >
             <X className="h-5 w-5" />
@@ -145,7 +149,7 @@ export function MobileNavSheet({
               label="Admin"
               badge={
                 <span className="rounded-full border border-sx-border px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest text-sx-gray">
-                  {adminNav.isAdmin ? 'Admin' : 'Moderator'}
+                  {adminNav.isAdmin ? tCommon('admin') : tCommon('moderator')}
                 </span>
               }
             >
@@ -181,7 +185,7 @@ export function MobileNavSheet({
             const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
             return (
               <SheetLink key={item.href} href={item.href} active={active} onClose={onClose}>
-                {item.label}
+                {tNav(item.labelKey)}
               </SheetLink>
             )
           })}
@@ -197,27 +201,27 @@ export function MobileNavSheet({
                 active={false}
                 onClose={onClose}
               >
-                My Profile
+                {tAccount('myProfile')}
               </SheetLink>
               <SheetLink
                 href="/dashboard"
                 active={pathname === '/dashboard'}
                 onClose={onClose}
               >
-                Dashboard
+                {tAccount('dashboard')}
               </SheetLink>
               <SheetLink href="/dashboard/wallet" active={pathname.startsWith('/dashboard/wallet')} onClose={onClose}>
-                Wallet
+                {tAccount('wallet')}
               </SheetLink>
               <SheetLink href="/dashboard/friendlies" active={pathname.startsWith('/dashboard/friendlies')} onClose={onClose}>
-                Friendlies
+                {tAccount('friendlies')}
               </SheetLink>
               <form action={signOut}>
                 <button
                   type="submit"
                   className="block w-full rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-white/70 transition-colors hover:text-white"
                 >
-                  Sign out
+                  {tAccount('signOut')}
                 </button>
               </form>
             </>
@@ -228,14 +232,14 @@ export function MobileNavSheet({
                 onClick={onClose}
                 className="flex-1 rounded-lg border border-sx-border py-2.5 text-center text-sm font-bold text-white transition-colors"
               >
-                Login
+                {tAccount('login')}
               </Link>
               <Link
                 href="/signup"
                 onClick={onClose}
                 className="flex-1 rounded-lg bg-sx-purple py-2.5 text-center text-sm font-bold text-white transition-colors"
               >
-                Register
+                {tAccount('register')}
               </Link>
             </div>
           )}
@@ -249,7 +253,7 @@ export function MobileNavSheet({
           className="flex items-center justify-center gap-1.5 rounded-full bg-sx-green px-4 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
         >
           <WhatsAppIcon className="h-4 w-4" />
-          <span>Join WhatsApp Community</span>
+          <span>{tCommon('joinWhatsapp')}</span>
         </a>
       </div>
     </div>
