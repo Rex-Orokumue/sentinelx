@@ -2,6 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import type { Database } from './types'
 import { resolveOnboardingGate } from '@/lib/onboarding/gate'
+import { withLocalePrefix } from '@/lib/i18n/locale-path'
+import type { Locale } from '@/i18n/locales'
 
 const PROTECTED = ['/dashboard', '/admin']
 // Exact-match only — '/players/[username]' profile pages stay public (SEO,
@@ -10,7 +12,11 @@ const PROTECTED = ['/dashboard', '/admin']
 const PROTECTED_EXACT = ['/players']
 const AUTH_PAGES = ['/login', '/signup']
 
-export async function updateSession(request: NextRequest): Promise<NextResponse> {
+export async function updateSession(
+  request: NextRequest,
+  pathname: string,
+  locale: Locale,
+): Promise<{ response: NextResponse; redirected: boolean }> {
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient<Database>(
@@ -33,24 +39,25 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   )
 
   const { data: { user } } = await supabase.auth.getUser()
-  const path = request.nextUrl.pathname
 
-  if (!user && (PROTECTED.some((p) => path.startsWith(p)) || PROTECTED_EXACT.includes(path))) {
+  const redirectTo = (targetPath: string, search?: URLSearchParams) => {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = withLocalePrefix(targetPath, locale)
     url.search = ''
-    url.searchParams.set('next', path)
-    return NextResponse.redirect(url)
+    if (search) search.forEach((value, key) => url.searchParams.set(key, value))
+    return { response: NextResponse.redirect(url), redirected: true as const }
   }
 
-  if (user && AUTH_PAGES.some((p) => path.startsWith(p))) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    url.search = ''
-    return NextResponse.redirect(url)
+  if (!user && (PROTECTED.some((p) => pathname.startsWith(p)) || PROTECTED_EXACT.includes(pathname))) {
+    const search = new URLSearchParams({ next: pathname })
+    return redirectTo('/login', search)
   }
 
-  if (user && path.startsWith('/dashboard')) {
+  if (user && AUTH_PAGES.some((p) => pathname.startsWith(p))) {
+    return redirectTo('/dashboard')
+  }
+
+  if (user && pathname.startsWith('/dashboard')) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('username, phone_verified_at')
@@ -60,13 +67,8 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
       username: profile?.username ?? null,
       phoneVerifiedAt: profile?.phone_verified_at ?? null,
     })
-    if (gate) {
-      const url = request.nextUrl.clone()
-      url.pathname = gate
-      url.search = ''
-      return NextResponse.redirect(url)
-    }
+    if (gate) return redirectTo(gate)
   }
 
-  return response
+  return { response, redirected: false }
 }
