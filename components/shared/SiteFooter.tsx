@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 // Routes that use the expanded footer (spec §2.2 Variant B).
 const EXPANDED_ROUTES = ['/games', '/about', '/community', '/exchange']
@@ -15,45 +16,45 @@ const SOCIALS = [
   { name: 'X', href: process.env.NEXT_PUBLIC_X_URL ?? '#', Icon: XIcon },
 ]
 
-const LEGAL_LINKS = [
-  { href: '/terms', label: 'Terms of Service' },
-  { href: '/privacy', label: 'Privacy Policy' },
-  { href: '/help', label: 'Help Center' },
-  { href: '/contact', label: 'Contact Us' },
+const LEGAL_LINKS: { href: string; labelKey: string }[] = [
+  { href: '/terms', labelKey: 'terms' },
+  { href: '/privacy', labelKey: 'privacy' },
+  { href: '/help', labelKey: 'help' },
+  { href: '/contact', labelKey: 'contact' },
 ]
 
-const EXPANDED_SECTIONS: { heading: string; links: { href: string; label: string }[] }[] = [
+const EXPANDED_SECTIONS: { headingKey: string; links: { href: string; labelKey: string }[] }[] = [
   {
-    heading: 'Platform',
+    headingKey: 'sectionPlatform',
     links: [
-      { href: '/tournaments', label: 'Tournaments' },
-      { href: '/games', label: 'Games' },
-      { href: '/rankings', label: 'Leaderboards' },
-      { href: '/seasons/season-1', label: 'Seasons' },
-      { href: '/exchange', label: 'Store (Exchange)' },
-      { href: '/community', label: 'Community' },
-      { href: '/tv', label: 'Sentinel X TV' },
-      { href: '/hall-of-fame', label: 'Hall of Fame' },
-      { href: '/players', label: 'Players' },
+      { href: '/tournaments', labelKey: 'tournaments' },
+      { href: '/games', labelKey: 'games' },
+      { href: '/rankings', labelKey: 'rankings' },
+      { href: '/seasons/season-1', labelKey: 'seasons' },
+      { href: '/exchange', labelKey: 'exchange' },
+      { href: '/community', labelKey: 'community' },
+      { href: '/tv', labelKey: 'tv' },
+      { href: '/hall-of-fame', labelKey: 'hallOfFame' },
+      { href: '/players', labelKey: 'players' },
     ],
   },
   {
-    heading: 'Support',
+    headingKey: 'sectionSupport',
     links: [
-      { href: '/help', label: 'Help Center' },
-      { href: '/safety', label: 'Safety Tips' },
-      { href: '/how-it-works', label: 'How It Works' },
-      { href: '/contact', label: 'Contact Us' },
-      { href: '/rules', label: 'Rules' },
+      { href: '/help', labelKey: 'help' },
+      { href: '/safety', labelKey: 'safety' },
+      { href: '/how-it-works', labelKey: 'howItWorks' },
+      { href: '/contact', labelKey: 'contact' },
+      { href: '/rules', labelKey: 'rules' },
     ],
   },
   {
-    heading: 'Company',
+    headingKey: 'sectionCompany',
     links: [
-      { href: '/about', label: 'About Us' },
-      { href: '/terms', label: 'Terms of Service' },
-      { href: '/privacy', label: 'Privacy Policy' },
-      { href: '/refund-policy', label: 'Refund Policy' },
+      { href: '/about', labelKey: 'about' },
+      { href: '/terms', labelKey: 'terms' },
+      { href: '/privacy', labelKey: 'privacy' },
+      { href: '/refund-policy', labelKey: 'refundPolicy' },
     ],
   },
 ]
@@ -66,6 +67,7 @@ const EXPANDED_SECTIONS: { heading: string; links: { href: string; label: string
 // without every page having to know about it.
 export function SiteFooter() {
   const pathname = usePathname()
+  const t = useTranslations('footer')
   const variant: 'simple' | 'expanded' = EXPANDED_ROUTES.some(
     (r) => pathname === r || pathname.startsWith(`${r}/`),
   )
@@ -80,9 +82,9 @@ export function SiteFooter() {
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <Logo />
-              <p className="mt-3 text-sm font-semibold text-white">One Guardian. Every Moment.</p>
+              <p className="mt-3 text-sm font-semibold text-white">{t('tagline1')}</p>
               <p className="text-sm text-sx-gray">
-                <span className="text-sx-purple-text">Where Gamers Unite.</span> Champions Rise.
+                <span className="text-sx-purple-text">{t('taglineHighlight')}</span> {t('taglineRest')}
               </p>
             </div>
             <SocialRow />
@@ -91,18 +93,18 @@ export function SiteFooter() {
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
             <div className="lg:col-span-1">
               <Logo />
-              <p className="mt-3 text-sm font-semibold text-white">One Guardian. Every Moment.</p>
+              <p className="mt-3 text-sm font-semibold text-white">{t('tagline1')}</p>
             </div>
             {EXPANDED_SECTIONS.map((section) => (
-              <div key={section.heading}>
+              <div key={section.headingKey}>
                 <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-sx-purple-text">
-                  {section.heading}
+                  {t(section.headingKey)}
                 </h2>
                 <ul className="space-y-2">
                   {section.links.map((link) => (
-                    <li key={link.label}>
+                    <li key={link.labelKey}>
                       <Link href={link.href} className="text-sm text-sx-gray transition-colors hover:text-white">
-                        {link.label}
+                        {t(`links.${link.labelKey}`)}
                       </Link>
                     </li>
                   ))}
@@ -111,9 +113,9 @@ export function SiteFooter() {
             ))}
             <div>
               <h2 className="mb-3 text-xs font-bold uppercase tracking-widest text-sx-purple-text">
-                Stay Connected
+                {t('stayConnected')}
               </h2>
-              <NewsletterForm />
+              <NewsletterForm t={t} />
               <div className="mt-5">
                 <SocialRow />
               </div>
@@ -130,18 +132,18 @@ export function SiteFooter() {
             <>
               <div className="flex flex-wrap gap-x-5 gap-y-2">
                 {LEGAL_LINKS.map((l) => (
-                  <Link key={l.label} href={l.href} className="transition-colors hover:text-white">
-                    {l.label}
+                  <Link key={l.labelKey} href={l.href} className="transition-colors hover:text-white">
+                    {t(`links.${l.labelKey}`)}
                   </Link>
                 ))}
               </div>
-              <p>© {year} SentinelX Esports. All rights reserved.</p>
+              <p>{t('copyright', { year })}</p>
             </>
           ) : (
             <>
-              <p>© {year} SentinelX Esports. All rights reserved.</p>
+              <p>{t('copyright', { year })}</p>
               <p>
-                Powered by <span className="font-bold text-white">ZOLARUX</span>
+                {t('poweredBy')} <span className="font-bold text-white">ZOLARUX</span>
               </p>
             </>
           )}
@@ -186,7 +188,7 @@ function SocialRow() {
   )
 }
 
-function NewsletterForm() {
+function NewsletterForm({ t }: { t: ReturnType<typeof useTranslations> }) {
   const [sent, setSent] = useState(false)
   return (
     <form
@@ -197,13 +199,13 @@ function NewsletterForm() {
       className="flex gap-2"
     >
       <label htmlFor="footer-email" className="sr-only">
-        Email address
+        {t('emailAddressLabel')}
       </label>
       <input
         id="footer-email"
         type="email"
         required
-        placeholder="Enter your email"
+        placeholder={t('emailPlaceholder')}
         disabled={sent}
         className="w-full min-w-0 rounded-lg border border-sx-border bg-sx-surface px-3 py-2 text-sm text-white placeholder:text-sx-gray focus:border-sx-purple/50 focus:outline-none disabled:opacity-60"
       />
@@ -212,7 +214,7 @@ function NewsletterForm() {
         disabled={sent}
         className="shrink-0 rounded-lg bg-sx-purple px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-sx-purple-light disabled:opacity-60"
       >
-        {sent ? 'Sent!' : 'Subscribe'}
+        {sent ? t('subscribed') : t('subscribe')}
       </button>
     </form>
   )
