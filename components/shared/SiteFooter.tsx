@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname } from '@/i18n/navigation'
 import { useTranslations } from 'next-intl'
 
 // Routes that use the expanded footer (spec §2.2 Variant B).

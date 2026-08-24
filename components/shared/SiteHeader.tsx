@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname } from '@/i18n/navigation'
 import { Menu } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { AccountMenu } from '@/components/shared/AccountMenu'
