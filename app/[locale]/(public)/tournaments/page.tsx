@@ -6,6 +6,7 @@ import { TournamentCard } from '@/components/tournament/TournamentCard'
 import type { TournamentCardData } from '@/components/tournament/TournamentCard'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { SITE_URL, DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { formatNaira } from '@/lib/format'
 import { TOURNAMENT_FAQS } from '@/lib/seo/faq-content'
@@ -16,13 +17,17 @@ const PAGE_SIZE = 4
 // image is explicit: this page has no same-segment opengraph-image.tsx, and Next
 // does not cascade the root's file-convention image into a segment that returns
 // its own openGraph object (see lib/seo/metadata.ts).
-export const metadata = buildMetadata({
-  title: 'Tournaments — SentinelX Esports',
-  description:
-    'Browse live, open, and upcoming mobile esports tournaments on SentinelX Esports — Nigeria\'s Home of Mobile Esports. Compete. Win. Level Up!',
-  path: '/tournaments',
-  image: DEFAULT_OG_IMAGE,
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Tournaments — SentinelX Esports',
+    description:
+      'Browse live, open, and upcoming mobile esports tournaments on SentinelX Esports — Nigeria\'s Home of Mobile Esports. Compete. Win. Level Up!',
+    path: '/tournaments',
+    image: DEFAULT_OG_IMAGE,
+    locale,
+  })
+}
 
 const SELECT_COLS =
   'id, title, slug, prize_pool, registration_fee, status, tournament_start, registration_end, tournament_end, max_players, format, tournament_type'

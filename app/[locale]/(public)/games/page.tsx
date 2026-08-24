@@ -4,19 +4,24 @@ import { Gamepad2, Trophy, Users, Gift, ShieldCheck, Search } from 'lucide-react
 import { createClient } from '@/lib/supabase/server'
 import { dedupeGamesByName } from '@/lib/games/dedupe'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { GameGenreTabs } from '@/components/games/GameGenreTabs'
 import { NotifyMeButton } from '@/components/games/NotifyMeButton'
 import { findOptionalPublicImage } from '@/lib/media/optional-image'
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder'
 
-export const metadata = buildMetadata({
-  title: 'Games · SentinelX Esports',
-  description:
-    "Every game Sentinel X Esports supports — active tournaments today, and what's coming next.",
-  path: '/games',
-  image: DEFAULT_OG_IMAGE,
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Games · SentinelX Esports',
+    description:
+      "Every game Sentinel X Esports supports — active tournaments today, and what's coming next.",
+    path: '/games',
+    image: DEFAULT_OG_IMAGE,
+    locale,
+  })
+}
 
 // Real DB category taxonomy is football / fighting / shooter / racing / other
 // (see supabase/migrations/027_multi_game_categories.sql + 065_racing_category.sql)

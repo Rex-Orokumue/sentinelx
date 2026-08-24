@@ -1,12 +1,17 @@
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { StaticPageShell } from '@/components/static/StaticPageShell'
 import { FaqAccordion, type FaqGroup } from '@/components/static/FaqAccordion'
 
-export const metadata = buildMetadata({
-  title: 'Help Center',
-  description: 'Answers to common questions about accounts, tournaments, prizes, SX Score, and SX Coins.',
-  path: '/help',
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Help Center',
+    description: 'Answers to common questions about accounts, tournaments, prizes, SX Score, and SX Coins.',
+    path: '/help',
+    locale,
+  })
+}
 
 const GROUPS: FaqGroup[] = [
   {

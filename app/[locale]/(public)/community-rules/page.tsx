@@ -1,11 +1,16 @@
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { StaticPageShell, proseClassName } from '@/components/static/StaticPageShell'
 
-export const metadata = buildMetadata({
-  title: 'Community Rules',
-  description: "The standards that keep SentinelX's community positive, competitive, and safe.",
-  path: '/community-rules',
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Community Rules',
+    description: "The standards that keep SentinelX's community positive, competitive, and safe.",
+    path: '/community-rules',
+    locale,
+  })
+}
 
 export default function CommunityRulesPage() {
   return (

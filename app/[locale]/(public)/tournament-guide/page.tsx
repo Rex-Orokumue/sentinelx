@@ -1,11 +1,16 @@
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { StaticPageShell, proseClassName } from '@/components/static/StaticPageShell'
 
-export const metadata = buildMetadata({
-  title: 'Tournament Guide',
-  description: 'Everything you need to know before, during, and after a SentinelX tournament match.',
-  path: '/tournament-guide',
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Tournament Guide',
+    description: 'Everything you need to know before, during, and after a SentinelX tournament match.',
+    path: '/tournament-guide',
+    locale,
+  })
+}
 
 export default function TournamentGuidePage() {
   return (

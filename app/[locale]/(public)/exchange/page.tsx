@@ -5,14 +5,19 @@ import { primaryImageUrl } from '@/lib/exchange/images'
 import { LISTING_CATEGORIES, CATEGORY_LABELS, type ListingCategory } from '@/lib/exchange/schema'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 
-export const metadata = buildMetadata({
-  title: 'Gaming Exchange — SentinelX Esports',
-  description: 'Buy and sell gaming accounts, coins, and gear on Sentinel X — protected by Zolarux escrow.',
-  path: '/exchange', // canonical intentionally omits the `category` filter param
-  image: DEFAULT_OG_IMAGE,
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Gaming Exchange — SentinelX Esports',
+    description: 'Buy and sell gaming accounts, coins, and gear on Sentinel X — protected by Zolarux escrow.',
+    path: '/exchange', // canonical intentionally omits the `category` filter param
+    image: DEFAULT_OG_IMAGE,
+    locale,
+  })
+}
 
 type SearchParams = { category?: string }
 

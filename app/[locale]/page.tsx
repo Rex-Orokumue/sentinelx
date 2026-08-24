@@ -15,13 +15,15 @@ import { HomeFinalCta } from '@/components/home/HomeFinalCta'
 import { buildHallOfFameTeaserData, type HallOfFameTeaserData } from '@/lib/home/hall-of-fame-teaser'
 import type { BracketMatch } from '@/lib/tournaments/bracket'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { homepageDescription } from '@/lib/seo/homepage-description'
 import { FaqSection } from '@/components/home/FaqSection'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildFaqJsonLd } from '@/lib/seo/schema/faq'
 import { HOMEPAGE_FAQS } from '@/lib/seo/faq-content'
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+  const { locale } = await params
   const supabase = createClient()
   const { data: liveTournament } = await supabase
     .from('tournaments')
@@ -35,6 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: 'SentinelX Esports — Home',
     description: homepageDescription(liveTournament?.title ?? null),
     path: '/',
+    locale,
   })
 }
 

@@ -9,6 +9,7 @@ import { formatDate, formatNaira } from '@/lib/format'
 import ReactMarkdown from 'react-markdown'
 import { RegistrationCountdown } from '@/components/tournament/RegistrationCountdown'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { SITE_URL } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildTournamentJsonLd } from '@/lib/seo/schema/event'
@@ -37,7 +38,7 @@ async function getTournament(slug: string) {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string }
+  params: { slug: string; locale: Locale }
 }): Promise<Metadata> {
   const t = await getTournament(params.slug)
   if (!t || t.status === 'draft') return { title: 'Tournament — Sentinel X' }
@@ -50,6 +51,7 @@ export async function generateMetadata({
     description,
     path: `/tournaments/${t.slug}`,
     image: t.banner_url ?? undefined,
+    locale: params.locale,
   })
 }
 

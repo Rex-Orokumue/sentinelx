@@ -20,14 +20,19 @@ import { CommunityClubCard } from '@/components/hall-of-fame/CommunityClubCard'
 import { BronzeCard } from '@/components/hall-of-fame/BronzeCard'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 
-export const metadata = buildMetadata({
-  title: 'Hall of Fame — Sentinel X',
-  description: "Sentinel X champions, MVP, and Golden Boot — the all-time honors of Nigeria's home of mobile esports.",
-  path: '/hall-of-fame',
-  image: DEFAULT_OG_IMAGE,
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Hall of Fame — Sentinel X',
+    description: "Sentinel X champions, MVP, and Golden Boot — the all-time honors of Nigeria's home of mobile esports.",
+    path: '/hall-of-fame',
+    image: DEFAULT_OG_IMAGE,
+    locale,
+  })
+}
 
 type ProfileRef = { id?: string; username: string | null; display_name: string | null } | null
 

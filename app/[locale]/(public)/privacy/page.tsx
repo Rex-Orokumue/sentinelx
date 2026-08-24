@@ -1,12 +1,17 @@
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { StaticPageShell, proseClassName } from '@/components/static/StaticPageShell'
 
-export const metadata = buildMetadata({
-  title: 'Privacy Policy',
-  description:
-    "How SentinelX Esports collects, uses, and protects your personal data under Nigeria's Data Protection Act 2023.",
-  path: '/privacy',
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Privacy Policy',
+    description:
+      "How SentinelX Esports collects, uses, and protects your personal data under Nigeria's Data Protection Act 2023.",
+    path: '/privacy',
+    locale,
+  })
+}
 
 const DATA_USES: { purpose: string; basis: string }[] = [
   { purpose: 'Running your account and the platform', basis: 'Contract performance' },

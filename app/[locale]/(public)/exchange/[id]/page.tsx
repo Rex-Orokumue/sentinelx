@@ -8,6 +8,7 @@ import { formatNaira } from '@/lib/format'
 import { CATEGORY_LABELS, type ListingCategory } from '@/lib/exchange/schema'
 import { primaryImageUrl } from '@/lib/exchange/images'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildListingJsonLd } from '@/lib/seo/schema/listing'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
@@ -40,7 +41,7 @@ async function load(id: string): Promise<ListingRow | null> {
   return (data as unknown as ListingRow | null) ?? null
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: { id: string; locale: Locale } }): Promise<Metadata> {
   const l = await load(params.id)
   if (!l) return { title: 'Listing not found — SentinelX Esports' }
   const title = `${l.title} — ${formatNaira(l.price)} · Gaming Exchange`
@@ -50,6 +51,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     description: l.description ?? 'On the Sentinel X Gaming Exchange.',
     path: `/exchange/${l.id}`,
     image: image ?? undefined,
+    locale: params.locale,
   })
 }
 

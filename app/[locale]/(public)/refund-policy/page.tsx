@@ -1,11 +1,16 @@
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { StaticPageShell, proseClassName } from '@/components/static/StaticPageShell'
 
-export const metadata = buildMetadata({
-  title: 'Refund Policy',
-  description: 'When tournament entry fees, coin discounts, and prize money are and are not refundable.',
-  path: '/refund-policy',
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Refund Policy',
+    description: 'When tournament entry fees, coin discounts, and prize money are and are not refundable.',
+    path: '/refund-policy',
+    locale,
+  })
+}
 
 export default function RefundPolicyPage() {
   return (

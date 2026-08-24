@@ -1,13 +1,18 @@
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { StaticPageShell } from '@/components/static/StaticPageShell'
 import { FaqAccordion, type FaqGroup } from '@/components/static/FaqAccordion'
 
-export const metadata = buildMetadata({
-  title: 'Tournament FAQs',
-  description:
-    'Answers to the most common questions about entering, playing, and getting paid from SentinelX tournaments.',
-  path: '/tournament-faqs',
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Tournament FAQs',
+    description:
+      'Answers to the most common questions about entering, playing, and getting paid from SentinelX tournaments.',
+    path: '/tournament-faqs',
+    locale,
+  })
+}
 
 const GROUPS: FaqGroup[] = [
   {

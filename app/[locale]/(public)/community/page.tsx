@@ -20,6 +20,7 @@ import { CommunityServersCard } from '@/components/community/CommunityServersCar
 import { CommunityGallery } from '@/components/community/CommunityGallery'
 import { CommunityFooterCta } from '@/components/community/CommunityFooterCta'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 
 const PAGE_SIZE = 20
@@ -34,13 +35,17 @@ const WHATSAPP_COMMUNITY = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL ?? '#'
 // cookie-reading page dynamically).
 export const revalidate = 60
 
-export const metadata = buildMetadata({
-  title: 'Community Feed — Sentinel X',
-  description:
-    "The heartbeat of SentinelX — match results, achievements, and banter from Nigeria's mobile esports community.",
-  path: '/community',
-  image: DEFAULT_OG_IMAGE,
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Community Feed — Sentinel X',
+    description:
+      "The heartbeat of SentinelX — match results, achievements, and banter from Nigeria's mobile esports community.",
+    path: '/community',
+    image: DEFAULT_OG_IMAGE,
+    locale,
+  })
+}
 
 export default async function CommunityPage() {
   const supabase = createClient()

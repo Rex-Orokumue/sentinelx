@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 import { getSeasonLeaderboard } from '@/lib/seasons/data'
@@ -17,13 +18,14 @@ async function getSeason(slug: string) {
   return data
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: { slug: string; locale: Locale } }): Promise<Metadata> {
   const season = await getSeason(params.slug)
   if (!season) return { title: 'Season — Sentinel X' }
   return buildMetadata({
     title: `${season.name} — Sentinel X`,
     description: `Follow ${season.name}'s Community Clubs, SentinelX Masters, and the road to the Champions Cup.`,
     path: `/seasons/${season.slug}`,
+    locale: params.locale,
   })
 }
 

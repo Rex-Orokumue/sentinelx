@@ -6,6 +6,7 @@ import { listCompletedMatches, groupCompletedMatchesByDate } from '@/lib/matches
 import { CompletedMatchesList } from '@/components/tournament/CompletedMatchesList'
 import { ResultsDateFilter } from '@/components/tournament/ResultsDateFilter'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
@@ -24,7 +25,7 @@ async function getTournament(slug: string) {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string }
+  params: { slug: string; locale: Locale }
 }): Promise<Metadata> {
   const t = await getTournament(params.slug)
   if (!t) return { title: 'Results — Sentinel X' }
@@ -33,6 +34,7 @@ export async function generateMetadata({
     description: `Match results and scores for ${t.title} on Sentinel X.`,
     path: `/tournaments/${t.slug}/results`,
     image: DEFAULT_OG_IMAGE,
+    locale: params.locale,
   })
 }
 

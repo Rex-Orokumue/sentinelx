@@ -4,13 +4,18 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getCoinBalance } from '@/lib/coins/service'
 import { StoreGrid } from '@/components/store/StoreGrid'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { CoinDisclaimerTooltip } from '@/components/coins/CoinDisclaimerTooltip'
 
-export const metadata: Metadata = buildMetadata({
-  title: 'Store — Sentinel X',
-  description: 'Spend your SX Coins on avatar borders, profile themes, username colours, and mascot skins.',
-  path: '/store',
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Store — Sentinel X',
+    description: 'Spend your SX Coins on avatar borders, profile themes, username colours, and mascot skins.',
+    path: '/store',
+    locale,
+  })
+}
 
 export default async function StorePage() {
   const supabase = createClient()

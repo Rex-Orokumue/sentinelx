@@ -1,12 +1,17 @@
 import Link from 'next/link'
 import { Sparkles } from 'lucide-react'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 
-export const metadata = buildMetadata({
-  title: 'Coming Soon — SentinelX Esports',
-  description: 'This page is on its way. Check back soon.',
-  path: '/coming-soon',
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Coming Soon — SentinelX Esports',
+    description: 'This page is on its way. Check back soon.',
+    path: '/coming-soon',
+    locale,
+  })
+}
 
 // A handful of footer links (Terms, Privacy, Help Center, Rules, …) don't have
 // dedicated pages yet in Phase 1 — this is an honest placeholder rather than a

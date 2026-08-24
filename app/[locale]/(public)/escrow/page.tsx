@@ -1,11 +1,16 @@
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { StaticPageShell, proseClassName } from '@/components/static/StaticPageShell'
 
-export const metadata = buildMetadata({
-  title: 'Safe Trading with Zolarux Escrow',
-  description: 'How Zolarux Escrow protects buyers and sellers on the SentinelX Gaming Exchange.',
-  path: '/escrow',
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Safe Trading with Zolarux Escrow',
+    description: 'How Zolarux Escrow protects buyers and sellers on the SentinelX Gaming Exchange.',
+    path: '/escrow',
+    locale,
+  })
+}
 
 export default function EscrowPage() {
   return (

@@ -7,6 +7,7 @@ import { VideoEmbed } from '@/components/match/VideoEmbed'
 import { ResultSubmissionForm } from '@/components/match/ResultSubmissionForm'
 import { CheckInPanel } from '@/components/match/CheckInPanel'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { SITE_URL } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildMatchJsonLd } from '@/lib/seo/schema/event'
@@ -70,12 +71,12 @@ async function getMatch(id: string): Promise<MatchRow | null> {
   return data as MatchRow | null
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: { id: string; locale: Locale } }): Promise<Metadata> {
   const m = await getMatch(params.id)
   if (!m) return { title: 'Match — Sentinel X' }
   const title = `${nameOf(m.player_a)} vs ${nameOf(m.player_b)} — Sentinel X`
   const description = m.tournaments ? `${m.tournaments.title} on Sentinel X.` : 'Mobile esports match on Sentinel X.'
-  return buildMetadata({ title, description, path: `/matches/${m.id}` })
+  return buildMetadata({ title, description, path: `/matches/${m.id}`, locale: params.locale })
 }
 
 export default async function MatchCentrePage({

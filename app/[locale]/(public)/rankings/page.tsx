@@ -8,15 +8,20 @@ import { CATEGORY_META } from '@/lib/games/categories'
 import { LeaderboardTabs } from '@/components/rankings/LeaderboardTabs'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { formatNaira } from '@/lib/format'
 
-export const metadata = buildMetadata({
-  title: 'Leaderboards — Sentinel X',
-  description: "Nigeria's top mobile esports players on Sentinel X, ranked by SX Score.",
-  path: '/rankings',
-  image: DEFAULT_OG_IMAGE,
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Leaderboards — Sentinel X',
+    description: "Nigeria's top mobile esports players on Sentinel X, ranked by SX Score.",
+    path: '/rankings',
+    image: DEFAULT_OG_IMAGE,
+    locale,
+  })
+}
 
 type RawGameRef = { name: string; category: string } | { name: string; category: string }[] | null
 type RawTournamentRef = { game: RawGameRef } | { game: RawGameRef }[] | null

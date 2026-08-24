@@ -1,12 +1,17 @@
 import { UserPlus, Trophy, CalendarClock, Gamepad2, Upload, Wallet, Star, Coins, Users2, School } from 'lucide-react'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { StaticPageShell } from '@/components/static/StaticPageShell'
 
-export const metadata = buildMetadata({
-  title: 'How SentinelX Works',
-  description: 'From creating an account to getting paid — how Nigerian mobile gamers compete on SentinelX.',
-  path: '/how-it-works',
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'How SentinelX Works',
+    description: 'From creating an account to getting paid — how Nigerian mobile gamers compete on SentinelX.',
+    path: '/how-it-works',
+    locale,
+  })
+}
 
 const STEPS = [
   {

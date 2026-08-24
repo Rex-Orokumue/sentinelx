@@ -1,11 +1,16 @@
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { StaticPageShell, proseClassName } from '@/components/static/StaticPageShell'
 
-export const metadata = buildMetadata({
-  title: 'Terms of Service',
-  description: 'The terms that govern using the SentinelX Esports platform.',
-  path: '/terms',
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Terms of Service',
+    description: 'The terms that govern using the SentinelX Esports platform.',
+    path: '/terms',
+    locale,
+  })
+}
 
 export default function TermsPage() {
   return (

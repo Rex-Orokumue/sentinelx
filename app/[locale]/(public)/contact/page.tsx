@@ -1,12 +1,17 @@
 import { Mail } from 'lucide-react'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { StaticPageShell } from '@/components/static/StaticPageShell'
 
-export const metadata = buildMetadata({
-  title: 'Contact Us',
-  description: 'Reach the SentinelX team by email or WhatsApp — we aim to respond within 24 hours.',
-  path: '/contact',
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Contact Us',
+    description: 'Reach the SentinelX team by email or WhatsApp — we aim to respond within 24 hours.',
+    path: '/contact',
+    locale,
+  })
+}
 
 const WHATSAPP_HREF = 'https://wa.me/2349032395685?text=Hi%20SentinelX%2C%20I%20need%20help%20with...'
 

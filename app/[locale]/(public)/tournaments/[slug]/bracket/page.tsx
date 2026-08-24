@@ -7,6 +7,7 @@ import { loadBracketView } from '@/lib/tournaments/bracket-view'
 import { GroupStage } from '@/components/bracket/GroupStage'
 import { BracketTree } from '@/components/bracket/BracketTree'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
@@ -25,13 +26,14 @@ async function getTournament(slug: string) {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string }
+  params: { slug: string; locale: Locale }
 }): Promise<Metadata> {
   const t = await getTournament(params.slug)
   if (!t) return { title: 'Bracket — Sentinel X' }
   return buildMetadata({
     title: `Bracket — ${t.title} | Sentinel X`,
     description: `Group standings and knockout bracket for ${t.title} on Sentinel X.`,
+    locale: params.locale,
     path: `/tournaments/${t.slug}/bracket`,
     image: DEFAULT_OG_IMAGE,
   })

@@ -31,6 +31,7 @@ import { XPProgressPanel } from '@/components/dashboard/XPProgressPanel'
 import { SeasonStandingCard } from '@/components/dashboard/SeasonStandingCard'
 import { ProfileCommunityPosts } from '@/components/player/ProfileCommunityPosts'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildPlayerJsonLd } from '@/lib/seo/schema/player'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
@@ -127,13 +128,13 @@ async function loadProfile(username: string): Promise<ProfileRow | null> {
   return (data as ProfileRow | null) ?? null
 }
 
-export async function generateMetadata({ params }: { params: { username: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: { username: string; locale: Locale } }): Promise<Metadata> {
   const p = await loadProfile(params.username)
   if (!p) return { title: 'Player not found — SentinelX Esports' }
   const name = p.display_name ?? p.username
   const title = `${name} (@${p.username}) — SentinelX Esports`
   const description = `SX Score ${p.sx_score} · ${p.wins}W–${p.losses}L · ${p.total_titles} titles on Sentinel X.`
-  return buildMetadata({ title, description, path: `/players/${p.username}` })
+  return buildMetadata({ title, description, path: `/players/${p.username}`, locale: params.locale })
 }
 
 function toBracketFinal(f: {

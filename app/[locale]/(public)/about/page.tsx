@@ -1,16 +1,21 @@
 import Image from 'next/image'
 import { ShieldCheck, Target, Eye, Gem, Flag, Trophy, Users, Rocket, Handshake, BookOpen, Gift } from 'lucide-react'
 import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { findOptionalPublicImage } from '@/lib/media/optional-image'
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder'
 
-export const metadata = buildMetadata({
-  title: 'About Us · SentinelX Esports',
-  description: "Sentinel X Esports is building Nigeria's home of mobile esports — our mission and story.",
-  path: '/about',
-  image: DEFAULT_OG_IMAGE,
-})
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'About Us · SentinelX Esports',
+    description: "Sentinel X Esports is building Nigeria's home of mobile esports — our mission and story.",
+    path: '/about',
+    image: DEFAULT_OG_IMAGE,
+    locale,
+  })
+}
 
 const WHATSAPP_COMMUNITY = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL ?? '#'
 
