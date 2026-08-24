@@ -22,7 +22,11 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // 'offline' excluded — app/offline/page.tsx deliberately lives outside
+  // app/[locale] (spec §4, it's the locale-invariant PWA fallback sw.js
+  // falls back to); letting next-intl's middleware process it rewrites it
+  // to /en/offline internally, which doesn't exist and 404s.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|auth/confirm|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|auth/confirm|api|offline|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)',
   ],
 }
