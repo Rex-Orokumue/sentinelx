@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Menu } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { AccountMenu } from '@/components/shared/AccountMenu'
 import { BalanceChips } from '@/components/shared/BalanceChips'
 import { NotificationBell } from '@/components/shared/NotificationBell'
@@ -24,6 +25,18 @@ export function SiteHeader({
 }) {
   const pathname = usePathname()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const t = useTranslations('nav')
+  const NAV_LABEL_KEYS: Record<string, string> = {
+    '/': 'home',
+    '/tournaments': 'tournaments',
+    '/games': 'games',
+    '/rankings': 'rankings',
+    '/seasons/season-1': 'seasons',
+    '/exchange': 'exchange',
+    '/store': 'store',
+    '/community': 'community',
+    '/about': 'about',
+  }
 
   return (
     <>
@@ -55,7 +68,7 @@ export function SiteHeader({
                       : 'border-transparent text-white/70 hover:text-white'
                   }`}
                 >
-                  {item.label}
+                  {t(NAV_LABEL_KEYS[item.href] ?? 'tournaments')}
                 </Link>
               )
             })}

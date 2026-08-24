@@ -16,6 +16,7 @@ import { buildHallOfFameTeaserData, type HallOfFameTeaserData } from '@/lib/home
 import type { BracketMatch } from '@/lib/tournaments/bracket'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
+import { getTranslations } from 'next-intl/server'
 import { homepageDescription } from '@/lib/seo/homepage-description'
 import { FaqSection } from '@/components/home/FaqSection'
 import { JsonLd } from '@/components/seo/JsonLd'
@@ -42,6 +43,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 }
 
 export default async function HomePage() {
+  const t = await getTranslations('home')
+  const common = await getTranslations('common')
   const supabase = createClient()
 
   const [
@@ -194,9 +197,9 @@ export default async function HomePage() {
       {upcoming.length > 0 && (
         <section className="mb-10">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-bold text-white">Upcoming</h2>
+            <h2 className="text-base font-bold text-white">{t('upcomingHeading')}</h2>
             <Link href="/tournaments" className="text-sm font-semibold text-sx-purple-text hover:text-white">
-              View all →
+              {common('viewAll')} →
             </Link>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -210,9 +213,9 @@ export default async function HomePage() {
       {/* ── Leaderboard Preview ──────────────────────────────── */}
       <section className="mb-10">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-bold text-white">🏆 Top Players</h2>
+          <h2 className="text-base font-bold text-white">{`🏆 ${t('topPlayersHeading')}`}</h2>
           <Link href="/rankings" className="text-sm font-semibold text-sx-purple-text hover:text-white">
-            Full Rankings →
+            {t('fullRankingsLink')} →
           </Link>
         </div>
 
