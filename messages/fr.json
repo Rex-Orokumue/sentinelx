@@ -320,5 +320,32 @@
     "afterSubmissionP2": "Si vous gagnez un prix, il apparaît dans votre portefeuille après confirmation du résultat final.",
     "tipsHeading": "Conseils d'expérience",
     "tipsList": "<li>Conservez tous vos enregistrements jusqu'après la confirmation officielle — vous pourriez en avoir besoin pour un litige</li><li>Si vous perdez, ne quittez pas l'application en cours de match — un abandon compte négativement pour votre SX Score</li><li>Un bon esprit sportif dans la communauté est remarqué. Votre réputation compte au-delà de votre seul score</li>"
+  },
+  "tournamentFaqs": {
+    "eyebrow": "Assistance",
+    "title": "FAQ Tournois",
+    "metaTitle": "FAQ Tournois",
+    "metaDescription": "Réponses aux questions les plus fréquentes sur l'inscription, la participation et le paiement des tournois SentinelX.",
+    "groupHeading": "FAQ Tournois",
+    "q1": "Puis-je participer à plusieurs tournois en même temps ?",
+    "a1": "Oui. Vous pouvez être inscrit à plusieurs tournois actifs simultanément.",
+    "q2": "Quels jeux sont actuellement pris en charge ?",
+    "a2": "DLS (Dream League Soccer) est actuellement le jeu principal. EA FC Mobile, eFootball, PUBG Mobile, Free Fire, Call of Duty Mobile et Mortal Kombat arrivent dans une future mise à jour.",
+    "q3": "Comment les groupes et les tableaux sont-ils décidés ?",
+    "a3": "Lorsque les inscriptions se ferment, le système génère automatiquement des groupes selon le nombre de joueurs inscrits. L'administrateur peut vérifier et ajuster avant publication. Le tableau devient ensuite à élimination directe à partir de la phase de groupes.",
+    "q4": "Que se passe-t-il si je dois me retirer d'un tournoi après inscription ?",
+    "a4": "Un retrait après la fermeture des inscriptions n'est pas éligible à un remboursement, sauf si le tournoi est annulé par SentinelX. Si vous savez à l'avance que vous ne pourrez pas jouer, contactez-nous le plus tôt possible.",
+    "q5": "Puis-je jouer depuis n'importe quel appareil ?",
+    "a5": "Oui, tant que le jeu requis est installé et que vous pouvez maintenir une connexion stable. Tous les jeux pris en charge sont des titres mobiles — jouer sur PC ou console n'est pas applicable.",
+    "q6": "Qu'est-ce qui compte comme une absence ?",
+    "a6": "Ne pas se présenter dans le lobby du jeu dans les 10 minutes suivant l'heure de début programmée du match. Si vous êtes en retard, contactez immédiatement votre adversaire via la plateforme.",
+    "q7": "Puis-je jouer un match plus tôt si les deux joueurs sont d'accord ?",
+    "a7": "Non. Les matchs doivent être joués à l'heure programmée pour préserver l'intégrité du tableau. Contactez l'administrateur si vous devez tous les deux reporter — il peut l'approuver à sa discrétion.",
+    "q8": "Que se passe-t-il si je perds ma connexion internet pendant un match ?",
+    "a8": "Une perte de connexion pendant un match ne justifie ni l'annulation d'un résultat ni un rejeu. Si vous vous déconnectez pendant un match et que votre adversaire peut démontrer que le match s'est terminé, le résultat est maintenu.",
+    "q9": "Combien de temps les gains de tournoi sont-ils conservés avant expiration ?",
+    "a9": "Les gains n'expirent pas — ils restent dans votre portefeuille jusqu'à ce que vous les retiriez. Assurez-vous que votre compte bancaire est lié et vérifié pour effectuer un retrait.",
+    "q10": "J'ai gagné mais mon résultat n'a pas été confirmé — que dois-je faire ?",
+    "a10": "Vérifiez d'abord que vous avez soumis dans les 2 heures avec une capture d'écran et un enregistrement. Si c'est le cas et que plus de 24 heures se sont écoulées sans mise à jour, contactez l'administrateur à sentinelxesports@gmail.com."
   }
 }

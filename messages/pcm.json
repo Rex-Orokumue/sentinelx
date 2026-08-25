@@ -320,5 +320,32 @@
     "afterSubmissionP2": "If you win prize, e go show for your wallet after dem confam di final result.",
     "tipsHeading": "Tips Wey Go Help You",
     "tipsList": "<li>Keep all your recordings until after official confirmation — you fit need am for dispute</li><li>If you lose, no quit di app for middle of match — to abandon count against your SX Score</li><li>Good sportsmanship for di community, people go notice am. Your reputation matter pass just your score</li>"
+  },
+  "tournamentFaqs": {
+    "eyebrow": "Support",
+    "title": "Tournament FAQs",
+    "metaTitle": "Tournament FAQs",
+    "metaDescription": "Answers to di most common questions about entering, playing, and getting paid from SentinelX tournaments.",
+    "groupHeading": "Tournament FAQs",
+    "q1": "I fit enter more than one tournament di same time?",
+    "a1": "Yes. You fit register for many active tournaments at di same time.",
+    "q2": "Wetin games dem support now?",
+    "a2": "DLS (Dream League Soccer) na di current primary game. EA FC Mobile, eFootball, PUBG Mobile, Free Fire, Call of Duty Mobile, and Mortal Kombat dey come for future update.",
+    "q3": "How dem dey decide groups and brackets?",
+    "a3": "Wen registration close, system go automatically generate groups based on how many players register. Admin fit review and adjust am before dem publish am. Di bracket go then be single-elimination from group stage go forward.",
+    "q4": "Wetin if I need to withdraw from tournament after I don register?",
+    "a4": "Withdrawal after registration close no dey eligible for refund unless SentinelX cancel di tournament. If you sabi say you no fit play early early, contact us as soon as possible.",
+    "q5": "I fit play from any device?",
+    "a5": "Yes, as long as di required game don install and you fit maintain steady connection. All di games wey we support na mobile titles — PC or console play no dey applicable.",
+    "q6": "Wetin dem dey count as no-show?",
+    "a6": "If you no show for di game lobby within 10 minutes after di scheduled match start time. If you dey run late, message your opponent through di platform sharp sharp.",
+    "q7": "I fit play match early if both players agree?",
+    "a7": "No. Matches must play for di scheduled time to keep bracket integrity. Contact admin if both of una need to reschedule — admin fit approve am if dem want.",
+    "q8": "Wetin if I lose internet during match?",
+    "a8": "If connection lost during match, e no be ground to reverse result or replay am. If you disconnect during match and your opponent fit prove say match don complete, di result go stand.",
+    "q9": "How long tournament prizes dey stay before dem expire?",
+    "a9": "Prize money no dey expire — e go stay for your wallet until you withdraw am. Make sure your bank account don link and verify before you withdraw.",
+    "q10": "I win but dem never confam my result — wetin I go do?",
+    "a10": "First, check say you submit within 2 hours with both screenshot and recording. If you don do am and e don pass 24 hours without update, contact admin for sentinelxesports@gmail.com."
   }
 }
