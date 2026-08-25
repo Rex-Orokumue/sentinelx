@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { getTranslations } from 'next-intl/server'
 import { ShieldCheck, Target, Eye, Gem, Flag, Trophy, Users, Rocket, Handshake, BookOpen, Gift } from 'lucide-react'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
@@ -8,9 +9,10 @@ import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params
+  const t = await getTranslations({ locale, namespace: 'about' })
   return buildMetadata({
-    title: 'About Us · SentinelX Esports',
-    description: "Sentinel X Esports is building Nigeria's home of mobile esports — our mission and story.",
+    title: t('metaTitle'),
+    description: t('metaDescription'),
     path: '/about',
     image: DEFAULT_OG_IMAGE,
     locale,
@@ -19,68 +21,50 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 
 const WHATSAPP_COMMUNITY = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL ?? '#'
 
-const BADGES = [
-  { title: 'Built for Gamers', body: 'By gamers, for gamers.' },
-  { title: 'Global Vision', body: 'Uniting gamers worldwide.' },
-  { title: 'Endless Growth', body: 'More opportunities, more victories.' },
-]
-
-const VALUES = [
-  { label: 'Integrity', body: 'We play fair and keep our word.' },
-  { label: 'Passion', body: 'We love gaming and it shows in everything we do.' },
-  { label: 'Community', body: 'We grow together and support each other.' },
-  { label: 'Excellence', body: 'We aim for the best in every match, every day.' },
-]
-
-// Aspirational/vision numbers, not live DB stats — hardcoded per spec §3.6.
-const STATS = [
-  { value: '50K+', label: 'Active Gamers' },
-  { value: '1,200+', label: 'Tournaments Hosted' },
-  { value: '10+', label: 'Games Supported' },
-  { value: '15+', label: 'Countries Reached' },
-  { value: '∞', label: 'Opportunities Ahead' },
-]
-
-const TIMELINE = [
-  {
-    icon: Flag,
-    year: '2024',
-    title: 'The Beginning',
-    body: 'Sentinel X was founded with a small group of gamers and a big dream to build a better esports community.',
-  },
-  {
-    icon: Trophy,
-    year: '2024',
-    title: 'First Tournaments',
-    body: 'We hosted our first official tournaments and saw amazing talent from all around.',
-  },
-  {
-    icon: Users,
-    year: '2025',
-    title: 'Building the Ecosystem',
-    body: 'We launched new features, partnered with brands and grew our community across different games.',
-  },
-  {
-    icon: Rocket,
-    year: '2026+',
-    title: 'The Future',
-    body: "We're just getting started. More games, more opportunities and a global impact.",
-  },
-]
-
-const PILLARS = [
-  { icon: Trophy, label: 'Competitive Tournaments' },
-  { icon: Users, label: 'Active Community' },
-  { icon: ShieldCheck, label: 'Safe & Fair Play' },
-  { icon: Gift, label: 'Rewards & Opportunities' },
-  { icon: Handshake, label: 'Partnerships' },
-  { icon: BookOpen, label: 'Resources & Education' },
-]
-
-export default function AboutPage() {
+export default async function AboutPage() {
+  const t = await getTranslations('about')
   const whySentinelImg = findOptionalPublicImage('about', 'why-sentinel-x')
   const missionImg = findOptionalPublicImage('about', 'mission-bg')
   const visionImg = findOptionalPublicImage('about', 'vision-bg')
+
+  const badges = [
+    { title: t('badge1Title'), body: t('badge1Body') },
+    { title: t('badge2Title'), body: t('badge2Body') },
+    { title: t('badge3Title'), body: t('badge3Body') },
+  ]
+
+  const values = [
+    { label: t('value1Label'), body: t('value1Body') },
+    { label: t('value2Label'), body: t('value2Body') },
+    { label: t('value3Label'), body: t('value3Body') },
+    { label: t('value4Label'), body: t('value4Body') },
+  ]
+
+  // Aspirational/vision numbers, not live DB stats — hardcoded per spec §3.6. Not
+  // language-dependent, only the label is translated.
+  const stats = [
+    { value: '50K+', label: t('stat1Label') },
+    { value: '1,200+', label: t('stat2Label') },
+    { value: '10+', label: t('stat3Label') },
+    { value: '15+', label: t('stat4Label') },
+    { value: '∞', label: t('stat5Label') },
+  ]
+
+  const timeline = [
+    { icon: Flag, year: '2024', title: t('timeline1Title'), body: t('timeline1Body') },
+    { icon: Trophy, year: '2024', title: t('timeline2Title'), body: t('timeline2Body') },
+    { icon: Users, year: '2025', title: t('timeline3Title'), body: t('timeline3Body') },
+    { icon: Rocket, year: '2026+', title: t('timeline4Title'), body: t('timeline4Body') },
+  ]
+
+  const pillars = [
+    { icon: Trophy, label: t('pillar1Label') },
+    { icon: Users, label: t('pillar2Label') },
+    { icon: ShieldCheck, label: t('pillar3Label') },
+    { icon: Gift, label: t('pillar4Label') },
+    { icon: Handshake, label: t('pillar5Label') },
+    { icon: BookOpen, label: t('pillar6Label') },
+  ]
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
@@ -92,18 +76,15 @@ export default function AboutPage() {
         />
         <div className="relative px-6 py-10 sm:px-10 sm:py-14 lg:py-16 lg:pr-64 xl:pr-[22rem]">
           <div className="text-center lg:text-left">
-            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-sx-purple-text">About Sentinel X</p>
+            <p className="mb-3 text-xs font-bold uppercase tracking-widest text-sx-purple-text">{t('heroEyebrow')}</p>
             <h1 className="font-display text-4xl font-black uppercase leading-[0.95] tracking-tight text-white sm:text-5xl lg:text-6xl">
-              More Than Gaming.
+              {t('heroTitleLine1')}
               <br />
-              <span className="text-sx-purple-text">We Build Legends.</span>
+              <span className="text-sx-purple-text">{t('heroTitleLine2')}</span>
             </h1>
-            <p className="mx-auto mt-4 max-w-md text-sm text-sx-gray sm:text-base lg:mx-0">
-              Sentinel X Esports is a competitive gaming ecosystem built to empower gamers, create
-              opportunities and shape the future of esports worldwide.
-            </p>
+            <p className="mx-auto mt-4 max-w-md text-sm text-sx-gray sm:text-base lg:mx-0">{t('heroSubtitle')}</p>
             <div className="mt-6 flex flex-wrap justify-center gap-4 text-left lg:justify-start">
-              {BADGES.map((b) => (
+              {badges.map((b) => (
                 <div key={b.title}>
                   <p className="text-xs font-bold text-white">{b.title}</p>
                   <p className="text-[11px] text-sx-gray">{b.body}</p>
@@ -123,35 +104,29 @@ export default function AboutPage() {
         {/* Our Promise — floats top-right, independent of the mascot's height */}
         <div className="relative mx-auto mt-6 w-full max-w-xs rounded-xl border border-sx-purple/30 bg-sx-surface p-5 lg:absolute lg:right-6 lg:top-8 lg:mx-0 lg:mt-0 lg:w-56 xl:w-64">
           <p className="mb-2 flex items-center gap-2 text-sm font-bold text-white">
-            <ShieldCheck className="h-4 w-4 text-sx-purple-text" /> Our Promise
+            <ShieldCheck className="h-4 w-4 text-sx-purple-text" /> {t('promiseLabel')}
           </p>
-          <p className="text-xs italic text-sx-gray">
-            &ldquo;We provide a fair, safe and competitive environment where every gamer has the chance to
-            play, grow and succeed.&rdquo;
-          </p>
-          <p className="mt-3 font-display text-lg italic text-sx-purple-text">— Sentinel</p>
+          <p className="text-xs italic text-sx-gray">{t('promiseQuote')}</p>
+          <p className="mt-3 font-display text-lg italic text-sx-purple-text">{t('promiseAttribution')}</p>
         </div>
       </section>
 
       {/* ── Mission / Vision / Values ─────────────────────────── */}
       <section className="mb-10 grid gap-4 lg:grid-cols-3">
-        <MissionCard icon={Target} label="Our Mission" bgImage={missionImg}>
-          To empower gamers by creating opportunities through tournaments, communities, resources and
-          partnerships that drive the growth of esports.
+        <MissionCard icon={Target} label={t('missionLabel')} bgImage={missionImg}>
+          {t('missionBody')}
         </MissionCard>
-        <MissionCard icon={Eye} label="Our Vision" bgImage={visionImg}>
-          To become a global esports leader, inspiring the next generation of champions and making
-          esports a recognized and respected industry worldwide.
+        <MissionCard icon={Eye} label={t('visionLabel')} bgImage={visionImg}>
+          {t('visionBody')}
         </MissionCard>
         <div className="rounded-xl border border-sx-border bg-sx-surface p-6">
           <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-sx-purple-text">
-            <Gem className="h-4 w-4" /> Our Values
+            <Gem className="h-4 w-4" /> {t('valuesLabel')}
           </p>
           <div className="space-y-2.5">
-            {VALUES.map((v) => (
+            {values.map((v) => (
               <p key={v.label} className="text-sm text-white">
-                <span className="font-bold">{v.label}</span>{' '}
-                <span className="text-sx-gray">— {v.body}</span>
+                <span className="font-bold">{v.label}</span> <span className="text-sx-gray">— {v.body}</span>
               </p>
             ))}
           </div>
@@ -160,7 +135,7 @@ export default function AboutPage() {
 
       {/* ── Stats bar ─────────────────────────────────────────── */}
       <section className="mb-10 grid grid-cols-2 gap-4 rounded-xl border border-sx-border bg-sx-surface p-6 sm:grid-cols-5">
-        {STATS.map((s) => (
+        {stats.map((s) => (
           <div key={s.label} className="text-center">
             <p className="font-display text-2xl font-black text-white">{s.value}</p>
             <p className="mt-0.5 text-[11px] uppercase tracking-wide text-sx-gray">{s.label}</p>
@@ -170,25 +145,22 @@ export default function AboutPage() {
 
       {/* ── Our Story timeline ────────────────────────────────── */}
       <section className="mb-10 rounded-xl border border-sx-border bg-sx-surface p-6 sm:p-8">
-        <p className="mb-1 text-xs font-bold uppercase tracking-widest text-sx-purple-text">Our Story</p>
-        <h2 className="mb-3 font-display text-2xl font-black text-white">From Passion to Purpose</h2>
-        <p className="mb-8 max-w-2xl text-sm text-sx-gray">
-          Sentinel X was born from a simple belief: gamers deserve more. More opportunities, more
-          platforms, and more respect.
-        </p>
+        <p className="mb-1 text-xs font-bold uppercase tracking-widest text-sx-purple-text">{t('storyLabel')}</p>
+        <h2 className="mb-3 font-display text-2xl font-black text-white">{t('storyHeading')}</h2>
+        <p className="mb-8 max-w-2xl text-sm text-sx-gray">{t('storyIntro')}</p>
         <div className="relative grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div
             aria-hidden
             className="absolute left-5 right-5 top-5 hidden h-px bg-gradient-to-r from-transparent via-sx-purple/40 to-transparent lg:block"
           />
-          {TIMELINE.map((t) => (
-            <div key={t.year + t.title} className="relative">
+          {timeline.map((t2) => (
+            <div key={t2.year + t2.title} className="relative">
               <span className="relative z-10 mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-sx-purple/30 bg-sx-bg text-sx-purple-text">
-                <t.icon className="h-5 w-5" />
+                <t2.icon className="h-5 w-5" />
               </span>
-              <p className="text-xs font-bold text-sx-purple-text">{t.year}</p>
-              <p className="mb-1 font-bold text-white">{t.title}</p>
-              <p className="text-xs text-sx-gray">{t.body}</p>
+              <p className="text-xs font-bold text-sx-purple-text">{t2.year}</p>
+              <p className="mb-1 font-bold text-white">{t2.title}</p>
+              <p className="text-xs text-sx-gray">{t2.body}</p>
             </div>
           ))}
         </div>
@@ -207,10 +179,10 @@ export default function AboutPage() {
           />
         )}
         <div>
-          <p className="mb-1 text-xs font-bold uppercase tracking-widest text-sx-purple-text">Why Sentinel X?</p>
-          <h2 className="mb-5 font-display text-2xl font-black text-white">We Provide More</h2>
+          <p className="mb-1 text-xs font-bold uppercase tracking-widest text-sx-purple-text">{t('whySentinelLabel')}</p>
+          <h2 className="mb-5 font-display text-2xl font-black text-white">{t('whySentinelHeading')}</h2>
           <div className="grid grid-cols-2 gap-5">
-            {PILLARS.map((p) => (
+            {pillars.map((p) => (
               <div key={p.label} className="flex items-center gap-2.5">
                 <p.icon className="h-5 w-5 shrink-0 text-sx-purple-text" />
                 <p className="text-sm font-semibold text-white">{p.label}</p>
@@ -223,25 +195,17 @@ export default function AboutPage() {
       {/* ── CTA banner ────────────────────────────────────────── */}
       <section className="relative overflow-hidden rounded-xl border border-sx-purple/30 bg-gradient-to-r from-sx-purple/20 to-transparent py-8 pl-24 pr-8 text-center sm:pl-32">
         <div className="pointer-events-none absolute bottom-0 left-2 hidden h-full w-24 sm:block">
-          <Image
-            src="/mascot/mascot-about.png"
-            alt=""
-            fill
-            sizes="6rem"
-            className="object-contain object-bottom"
-          />
+          <Image src="/mascot/mascot-about.png" alt="" fill sizes="6rem" className="object-contain object-bottom" />
         </div>
-        <p className="font-display text-2xl font-black uppercase text-white sm:text-3xl">
-          Be Part of Something Bigger.
-        </p>
-        <p className="mt-2 text-sm text-sx-gray">This is more than gaming. This is Sentinel X.</p>
+        <p className="font-display text-2xl font-black uppercase text-white sm:text-3xl">{t('ctaHeading')}</p>
+        <p className="mt-2 text-sm text-sx-gray">{t('ctaSubtitle')}</p>
         <a
           href={WHATSAPP_COMMUNITY}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-6 inline-flex items-center gap-2 rounded-lg bg-sx-purple px-6 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(124,58,237,0.4)] transition-colors hover:bg-sx-purple-light"
         >
-          <Users className="h-4 w-4" /> Join the Community →
+          <Users className="h-4 w-4" /> {t('ctaButton')}
         </a>
       </section>
     </div>
