@@ -237,5 +237,25 @@
     "consequencesP1": "<strong>Première infraction :</strong> Avertissement<br/><strong>Deuxième infraction :</strong> Suspension temporaire (7 à 30 jours selon la gravité)<br/><strong>Infractions graves</strong> (discours de haine, menaces, doxxing, triche) : Suspension immédiate ou bannissement permanent, sans avertissement préalable",
     "reportingHeading": "Signalement",
     "reportingP1": "Vous voyez quelque chose qui enfreint ces règles ? Utilisez le bouton de signalement sur n'importe quelle publication, ou écrivez à <email>sentinelxesports@gmail.com</email>. Les signalements sont examinés par l'équipe d'administration. Nous prenons chaque signalement au sérieux."
+  },
+  "safety": {
+    "eyebrow": "Assistance",
+    "title": "Restez en sécurité sur SentinelX",
+    "metaTitle": "Restez en sécurité sur SentinelX",
+    "metaDescription": "Comment protéger votre compte, vos gains, et vous-même lorsque vous échangez ou jouez sur SentinelX.",
+    "protectAccountHeading": "Protégez votre compte",
+    "protectAccountList": "<li>Utilisez un mot de passe fort et unique pour SentinelX — ne le réutilisez pas d'une autre application</li><li>Ne partagez jamais votre mot de passe avec qui que ce soit, y compris des personnes se faisant passer pour le personnel de SentinelX</li><li>Déconnectez-vous des appareils partagés après avoir joué</li><li>Si votre e-mail reçoit une demande de réinitialisation que vous n'avez pas faite, changez votre mot de passe immédiatement et contactez-nous</li>",
+    "neverAskHeading": "Nous ne vous demanderons jamais ceci",
+    "neverAskIntro": "Le personnel de SentinelX ne vous demandera jamais :",
+    "neverAskList": "<li>Votre mot de passe</li><li>Le code PIN de votre compte bancaire ou votre BVN</li><li>Vos codes OTP Paystack</li><li>Un paiement pour « débloquer » des gains</li>",
+    "neverAskP2": "Si quelqu'un se réclamant de SentinelX vous demande l'un de ces éléments, c'est une arnaque. Signalez-le-nous immédiatement.",
+    "protectPrizeHeading": "Protégez vos gains",
+    "protectPrizeList": "<li>Liez uniquement votre propre compte bancaire pour les retraits</li><li>Vérifiez votre compte avant votre premier retrait — cela vous protège</li><li>Les retraits de gains passent uniquement par le tableau de bord de la plateforme. Toute personne vous demandant d'envoyer de l'argent d'abord pour « débloquer » des gains est une arnaqueuse</li>",
+    "safeTradingHeading": "Échanges sécurisés sur l'Exchange",
+    "safeTradingList": "<li>Utilisez toujours le système d'escrow Zolarux pour tous les échanges. Les fonds détenus en escrow sont protégés jusqu'à ce que les deux parties confirment la transaction</li><li>N'acceptez jamais de conclure un échange en dehors de la plateforme — si un acheteur ou un vendeur demande de sortir de l'escrow, refusez et signalez-le</li><li>Si une offre semble trop belle pour être vraie, c'est probablement le cas</li>",
+    "matchSafetyHeading": "Sécurité des matchs",
+    "matchSafetyList": "<li>Enregistrez votre écran pour chaque match — c'est votre protection en cas de litige sur un résultat</li><li>Conservez vos enregistrements jusqu'à ce que le résultat soit officiellement confirmé sur la plateforme</li><li>Si votre adversaire est abusif ou menaçant, prenez des captures d'écran et signalez-le via la plateforme ou par e-mail</li>",
+    "reportHeading": "Signaler un problème",
+    "reportP1": "E-mail : <email>sentinelxesports@gmail.com</email><br/>WhatsApp : <whatsapp>+234 903 239 5685</whatsapp>"
   }
 }

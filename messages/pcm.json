@@ -237,5 +237,25 @@
     "consequencesP1": "<strong>First offence:</strong> Warning<br/><strong>Second offence:</strong> Temporary suspension (7–30 days depending on how bad e be)<br/><strong>Serious offences</strong> (hate speech, threat, doxxing, cheating): Immediate suspension or permanent ban, no warning need",
     "reportingHeading": "Reporting",
     "reportingP1": "You see something wey break dis rules? Use di report button for any post, or email <email>sentinelxesports@gmail.com</email>. Admin team dey review reports. We dey take every report serious."
+  },
+  "safety": {
+    "eyebrow": "Support",
+    "title": "Stay Safe for SentinelX",
+    "metaTitle": "Stay Safe for SentinelX",
+    "metaDescription": "How to protect your account, your prize money, and yourself as you dey trade or play for SentinelX.",
+    "protectAccountHeading": "Protect Your Account",
+    "protectAccountList": "<li>Use strong, unique password for SentinelX — no reuse am from another app</li><li>No share your password with anybody, even person wey claim say na SentinelX staff</li><li>Log out for shared devices after you finish play</li><li>If your email get reset request wey you no make, change your password sharp sharp and contact us</li>",
+    "neverAskHeading": "We No Go Ever Ask You For Dis",
+    "neverAskIntro": "SentinelX staff no go ever ask you for your:",
+    "neverAskList": "<li>Password</li><li>Bank account PIN or BVN</li><li>Paystack OTP codes</li><li>Payment to “unlock” prize money</li>",
+    "neverAskP2": "If anybody wey claim say na SentinelX ask you for any of dis ones, na scam. Report am to us sharp sharp.",
+    "protectPrizeHeading": "Protect Your Prize Money",
+    "protectPrizeList": "<li>Only link your own bank account for withdrawal</li><li>Verify your account before your first withdrawal — dis one dey protect you</li><li>Prize withdrawal na only through platform dashboard e dey go. Anybody wey ask you to send money first to “unlock” winnings na scammer</li>",
+    "safeTradingHeading": "How to Trade Safe for Exchange",
+    "safeTradingList": "<li>Always use Zolarux Escrow system for every trade. Money wey dey inside escrow dey protected until both parties confam di transaction</li><li>No ever agree to complete trade outside di platform — if buyer or seller ask you to go outside escrow, refuse am and report am</li><li>If deal too sweet to be true, e probably no be true</li>",
+    "matchSafetyHeading": "Match Safety",
+    "matchSafetyList": "<li>Record your screen for every match — dis na your protection if dispute happen for result</li><li>Keep your recordings until after dem officially confam di result for di platform</li><li>If your opponent dey abuse you or threaten you, screenshot am and report through di platform or email us</li>",
+    "reportHeading": "Report Problem",
+    "reportP1": "Email: <email>sentinelxesports@gmail.com</email><br/>WhatsApp: <whatsapp>+234 903 239 5685</whatsapp>"
   }
 }
