@@ -166,5 +166,28 @@
     "s9P1": "Les joueurs de moins de 18 ans peuvent utiliser la plateforme avec le consentement parental. Nous ne collectons pas sciemment de données auprès d'enfants de moins de 13 ans. Si nous apprenons qu'un enfant de moins de 13 ans a créé un compte, nous le supprimerons.",
     "s10Heading": "10. Modifications de cette politique",
     "s10P1": "Nous vous informerons via la plateforme ou par e-mail en cas de modification importante de cette politique. La dernière version est toujours disponible sur sentinelxesports.com/privacy."
+  },
+  "refundPolicy": {
+    "eyebrow": "Mentions légales",
+    "title": "Politique de remboursement",
+    "subtitle": "Dernière mise à jour : août 2026",
+    "metaTitle": "Politique de remboursement",
+    "metaDescription": "Quand les frais d'inscription aux tournois, les réductions en coins et les gains sont ou ne sont pas remboursables.",
+    "s1Heading": "Frais d'inscription aux tournois (₦500)",
+    "s1P1": "Les frais d'inscription ne sont généralement pas remboursables une fois votre inscription confirmée et le tournoi commencé.",
+    "s1RefundIntro": "Vous avez droit à un remboursement intégral si :",
+    "s1RefundList": "<li>Le tournoi est annulé par SentinelX avant son début</li><li>Votre inscription est rejetée par l'administrateur avant la publication du tableau</li><li>Une erreur technique sur notre plateforme vous empêche de participer</li>",
+    "s1NoRefundIntro": "Aucun remboursement n'est effectué si :",
+    "s1NoRefundList": "<li>Vous ne vous présentez pas à votre match programmé</li><li>Vous êtes disqualifié pour infraction au règlement après le début du tournoi</li><li>Vous changez d'avis après la publication du tableau</li>",
+    "s1P2": "Les remboursements sont traités via le mode de paiement d'origine et prennent généralement 3 à 7 jours ouvrés pour apparaître.",
+    "s2Heading": "Réductions de frais d'inscription avec les SX Coins",
+    "s2Intro": "Si vous avez utilisé des SX Coins pour réduire ou annuler vos frais d'inscription :",
+    "s2List": "<li>La partie payée en coins est remboursée en coins (pas en naira) en cas d'annulation éligible</li><li>Les coins sont recrédités sur votre solde immédiatement après le remboursement</li>",
+    "s3Heading": "Gains",
+    "s3P1": "Les gains sont crédités sur votre compte bancaire lié après approbation de l'administrateur. Une fois approuvé, un versement ne peut pas être annulé. Si vous pensez qu'un gain a été mal calculé, contactez-nous dans les 7 jours suivant la confirmation du résultat.",
+    "s4Heading": "SX Coins",
+    "s4P1": "Les SX Coins sont une monnaie virtuelle gagnée grâce à l'activité sur la plateforme. Ils n'ont aucune valeur monétaire et ne sont pas remboursables. Si votre compte est fermé pour une infraction grave au règlement, les coins sont perdus.",
+    "s5Heading": "Comment demander un remboursement",
+    "s5P1": "Écrivez à <email>sentinelxesports@gmail.com</email> avec votre nom d'utilisateur, le nom du tournoi et la raison de votre demande. Nous répondrons sous 3 jours ouvrés."
   }
 }

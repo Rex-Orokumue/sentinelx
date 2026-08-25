@@ -166,5 +166,28 @@
     "s9P1": "Players wey no reach 18 fit use di platform if their parent consent. We no dey knowingly collect data from children wey no reach 13. If we notice say child wey no reach 13 create account, we go delete am.",
     "s10Heading": "10. Changes to Dis Policy",
     "s10P1": "We go notify you through di platform or email if we make any major change to dis policy. Di latest version dey always available for sentinelxesports.com/privacy."
+  },
+  "refundPolicy": {
+    "eyebrow": "Legal",
+    "title": "Refund Policy",
+    "subtitle": "Last update: August 2026",
+    "metaTitle": "Refund Policy",
+    "metaDescription": "Wen tournament entry fee, coin discount, and prize money fit refund and wen dem no fit refund.",
+    "s1Heading": "Tournament Entry Fee (₦500)",
+    "s1P1": "Entry fee no dey refundable once dem confam your registration and tournament don start.",
+    "s1RefundIntro": "You go get full refund if:",
+    "s1RefundList": "<li>SentinelX cancel di tournament before e start</li><li>Admin reject your registration before dem publish di bracket</li><li>Technical error for our platform stop you from playing</li>",
+    "s1NoRefundIntro": "You no go get refund if:",
+    "s1NoRefundList": "<li>You no-show for your scheduled match</li><li>Dem disqualify you for rule violation after tournament don start</li><li>You change your mind after dem publish di bracket</li>",
+    "s1P2": "Refund dey process through di original payment method and e dey normally take 3–7 business days to show.",
+    "s2Heading": "Entry Fee Discount Wey Use SX Coins",
+    "s2Intro": "If you use SX Coins to reduce or waive your entry fee:",
+    "s2List": "<li>Di coin portion go refund as coins (no be naira) if qualifying cancellation happen</li><li>Coins go enter back your balance immediately after refund</li>",
+    "s3Heading": "Prize Money",
+    "s3P1": "Prize money dey enter your linked bank account after admin approve am. Once dem approve am, payout no fit reverse. If you feel say dem calculate prize wrong, contact us within 7 days after dem confam di result.",
+    "s4Heading": "SX Coins",
+    "s4P1": "SX Coins na virtual currency wey you dey earn through platform activity. Dem no get cash value and dem no dey refundable. If dem close your account because of serious rule violation, you go lose your coins.",
+    "s5Heading": "How to Request Refund",
+    "s5P1": "Email <email>sentinelxesports@gmail.com</email> with your username, tournament name, and di reason for your request. We go respond within 3 business days."
   }
 }
