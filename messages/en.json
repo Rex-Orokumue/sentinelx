@@ -430,5 +430,73 @@
     "withdrawalP": "Allow 1–5 business days before contacting us. Include your withdrawal request date and bank name.",
     "reportAbuseHeading": "Report Abuse or Safety Concerns",
     "reportAbuseP1": "If you're experiencing harassment, threats, or have a safety concern, email <email>sentinelxesports@gmail.com</email> with “URGENT” in the subject line. We prioritise these reports."
+  },
+  "help": {
+    "eyebrow": "Support",
+    "title": "Help Center",
+    "metaTitle": "Help Center",
+    "metaDescription": "Answers to common questions about accounts, tournaments, prizes, SX Score, and SX Coins.",
+    "gettingStarted": {
+      "heading": "Getting Started",
+      "q1": "How do I create an account?",
+      "a1": "Click \"Sign Up\" on the homepage. Enter your email address and choose a username. Verify your email using the link we send you, then complete your profile.",
+      "q2": "Can I change my username?",
+      "a2": "Yes, but only once. Go to Settings to make the change. After that, your username is locked — contact support if you have a serious reason to change it again.",
+      "q3": "Is SentinelX free to use?",
+      "a3": "Creating an account and browsing the platform is free. Entering tournaments costs ₦500 per tournament, or you can use SX Coins you've earned to reduce or eliminate the fee."
+    },
+    "tournaments": {
+      "heading": "Tournaments",
+      "q1": "How do I register for a tournament?",
+      "a1": "Go to the Tournaments page, find an open tournament, and click \"Register.\" You'll be taken to the payment screen. Complete your ₦500 payment via Paystack to confirm your spot.",
+      "q2": "What happens if I miss my match?",
+      "a2": "A no-show means your opponent advances automatically and you lose 100 SX Score points. Always check your fixture on your Player Dashboard and set a reminder.",
+      "q3": "How do I submit a match result?",
+      "a3": "Go to Dashboard → My Matches → Submit Result. Upload a screenshot of the final scoreline and a screen recording of the match. Both are required.",
+      "q4": "What if my opponent submits a wrong result?",
+      "a4": "You can dispute the result within 1 hour of submission. Go to the match page and click \"Dispute.\" Admin will review both players' recordings and make a final decision.",
+      "q5": "How long does it take for results to be confirmed?",
+      "a5": "Admin aims to confirm results within 24 hours of submission. Complex disputes may take longer.",
+      "q6": "What if a tournament is cancelled?",
+      "a6": "You'll receive a full refund to your original payment method within 3–7 business days."
+    },
+    "prizes": {
+      "heading": "Prizes and Payments",
+      "q1": "How do I withdraw my prize money?",
+      "a1": "Go to Dashboard → Wallet → Withdraw. Link your Nigerian bank account (first time only), enter the amount, and submit a withdrawal request. We'll process it within 1–5 business days.",
+      "q2": "Is there a minimum withdrawal amount?",
+      "a2": "Yes — ₦1,000 minimum.",
+      "q3": "Why do I need to verify my identity before withdrawing?",
+      "a3": "We verify your bank account via Paystack to ensure prize money goes to the right person and to comply with Nigerian financial regulations.",
+      "q4": "When will I receive my withdrawal?",
+      "a4": "Typically 1–5 business days after your request is approved. Delays can occur due to your bank's processing times, which are outside our control."
+    },
+    "sxScore": {
+      "heading": "SX Score",
+      "q1": "What is SX Score?",
+      "a1": "SX Score is your reliability and fair-play rating on the platform. Every player starts at 700. It goes up when you win and behave well, and down when you no-show, cheat, or lose disputes.",
+      "q2": "What are the SX Score tiers?",
+      "a2": "900 and above: Elite (🟢). 750–899: Trusted (🔵). 600–749: Developing (🟡). Below 600: At Risk (🔴).",
+      "q3": "Can my SX Score recover?",
+      "a3": "Yes. There's no floor cap — you can always earn your way back up by competing fairly."
+    },
+    "sxCoins": {
+      "heading": "SX Coins",
+      "q1": "What are SX Coins?",
+      "a1": "SX Coins are an in-platform virtual currency. You earn them by competing, completing challenges, and unlocking achievements.",
+      "q2": "Can I convert SX Coins to naira?",
+      "a2": "No. SX Coins are virtual and cannot be exchanged for cash. They can only be spent within the platform.",
+      "q3": "What can I spend SX Coins on?",
+      "a3": "Tournament entry fee discounts (500 coins = ₦250 off, 1,000 coins = free entry), post boosts in the community, and items in the in-platform store."
+    },
+    "accountSafety": {
+      "heading": "Account and Safety",
+      "q1": "I forgot my password. What do I do?",
+      "a1": "Click \"Forgot Password\" on the login page. We'll send a reset link to your registered email address.",
+      "q2": "How do I report a player?",
+      "a2": "Email sentinelxesports@gmail.com with the player's username and details of the incident. For community posts, use the report button on the post.",
+      "q3": "I think my account has been hacked. What do I do?",
+      "a3": "Change your password immediately using the \"Forgot Password\" link on the login page, then email us at sentinelxesports@gmail.com. We'll lock the account and help you recover it."
+    }
   }
 }

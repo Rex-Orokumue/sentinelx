@@ -430,5 +430,73 @@
     "withdrawalP": "Patientez 1 à 5 jours ouvrés avant de nous contacter. Indiquez la date de votre demande de retrait et le nom de votre banque.",
     "reportAbuseHeading": "Signaler un abus ou un problème de sécurité",
     "reportAbuseP1": "Si vous subissez du harcèlement, des menaces, ou avez une préoccupation de sécurité, écrivez à <email>sentinelxesports@gmail.com</email> avec « URGENT » dans l'objet. Nous priorisons ces signalements."
+  },
+  "help": {
+    "eyebrow": "Assistance",
+    "title": "Centre d'aide",
+    "metaTitle": "Centre d'aide",
+    "metaDescription": "Réponses aux questions courantes sur les comptes, les tournois, les gains, le SX Score et les SX Coins.",
+    "gettingStarted": {
+      "heading": "Premiers pas",
+      "q1": "Comment créer un compte ?",
+      "a1": "Cliquez sur « S'inscrire » sur la page d'accueil. Saisissez votre adresse e-mail et choisissez un nom d'utilisateur. Vérifiez votre e-mail à l'aide du lien que nous vous envoyons, puis complétez votre profil.",
+      "q2": "Puis-je changer mon nom d'utilisateur ?",
+      "a2": "Oui, mais une seule fois. Allez dans Paramètres pour effectuer le changement. Après cela, votre nom d'utilisateur est verrouillé — contactez le support si vous avez une raison sérieuse de le changer à nouveau.",
+      "q3": "L'utilisation de SentinelX est-elle gratuite ?",
+      "a3": "Créer un compte et parcourir la plateforme est gratuit. S'inscrire aux tournois coûte ₦500 par tournoi, ou vous pouvez utiliser des SX Coins gagnés pour réduire ou annuler les frais."
+    },
+    "tournaments": {
+      "heading": "Tournois",
+      "q1": "Comment m'inscrire à un tournoi ?",
+      "a1": "Allez sur la page Tournois, trouvez un tournoi ouvert, et cliquez sur « S'inscrire ». Vous serez dirigé vers l'écran de paiement. Effectuez votre paiement de ₦500 via Paystack pour confirmer votre place.",
+      "q2": "Que se passe-t-il si je manque mon match ?",
+      "a2": "Une absence signifie que votre adversaire avance automatiquement et que vous perdez 100 points de SX Score. Vérifiez toujours votre match sur votre tableau de bord joueur et définissez un rappel.",
+      "q3": "Comment soumettre un résultat de match ?",
+      "a3": "Allez dans Tableau de bord → Mes matchs → Soumettre le résultat. Téléchargez une capture d'écran du score final et un enregistrement d'écran du match. Les deux sont requis.",
+      "q4": "Que se passe-t-il si mon adversaire soumet un résultat incorrect ?",
+      "a4": "Vous pouvez contester le résultat dans l'heure suivant la soumission. Allez sur la page du match et cliquez sur « Contester ». L'administrateur examinera les enregistrements des deux joueurs et prendra une décision finale.",
+      "q5": "Combien de temps faut-il pour que les résultats soient confirmés ?",
+      "a5": "L'administrateur vise à confirmer les résultats sous 24 heures après soumission. Les litiges complexes peuvent prendre plus de temps.",
+      "q6": "Que se passe-t-il si un tournoi est annulé ?",
+      "a6": "Vous recevrez un remboursement intégral sur votre mode de paiement d'origine sous 3 à 7 jours ouvrés."
+    },
+    "prizes": {
+      "heading": "Gains et paiements",
+      "q1": "Comment retirer mes gains ?",
+      "a1": "Allez dans Tableau de bord → Portefeuille → Retirer. Liez votre compte bancaire nigérian (première fois seulement), saisissez le montant, et soumettez une demande de retrait. Nous la traiterons sous 1 à 5 jours ouvrés.",
+      "q2": "Y a-t-il un montant minimum de retrait ?",
+      "a2": "Oui — minimum ₦1 000.",
+      "q3": "Pourquoi dois-je vérifier mon identité avant de retirer ?",
+      "a3": "Nous vérifions votre compte bancaire via Paystack pour nous assurer que les gains vont à la bonne personne et pour respecter la réglementation financière nigériane.",
+      "q4": "Quand vais-je recevoir mon retrait ?",
+      "a4": "Généralement 1 à 5 jours ouvrés après l'approbation de votre demande. Des retards peuvent survenir en raison des délais de traitement de votre banque, indépendants de notre volonté."
+    },
+    "sxScore": {
+      "heading": "SX Score",
+      "q1": "Qu'est-ce que le SX Score ?",
+      "a1": "Le SX Score est votre note de fiabilité et de fair-play sur la plateforme. Chaque joueur commence à 700. Il augmente quand vous gagnez et vous comportez bien, et diminue en cas d'absence, de triche ou de litige perdu.",
+      "q2": "Quels sont les paliers du SX Score ?",
+      "a2": "900 et plus : Élite (🟢). 750–899 : Fiable (🔵). 600–749 : En progression (🟡). Moins de 600 : À risque (🔴).",
+      "q3": "Mon SX Score peut-il remonter ?",
+      "a3": "Oui. Il n'y a pas de plancher — vous pouvez toujours regagner des points en jouant équitablement."
+    },
+    "sxCoins": {
+      "heading": "SX Coins",
+      "q1": "Que sont les SX Coins ?",
+      "a1": "Les SX Coins sont une monnaie virtuelle interne à la plateforme. Vous les gagnez en jouant, en complétant des défis, et en débloquant des succès.",
+      "q2": "Puis-je convertir les SX Coins en naira ?",
+      "a2": "Non. Les SX Coins sont virtuels et ne peuvent pas être échangés contre de l'argent. Ils ne peuvent être dépensés que sur la plateforme.",
+      "q3": "Sur quoi puis-je dépenser mes SX Coins ?",
+      "a3": "Des réductions sur les frais d'inscription aux tournois (500 coins = ₦250 de réduction, 1 000 coins = entrée gratuite), des boosts de publication dans la communauté, et des articles dans la boutique interne."
+    },
+    "accountSafety": {
+      "heading": "Compte et sécurité",
+      "q1": "J'ai oublié mon mot de passe. Que faire ?",
+      "a1": "Cliquez sur « Mot de passe oublié » sur la page de connexion. Nous enverrons un lien de réinitialisation à votre adresse e-mail enregistrée.",
+      "q2": "Comment signaler un joueur ?",
+      "a2": "Envoyez un e-mail à sentinelxesports@gmail.com avec le nom d'utilisateur du joueur et les détails de l'incident. Pour les publications communautaires, utilisez le bouton de signalement sur la publication.",
+      "q3": "Je pense que mon compte a été piraté. Que faire ?",
+      "a3": "Changez immédiatement votre mot de passe à l'aide du lien « Mot de passe oublié » sur la page de connexion, puis écrivez-nous à sentinelxesports@gmail.com. Nous verrouillerons le compte et vous aiderons à le récupérer."
+    }
   }
 }
