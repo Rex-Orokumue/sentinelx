@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireStaff } from '@/lib/admin/auth'
 import { resolveGroupCount, snakeDistribute, roundRobinPairs, knockoutRound1 } from './draw'
 import { nextRoundScheduledAt } from './round-schedule'
+import { seededPaidPlayers } from './seeded-players'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 import { notifyInApp } from '@/lib/notifications/inbox'
 import { pushToPlayer } from '@/lib/notifications/push'
@@ -11,23 +12,6 @@ import { pushToPlayer } from '@/lib/notifications/push'
 export type BracketState = { error?: string; success?: boolean } | undefined
 
 type Admin = ReturnType<typeof createAdminClient>
-
-// Paid players ordered by sx_score desc, ties broken randomly.
-async function seededPaidPlayers(admin: Admin, tournamentId: string): Promise<string[]> {
-  const { data: regs } = await admin
-    .from('tournament_registrations')
-    .select('player_id')
-    .eq('tournament_id', tournamentId)
-    .eq('payment_status', 'paid')
-  const ids = (regs ?? []).map((r) => r.player_id)
-  if (ids.length === 0) return []
-  const { data: profs } = await admin.from('profiles').select('id, sx_score').in('id', ids)
-  const scoreById = new Map((profs ?? []).map((p) => [p.id, p.sx_score]))
-  return ids
-    .map((id) => ({ id, score: scoreById.get(id) ?? 0, r: Math.random() }))
-    .sort((a, b) => b.score - a.score || a.r - b.r)
-    .map((x) => x.id)
-}
 
 async function clearBracket(admin: Admin, tournamentId: string): Promise<void> {
   // Matches must go first: matches.group_id has no ON DELETE CASCADE, so deleting
