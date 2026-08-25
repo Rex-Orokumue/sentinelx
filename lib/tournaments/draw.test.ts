@@ -6,6 +6,8 @@ import {
   snakeDistribute,
   roundRobinPairs,
   knockoutRound1,
+  canMoveOutOfGroup,
+  canReceiveIntoGroup,
 } from './draw'
 import { nextRoundName } from './advancement'
 
@@ -23,14 +25,18 @@ describe('groupCountFor', () => {
 })
 
 describe('validGroupCounts', () => {
-  it('returns every group count that keeps groups within 4-8 players', () => {
+  it('returns every group count that keeps groups within 2-8 players', () => {
     expect(validGroupCounts(8)).toEqual([0])
-    expect(validGroupCounts(9)).toEqual([2])
-    expect(validGroupCounts(16)).toEqual([2, 3, 4])
-    expect(validGroupCounts(17)).toEqual([3, 4])
-    expect(validGroupCounts(32)).toEqual([4, 5, 6, 7, 8])
-    expect(validGroupCounts(33)).toEqual([5, 6, 7, 8])
-    expect(validGroupCounts(64)).toEqual([8, 9, 10, 11, 12, 13, 14, 15, 16])
+    expect(validGroupCounts(9)).toEqual([2, 3, 4])
+    expect(validGroupCounts(16)).toEqual([2, 3, 4, 5, 6, 7, 8])
+    expect(validGroupCounts(17)).toEqual([3, 4, 5, 6, 7, 8])
+    expect(validGroupCounts(32)).toEqual([4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
+    expect(validGroupCounts(33)).toEqual([5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])
+    expect(validGroupCounts(64)).toEqual(Array.from({ length: 25 }, (_, i) => i + 8))
+  })
+
+  it('offers 6 groups of 3 for 18 players', () => {
+    expect(validGroupCounts(18)).toEqual([3, 4, 5, 6, 7, 8, 9])
   })
 })
 
@@ -46,6 +52,28 @@ describe('resolveGroupCount', () => {
   it('falls back to the default tier when no override is submitted', () => {
     expect(resolveGroupCount(undefined, 32)).toBe(4)
     expect(resolveGroupCount(null, 32)).toBe(4)
+  })
+})
+
+describe('canMoveOutOfGroup', () => {
+  it('blocks the move when it would leave the source group with fewer than 2 players', () => {
+    expect(canMoveOutOfGroup(2)).toBe(false)
+    expect(canMoveOutOfGroup(1)).toBe(false)
+  })
+  it('allows the move when the source group keeps at least 2 players', () => {
+    expect(canMoveOutOfGroup(3)).toBe(true)
+    expect(canMoveOutOfGroup(8)).toBe(true)
+  })
+})
+
+describe('canReceiveIntoGroup', () => {
+  it('blocks the move when the target group is already at the 8-player cap', () => {
+    expect(canReceiveIntoGroup(8)).toBe(false)
+    expect(canReceiveIntoGroup(9)).toBe(false)
+  })
+  it('allows the move when the target group has room', () => {
+    expect(canReceiveIntoGroup(7)).toBe(true)
+    expect(canReceiveIntoGroup(0)).toBe(true)
   })
 })
 

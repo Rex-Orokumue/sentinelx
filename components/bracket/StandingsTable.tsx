@@ -1,6 +1,23 @@
 import type { StandingRow } from '@/lib/tournaments/standings'
+import { MovePlayerForm } from '@/components/admin/MovePlayerForm'
 
-export function StandingsTable({ groupName, rows }: { groupName: string; rows: StandingRow[] }) {
+export function StandingsTable({
+  groupName,
+  rows,
+  tournamentId,
+  currentGroupId,
+  groups,
+}: {
+  groupName: string
+  rows: StandingRow[]
+  // Admin-only, staff-preview window: when all three are present, each row
+  // gets a "move to another group" control. The public bracket page passes
+  // none of these, so the column never renders there.
+  tournamentId?: string
+  currentGroupId?: string
+  groups?: { id: string; name: string }[]
+}) {
+  const movable = Boolean(tournamentId && currentGroupId && groups && groups.length > 1)
   return (
     <div className="mb-6">
       <h3 className="mb-2 text-sm font-bold text-white">{groupName}</h3>
@@ -18,6 +35,7 @@ export function StandingsTable({ groupName, rows }: { groupName: string; rows: S
               <th className="whitespace-nowrap px-2 py-2.5 text-center">GA</th>
               <th className="whitespace-nowrap px-2 py-2.5 text-center">GD</th>
               <th className="whitespace-nowrap px-3 py-2.5 text-right">Pts</th>
+              {movable && <th className="whitespace-nowrap px-3 py-2.5 text-right">Group</th>}
             </tr>
           </thead>
           <tbody>
@@ -38,6 +56,16 @@ export function StandingsTable({ groupName, rows }: { groupName: string; rows: S
                   {r.goalDiff > 0 ? `+${r.goalDiff}` : r.goalDiff}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2.5 text-right font-bold text-white">{r.points}</td>
+                {movable && (
+                  <td className="whitespace-nowrap px-3 py-2.5 text-right">
+                    <MovePlayerForm
+                      tournamentId={tournamentId as string}
+                      playerId={r.playerId}
+                      currentGroupId={currentGroupId as string}
+                      groups={groups as { id: string; name: string }[]}
+                    />
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

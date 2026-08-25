@@ -109,6 +109,8 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
         </p>
       ) : (
         <AdminBracketView
+          tournamentId={t.id}
+          status={t.status}
           standings={view.standings}
           fixtures={view.fixtures}
           rounds={view.rounds}

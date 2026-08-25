@@ -83,7 +83,9 @@ Brackets are NEVER generated before registration closes. When admin closes regis
 | 17–32 | 4 | 4–8 | Top 2 per group |
 | 33–64 | 8 | 4–8 | Top 2 per group |
 
-Admin can override before publishing. After groups, it's single elimination knockout.
+Admin can override the group count before publishing, choosing any value that keeps every group between 2 and 8 players (`validGroupCounts()` in `lib/tournaments/draw.ts`) — e.g. 18 players can be split into 6 groups of 3, not just the default 3 or 4. Uneven splits are distributed one-per-group via a snake draft (`snakeDistribute()`), so group sizes never differ by more than 1.
+
+While the bracket is generated but not yet published (`registration_closed`), admin can also manually move an individual player to a different group from the bracket page — the round-robin matches for both the group they left and the one they joined are regenerated. A move is blocked if it would drop a group below 2 players or push one above 8. After groups, it's single elimination knockout.
 
 ---
 
