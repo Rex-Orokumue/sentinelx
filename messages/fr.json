@@ -189,5 +189,27 @@
     "s4P1": "Les SX Coins sont une monnaie virtuelle gagnée grâce à l'activité sur la plateforme. Ils n'ont aucune valeur monétaire et ne sont pas remboursables. Si votre compte est fermé pour une infraction grave au règlement, les coins sont perdus.",
     "s5Heading": "Comment demander un remboursement",
     "s5P1": "Écrivez à <email>sentinelxesports@gmail.com</email> avec votre nom d'utilisateur, le nom du tournoi et la raison de votre demande. Nous répondrons sous 3 jours ouvrés."
+  },
+  "rules": {
+    "eyebrow": "Assistance",
+    "title": "Règlement des tournois",
+    "metaTitle": "Règlement des tournois",
+    "metaDescription": "Règles d'admissibilité, de match, de soumission des résultats, de litige et de conduite qui s'appliquent à chaque tournoi SentinelX.",
+    "eligibilityHeading": "Admissibilité",
+    "eligibilityList": "<li>Vous devez avoir un compte SentinelX enregistré et vérifié</li><li>Vous devez payer les frais d'inscription (₦500 ou réduits avec des SX Coins) avant la date limite d'inscription</li><li>Les joueurs sous suspension active ne sont pas admissibles</li>",
+    "beforeHeading": "Avant le tournoi",
+    "beforeList": "<li>Les inscriptions se ferment avant la génération du tableau — vous ne pouvez pas vous inscrire après la date limite</li><li>Consultez votre match (votre rencontre programmée) sur votre tableau de bord joueur une fois le tableau publié</li><li>Soyez en ligne et prêt 15 minutes avant l'heure programmée de votre match</li>",
+    "playingHeading": "Jouer votre match",
+    "playingList": "<li>Les matchs se jouent sur le jeu et la plateforme convenus (DLS, EA FC Mobile, eFootball, etc.) tels que précisés dans les détails du tournoi</li><li>Les deux joueurs doivent rejoindre le lobby du match à l'heure programmée</li><li>Si vous ne trouvez pas votre adversaire après 10 minutes d'attente à partir de l'heure programmée, prenez une capture d'écran du lobby vide et soumettez-la comme signalement d'absence</li>",
+    "submittingHeading": "Soumission des résultats",
+    "submittingList": "<li>Le gagnant est responsable de la soumission du résultat</li><li>Soumettez une capture d'écran du score final ET un enregistrement d'écran du match</li><li>Les résultats doivent être soumis dans les 2 heures suivant la fin du match</li><li>L'administrateur examine et confirme le résultat — le tableau ne se met à jour qu'après confirmation</li>",
+    "noShowHeading": "Absences",
+    "noShowList": "<li>Ne pas se présenter à votre match programmé constitue une absence</li><li>Absence : votre adversaire avance automatiquement, et vous perdez 100 points de SX Score</li><li>Des absences répétées peuvent entraîner une suspension des futurs tournois</li>",
+    "disputesHeading": "Litiges",
+    "disputesList": "<li>Si le résultat soumis est incorrect, le joueur perdant peut soulever un litige dans l'heure suivant la soumission</li><li>L'administrateur examinera les enregistrements d'écran des deux joueurs et prendra une décision finale</li><li>Les décisions de l'administrateur sur les litiges sont définitives</li><li>Soulever un litige infondé (contester délibérément un résultat correct) entraîne une pénalité sur le SX Score</li>",
+    "conductHeading": "Conduite",
+    "conductList": "<li>Traitez votre adversaire avec respect — le harcèlement, les discours de haine ou les menaces entraîneront une disqualification immédiate et une suspension</li><li>Le trucage de match ou la collusion est une infraction passible d'un bannissement permanent</li><li>L'utilisation d'exploits de jeu ou d'outils externes est une infraction passible d'un bannissement permanent</li>",
+    "prizesHeading": "Gains",
+    "prizesList": "<li>Les gains sont crédités sur le portefeuille du gagnant après confirmation du résultat final par l'administrateur</li><li>Les joueurs doivent compléter la vérification KYC avant de retirer leurs gains</li><li>Les demandes de retrait sont traitées sous 1 à 5 jours ouvrés</li>"
   }
 }

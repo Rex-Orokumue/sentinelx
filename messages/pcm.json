@@ -189,5 +189,27 @@
     "s4P1": "SX Coins na virtual currency wey you dey earn through platform activity. Dem no get cash value and dem no dey refundable. If dem close your account because of serious rule violation, you go lose your coins.",
     "s5Heading": "How to Request Refund",
     "s5P1": "Email <email>sentinelxesports@gmail.com</email> with your username, tournament name, and di reason for your request. We go respond within 3 business days."
+  },
+  "rules": {
+    "eyebrow": "Support",
+    "title": "Tournament Rules",
+    "metaTitle": "Tournament Rules",
+    "metaDescription": "Eligibility, match, result-submission, dispute, and conduct rules wey apply to every SentinelX tournament.",
+    "eligibilityHeading": "Eligibility",
+    "eligibilityList": "<li>You must get registered and verified SentinelX account</li><li>You must pay entry fee (₦500 or reduced with SX Coins) before registration deadline</li><li>Players wey dey serve active suspension no fit enter</li>",
+    "beforeHeading": "Before Di Tournament",
+    "beforeList": "<li>Registration go close before dem generate di bracket — you no fit register after deadline</li><li>Check your fixture (your scheduled match) for your Player Dashboard after dem publish di bracket</li><li>Dey online and ready 15 minutes before your scheduled match time</li>",
+    "playingHeading": "How to Play Your Match",
+    "playingList": "<li>Matches dey play on di agreed game and platform (DLS, EA FC Mobile, eFootball, etc.) as e dey inside di tournament details</li><li>Both players must enter di match lobby at di scheduled time</li><li>If you no fit find your opponent after you wait 10 minutes from di scheduled start time, screenshot di empty lobby and submit am as no-show report</li>",
+    "submittingHeading": "How to Submit Result",
+    "submittingList": "<li>Na di winner get responsibility to submit di result</li><li>Submit screenshot of di final scoreline AND screen recording of di match</li><li>You must submit result within 2 hours after di match don end</li><li>Admin go review and confam di result — di bracket go update only after confam</li>",
+    "noShowHeading": "No-Shows",
+    "noShowList": "<li>If you no show up for your scheduled match, na no-show</li><li>No-show: your opponent go advance automatically, and you go lose 100 SX Score points</li><li>If you keep no-show, dem fit suspend you from future tournaments</li>",
+    "disputesHeading": "Disputes",
+    "disputesList": "<li>If di submitted result wrong, di player wey lose fit raise dispute within 1 hour after submission</li><li>Admin go review both players' screen recording and take final decision</li><li>Wetin admin decide for dispute, na im be final</li><li>If you raise false dispute (wen you dey deliberately contest correct result), you go get SX Score penalty</li>",
+    "conductHeading": "Conduct",
+    "conductList": "<li>Respect your opponent — harassment, hate speech, or threat go cause immediate disqualification and suspension</li><li>Match fixing or collusion na permanent ban offence</li><li>To use game exploits or outside tools na permanent ban offence</li>",
+    "prizesHeading": "Prizes",
+    "prizesList": "<li>Prize dey enter di winner wallet after admin confam di final result</li><li>Players must complete KYC verification before dem withdraw prize money</li><li>Withdrawal request dey process within 1–5 business days</li>"
   }
 }
