@@ -498,5 +498,34 @@
       "q3": "Je pense que mon compte a été piraté. Que faire ?",
       "a3": "Changez immédiatement votre mot de passe à l'aide du lien « Mot de passe oublié » sur la page de connexion, puis écrivez-nous à sentinelxesports@gmail.com. Nous verrouillerons le compte et vous aiderons à le récupérer."
     }
+  },
+  "howItWorks": {
+    "eyebrow": "Le foyer de l'esport mobile au Nigeria",
+    "title": "Comment fonctionne SentinelX",
+    "subtitle": "SentinelX est l'endroit où les gamers mobiles nigérians s'affrontent dans des tournois organisés, bâtissent leur réputation, et gagnent de vrais gains — tout depuis leur téléphone. Voici comment commencer.",
+    "metaTitle": "Comment fonctionne SentinelX",
+    "metaDescription": "De la création d'un compte au paiement — comment les gamers mobiles nigérians s'affrontent sur SentinelX.",
+    "stepLabel": "Étape",
+    "step1Title": "Créez votre compte",
+    "step1Body": "Inscrivez-vous avec votre e-mail et choisissez un nom d'utilisateur. Votre nom d'utilisateur est votre identité esport sur la plateforme — choisissez quelque chose dont vous êtes fier. Votre profil joueur affiche votre SX Score, votre taux de victoire, vos succès et votre historique de match. Construisez-le tournoi après tournoi.",
+    "step2Title": "Inscrivez-vous à un tournoi",
+    "step2Body": "Parcourez la page Tournois pour trouver des inscriptions ouvertes. Chaque tournoi indique le jeu, les frais d'inscription, la cagnotte, le format, et la date limite d'inscription. Payez les frais d'inscription de ₦500 avec votre carte via Paystack. Ou utilisez des SX Coins gagnés en jouant — 1 000 coins vous offrent une entrée gratuite.",
+    "step3Title": "Consultez votre match",
+    "step3Body": "Une fois les inscriptions closes, l'administrateur génère le tableau. Vous verrez votre match (contre qui vous jouez et quand) sur votre tableau de bord joueur. Vous recevrez aussi un rappel de match sur WhatsApp si vous avez ajouté votre numéro dans les Paramètres.",
+    "step4Title": "Jouez votre match",
+    "step4Body": "Jouez le match à l'heure programmée. Restez fair-play — pas d'exploits, pas d'abandon en cours de match. Après le match : le gagnant prend une capture d'écran du score final et enregistre le match sur son téléphone. Les deux sont requis pour la soumission du résultat.",
+    "step5Title": "Soumettez votre résultat",
+    "step5Body": "Allez dans votre tableau de bord joueur → Mes matchs → Soumettre le résultat. Téléchargez votre capture d'écran et votre enregistrement d'écran. L'administrateur examine la soumission et confirme le résultat. Le tableau ne se met à jour qu'après confirmation de l'administrateur — jamais avant.",
+    "step6Title": "Gagnez et soyez payé",
+    "step6Body": "Remportez votre tableau et les gains sont crédités sur votre portefeuille. Liez votre compte bancaire nigérian et demandez un retrait — l'argent arrive sous 1 à 5 jours ouvrés.",
+    "sxScoreHeading": "SX Score — Votre réputation",
+    "sxScoreBody": "Chaque joueur commence avec un SX Score de 700. Gagnez des matchs, présentez-vous à l'heure, et comportez-vous bien — votre score augmente. Les absences et les litiges le font baisser. Votre score détermine votre palier de confiance sur la plateforme.",
+    "sxCoinsHeading": "SX Coins — La monnaie interne à la plateforme",
+    "sxCoinsBody": "Vous gagnez des SX Coins en jouant, en complétant des défis hebdomadaires, et en débloquant des succès. Dépensez-les en réductions sur les frais d'inscription, en boosts de vos publications communautaires, et dans la boutique interne. Les coins se gagnent — ils ne peuvent pas être achetés avec de l'argent, ni convertis en naira.",
+    "communityHeading": "La communauté",
+    "communityBody": "Publiez dans le fil communautaire, réagissez aux temps forts des matchs, et relevez des défis hebdomadaires. La communauté est publique — tout le monde peut la lire, mais il faut un compte pour publier.",
+    "comingSoonLabel": "Bientôt disponible",
+    "teamLeaguesTitle": "Ligues d'équipes et scolaires",
+    "teamLeaguesBody": "des équipes représentant une école ou un état, avec des classements équipe contre équipe."
   }
 }

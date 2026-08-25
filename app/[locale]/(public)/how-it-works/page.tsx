@@ -1,72 +1,44 @@
 import { UserPlus, Trophy, CalendarClock, Gamepad2, Upload, Wallet, Star, Coins, Users2, School } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
 import { StaticPageShell } from '@/components/static/StaticPageShell'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params
+  const t = await getTranslations({ locale, namespace: 'howItWorks' })
   return buildMetadata({
-    title: 'How SentinelX Works',
-    description: 'From creating an account to getting paid — how Nigerian mobile gamers compete on SentinelX.',
+    title: t('metaTitle'),
+    description: t('metaDescription'),
     path: '/how-it-works',
     locale,
   })
 }
 
-const STEPS = [
-  {
-    icon: UserPlus,
-    n: 1,
-    title: 'Create Your Account',
-    body: "Sign up with your email and choose a username. Your username is your esports identity on the platform — pick something you're proud of. Your player profile shows your SX Score, win rate, achievements, and match history. Build it up tournament by tournament.",
-  },
-  {
-    icon: Trophy,
-    n: 2,
-    title: 'Enter a Tournament',
-    body: "Browse the Tournaments page to find open registrations. Each tournament shows the game, entry fee, prize pool, format, and registration deadline. Pay the ₦500 entry fee with your card via Paystack. Or use SX Coins you've earned through competing — 1,000 coins get you a free entry.",
-  },
-  {
-    icon: CalendarClock,
-    n: 3,
-    title: 'Check Your Fixture',
-    body: "Once registration closes, admin generates the bracket. You'll see your fixture (who you're playing and when) on your Player Dashboard. You'll also receive a match reminder on WhatsApp if you've added your number in Settings.",
-  },
-  {
-    icon: Gamepad2,
-    n: 4,
-    title: 'Play Your Match',
-    body: 'Play the match at the scheduled time. Keep it clean — no exploits, no rage quits. After the match: the winner takes a screenshot of the final score and records the match on their phone. Both are required for result submission.',
-  },
-  {
-    icon: Upload,
-    n: 5,
-    title: 'Submit Your Result',
-    body: 'Go to your Player Dashboard → My Matches → Submit Result. Upload your screenshot and screen recording. Admin reviews the submission and confirms the result. The bracket updates only after admin confirms — never before.',
-  },
-  {
-    icon: Wallet,
-    n: 6,
-    title: 'Win and Get Paid',
-    body: 'Win your bracket and the prize money is credited to your wallet. Link your Nigerian bank account and request a withdrawal — money arrives in 1–5 business days.',
-  },
-]
+export default async function HowItWorksPage() {
+  const t = await getTranslations('howItWorks')
 
-export default function HowItWorksPage() {
+  const steps = [
+    { icon: UserPlus, n: 1, title: t('step1Title'), body: t('step1Body') },
+    { icon: Trophy, n: 2, title: t('step2Title'), body: t('step2Body') },
+    { icon: CalendarClock, n: 3, title: t('step3Title'), body: t('step3Body') },
+    { icon: Gamepad2, n: 4, title: t('step4Title'), body: t('step4Body') },
+    { icon: Upload, n: 5, title: t('step5Title'), body: t('step5Body') },
+    { icon: Wallet, n: 6, title: t('step6Title'), body: t('step6Body') },
+  ]
+
   return (
-    <StaticPageShell
-      eyebrow="Nigeria's Home of Mobile Esports"
-      title="How SentinelX Works"
-      subtitle="SentinelX is where Nigerian mobile gamers compete in organised tournaments, build their reputation, and win real prize money — all from their phone. Here's how to get started."
-    >
+    <StaticPageShell eyebrow={t('eyebrow')} title={t('title')} subtitle={t('subtitle')}>
       <div className="space-y-4">
-        {STEPS.map((s) => (
+        {steps.map((s) => (
           <div key={s.n} className="flex gap-4 rounded-xl border border-sx-border bg-sx-surface p-5">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sx-purple/15 text-sx-purple-text">
               <s.icon className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-sx-purple-text">Step {s.n}</p>
+              <p className="text-xs font-bold uppercase tracking-widest text-sx-purple-text">
+                {t('stepLabel')} {s.n}
+              </p>
               <p className="mt-0.5 font-bold text-white">{s.title}</p>
               <p className="mt-1 text-sm text-sx-gray">{s.body}</p>
             </div>
@@ -75,30 +47,24 @@ export default function HowItWorksPage() {
       </div>
 
       <div className="mt-10 space-y-4">
-        <InfoSection icon={Star} title="SX Score — Your Reputation">
-          Every player starts with an SX Score of 700. Win matches, show up on time, and behave well — your
-          score goes up. No-shows and disputes bring it down. Your score determines your trust tier on the
-          platform.
+        <InfoSection icon={Star} title={t('sxScoreHeading')}>
+          {t('sxScoreBody')}
         </InfoSection>
-        <InfoSection icon={Coins} title="SX Coins — The In-Platform Currency">
-          You earn SX Coins by competing, completing weekly challenges, and unlocking achievements. Spend
-          them on entry fee discounts, boosting your community posts, and the in-platform store. Coins are
-          earned — they cannot be bought with cash, and they cannot be converted to naira.
+        <InfoSection icon={Coins} title={t('sxCoinsHeading')}>
+          {t('sxCoinsBody')}
         </InfoSection>
-        <InfoSection icon={Users2} title="The Community">
-          Post in the community feed, react to match highlights, and take on weekly challenges. The
-          community is public — anyone can read it, but you need an account to post.
+        <InfoSection icon={Users2} title={t('communityHeading')}>
+          {t('communityBody')}
         </InfoSection>
       </div>
 
       <div className="mt-10 rounded-xl border border-sx-border/60 bg-sx-surface/40 p-5 opacity-70">
-        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-sx-gray">Coming Soon</p>
+        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-sx-gray">{t('comingSoonLabel')}</p>
         <div className="space-y-2 text-sm text-sx-gray">
           <p className="flex items-center gap-2">
             <School className="h-4 w-4 shrink-0" />{' '}
             <span>
-              <strong className="text-white">Team &amp; School Leagues</strong> — teams representing a school
-              or state, with team-vs-team standings.
+              <strong className="text-white">{t('teamLeaguesTitle')}</strong> — {t('teamLeaguesBody')}
             </span>
           </p>
         </div>

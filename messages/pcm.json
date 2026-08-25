@@ -498,5 +498,34 @@
       "q3": "I feel say dem hack my account. Wetin I go do?",
       "a3": "Change your password sharp sharp using \"Forgot Password\" link for login page, then email us for sentinelxesports@gmail.com. We go lock di account and help you recover am."
     }
+  },
+  "howItWorks": {
+    "eyebrow": "Nigeria Home of Mobile Esports",
+    "title": "How SentinelX Dey Work",
+    "subtitle": "SentinelX na where Nigerian mobile gamers dey compete for organised tournaments, build their reputation, and win real prize money — all from their phone. Na dis one show you how to start.",
+    "metaTitle": "How SentinelX Dey Work",
+    "metaDescription": "From wen you create account to wen dem pay you — how Nigerian mobile gamers dey compete for SentinelX.",
+    "stepLabel": "Step",
+    "step1Title": "Create Your Account",
+    "step1Body": "Sign up with your email and choose username. Your username na your esports identity for di platform — pick something wey you go proud of. Your player profile go show your SX Score, win rate, achievements, and match history. Build am up tournament by tournament.",
+    "step2Title": "Enter Tournament",
+    "step2Body": "Browse Tournaments page to find open registrations. Every tournament go show di game, entry fee, prize pool, format, and registration deadline. Pay di ₦500 entry fee with your card through Paystack. Or use SX Coins wey you don earn through competing — 1,000 coins go give you free entry.",
+    "step3Title": "Check Your Fixture",
+    "step3Body": "Once registration close, admin go generate di bracket. You go see your fixture (who you dey play and wetin time) for your Player Dashboard. You go also receive match reminder for WhatsApp if you don add your number for Settings.",
+    "step4Title": "Play Your Match",
+    "step4Body": "Play di match for di scheduled time. Keep am clean — no exploits, no rage quit. After di match: di winner take screenshot of di final score and record di match for their phone. You need both of dem for result submission.",
+    "step5Title": "Submit Your Result",
+    "step5Body": "Go your Player Dashboard → My Matches → Submit Result. Upload your screenshot and screen recording. Admin go review di submission and confam di result. Di bracket go update only after admin confam — never before.",
+    "step6Title": "Win and Collect Your Money",
+    "step6Body": "Win your bracket and di prize money go enter your wallet. Link your Nigerian bank account and request withdrawal — money go arrive within 1–5 business days.",
+    "sxScoreHeading": "SX Score — Your Reputation",
+    "sxScoreBody": "Every player start with SX Score of 700. Win matches, show up on time, and behave well — your score go increase. No-shows and disputes go bring am down. Your score dey determine your trust tier for di platform.",
+    "sxCoinsHeading": "SX Coins — Di In-Platform Currency",
+    "sxCoinsBody": "You go earn SX Coins as you compete, complete weekly challenges, and unlock achievements. Spend am for entry fee discount, to boost your community posts, and for di in-platform store. Coins na wetin you earn — you no fit buy am with cash, and you no fit convert am to naira.",
+    "communityHeading": "Di Community",
+    "communityBody": "Post for di community feed, react to match highlights, and take on weekly challenges. Di community dey public — anybody fit read am, but you need account before you fit post.",
+    "comingSoonLabel": "Coming Soon",
+    "teamLeaguesTitle": "Team & School Leagues",
+    "teamLeaguesBody": "teams wey dey represent school or state, with team-vs-team standings."
   }
 }
