@@ -257,5 +257,29 @@
     "matchSafetyList": "<li>Enregistrez votre écran pour chaque match — c'est votre protection en cas de litige sur un résultat</li><li>Conservez vos enregistrements jusqu'à ce que le résultat soit officiellement confirmé sur la plateforme</li><li>Si votre adversaire est abusif ou menaçant, prenez des captures d'écran et signalez-le via la plateforme ou par e-mail</li>",
     "reportHeading": "Signaler un problème",
     "reportP1": "E-mail : <email>sentinelxesports@gmail.com</email><br/>WhatsApp : <whatsapp>+234 903 239 5685</whatsapp>"
+  },
+  "escrow": {
+    "eyebrow": "Gaming Exchange",
+    "title": "Échanger en toute sécurité avec l'escrow Zolarux",
+    "metaTitle": "Échanger en toute sécurité avec l'escrow Zolarux",
+    "metaDescription": "Comment l'escrow Zolarux protège acheteurs et vendeurs sur le Gaming Exchange de SentinelX.",
+    "whatIsExchangeHeading": "Qu'est-ce que le Gaming Exchange ?",
+    "whatIsExchangeP1": "Le Gaming Exchange est la place de marché de SentinelX pour les comptes de jeu, les objets in-game et les biens numériques de jeu. Il est conçu pour les gamers mobiles nigérians qui veulent acheter et vendre en toute sécurité — sans risque de se faire arnaquer.",
+    "whatIsExchangeP2": "Chaque transaction sur l'Exchange est protégée par l'escrow Zolarux. <link>Parcourir l'Exchange →</link>",
+    "whatIsEscrowHeading": "Qu'est-ce que l'escrow Zolarux ?",
+    "whatIsEscrowP1": "Zolarux est un service d'escrow indépendant. L'escrow signifie qu'un tiers de confiance détient un paiement jusqu'à ce que les deux parties d'une transaction soient satisfaites. Ni l'argent de l'acheteur ni l'objet du vendeur ne sont transférés tant que l'accord n'est pas confirmé comme terminé.",
+    "whatIsEscrowP2": "Cela protège les deux parties.",
+    "howItWorksHeading": "Comment ça marche",
+    "buyerLabel": "Du point de vue de l'acheteur :",
+    "buyerList": "<li>Vous trouvez un objet que vous voulez et vous vous accordez sur un prix</li><li>Vous envoyez le paiement à Zolarux (pas directement au vendeur)</li><li>Le vendeur livre l'objet ou le compte</li><li>Vous confirmez l'avoir reçu et qu'il est conforme à la description</li><li>Zolarux verse le paiement au vendeur</li>",
+    "buyerP2": "Si l'objet n'est pas livré ou est mal décrit, vous pouvez ouvrir un litige et votre argent vous est rendu.",
+    "sellerLabel": "Du point de vue du vendeur :",
+    "sellerList": "<li>Vous mettez votre objet en vente sur l'Exchange</li><li>Un acheteur l'achète — son paiement va à Zolarux, pas encore à vous</li><li>Vous livrez l'objet ou transférez le compte</li><li>L'acheteur confirme la réception</li><li>Zolarux vous verse le paiement</li>",
+    "sellerP2": "Vous ne livrez qu'une fois le paiement de l'acheteur confirmé comme détenu en escrow.",
+    "whyNotDirectHeading": "Pourquoi ne pas échanger directement ?",
+    "whyNotDirectP1": "Échanger en dehors de l'escrow — que ce soit via WhatsApp, un virement direct, ou toute autre méthode — n'est pas protégé. SentinelX ne peut pas vous aider à récupérer de l'argent ou des objets perdus lors d'échanges effectués en dehors du système d'escrow de la plateforme.",
+    "whyNotDirectP2": "Si un acheteur ou un vendeur vous demande de conclure un échange en dehors du système d'escrow, refusez et signalez-le.",
+    "questionsHeading": "Des questions ?",
+    "questionsP1": "Contactez-nous à <email>sentinelxesports@gmail.com</email>."
   }
 }

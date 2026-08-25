@@ -257,5 +257,29 @@
     "matchSafetyList": "<li>Record your screen for every match — dis na your protection if dispute happen for result</li><li>Keep your recordings until after dem officially confam di result for di platform</li><li>If your opponent dey abuse you or threaten you, screenshot am and report through di platform or email us</li>",
     "reportHeading": "Report Problem",
     "reportP1": "Email: <email>sentinelxesports@gmail.com</email><br/>WhatsApp: <whatsapp>+234 903 239 5685</whatsapp>"
+  },
+  "escrow": {
+    "eyebrow": "Gaming Exchange",
+    "title": "Trade Safe with Zolarux Escrow",
+    "metaTitle": "Trade Safe with Zolarux Escrow",
+    "metaDescription": "How Zolarux Escrow dey protect buyers and sellers for SentinelX Gaming Exchange.",
+    "whatIsExchangeHeading": "Wetin Be Gaming Exchange?",
+    "whatIsExchangeP1": "Gaming Exchange na SentinelX marketplace for gaming accounts, in-game items, and digital gaming assets. Dem build am for Nigerian mobile gamers wey wan buy and sell safe — without any risk of scam.",
+    "whatIsExchangeP2": "Every transaction for di Exchange dey protected by Zolarux Escrow. <link>Browse di Exchange →</link>",
+    "whatIsEscrowHeading": "Wetin Be Zolarux Escrow?",
+    "whatIsEscrowP1": "Zolarux na independent escrow service. Escrow mean say trusted third party go hold payment until both sides of transaction satisfy. Buyer money and seller item no go transfer until dem confam say deal don complete.",
+    "whatIsEscrowP2": "Dis one dey protect both parties.",
+    "howItWorksHeading": "How E Dey Work",
+    "buyerLabel": "From buyer side:",
+    "buyerList": "<li>You find item wey you want and you agree price</li><li>You send payment to Zolarux (no be straight to seller)</li><li>Seller deliver di item or account</li><li>You confam say you don receive am and e match di description</li><li>Zolarux release di payment go seller</li>",
+    "buyerP2": "If dem no deliver di item or dem misrepresent am, you fit raise dispute and dem go return your money.",
+    "sellerLabel": "From seller side:",
+    "sellerList": "<li>You list your item for di Exchange</li><li>Buyer buy am — their payment go to Zolarux, e never reach you yet</li><li>You deliver di item or transfer di account</li><li>Buyer confam say dem don receive am</li><li>Zolarux release your payment</li>",
+    "sellerP2": "You go only deliver once dem confam say buyer payment don enter escrow.",
+    "whyNotDirectHeading": "Why You No Suppose Trade Direct",
+    "whyNotDirectP1": "To trade outside escrow — whether through WhatsApp, direct transfer, or any other method — no dey protected. SentinelX no fit help you recover money or items wey you lose for trade wey happen outside di platform escrow system.",
+    "whyNotDirectP2": "If buyer or seller ask you to complete trade outside escrow system, refuse am and report am.",
+    "questionsHeading": "You Get Question?",
+    "questionsP1": "Contact us for <email>sentinelxesports@gmail.com</email>."
   }
 }
