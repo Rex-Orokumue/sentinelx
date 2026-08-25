@@ -1,13 +1,16 @@
 import { Mail } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
 import { StaticPageShell } from '@/components/static/StaticPageShell'
+import { emailTag, listItemTag } from '@/components/static/richTags'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params
+  const t = await getTranslations({ locale, namespace: 'contact' })
   return buildMetadata({
-    title: 'Contact Us',
-    description: 'Reach the SentinelX team by email or WhatsApp — we aim to respond within 24 hours.',
+    title: t('metaTitle'),
+    description: t('metaDescription'),
     path: '/contact',
     locale,
   })
@@ -15,17 +18,14 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 
 const WHATSAPP_HREF = 'https://wa.me/2349032395685?text=Hi%20SentinelX%2C%20I%20need%20help%20with...'
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const t = await getTranslations('contact')
   return (
-    <StaticPageShell
-      eyebrow="Support"
-      title="Contact Us"
-      subtitle="Whether you have a question about a tournament, a problem with your account, or something else — we're reachable and we respond."
-    >
+    <StaticPageShell eyebrow={t('eyebrow')} title={t('title')} subtitle={t('subtitle')}>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-sx-border bg-sx-surface p-6">
           <p className="mb-2 flex items-center gap-2 text-sm font-bold text-white">
-            <Mail className="h-4 w-4 text-sx-purple-text" /> Email
+            <Mail className="h-4 w-4 text-sx-purple-text" /> {t('emailLabel')}
           </p>
           <a
             href="mailto:sentinelxesports@gmail.com"
@@ -33,59 +33,46 @@ export default function ContactPage() {
           >
             sentinelxesports@gmail.com
           </a>
-          <p className="mt-2 text-xs text-sx-gray">We aim to respond within 24 hours on business days.</p>
+          <p className="mt-2 text-xs text-sx-gray">{t('emailResponseNote')}</p>
         </div>
         <div className="rounded-xl border border-sx-border bg-sx-surface p-6">
           <p className="mb-2 flex items-center gap-2 text-sm font-bold text-white">
-            <WhatsAppIcon className="h-4 w-4 text-[#25D366]" /> WhatsApp
+            <WhatsAppIcon className="h-4 w-4 text-[#25D366]" /> {t('whatsappLabel')}
           </p>
           <p className="text-sm font-semibold text-white">+234 903 239 5685</p>
-          <p className="mt-2 text-xs text-sx-gray">
-            Message us directly — fastest for urgent issues like match disputes or account problems.
-          </p>
+          <p className="mt-2 text-xs text-sx-gray">{t('whatsappNote')}</p>
           <a
             href={WHATSAPP_HREF}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-4 inline-flex items-center gap-2 rounded-lg bg-sx-purple px-4 py-2.5 text-xs font-bold text-white hover:bg-sx-purple-light"
           >
-            Message us on WhatsApp →
+            {t('whatsappCta')}
           </a>
         </div>
       </div>
 
       <div className="prose prose-invert prose-sm sm:prose-base mt-10 max-w-none prose-headings:font-display prose-headings:font-bold prose-headings:text-white prose-h2:mt-8 prose-h2:text-lg prose-p:text-sx-gray prose-li:text-sx-gray prose-strong:text-white">
-        <h2>What to Include in Your Message</h2>
-        <p>To help us resolve your issue quickly, include:</p>
-        <ul>
-          <li>Your SentinelX username</li>
-          <li>The tournament name (if relevant)</li>
-          <li>A clear description of the problem</li>
-          <li>Any screenshots that help explain the issue</li>
-        </ul>
+        <h2>{t('whatToIncludeHeading')}</h2>
+        <p>{t('whatToIncludeIntro')}</p>
+        <ul>{t.rich('whatToIncludeList', listItemTag)}</ul>
 
-        <h2>Common Issues</h2>
+        <h2>{t('commonIssuesHeading')}</h2>
         <p>
-          <strong>Forgot your password?</strong> Use the &ldquo;Forgot Password&rdquo; link on the login page
-          — no need to contact us.
+          <strong>{t('forgotPasswordLabel')}</strong> {t('forgotPasswordP')}
         </p>
         <p>
-          <strong>Payment issue?</strong> Include your Paystack payment reference.
+          <strong>{t('paymentIssueLabel')}</strong> {t('paymentIssueP')}
         </p>
         <p>
-          <strong>Match dispute?</strong> Include the match ID and your screen recording.
+          <strong>{t('matchDisputeLabel')}</strong> {t('matchDisputeP')}
         </p>
         <p>
-          <strong>Withdrawal not received?</strong> Allow 1–5 business days before contacting us. Include
-          your withdrawal request date and bank name.
+          <strong>{t('withdrawalLabel')}</strong> {t('withdrawalP')}
         </p>
 
-        <h2>Report Abuse or Safety Concerns</h2>
-        <p>
-          If you&apos;re experiencing harassment, threats, or have a safety concern, email{' '}
-          <a href="mailto:sentinelxesports@gmail.com">sentinelxesports@gmail.com</a> with &ldquo;URGENT&rdquo;
-          in the subject line. We prioritise these reports.
-        </p>
+        <h2>{t('reportAbuseHeading')}</h2>
+        <p>{t.rich('reportAbuseP1', emailTag())}</p>
       </div>
     </StaticPageShell>
   )

@@ -404,5 +404,31 @@
     "ctaHeading": "Faites partie de quelque chose de plus grand.",
     "ctaSubtitle": "Ceci est plus que du jeu. Ceci est Sentinel X.",
     "ctaButton": "Rejoindre la communauté →"
+  },
+  "contact": {
+    "eyebrow": "Assistance",
+    "title": "Nous contacter",
+    "subtitle": "Que vous ayez une question sur un tournoi, un problème avec votre compte, ou autre chose — nous sommes joignables et nous répondons.",
+    "metaTitle": "Nous contacter",
+    "metaDescription": "Contactez l'équipe SentinelX par e-mail ou WhatsApp — nous visons à répondre sous 24 heures.",
+    "emailLabel": "E-mail",
+    "emailResponseNote": "Nous visons à répondre sous 24 heures les jours ouvrés.",
+    "whatsappLabel": "WhatsApp",
+    "whatsappNote": "Contactez-nous directement — le plus rapide pour les problèmes urgents comme les litiges de match ou les problèmes de compte.",
+    "whatsappCta": "Nous contacter sur WhatsApp →",
+    "whatToIncludeHeading": "Que mentionner dans votre message",
+    "whatToIncludeIntro": "Pour nous aider à résoudre votre problème rapidement, incluez :",
+    "whatToIncludeList": "<li>Votre nom d'utilisateur SentinelX</li><li>Le nom du tournoi (si pertinent)</li><li>Une description claire du problème</li><li>Toute capture d'écran qui aide à expliquer le problème</li>",
+    "commonIssuesHeading": "Problèmes courants",
+    "forgotPasswordLabel": "Mot de passe oublié ?",
+    "forgotPasswordP": "Utilisez le lien « Mot de passe oublié » sur la page de connexion — inutile de nous contacter.",
+    "paymentIssueLabel": "Problème de paiement ?",
+    "paymentIssueP": "Indiquez votre référence de paiement Paystack.",
+    "matchDisputeLabel": "Litige de match ?",
+    "matchDisputeP": "Indiquez l'identifiant du match et votre enregistrement d'écran.",
+    "withdrawalLabel": "Retrait non reçu ?",
+    "withdrawalP": "Patientez 1 à 5 jours ouvrés avant de nous contacter. Indiquez la date de votre demande de retrait et le nom de votre banque.",
+    "reportAbuseHeading": "Signaler un abus ou un problème de sécurité",
+    "reportAbuseP1": "Si vous subissez du harcèlement, des menaces, ou avez une préoccupation de sécurité, écrivez à <email>sentinelxesports@gmail.com</email> avec « URGENT » dans l'objet. Nous priorisons ces signalements."
   }
 }

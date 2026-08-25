@@ -404,5 +404,31 @@
     "ctaHeading": "Be Part of Something Bigger.",
     "ctaSubtitle": "Dis one pass just gaming. Dis na Sentinel X.",
     "ctaButton": "Join Di Community →"
+  },
+  "contact": {
+    "eyebrow": "Support",
+    "title": "Contact Us",
+    "subtitle": "Wheda you get question about tournament, problem with your account, or something else — we dey reachable and we dey respond.",
+    "metaTitle": "Contact Us",
+    "metaDescription": "Reach SentinelX team through email or WhatsApp — we dey aim to respond within 24 hours.",
+    "emailLabel": "Email",
+    "emailResponseNote": "We dey aim to respond within 24 hours for business days.",
+    "whatsappLabel": "WhatsApp",
+    "whatsappNote": "Message us direct — dis one dey fastest for urgent issues like match dispute or account problem.",
+    "whatsappCta": "Message Us for WhatsApp →",
+    "whatToIncludeHeading": "Wetin to Include for Your Message",
+    "whatToIncludeIntro": "To help us resolve your issue quick quick, include:",
+    "whatToIncludeList": "<li>Your SentinelX username</li><li>Di tournament name (if e relevant)</li><li>Clear description of di problem</li><li>Any screenshot wey go help explain di issue</li>",
+    "commonIssuesHeading": "Common Issues",
+    "forgotPasswordLabel": "You forget your password?",
+    "forgotPasswordP": "Use di \"Forgot Password\" link for login page — no need to contact us.",
+    "paymentIssueLabel": "Payment issue?",
+    "paymentIssueP": "Include your Paystack payment reference.",
+    "matchDisputeLabel": "Match dispute?",
+    "matchDisputeP": "Include di match ID and your screen recording.",
+    "withdrawalLabel": "Withdrawal wey never enter?",
+    "withdrawalP": "Allow 1–5 business days before you contact us. Include your withdrawal request date and bank name.",
+    "reportAbuseHeading": "Report Abuse or Safety Concerns",
+    "reportAbuseP1": "If you dey experience harassment, threat, or you get safety concern, email <email>sentinelxesports@gmail.com</email> with \"URGENT\" for di subject line. We dey prioritise dis kind reports."
   }
 }

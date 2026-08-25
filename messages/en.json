@@ -404,5 +404,31 @@
     "ctaHeading": "Be Part of Something Bigger.",
     "ctaSubtitle": "This is more than gaming. This is Sentinel X.",
     "ctaButton": "Join the Community →"
+  },
+  "contact": {
+    "eyebrow": "Support",
+    "title": "Contact Us",
+    "subtitle": "Whether you have a question about a tournament, a problem with your account, or something else — we're reachable and we respond.",
+    "metaTitle": "Contact Us",
+    "metaDescription": "Reach the SentinelX team by email or WhatsApp — we aim to respond within 24 hours.",
+    "emailLabel": "Email",
+    "emailResponseNote": "We aim to respond within 24 hours on business days.",
+    "whatsappLabel": "WhatsApp",
+    "whatsappNote": "Message us directly — fastest for urgent issues like match disputes or account problems.",
+    "whatsappCta": "Message us on WhatsApp →",
+    "whatToIncludeHeading": "What to Include in Your Message",
+    "whatToIncludeIntro": "To help us resolve your issue quickly, include:",
+    "whatToIncludeList": "<li>Your SentinelX username</li><li>The tournament name (if relevant)</li><li>A clear description of the problem</li><li>Any screenshots that help explain the issue</li>",
+    "commonIssuesHeading": "Common Issues",
+    "forgotPasswordLabel": "Forgot your password?",
+    "forgotPasswordP": "Use the “Forgot Password” link on the login page — no need to contact us.",
+    "paymentIssueLabel": "Payment issue?",
+    "paymentIssueP": "Include your Paystack payment reference.",
+    "matchDisputeLabel": "Match dispute?",
+    "matchDisputeP": "Include the match ID and your screen recording.",
+    "withdrawalLabel": "Withdrawal not received?",
+    "withdrawalP": "Allow 1–5 business days before contacting us. Include your withdrawal request date and bank name.",
+    "reportAbuseHeading": "Report Abuse or Safety Concerns",
+    "reportAbuseP1": "If you're experiencing harassment, threats, or have a safety concern, email <email>sentinelxesports@gmail.com</email> with “URGENT” in the subject line. We prioritise these reports."
   }
 }
