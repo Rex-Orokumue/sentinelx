@@ -211,5 +211,31 @@
     "conductList": "<li>Treat your opponent with respect — harassment, hate speech, or threats will result in immediate disqualification and suspension</li><li>Match fixing or collusion is a permanent ban offence</li><li>Using game exploits or external tools is a permanent ban offence</li>",
     "prizesHeading": "Prizes",
     "prizesList": "<li>Prizes are credited to the winner's wallet after admin confirms the final result</li><li>Players must complete KYC verification before withdrawing prize money</li><li>Withdrawal requests are processed within 1–5 business days</li>"
+  },
+  "communityRules": {
+    "eyebrow": "Community",
+    "title": "Community Rules",
+    "metaTitle": "Community Rules",
+    "metaDescription": "The standards that keep SentinelX's community positive, competitive, and safe.",
+    "intro": "SentinelX is Nigeria's home of mobile esports. The community is for everyone who loves the game — we keep it positive, competitive, and safe.",
+    "basicHeading": "The Basic Standard",
+    "basicP1": "Treat every member the way you'd want to be treated at a tournament in person. Behind every username is a real person.",
+    "notAllowedHeading": "What's Not Allowed",
+    "harassmentHeading": "Harassment and hate speech",
+    "harassmentP1": "No insults, threats, or discrimination based on tribe, religion, gender, region, or any other personal characteristic. This includes DMs.",
+    "spamHeading": "Spam",
+    "spamP1": "No repeated posting of the same content, no promotional links without permission, no bot activity.",
+    "falseInfoHeading": "False information",
+    "falseInfoP1": "Do not post fake match results, fake screenshots, or misleading claims about other players.",
+    "privacyHeading": "Privacy violations",
+    "privacyP1": "Do not share another player's personal information (phone number, address, real name if they use a username) without their consent.",
+    "cheatingHeading": "Cheating promotion",
+    "cheatingP1": "Do not share or promote methods for cheating in any game supported on the platform.",
+    "nsfwHeading": "NSFW content",
+    "nsfwP1": "No explicit, violent, or disturbing content of any kind.",
+    "consequencesHeading": "Consequences",
+    "consequencesP1": "<strong>First offence:</strong> Warning<br/><strong>Second offence:</strong> Temporary suspension (7–30 days depending on severity)<br/><strong>Serious offences</strong> (hate speech, threats, doxxing, cheating): Immediate suspension or permanent ban, no warning required",
+    "reportingHeading": "Reporting",
+    "reportingP1": "See something that breaks these rules? Use the report button on any post, or email <email>sentinelxesports@gmail.com</email>. Reports are reviewed by the admin team. We take every report seriously."
   }
 }

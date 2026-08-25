@@ -211,5 +211,31 @@
     "conductList": "<li>Respect your opponent — harassment, hate speech, or threat go cause immediate disqualification and suspension</li><li>Match fixing or collusion na permanent ban offence</li><li>To use game exploits or outside tools na permanent ban offence</li>",
     "prizesHeading": "Prizes",
     "prizesList": "<li>Prize dey enter di winner wallet after admin confam di final result</li><li>Players must complete KYC verification before dem withdraw prize money</li><li>Withdrawal request dey process within 1–5 business days</li>"
+  },
+  "communityRules": {
+    "eyebrow": "Community",
+    "title": "Community Rules",
+    "metaTitle": "Community Rules",
+    "metaDescription": "Di standards wey dey keep SentinelX community positive, competitive, and safe.",
+    "intro": "SentinelX na Nigeria home of mobile esports. Di community na for everybody wey love di game — we dey keep am positive, competitive, and safe.",
+    "basicHeading": "Di Basic Standard",
+    "basicP1": "Treat every member di way wey you go want dem treat you for tournament in person. Behind every username, na real person dey.",
+    "notAllowedHeading": "Wetin No Dey Allowed",
+    "harassmentHeading": "Harassment and Hate Speech",
+    "harassmentP1": "No insult, threat, or discrimination based on tribe, religion, gender, region, or any other personal characteristic. Dis one include DMs.",
+    "spamHeading": "Spam",
+    "spamP1": "No repeated posting of di same content, no promotional links without permission, no bot activity.",
+    "falseInfoHeading": "False Information",
+    "falseInfoP1": "No post fake match result, fake screenshot, or misleading claim about other players.",
+    "privacyHeading": "Privacy Violations",
+    "privacyP1": "No share another player personal information (phone number, address, real name if dem dey use username) without dem consent.",
+    "cheatingHeading": "Cheating Promotion",
+    "cheatingP1": "No share or promote methods for cheating for any game wey di platform support.",
+    "nsfwHeading": "NSFW Content",
+    "nsfwP1": "No explicit, violent, or disturbing content of any kind.",
+    "consequencesHeading": "Consequences",
+    "consequencesP1": "<strong>First offence:</strong> Warning<br/><strong>Second offence:</strong> Temporary suspension (7–30 days depending on how bad e be)<br/><strong>Serious offences</strong> (hate speech, threat, doxxing, cheating): Immediate suspension or permanent ban, no warning need",
+    "reportingHeading": "Reporting",
+    "reportingP1": "You see something wey break dis rules? Use di report button for any post, or email <email>sentinelxesports@gmail.com</email>. Admin team dey review reports. We dey take every report serious."
   }
 }

@@ -211,5 +211,31 @@
     "conductList": "<li>Traitez votre adversaire avec respect — le harcèlement, les discours de haine ou les menaces entraîneront une disqualification immédiate et une suspension</li><li>Le trucage de match ou la collusion est une infraction passible d'un bannissement permanent</li><li>L'utilisation d'exploits de jeu ou d'outils externes est une infraction passible d'un bannissement permanent</li>",
     "prizesHeading": "Gains",
     "prizesList": "<li>Les gains sont crédités sur le portefeuille du gagnant après confirmation du résultat final par l'administrateur</li><li>Les joueurs doivent compléter la vérification KYC avant de retirer leurs gains</li><li>Les demandes de retrait sont traitées sous 1 à 5 jours ouvrés</li>"
+  },
+  "communityRules": {
+    "eyebrow": "Communauté",
+    "title": "Règles de la communauté",
+    "metaTitle": "Règles de la communauté",
+    "metaDescription": "Les standards qui gardent la communauté SentinelX positive, compétitive et sûre.",
+    "intro": "SentinelX est le foyer de l'esport mobile au Nigeria. La communauté est ouverte à tous ceux qui aiment le jeu — nous la gardons positive, compétitive et sûre.",
+    "basicHeading": "Le standard de base",
+    "basicP1": "Traitez chaque membre comme vous aimeriez être traité en personne lors d'un tournoi. Derrière chaque nom d'utilisateur se trouve une vraie personne.",
+    "notAllowedHeading": "Ce qui n'est pas autorisé",
+    "harassmentHeading": "Harcèlement et discours de haine",
+    "harassmentP1": "Aucune insulte, menace ou discrimination fondée sur l'ethnie, la religion, le genre, la région ou toute autre caractéristique personnelle. Cela inclut les messages privés.",
+    "spamHeading": "Spam",
+    "spamP1": "Pas de publication répétée du même contenu, pas de liens promotionnels sans autorisation, pas d'activité de bot.",
+    "falseInfoHeading": "Fausses informations",
+    "falseInfoP1": "Ne publiez pas de faux résultats de match, de fausses captures d'écran, ou d'affirmations trompeuses sur d'autres joueurs.",
+    "privacyHeading": "Atteintes à la vie privée",
+    "privacyP1": "Ne partagez pas les informations personnelles d'un autre joueur (numéro de téléphone, adresse, vrai nom s'il utilise un pseudonyme) sans son consentement.",
+    "cheatingHeading": "Promotion de la triche",
+    "cheatingP1": "Ne partagez ni ne faites la promotion de méthodes de triche pour un jeu pris en charge sur la plateforme.",
+    "nsfwHeading": "Contenu NSFW",
+    "nsfwP1": "Aucun contenu explicite, violent ou choquant, quel qu'il soit.",
+    "consequencesHeading": "Conséquences",
+    "consequencesP1": "<strong>Première infraction :</strong> Avertissement<br/><strong>Deuxième infraction :</strong> Suspension temporaire (7 à 30 jours selon la gravité)<br/><strong>Infractions graves</strong> (discours de haine, menaces, doxxing, triche) : Suspension immédiate ou bannissement permanent, sans avertissement préalable",
+    "reportingHeading": "Signalement",
+    "reportingP1": "Vous voyez quelque chose qui enfreint ces règles ? Utilisez le bouton de signalement sur n'importe quelle publication, ou écrivez à <email>sentinelxesports@gmail.com</email>. Les signalements sont examinés par l'équipe d'administration. Nous prenons chaque signalement au sérieux."
   }
 }
