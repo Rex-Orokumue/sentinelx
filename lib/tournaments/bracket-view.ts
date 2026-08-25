@@ -19,7 +19,7 @@ function nameOf(p: ProfileRef): string {
 }
 
 export interface BracketView {
-  standings: { groupName: string; rows: StandingRow[] }[]
+  standings: { groupId: string; groupName: string; rows: StandingRow[] }[]
   fixtures: ReturnType<typeof splitFixturesByState>
   rounds: ReturnType<typeof orderKnockoutRounds>
   // The knockout shape this tournament will end up with, so the chart can be
@@ -127,7 +127,7 @@ export async function loadBracketView(
           points: gm.points,
         }
       })
-    return { groupName: g.name, rows: sortStandings(rows) }
+    return { groupId: g.id, groupName: g.name, rows: sortStandings(rows) }
   })
 
   const groupMatches = allMatches.filter((m) => m.group_id != null)

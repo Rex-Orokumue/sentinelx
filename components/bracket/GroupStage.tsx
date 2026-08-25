@@ -18,12 +18,19 @@ export function GroupStage({
   standings,
   fixtures,
   contacts,
+  tournamentId,
+  groups,
 }: {
-  standings: { groupName: string; rows: StandingRow[] }[]
+  standings: { groupId: string; groupName: string; rows: StandingRow[] }[]
   fixtures: Buckets
   // Admin-only: matchId -> each player's wa.me link. The public bracket page
   // omits it, so no player numbers reach the public bundle.
   contacts?: FixtureContacts
+  // Admin-only, and only set while the bracket is staff-preview (pre-publish):
+  // presence of `groups` turns on the per-player "move to another group"
+  // control in the standings table. The public bracket page passes neither.
+  tournamentId?: string
+  groups?: { id: string; name: string }[]
 }) {
   const [tab, setTab] = useState<'table' | 'fixtures'>('table')
   const [showCompleted, setShowCompleted] = useState(false)
@@ -45,7 +52,16 @@ export function GroupStage({
       </div>
 
       {tab === 'table' ? (
-        standings.map((g) => <StandingsTable key={g.groupName} groupName={g.groupName} rows={g.rows} />)
+        standings.map((g) => (
+          <StandingsTable
+            key={g.groupId}
+            groupName={g.groupName}
+            rows={g.rows}
+            tournamentId={tournamentId}
+            currentGroupId={g.groupId}
+            groups={groups}
+          />
+        ))
       ) : totalFixtures === 0 ? (
         <p className="text-sm text-slate-500">No group fixtures scheduled yet.</p>
       ) : (

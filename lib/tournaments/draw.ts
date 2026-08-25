@@ -6,12 +6,12 @@ export function groupCountFor(n: number): 0 | 2 | 4 | 8 {
   return 8 // 33–64
 }
 
-// Every group count that keeps each group within the documented 4-8 players/group rule.
+// Every group count that keeps each group within the documented 2-8 players/group rule.
 // n<=8 -> [0] (straight knockout only, no group-stage option).
 export function validGroupCounts(n: number): number[] {
   if (n <= 8) return [0]
   const min = Math.ceil(n / 8)
-  const max = Math.floor(n / 4)
+  const max = Math.floor(n / 2)
   const out: number[] = []
   for (let g = min; g <= max; g++) out.push(g)
   return out
@@ -25,6 +25,18 @@ export function resolveGroupCount(
 ): number {
   if (requested != null && validGroupCounts(seededCount).includes(requested)) return requested
   return groupCountFor(seededCount)
+}
+
+// Manual group-reassignment guards (admin bracket page, pre-publish only).
+// Round-robin needs at least 2 players, so a move can never drop a group below
+// that; the 8-player ceiling mirrors the max group size the auto-draw already
+// enforces via validGroupCounts' `min` (ceil(n/8) groups).
+export function canMoveOutOfGroup(currentGroupSize: number): boolean {
+  return currentGroupSize > 2
+}
+
+export function canReceiveIntoGroup(currentGroupSize: number): boolean {
+  return currentGroupSize < 8
 }
 
 // Snake draft: row 0 fills groups left→right, row 1 right→left, etc.
