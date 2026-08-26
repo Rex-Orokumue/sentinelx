@@ -11,11 +11,14 @@ import { NextMatchCard, type NextMatchData } from '@/components/dashboard/NextMa
 import { StatsRow } from '@/components/dashboard/StatsRow'
 import { SeasonStandingCard } from '@/components/dashboard/SeasonStandingCard'
 import { ProgressCard } from '@/components/dashboard/ProgressCard'
+import { MyItemsCard } from '@/components/dashboard/MyItemsCard'
 import { RecentMatchesCard } from '@/components/dashboard/RecentMatchesCard'
 import { QuickActions } from '@/components/dashboard/QuickActions'
 import { DashboardShell } from '@/components/dashboard/DashboardShell'
 import { mapRecentMatches } from '@/lib/dashboard/recent-matches'
+import { mapOwnedItems } from '@/lib/dashboard/owned-items'
 import { getSeasonLeaderboard, getMonthlyLeaderboard } from '@/lib/seasons/data'
+import { equippedCosmeticsBySlug, AVATAR_BORDER_CLASSES, PROFILE_THEME_CLASSES, USERNAME_COLOUR_CLASSES } from '@/lib/store/cosmetics'
 import type { MembershipTier } from '@/lib/membership/tiers'
 
 export const metadata: Metadata = {
@@ -43,6 +46,7 @@ export default async function DashboardPage() {
     achievementSlugsRes,
     activeSeasonRes,
     myOpenMatchesRes,
+    ownedItemsRes,
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -93,6 +97,10 @@ export default async function DashboardPage() {
       .select('id, status, scheduled_at')
       .or(`player_a_id.eq.${user.id},player_b_id.eq.${user.id}`)
       .in('status', ['scheduled', 'live']),
+    supabase
+      .from('player_store_items')
+      .select('item_id, equipped, store_items(slug, name, category, price_coins, preview_url)')
+      .eq('player_id', user.id),
   ])
 
   const profile = profileRes.data
@@ -117,6 +125,14 @@ export default async function DashboardPage() {
   }))
   const openFixtures = bucketFixtures(openMatches, submittedMatchIds, new Date())
   const hasSubmittableMatch = openFixtures.live.length > 0 || openFixtures.upcoming.some((f) => f.awaitingMyResult)
+
+  // ── Store cosmetics ─────────────────────────────────────────────────────
+  const ownedItemRows = ownedItemsRes.data ?? []
+  const ownedItems = mapOwnedItems(ownedItemRows)
+  const cosmetics = equippedCosmeticsBySlug(ownedItemRows)
+  const avatarBorderClass = cosmetics.avatarBorder ? AVATAR_BORDER_CLASSES[cosmetics.avatarBorder] : undefined
+  const profileThemeClass = cosmetics.profileTheme ? PROFILE_THEME_CLASSES[cosmetics.profileTheme] : undefined
+  const usernameColourClass = cosmetics.usernameColour ? USERNAME_COLOUR_CLASSES[cosmetics.usernameColour] : undefined
 
   const walletBalance = walletRes.data?.balance ?? 0
   const displayName = profile?.display_name ?? profile?.username ?? user.email ?? 'Player'
@@ -231,6 +247,9 @@ export default async function DashboardPage() {
         sxScore={profile?.sx_score ?? 700}
         seasonRank={seasonRank}
         loginStreak={profile?.login_streak ?? 0}
+        avatarBorderClass={avatarBorderClass}
+        profileThemeClass={profileThemeClass}
+        usernameColourClass={usernameColourClass}
       />
       <NextMatchCard
         match={nextMatch}
@@ -267,6 +286,7 @@ export default async function DashboardPage() {
           monthlyPoints={monthlyPoints}
         />
       </div>
+      <MyItemsCard items={ownedItems} />
       <RecentMatchesCard matches={recentMatches} username={profile?.username ?? null} />
       <QuickActions walletBalance={walletBalance} hasSubmittableMatch={hasSubmittableMatch} />
     </DashboardShell>

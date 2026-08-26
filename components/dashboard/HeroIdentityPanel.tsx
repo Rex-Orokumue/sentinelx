@@ -32,6 +32,9 @@ export function HeroIdentityPanel({
   sxScore,
   seasonRank,
   loginStreak,
+  avatarBorderClass,
+  profileThemeClass,
+  usernameColourClass,
 }: {
   avatarUrl: string | null
   displayName: string
@@ -40,6 +43,14 @@ export function HeroIdentityPanel({
   sxScore: number
   seasonRank: number | null
   loginStreak: number
+  /** Equipped avatar_border cosmetic — a `ring-*` utility, additive with HexAvatar's own tier border. */
+  avatarBorderClass?: string
+  /** Equipped profile_theme cosmetic — REPLACES the default radial-gradient background, never appended
+   *  (an inline `style` background always wins over a Tailwind `bg-*` class, so the two can't coexist —
+   *  see components/player/ProfileHeader.tsx for the same rule on the public profile). */
+  profileThemeClass?: string
+  /** Equipped username_colour cosmetic — REPLACES the default `text-white`, same reasoning as above. */
+  usernameColourClass?: string
 }) {
   const tier = computeTier(xp)
   const next = tier === 'legend' ? null : Object.entries(TIER_XP_THRESHOLDS).find(([, v]) => v > xp)?.[0]
@@ -49,14 +60,27 @@ export function HeroIdentityPanel({
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-sx-border p-6"
-      style={{ background: 'radial-gradient(ellipse at top left, rgba(124,58,237,0.3), transparent 70%), #0B0B0F' }}
+      className={`relative overflow-hidden rounded-2xl border border-sx-border p-6 ${profileThemeClass ?? ''}`}
+      style={
+        profileThemeClass
+          ? undefined
+          : { background: 'radial-gradient(ellipse at top left, rgba(124,58,237,0.3), transparent 70%), #0B0B0F' }
+      }
     >
       <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-start sm:text-left">
-        <HexAvatar src={avatarUrl} username={displayName} tier={tier} achievements={achievements} size="lg" />
+        <HexAvatar
+          src={avatarUrl}
+          username={displayName}
+          tier={tier}
+          achievements={achievements}
+          size="lg"
+          avatarBorderClass={avatarBorderClass}
+        />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-            <p className="font-display text-3xl font-black uppercase text-white">Welcome back, {displayName}</p>
+            <p className={`font-display text-3xl font-black uppercase ${usernameColourClass ?? 'text-white'}`}>
+              Welcome back, {displayName}
+            </p>
             <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase ${TIER_CHIP_CLASS[tier]}`}>
               {TIER_LABEL[tier]}
             </span>
