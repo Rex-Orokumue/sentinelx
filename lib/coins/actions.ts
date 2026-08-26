@@ -109,5 +109,6 @@ export async function equipStoreItem(_prev: PurchaseState, formData: FormData): 
 
   revalidatePath('/store')
   revalidatePath('/players/[username]', 'page')
+  revalidatePath('/dashboard')
   return { success: true }
 }
