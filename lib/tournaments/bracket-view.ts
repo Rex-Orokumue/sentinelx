@@ -36,6 +36,7 @@ export interface BracketView {
 export async function loadBracketView(
   supabase: SupabaseClient<Database>,
   tournamentId: string,
+  format: string,
 ): Promise<BracketView> {
   const { data: groups } = await supabase
     .from('groups')
@@ -143,8 +144,9 @@ export async function loadBracketView(
     // Only groups let us know the eventual bracket size up front. A straight
     // knockout has no group stage to qualify out of, so its chart is whatever
     // rounds exist — buildBracketDisplay falls back to that on an empty
-    // projection.
-    projected: hasGroups ? projectBracketRounds((groups ?? []).length * ADVANCE_PER_GROUP) : [],
+    // projection. A round_robin tournament never generates a knockout stage
+    // at all, regardless of group count, so it's excluded here too.
+    projected: hasGroups && format !== 'round_robin' ? projectBracketRounds((groups ?? []).length * ADVANCE_PER_GROUP) : [],
     champion: getChampion(allMatches),
     thirdPlace: getThirdPlace(allMatches),
     hasGroups,

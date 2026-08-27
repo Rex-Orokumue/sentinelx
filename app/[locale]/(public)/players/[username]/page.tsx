@@ -363,8 +363,12 @@ export default async function PlayerProfilePage({ params }: { params: { username
   let monthlyRank: number | null = null
   let monthlyPoints = 0
   if (activeSeason) {
+    // DLS-only for now, matching this card's pre-multi-game behavior — see
+    // the equivalent note on app/[locale]/seasons/[slug]/page.tsx. Showing a
+    // per-game season standing here is a separate follow-up.
     const seasonAdmin = createAdminClient()
-    const seasonBoard = await getSeasonLeaderboard(seasonAdmin, activeSeason.id)
+    const { data: dlsGame } = await supabase.from('games').select('id').eq('slug', 'dls').maybeSingle()
+    const seasonBoard = await getSeasonLeaderboard(seasonAdmin, activeSeason.id, dlsGame?.id ?? '')
     const idx = seasonBoard.findIndex((r) => r.playerId === p.id)
     seasonRank = idx >= 0 ? idx + 1 : null
     seasonPoints = idx >= 0 ? seasonBoard[idx].points : 0
@@ -372,7 +376,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
     // Monthly board is only needed for the owner-only Season Standing card —
     // skip the extra query entirely for public visitors.
     if (isOwner) {
-      const monthlyBoard = await getMonthlyLeaderboard(seasonAdmin, activeSeason.id, new Date())
+      const monthlyBoard = await getMonthlyLeaderboard(seasonAdmin, activeSeason.id, new Date(), dlsGame?.id ?? '')
       const monthlyIdx = monthlyBoard.findIndex((r) => r.playerId === p.id)
       monthlyRank = monthlyIdx >= 0 ? monthlyIdx + 1 : null
       monthlyPoints = monthlyIdx >= 0 ? monthlyBoard[monthlyIdx].points : 0

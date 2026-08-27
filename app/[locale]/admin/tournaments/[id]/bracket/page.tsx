@@ -16,12 +16,12 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
   const supabase = createClient()
   const { data: t } = await supabase
     .from('tournaments')
-    .select('id, title, status, round_start_date, round_gap_days')
+    .select('id, title, status, round_start_date, round_gap_days, format')
     .eq('id', params.id)
     .maybeSingle()
   if (!t) notFound()
 
-  const view = await loadBracketView(supabase, t.id)
+  const view = await loadBracketView(supabase, t.id, t.format)
   const { count: paidCount } = await supabase
     .from('tournament_registrations')
     .select('*', { count: 'exact', head: true })

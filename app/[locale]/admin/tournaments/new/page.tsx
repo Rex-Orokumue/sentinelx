@@ -25,6 +25,9 @@ const EMPTY: TournamentFormValues = {
   dataSupportWhatsapp: '',
   tournamentType: 'open',
   seasonId: '',
+  format: 'group_knockout',
+  prizeSecond: '',
+  prizeThird: '',
 }
 
 export default async function NewTournamentPage() {

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -2249,6 +2249,8 @@ export type Database = {
           invitation_only: boolean
           max_players: number | null
           prize_pool: number
+          prize_second: number | null
+          prize_third: number | null
           registration_end: string | null
           registration_fee: number
           registration_start: string | null
@@ -2258,6 +2260,7 @@ export type Database = {
           season_id: string | null
           slug: string
           status: string
+          third_place_prize_credited: boolean
           title: string
           tournament_end: string | null
           tournament_start: string | null
@@ -2276,6 +2279,8 @@ export type Database = {
           invitation_only?: boolean
           max_players?: number | null
           prize_pool?: number
+          prize_second?: number | null
+          prize_third?: number | null
           registration_end?: string | null
           registration_fee?: number
           registration_start?: string | null
@@ -2285,6 +2290,7 @@ export type Database = {
           season_id?: string | null
           slug: string
           status?: string
+          third_place_prize_credited?: boolean
           title: string
           tournament_end?: string | null
           tournament_start?: string | null
@@ -2303,6 +2309,8 @@ export type Database = {
           invitation_only?: boolean
           max_players?: number | null
           prize_pool?: number
+          prize_second?: number | null
+          prize_third?: number | null
           registration_end?: string | null
           registration_fee?: number
           registration_start?: string | null
@@ -2312,6 +2320,7 @@ export type Database = {
           season_id?: string | null
           slug?: string
           status?: string
+          third_place_prize_credited?: boolean
           title?: string
           tournament_end?: string | null
           tournament_start?: string | null
@@ -2600,7 +2609,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      expire_full_day_matches: { Args: never; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
       jsonb_merge_notification_prefs: {

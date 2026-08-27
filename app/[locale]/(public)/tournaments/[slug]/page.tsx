@@ -180,7 +180,10 @@ export default async function TournamentDetailPage({
           label="Players"
           value={t.max_players != null ? `${paidCount ?? 0}/${t.max_players}` : `${paidCount ?? 0}`}
         />
-        <Stat label="Format" value={t.format === 'group_knockout' ? 'Groups + KO' : t.format} />
+        <Stat
+          label="Format"
+          value={t.format === 'group_knockout' ? 'Groups + KO' : t.format === 'round_robin' ? 'Round Robin' : t.format}
+        />
       </div>
 
       {t.rules && (

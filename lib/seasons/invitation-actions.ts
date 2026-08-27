@@ -22,12 +22,13 @@ interface InvitableTournament {
   season_id: string | null
   tournament_start: string | null
   registration_fee: number
+  game_id: string
 }
 
 async function tournamentForInvitations(admin: Admin, tournamentId: string): Promise<InvitableTournament | null> {
   const { data } = await admin
     .from('tournaments')
-    .select('id, title, tournament_type, season_id, tournament_start, registration_fee')
+    .select('id, title, tournament_type, season_id, tournament_start, registration_fee, game_id')
     .eq('id', tournamentId)
     .maybeSingle()
   return data
@@ -37,8 +38,8 @@ async function leaderboardFor(admin: Admin, tournament: InvitableTournament): Pr
   if (!tournament.season_id) return []
   const rows =
     tournament.tournament_type === 'masters'
-      ? await getMonthlyLeaderboard(admin, tournament.season_id, new Date(tournament.tournament_start ?? Date.now()))
-      : await getSeasonLeaderboard(admin, tournament.season_id)
+      ? await getMonthlyLeaderboard(admin, tournament.season_id, new Date(tournament.tournament_start ?? Date.now()), tournament.game_id)
+      : await getSeasonLeaderboard(admin, tournament.season_id, tournament.game_id)
   return rows.map((r) => ({ playerId: r.playerId, points: r.points, sxScore: r.sxScore }))
 }
 

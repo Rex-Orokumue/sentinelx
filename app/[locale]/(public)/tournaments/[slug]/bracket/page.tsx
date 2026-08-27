@@ -16,7 +16,7 @@ async function getTournament(slug: string) {
   const supabase = createClient()
   const { data } = await supabase
     .from('tournaments')
-    .select('id, title, slug, status')
+    .select('id, title, slug, status, format')
     .eq('slug', slug)
     .maybeSingle()
   if (!data || data.status === 'draft') return null
@@ -70,7 +70,7 @@ export default async function BracketPage({ params }: { params: { slug: string }
   }
 
   const supabase = createClient()
-  const view = await loadBracketView(supabase, t.id)
+  const view = await loadBracketView(supabase, t.id, t.format)
   const isEmpty = !view.hasGroups && !view.hasKnockout
 
   return (

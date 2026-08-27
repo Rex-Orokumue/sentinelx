@@ -29,10 +29,38 @@ async function generate(
   tournamentId: string,
   seeded: string[],
   g: number,
+  format: string,
 ): Promise<void> {
   await clearBracket(admin, tournamentId)
   const roundDate = await nextRoundScheduledAt(admin, tournamentId)
   const schedule = roundDate ? { scheduled_at: roundDate, is_full_day: true } : {}
+
+  if (format === 'round_robin') {
+    const { data: grp } = await admin
+      .from('groups')
+      .insert({ tournament_id: tournamentId, name: 'League Table' })
+      .select('id')
+      .single()
+    if (!grp) return
+    await admin
+      .from('group_memberships')
+      .insert(seeded.map((pid) => ({ group_id: grp.id, player_id: pid })))
+    const pairs = roundRobinPairs(seeded)
+    if (pairs.length > 0) {
+      await admin.from('matches').insert(
+        pairs.map(([a, b]) => ({
+          tournament_id: tournamentId,
+          round: 'group',
+          group_id: grp.id,
+          player_a_id: a,
+          player_b_id: b,
+          status: 'scheduled',
+          ...schedule,
+        })),
+      )
+    }
+    return
+  }
 
   if (g === 0) {
     const { round, matches, byePlayerIds } = knockoutRound1(seeded)
@@ -120,7 +148,7 @@ export async function closeRegistration(
   if (!id) return { error: 'Missing tournament.' }
 
   const admin = createAdminClient()
-  const { data: t } = await admin.from('tournaments').select('status').eq('id', id).maybeSingle()
+  const { data: t } = await admin.from('tournaments').select('status, format').eq('id', id).maybeSingle()
   if (!t) return { error: 'Tournament not found.' }
   if (t.status !== 'registration_open') return { error: 'Registration is not open.' }
 
@@ -140,7 +168,7 @@ export async function closeRegistration(
     })
     .eq('id', id)
   try {
-    await generate(admin, id, seeded, g)
+    await generate(admin, id, seeded, g, t.format)
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to generate the bracket.' }
   }
@@ -184,7 +212,7 @@ export async function generateBracket(
   if (!id) return { error: 'Missing tournament.' }
 
   const admin = createAdminClient()
-  const { data: t } = await admin.from('tournaments').select('status').eq('id', id).maybeSingle()
+  const { data: t } = await admin.from('tournaments').select('status, format').eq('id', id).maybeSingle()
   if (!t) return { error: 'Tournament not found.' }
   if (t.status !== 'registration_closed') return { error: 'The bracket is locked.' }
 
@@ -200,7 +228,7 @@ export async function generateBracket(
     .update({ round_start_date: roundStartDate, round_gap_days: roundGapDays })
     .eq('id', id)
   try {
-    await generate(admin, id, seeded, g)
+    await generate(admin, id, seeded, g, t.format)
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Failed to generate the bracket.' }
   }

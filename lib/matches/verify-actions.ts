@@ -85,6 +85,25 @@ export async function recomputeGroupAndMaybeAdvance(
 ): Promise<void> {
   await recomputeGroupStats(admin, groupId)
 
+  const { data: tour } = await admin.from('tournaments').select('format').eq('id', tournamentId).maybeSingle()
+  if (tour?.format === 'round_robin') {
+    const { count: rrRemaining } = await admin
+      .from('matches')
+      .select('*', { count: 'exact', head: true })
+      .eq('tournament_id', tournamentId)
+      .neq('status', 'completed')
+    if (rrRemaining && rrRemaining > 0) return
+    const { data: claimed } = await admin
+      .from('tournaments')
+      .update({ status: 'completed' })
+      .eq('id', tournamentId)
+      .neq('status', 'completed')
+      .select('id')
+    if (!claimed || claimed.length === 0) return
+    await awardSeasonPoints(admin, tournamentId)
+    return
+  }
+
   // Generate the knockout stage once ALL group matches are complete and none exists yet.
   const { count: remaining } = await admin
     .from('matches')
@@ -307,19 +326,47 @@ export async function completeTournamentIfFinal(
     .update({ status: 'completed' })
     .eq('id', tournamentId)
     .neq('status', 'completed')
-    .select('id, prize_pool')
+    .select('id, prize_pool, prize_second, prize_third')
   if (!claimed || claimed.length === 0) return
 
-  // Winner-take-all: the final's winner gets the full prize_pool. No
-  // placement tiers — a runner-up/3rd-place prize, if ever wanted, goes
-  // through the admin manual-credit path (adminCreditWallet), not an
-  // automated split.
+  // Winner-take-all when no split is configured (prize_second/prize_third
+  // both null, every tournament today) — otherwise the winner gets the
+  // pool minus the configured 2nd/3rd shares, and the final's loser gets
+  // prize_second. 3rd place is credited separately, off the third-place
+  // match's own resolution (see creditThirdPlacePrize below) — the final
+  // and the third-place match can resolve in either order, so this
+  // function never touches prize_third itself.
   const winnerId = matchWinnerId(finalMatch)
   const prizePool = claimed[0]?.prize_pool ?? 0
-  if (winnerId && prizePool > 0) {
-    await creditWallet(admin, winnerId, prizePool, 'prize', tournamentId)
+  const prizeSecond = claimed[0]?.prize_second ?? 0
+  const prizeThird = claimed[0]?.prize_third ?? 0
+  const firstPrize = prizePool - prizeSecond - prizeThird
+  if (winnerId) {
+    if (firstPrize > 0) await creditWallet(admin, winnerId, firstPrize, 'prize', tournamentId)
+    if (prizeSecond > 0) {
+      const loserId = winnerId === finalMatch.player_a_id ? finalMatch.player_b_id : finalMatch.player_a_id
+      if (loserId) await creditWallet(admin, loserId, prizeSecond, 'prize', tournamentId)
+    }
   }
   await awardSeasonPoints(admin, tournamentId)
+}
+
+// Credits prize_third to whoever won the third-place match, exactly once.
+// Called from confirmResult (a real third-place match was played) and from
+// creditThirdPlace (the admin manual-credit path, below) — two independent
+// call sites, so the guard is an atomic claim on the tournament row itself
+// (third_place_prize_credited), the same idiom completeTournamentIfFinal
+// uses via tournaments.status, rather than a check-then-update.
+export async function creditThirdPlacePrize(admin: Admin, tournamentId: string, playerId: string): Promise<void> {
+  const { data: claimed } = await admin
+    .from('tournaments')
+    .update({ third_place_prize_credited: true })
+    .eq('id', tournamentId)
+    .eq('third_place_prize_credited', false)
+    .select('id, prize_third')
+  if (!claimed || claimed.length === 0) return
+  const prizeThird = claimed[0]?.prize_third ?? 0
+  if (prizeThird > 0) await creditWallet(admin, playerId, prizeThird, 'prize', tournamentId)
 }
 
 export async function confirmResult(_prev: VerifyState, formData: FormData): Promise<VerifyState> {
@@ -393,6 +440,16 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
       player_a_id: m.player_a_id,
       player_b_id: m.player_b_id,
     })
+    if (m.round === 'third_place') {
+      const winnerId = matchWinnerId({
+        status: 'completed',
+        score_a: scoreA,
+        score_b: scoreB,
+        player_a_id: m.player_a_id,
+        player_b_id: m.player_b_id,
+      })
+      if (winnerId) await creditThirdPlacePrize(admin, m.tournament_id, winnerId)
+    }
   }
 
   await syncMatchEvents(admin, id)
@@ -590,6 +647,7 @@ export async function creditThirdPlace(
   })
   if (error) return { error: 'Could not save the third place credit.' }
 
+  await creditThirdPlacePrize(admin, tournamentId, playerId)
   revalidateThirdPlaceCredit(tournamentId, t.slug)
   return { success: true }
 }
