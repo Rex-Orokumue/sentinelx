@@ -32,6 +32,9 @@ export const tournamentSchema = z
     dataSupportWhatsapp: optionalText(20),
     tournamentType: z.enum(['open', 'community_club', 'masters', 'champions_cup']),
     seasonId: z.union([z.literal(''), z.string().uuid()]),
+    format: z.enum(['group_knockout', 'round_robin']).default('group_knockout'),
+    prizeSecond: z.union([z.literal(''), money(1_000_000_000)]).default(''),
+    prizeThird: z.union([z.literal(''), money(1_000_000_000)]).default(''),
   })
   .refine((d) => d.tournamentType === 'open' || d.seasonId !== '', {
     message: 'Choose a season for this tournament type.',

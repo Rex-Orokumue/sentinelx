@@ -34,6 +34,9 @@ function parseForm(formData: FormData) {
     dataSupportWhatsapp: formData.get('dataSupportWhatsapp') ?? '',
     tournamentType: formData.get('tournamentType') ?? 'open',
     seasonId: formData.get('seasonId') ?? '',
+    format: formData.get('format') ?? 'group_knockout',
+    prizeSecond: formData.get('prizeSecond') ?? '',
+    prizeThird: formData.get('prizeThird') ?? '',
   })
 }
 
@@ -58,6 +61,9 @@ function toRow(d: TournamentInput) {
     tournament_type: d.tournamentType,
     season_id: d.seasonId === '' ? null : d.seasonId,
     invitation_only: d.tournamentType === 'masters' || d.tournamentType === 'champions_cup',
+    format: d.format,
+    prize_second: d.prizeSecond === '' ? null : d.prizeSecond,
+    prize_third: d.prizeThird === '' ? null : d.prizeThird,
   }
 }
 
@@ -77,7 +83,7 @@ export async function createTournament(
   if (!base) return { error: 'Enter a title that produces a valid URL slug.' }
 
   const supabase = createClient()
-  const row = { ...toRow(parsed.data), status: 'draft', format: 'group_knockout' }
+  const row = { ...toRow(parsed.data), status: 'draft' }
 
   // Insert, retrying with a random suffix if the slug collides (23505).
   let slug = base

@@ -45,6 +45,9 @@ export default async function EditTournamentPage({ params }: { params: { id: str
     dataSupportWhatsapp: t.data_support_whatsapp ?? '',
     tournamentType: t.tournament_type,
     seasonId: t.season_id ?? '',
+    format: t.format,
+    prizeSecond: moneyStr(t.prize_second),
+    prizeThird: moneyStr(t.prize_third),
   }
 
   return (

@@ -22,6 +22,9 @@ export interface TournamentFormValues {
   dataSupportWhatsapp: string
   tournamentType: string
   seasonId: string
+  format: string
+  prizeSecond: string
+  prizeThird: string
 }
 
 type Action = (prev: TournamentFormState, fd: FormData) => Promise<TournamentFormState>
@@ -133,6 +136,21 @@ export function TournamentForm({
         </div>
       )}
 
+      <div className="space-y-1.5">
+        <label htmlFor="format" className="text-sm font-medium text-slate-300">
+          Format
+        </label>
+        <select
+          id="format"
+          name="format"
+          defaultValue={initial.format || 'group_knockout'}
+          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
+        >
+          <option value="group_knockout">Groups + Knockout</option>
+          <option value="round_robin">Round Robin (table only, no bracket)</option>
+        </select>
+      </div>
+
       {isInvitationOnly && (
         <p className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-xs text-violet-300">
           Invitation-only — players can only join via an accepted invitation, not the public registration
@@ -205,7 +223,23 @@ export function TournamentForm({
           type="number"
           defaultValue={initial.prizePool}
         />
+        <Field
+          label="2nd place prize (₦, optional)"
+          name="prizeSecond"
+          type="number"
+          defaultValue={initial.prizeSecond}
+        />
+        <Field
+          label="3rd place prize (₦, optional)"
+          name="prizeThird"
+          type="number"
+          defaultValue={initial.prizeThird}
+        />
       </div>
+      <p className="text-xs text-slate-500">
+        Leave 2nd/3rd blank for winner-take-all (1st gets the full prize pool). Set both to split
+        the pool — 1st automatically gets prize pool minus 2nd and 3rd.
+      </p>
 
       <Field
         label="Max players (2–64)"

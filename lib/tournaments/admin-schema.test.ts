@@ -74,4 +74,31 @@ describe('tournamentSchema', () => {
   it('rejects an unknown tournamentType', () => {
     expect(tournamentSchema.safeParse({ ...valid, tournamentType: 'bogus' }).success).toBe(false)
   })
+  it('defaults format to group_knockout when omitted, and accepts round_robin', () => {
+    const r1 = tournamentSchema.safeParse(valid)
+    expect(r1.success).toBe(true)
+    if (r1.success) expect(r1.data.format).toBe('group_knockout')
+
+    const r2 = tournamentSchema.safeParse({ ...valid, format: 'round_robin' })
+    expect(r2.success).toBe(true)
+    if (r2.success) expect(r2.data.format).toBe('round_robin')
+  })
+  it('rejects an unknown format', () => {
+    expect(tournamentSchema.safeParse({ ...valid, format: 'bogus' }).success).toBe(false)
+  })
+  it('defaults prizeSecond/prizeThird to empty and accepts numeric values', () => {
+    const r1 = tournamentSchema.safeParse(valid)
+    expect(r1.success).toBe(true)
+    if (r1.success) {
+      expect(r1.data.prizeSecond).toBe('')
+      expect(r1.data.prizeThird).toBe('')
+    }
+
+    const r2 = tournamentSchema.safeParse({ ...valid, prizePool: '15000', prizeSecond: '4000', prizeThird: '3000' })
+    expect(r2.success).toBe(true)
+    if (r2.success) {
+      expect(r2.data.prizeSecond).toBe(4000)
+      expect(r2.data.prizeThird).toBe(3000)
+    }
+  })
 })
