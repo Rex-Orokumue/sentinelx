@@ -3,9 +3,11 @@ import type { SeasonLeaderboardRow } from '@/lib/seasons/data'
 export function SeasonLeaderboardTable({
   rows,
   currentUserId,
+  qualificationNote,
 }: {
   rows: SeasonLeaderboardRow[]
   currentUserId: string | null
+  qualificationNote: string
 }) {
   const top = rows.slice(0, 50)
   return (
@@ -53,7 +55,7 @@ export function SeasonLeaderboardTable({
         </table>
         {top.length === 0 && <p className="p-4 text-sm text-sx-gray">No season points awarded yet.</p>}
       </div>
-      <p className="mt-3 text-xs text-sx-gray">Qualify for Champions Cup — top 16 at season end earn an invitation.</p>
+      <p className="mt-3 text-xs text-sx-gray">{qualificationNote}</p>
     </section>
   )
 }

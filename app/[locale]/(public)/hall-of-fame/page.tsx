@@ -2,18 +2,25 @@ import { createClient } from '@/lib/supabase/server'
 import { RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
 import {
   pickMVP,
-  pickGoldenBoot,
   pickCategoryAward,
+  pickGameAward,
   deriveThirdPlaces,
   type ThirdPlaceInput,
 } from '@/lib/hall-of-fame/awards'
 import { deriveTournamentResults } from '@/lib/hall-of-fame/tournament-results'
-import { scoreStatsByPlayerAndCategory, categoryStat, type GameScopedMatch } from '@/lib/rankings/game-breakdown'
+import {
+  scoreStatsByPlayerAndCategory,
+  scoreStatsByPlayerAndGame,
+  categoryStat,
+  gameStat,
+  type GameScopedMatch,
+} from '@/lib/rankings/game-breakdown'
 import { CATEGORY_META } from '@/lib/games/categories'
 import type { BracketMatch } from '@/lib/tournaments/bracket'
 import { SectionHeader } from '@/components/hall-of-fame/SectionHeader'
 import { HeroSection } from '@/components/hall-of-fame/HeroSection'
 import { AllTimeAwardCard, AllTimeAwardEmptyCard } from '@/components/hall-of-fame/AllTimeAwardCard'
+import { CategoryAwardFilter, type AwardOption } from '@/components/hall-of-fame/CategoryAwardFilter'
 import { ChampionsCupCard, ChampionsCupEmptyCard } from '@/components/hall-of-fame/ChampionsCupCard'
 import { MastersChampionCard, MastersChampionEmptyCard } from '@/components/hall-of-fame/MastersChampionCard'
 import { CommunityClubCard } from '@/components/hall-of-fame/CommunityClubCard'
@@ -46,10 +53,10 @@ function firstGameName(games: unknown): string | null {
   return (games as { name?: string } | null)?.name ?? null
 }
 
-type RawGameRef = { name: string; category: string } | { name: string; category: string }[] | null
+type RawGameRef = { id: string; name: string; category: string } | { id: string; name: string; category: string }[] | null
 type RawTournamentRef = { game: RawGameRef } | { game: RawGameRef }[] | null
 
-function firstGameRef(g: RawGameRef): { name: string; category: string } | null {
+function firstGameRef(g: RawGameRef): { id: string; name: string; category: string } | null {
   return Array.isArray(g) ? g[0] ?? null : g
 }
 function firstTournamentRef(t: RawTournamentRef): { game: RawGameRef } | null {
@@ -82,12 +89,12 @@ export default async function HallOfFamePage() {
     supabase
       .from('matches')
       .select(
-        'status, score_a, score_b, player_a_id, player_b_id, tournament:tournaments(game:games(name, category))',
+        'status, score_a, score_b, player_a_id, player_b_id, tournament:tournaments(game:games(id, name, category))',
       )
       .eq('status', 'completed'),
     // Independent of match data — a category can be "active" even with zero
     // completed matches played in it yet.
-    supabase.from('games').select('category').eq('active', true),
+    supabase.from('games').select('id, name, category').eq('active', true),
     supabase
       .from('tournaments')
       .select('id, slug, title, tournament_end, prize_pool, season:seasons(name)')
@@ -129,6 +136,7 @@ export default async function HallOfFamePage() {
       score_b: m.score_b,
       player_a_id: m.player_a_id,
       player_b_id: m.player_b_id,
+      game_id: g?.id ?? 'unknown',
       game_name: g?.name ?? 'Unknown',
       game_category: g?.category ?? 'other',
     }
@@ -136,6 +144,10 @@ export default async function HallOfFamePage() {
   const categoryMaps = Object.keys(CATEGORY_META).map((category) => ({
     category,
     map: scoreStatsByPlayerAndCategory(matches, category),
+  }))
+  const gameMaps = (activeGames ?? []).map((g) => ({
+    gameId: g.id,
+    map: scoreStatsByPlayerAndGame(matches, g.id),
   }))
 
   const players: PlayerStatsInput[] = (profileRows ?? []).map((p) => ({
@@ -154,6 +166,11 @@ export default async function HallOfFamePage() {
       scored: map.get(p.id)?.scored ?? 0,
       conceded: map.get(p.id)?.conceded ?? 0,
     })),
+    gameStats: gameMaps.map(({ gameId, map }) => ({
+      gameId,
+      scored: map.get(p.id)?.scored ?? 0,
+      conceded: map.get(p.id)?.conceded ?? 0,
+    })),
     winsByGame: [],
     totalTitles: p.total_titles,
     sxScore: p.sx_score,
@@ -161,12 +178,38 @@ export default async function HallOfFamePage() {
     membershipTier: p.membership_tier,
   }))
 
+  function awardOptionsFor(category: string): AwardOption[] {
+    const allWinner = pickCategoryAward(players, category)
+    const options: AwardOption[] = [
+      {
+        gameId: null,
+        gameLabel: `All ${CATEGORY_META[category]?.statLabel ?? category}`,
+        winner: allWinner,
+        metricValue: allWinner ? categoryStat(allWinner.categoryStats, category).scored : 0,
+      },
+    ]
+    const gamesInCategory = (activeGames ?? []).filter((g) => g.category === category)
+    if (gamesInCategory.length > 1) {
+      for (const g of gamesInCategory) {
+        const winner = pickGameAward(players, g.id)
+        options.push({
+          gameId: g.id,
+          gameLabel: g.name,
+          winner,
+          metricValue: winner ? gameStat(winner.gameStats, g.id).scored : 0,
+        })
+      }
+    }
+    return options
+  }
+
   const mvp = pickMVP(players)
-  const goldenBoot = pickGoldenBoot(players)
+  const goldenBootOptions = awardOptionsFor('football')
+  const goldenBoot = goldenBootOptions[0]?.winner ?? null
   const categoryAwards = activeCategories
     .filter((c) => c !== 'football' && CATEGORY_META[c] != null)
-    .map((c) => ({ category: c, meta: CATEGORY_META[c], winner: pickCategoryAward(players, c) }))
-    .filter((a) => a.winner != null)
+    .map((c) => ({ category: c, meta: CATEGORY_META[c], options: awardOptionsFor(c) }))
+    .filter((a) => a.options[0]?.winner != null)
 
   // Fetch completed final matches for the completed tournaments, then attach to each.
   const tournaments = (tournamentRows ?? []) as unknown as {
@@ -364,36 +407,24 @@ export default async function HallOfFamePage() {
                 ) : (
                   <AllTimeAwardEmptyCard label="MVP" icon="⭐" />
                 )}
-                {goldenBoot ? (
-                  <AllTimeAwardCard
-                    label="Golden Boot"
-                    icon="👟"
-                    avatarUrl={goldenBoot.avatarUrl}
-                    name={goldenBoot.displayName ?? goldenBoot.username ?? 'Anonymous'}
-                    membershipTier={goldenBoot.membershipTier}
-                    sentinelTier={goldenBoot.sentinelTier}
-                    metricLabel="goals scored"
-                    metricValue={categoryStat(goldenBoot.categoryStats, 'football').scored}
-                    awardName="All-Time Golden Boot"
-                  />
-                ) : (
-                  <AllTimeAwardEmptyCard label="Golden Boot" icon="👟" />
-                )}
+                <CategoryAwardFilter
+                  label="Golden Boot"
+                  icon="👟"
+                  metricLabel="goals scored"
+                  awardName="All-Time Golden Boot"
+                  options={goldenBootOptions}
+                />
               </div>
               {categoryAwards.length > 0 && (
                 <div className="mt-4 flex flex-col gap-4 sm:flex-row">
-                  {categoryAwards.map(({ category, meta, winner }) => (
-                    <AllTimeAwardCard
+                  {categoryAwards.map(({ category, meta, options }) => (
+                    <CategoryAwardFilter
                       key={category}
                       label={meta.awardName}
                       icon={meta.awardEmoji}
-                      avatarUrl={winner!.avatarUrl}
-                      name={winner!.displayName ?? winner!.username ?? 'Anonymous'}
-                      membershipTier={winner!.membershipTier}
-                      sentinelTier={winner!.sentinelTier}
                       metricLabel={meta.statLabel.toLowerCase()}
-                      metricValue={categoryStat(winner!.categoryStats, category).scored}
                       awardName={meta.awardName}
+                      options={options}
                     />
                   ))}
                 </div>

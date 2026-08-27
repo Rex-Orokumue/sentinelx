@@ -3,7 +3,7 @@ import { Trophy } from 'lucide-react'
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder'
 import { createClient } from '@/lib/supabase/server'
 import { RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
-import { winsByPlayerAndGame, scoreStatsByPlayerAndCategory, type GameScopedMatch } from '@/lib/rankings/game-breakdown'
+import { winsByPlayerAndGame, scoreStatsByPlayerAndCategory, scoreStatsByPlayerAndGame, type GameScopedMatch } from '@/lib/rankings/game-breakdown'
 import { CATEGORY_META } from '@/lib/games/categories'
 import { LeaderboardTabs } from '@/components/rankings/LeaderboardTabs'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -23,10 +23,10 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
   })
 }
 
-type RawGameRef = { name: string; category: string } | { name: string; category: string }[] | null
+type RawGameRef = { id: string; name: string; category: string } | { id: string; name: string; category: string }[] | null
 type RawTournamentRef = { game: RawGameRef } | { game: RawGameRef }[] | null
 
-function firstGameRef(g: RawGameRef): { name: string; category: string } | null {
+function firstGameRef(g: RawGameRef): { id: string; name: string; category: string } | null {
   return Array.isArray(g) ? g[0] ?? null : g
 }
 function firstTournamentRef(t: RawTournamentRef): { game: RawGameRef } | null {
@@ -58,12 +58,12 @@ export default async function RankingsPage() {
     supabase
       .from('matches')
       .select(
-        'status, score_a, score_b, player_a_id, player_b_id, tournament:tournaments(game:games(name, category))',
+        'status, score_a, score_b, player_a_id, player_b_id, tournament:tournaments(game:games(id, name, category))',
       )
       .eq('status', 'completed'),
     // Independent of match data — a category can be "active" (a tab should
     // show) even with zero completed matches played in it yet.
-    supabase.from('games').select('category').eq('active', true),
+    supabase.from('games').select('id, name, category').eq('active', true),
     supabase.from('matches').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
     supabase.from('tournaments').select('prize_pool').eq('status', 'completed'),
     supabase.auth.getUser(),
@@ -89,6 +89,7 @@ export default async function RankingsPage() {
       score_b: m.score_b,
       player_a_id: m.player_a_id,
       player_b_id: m.player_b_id,
+      game_id: g?.id ?? 'unknown',
       game_name: g?.name ?? 'Unknown',
       game_category: g?.category ?? 'other',
     }
@@ -97,6 +98,10 @@ export default async function RankingsPage() {
   const categoryMaps = Object.keys(CATEGORY_META).map((category) => ({
     category,
     map: scoreStatsByPlayerAndCategory(matches, category),
+  }))
+  const gameMaps = (activeGames ?? []).map((g) => ({
+    gameId: g.id,
+    map: scoreStatsByPlayerAndGame(matches, g.id),
   }))
 
   const players: PlayerStatsInput[] = (profiles ?? []).map(
@@ -113,6 +118,11 @@ export default async function RankingsPage() {
       goalsConceded: p.goals_conceded,
       categoryStats: categoryMaps.map(({ category, map }) => ({
         category,
+        scored: map.get(p.id)?.scored ?? 0,
+        conceded: map.get(p.id)?.conceded ?? 0,
+      })),
+      gameStats: gameMaps.map(({ gameId, map }) => ({
+        gameId,
         scored: map.get(p.id)?.scored ?? 0,
         conceded: map.get(p.id)?.conceded ?? 0,
       })),
@@ -188,7 +198,7 @@ export default async function RankingsPage() {
 
         {/* ── Left: leaderboard table ─────────────────────── */}
         <div className="min-w-0">
-          <LeaderboardTabs players={players} currentUserId={user?.id ?? null} activeCategories={activeCategories} />
+          <LeaderboardTabs players={players} currentUserId={user?.id ?? null} activeGames={activeGames ?? []} />
           {players.length === 0 && (
             <EmptyState icon="🏅" title="Rankings coming soon" body="Be the first to compete and claim the top spot." />
           )}

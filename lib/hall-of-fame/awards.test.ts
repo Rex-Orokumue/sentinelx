@@ -3,6 +3,7 @@ import {
   pickMVP,
   pickGoldenBoot,
   pickCategoryAward,
+  pickGameAward,
   deriveChampions,
   deriveThirdPlaces,
   type ChampionInput,
@@ -23,6 +24,7 @@ function p(over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput {
     goalsScored: 0,
     goalsConceded: 0,
     categoryStats: [],
+    gameStats: [],
     winsByGame: [],
     totalTitles: 0,
     sxScore: 700,
@@ -97,6 +99,31 @@ describe('pickGoldenBoot', () => {
       p({ id: 'b', totalMatches: 5, categoryStats: [{ category: 'football', scored: 15, conceded: 0 }], wins: 4 }),
     ])
     expect(r?.id).toBe('b')
+  })
+})
+
+describe('pickGameAward', () => {
+  it('returns the top scorer for the given game, ignoring other games\' totals', () => {
+    const winner = pickGameAward(
+      [
+        p({ id: 'a', totalMatches: 3, gameStats: [{ gameId: 'dls-id', scored: 50, conceded: 0 }] }),
+        p({ id: 'b', totalMatches: 3, gameStats: [{ gameId: 'dls-id', scored: 12, conceded: 0 }, { gameId: 'fcm-id', scored: 99, conceded: 0 }] }),
+      ],
+      'dls-id',
+    )
+    expect(winner?.id).toBe('a')
+  })
+
+  it('returns null when nobody has scored in that game', () => {
+    expect(
+      pickGameAward([p({ id: 'a', totalMatches: 3, wins: 5, gameStats: [] })], 'dls-id'),
+    ).toBeNull()
+  })
+
+  it('excludes ineligible (zero-match) players', () => {
+    expect(
+      pickGameAward([p({ id: 'a', totalMatches: 0, gameStats: [{ gameId: 'dls-id', scored: 99, conceded: 0 }] })], 'dls-id'),
+    ).toBeNull()
   })
 })
 

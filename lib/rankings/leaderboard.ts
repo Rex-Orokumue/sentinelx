@@ -1,5 +1,5 @@
-import type { GameWinCount, CategoryStat } from './game-breakdown'
-import { categoryStat } from './game-breakdown'
+import type { GameWinCount, CategoryStat, GameStat } from './game-breakdown'
+import { categoryStat, gameStat } from './game-breakdown'
 
 export interface PlayerStatsInput {
   id: string
@@ -18,6 +18,11 @@ export interface PlayerStatsInput {
   // awards; goalsScored/goalsConceded stay the source of truth for the
   // (non-per-game) cases that still read them.
   categoryStats: CategoryStat[]
+  // Per-game live aggregate (see lib/rankings/game-breakdown.ts) — a
+  // sibling to categoryStats, scoped to one game_id instead of one
+  // category. Only meaningful for categories with 2+ active games; empty
+  // for every other category today.
+  gameStats: GameStat[]
   // Per-game win breakdown for the Wins tab's expand view. Always sums to
   // `wins` above (both derive from the same completed-matches set via the
   // same matchWinnerId "who won" logic).
@@ -59,8 +64,14 @@ const METRIC_VALUE: Record<LeaderboardMetric, (p: PlayerStatsInput) => number> =
 // rankPlayers has always used: wins desc → win rate desc → titles desc →
 // goal difference desc. When metric is 'wins', the leading term duplicates
 // the first tie-break — harmless, and keeps this the single sort implementation.
-export function rankPlayersBy(players: PlayerStatsInput[], metric: LeaderboardMetric): RankedPlayer[] {
-  const lead = METRIC_VALUE[metric]
+export function rankPlayersBy(
+  players: PlayerStatsInput[],
+  metric: LeaderboardMetric,
+  gameId?: string,
+): RankedPlayer[] {
+  const isCategoryMetric = metric === 'football' || metric === 'fighting' || metric === 'shooter'
+  const lead: (p: PlayerStatsInput) => number =
+    gameId && isCategoryMetric ? (p) => gameStat(p.gameStats, gameId).scored : METRIC_VALUE[metric]
   return players
     .map((pl) => ({
       ...pl,

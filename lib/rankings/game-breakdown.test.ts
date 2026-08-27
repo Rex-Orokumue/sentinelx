@@ -3,7 +3,9 @@ import {
   winsByPlayerAndGame,
   footballGoalsByPlayer,
   scoreStatsByPlayerAndCategory,
+  scoreStatsByPlayerAndGame,
   categoryStat,
+  gameStat,
   type GameScopedMatch,
 } from './game-breakdown'
 
@@ -14,6 +16,7 @@ function m(over: Partial<GameScopedMatch>): GameScopedMatch {
     score_b: 1,
     player_a_id: 'a',
     player_b_id: 'b',
+    game_id: 'dls-id',
     game_name: 'DLS',
     game_category: 'football',
     ...over,
@@ -127,6 +130,48 @@ describe('scoreStatsByPlayerAndCategory', () => {
 
   it('returns an empty map for no matches', () => {
     expect(scoreStatsByPlayerAndCategory([], 'football').size).toBe(0)
+  })
+})
+
+describe('scoreStatsByPlayerAndGame', () => {
+  it('sums scored and conceded for both players, scoped to the given game', () => {
+    const r = scoreStatsByPlayerAndGame(
+      [m({ score_a: 3, score_b: 1, game_id: 'fc-mobile-id' })],
+      'fc-mobile-id',
+    )
+    expect(r.get('a')).toEqual({ scored: 3, conceded: 1 })
+    expect(r.get('b')).toEqual({ scored: 1, conceded: 3 })
+  })
+
+  it('excludes matches from a different game, even in the same category', () => {
+    const r = scoreStatsByPlayerAndGame(
+      [m({ game_id: 'dls-id', game_category: 'football', score_a: 5, score_b: 5 })],
+      'fc-mobile-id',
+    )
+    expect(r.size).toBe(0)
+  })
+
+  it('excludes non-completed matches', () => {
+    const r = scoreStatsByPlayerAndGame([m({ status: 'scheduled' })], 'dls-id')
+    expect(r.size).toBe(0)
+  })
+
+  it('returns an empty map for no matches', () => {
+    expect(scoreStatsByPlayerAndGame([], 'dls-id').size).toBe(0)
+  })
+})
+
+describe('gameStat', () => {
+  it('returns the matching entry', () => {
+    const stats = [
+      { gameId: 'dls-id', scored: 4, conceded: 2 },
+      { gameId: 'fc-mobile-id', scored: 9, conceded: 3 },
+    ]
+    expect(gameStat(stats, 'fc-mobile-id')).toEqual({ gameId: 'fc-mobile-id', scored: 9, conceded: 3 })
+  })
+
+  it('returns a zero-default when the gameId is absent', () => {
+    expect(gameStat([], 'dls-id')).toEqual({ gameId: 'dls-id', scored: 0, conceded: 0 })
   })
 })
 
