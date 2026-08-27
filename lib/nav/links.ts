@@ -61,6 +61,20 @@ export const NAVBAR_LINKS: NavLink[] = [
   { href: '/about', labelKey: 'about' },
 ]
 
+// Splits NAVBAR_LINKS for the desktop header: 9 links rendered in one row
+// alongside the logo AND the account cluster (language switcher, WhatsApp
+// CTA, balance chips, notification bell, account menu) overflowed the
+// viewport at the widths those elements first appear together, forcing the
+// whole page to scroll horizontally and squeezing link labels into
+// mid-word breaks. NAVBAR_PRIMARY_LINKS is the always-visible row (kept to
+// 5 — the widest realistic budget alongside that cluster); everything else
+// moves into a "More" dropdown (SiteHeader's NavMoreDropdown). Derived by
+// filtering NAVBAR_LINKS, not hand-duplicated, so the split can never drift
+// out of sync with the canonical list.
+const NAVBAR_PRIMARY_HREFS = new Set(['/', '/tournaments', '/rankings', '/exchange', '/community'])
+export const NAVBAR_PRIMARY_LINKS: NavLink[] = NAVBAR_LINKS.filter((l) => NAVBAR_PRIMARY_HREFS.has(l.href))
+export const NAVBAR_MORE_LINKS: NavLink[] = NAVBAR_LINKS.filter((l) => !NAVBAR_PRIMARY_HREFS.has(l.href))
+
 // The footer is a separate, independent data source (components/shared/SiteFooter.tsx)
 // and does not consume this export — kept only as a pre-existing structural
 // reference; not rendered anywhere.
