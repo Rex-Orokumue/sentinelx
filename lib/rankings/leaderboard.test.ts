@@ -19,6 +19,7 @@ function p(over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput {
     goalsScored: 0,
     goalsConceded: 0,
     categoryStats: [],
+    gameStats: [],
     winsByGame: [],
     totalTitles: 0,
     sxScore: 70,
@@ -115,6 +116,48 @@ describe('rankPlayersBy', () => {
       'score',
     )
     expect(r.map((x) => x.rank)).toEqual([1, 2, 3])
+  })
+})
+
+describe('rankPlayersBy — per-game', () => {
+  it('sorts by a single game\'s stat when gameId is given, ignoring the category-wide stat', () => {
+    const r = rankPlayersBy(
+      [
+        p({
+          id: 'a',
+          categoryStats: [{ category: 'football', scored: 100, conceded: 0 }], // huge category total...
+          gameStats: [{ gameId: 'dls-id', scored: 2, conceded: 0 }], // ...but tiny on this one game
+        }),
+        p({
+          id: 'b',
+          categoryStats: [{ category: 'football', scored: 1, conceded: 0 }],
+          gameStats: [{ gameId: 'dls-id', scored: 9, conceded: 0 }],
+        }),
+      ],
+      'football',
+      'dls-id',
+    )
+    expect(r.map((x) => x.id)).toEqual(['b', 'a'])
+  })
+
+  it('falls back to the category-wide stat when gameId is omitted (unchanged behavior)', () => {
+    const players = [
+      p({ id: 'a', categoryStats: [{ category: 'football', scored: 4, conceded: 0 }] }),
+      p({ id: 'b', categoryStats: [{ category: 'football', scored: 20, conceded: 0 }] }),
+    ]
+    expect(rankPlayersBy(players, 'football').map((x) => x.id)).toEqual(
+      rankPlayersBy(players, 'football', undefined).map((x) => x.id),
+    )
+    expect(rankPlayersBy(players, 'football').map((x) => x.id)).toEqual(['b', 'a'])
+  })
+
+  it('ignores gameId for non-category metrics (wins/score)', () => {
+    const r = rankPlayersBy(
+      [p({ id: 'a', wins: 3, gameStats: [{ gameId: 'x', scored: 99, conceded: 0 }] }), p({ id: 'b', wins: 7 })],
+      'wins',
+      'x',
+    )
+    expect(r.map((x) => x.id)).toEqual(['b', 'a'])
   })
 })
 

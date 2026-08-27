@@ -89,9 +89,9 @@ function firstTitleName(x: TitleRef): string | null {
   return r?.title ?? null
 }
 
-type CategoryGameRef = { name: string; category: string } | { name: string; category: string }[] | null
+type CategoryGameRef = { id: string; name: string; category: string } | { id: string; name: string; category: string }[] | null
 type CategoryTournamentRef = { game: CategoryGameRef } | { game: CategoryGameRef }[] | null
-function firstCategoryGameRef(g: CategoryGameRef): { name: string; category: string } | null {
+function firstCategoryGameRef(g: CategoryGameRef): { id: string; name: string; category: string } | null {
   return Array.isArray(g) ? g[0] ?? null : g
 }
 function firstCategoryTournamentRef(t: CategoryTournamentRef): { game: CategoryGameRef } | null {
@@ -223,7 +223,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
     supabase
       .from('matches')
       .select(
-        'score_a, score_b, player_a_id, player_b_id, status, tournament:tournaments(game:games(name, category))',
+        'score_a, score_b, player_a_id, player_b_id, status, tournament:tournaments(game:games(id, name, category))',
       )
       .eq('status', 'completed')
       .or(`player_a_id.eq.${p.id},player_b_id.eq.${p.id}`),
@@ -275,6 +275,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
       score_b: m.score_b,
       player_a_id: m.player_a_id,
       player_b_id: m.player_b_id,
+      game_id: g?.id ?? 'unknown',
       game_name: g?.name ?? 'Unknown',
       game_category: g?.category ?? 'other',
     }

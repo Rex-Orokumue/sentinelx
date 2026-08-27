@@ -23,6 +23,7 @@ function p(over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput {
     goalsScored: 0,
     goalsConceded: 0,
     categoryStats: [],
+    gameStats: [],
     winsByGame: [],
     totalTitles: 0,
     sxScore: 700,
