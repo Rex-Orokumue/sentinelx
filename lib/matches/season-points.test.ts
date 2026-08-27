@@ -6,9 +6,11 @@ vi.mock('@/lib/membership/xp', () => ({ awardXP: vi.fn() }))
 vi.mock('@/lib/achievements/unlock', () => ({ checkAndUnlockAchievements: vi.fn() }))
 
 function fakeAdmin(opts: {
-  tournament: { id: string; tournament_type: string; season_id: string | null }
+  tournament: { id: string; tournament_type: string; season_id: string | null; format?: string }
   registrations: { player_id: string }[]
   matches: { round: string; status: string; player_a_id: string | null; player_b_id: string | null; score_a: number | null; score_b: number | null }[]
+  groupId?: string
+  memberships?: { player_id: string; wins: number; draws: number; losses: number; goals_for: number; goals_against: number; points: number }[]
 }) {
   const upserts: Record<string, unknown>[] = []
   return {
@@ -17,6 +19,8 @@ function fakeAdmin(opts: {
         if (table === 'tournaments') return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: opts.tournament }) }) }) }
         if (table === 'tournament_registrations') return { select: () => ({ eq: () => ({ eq: async () => ({ data: opts.registrations }) }) }) }
         if (table === 'matches') return { select: () => ({ eq: async () => ({ data: opts.matches }) }) }
+        if (table === 'groups') return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: opts.groupId ? { id: opts.groupId } : null }) }) }) }
+        if (table === 'group_memberships') return { select: () => ({ eq: async () => ({ data: opts.memberships ?? [] }) }) }
         if (table === 'season_ranking_points') return { upsert: async (rows: Record<string, unknown>[]) => { upserts.push(...rows); return { data: null, error: null } } }
         throw new Error(`unexpected table ${table}`)
       },
@@ -91,5 +95,35 @@ describe('awardSeasonPoints', () => {
     })
     await awardSeasonPoints(client as never, 't5')
     expect(recordCoinTransaction).toHaveBeenCalledWith(client, 'bystander', 30, 'tournament_placement', 't5')
+  })
+
+  it('awards points by final standings rank, not bracket band, for a round_robin tournament', async () => {
+    const { recordCoinTransaction } = await import('@/lib/coins/service')
+    vi.mocked(recordCoinTransaction).mockClear()
+    // Player A: 6 points (2 wins) -> rank 1 -> pointsForRoundRobinRank(1) = 100
+    // Player B: 3 points (1 win, 1 loss) -> rank 2 -> 70
+    // Player C: 0 points (2 losses) -> rank 3 -> 45
+    const { client, upserts } = fakeAdmin({
+      tournament: { id: 't6', tournament_type: 'community_club', season_id: 's1', format: 'round_robin' },
+      registrations: [{ player_id: 'a' }, { player_id: 'b' }, { player_id: 'c' }],
+      matches: [], // round_robin never reaches bandsForPlacements — matches unused on this path
+      groupId: 'g1',
+      memberships: [
+        { player_id: 'a', wins: 2, draws: 0, losses: 0, goals_for: 4, goals_against: 1, points: 6 },
+        { player_id: 'b', wins: 1, draws: 0, losses: 1, goals_for: 3, goals_against: 3, points: 3 },
+        { player_id: 'c', wins: 0, draws: 0, losses: 2, goals_for: 1, goals_against: 4, points: 0 },
+      ],
+    })
+    await awardSeasonPoints(client as never, 't6')
+    expect(upserts).toEqual(
+      expect.arrayContaining([
+        { season_id: 's1', player_id: 'a', tournament_id: 't6', points: 100, placement: 1 },
+        { season_id: 's1', player_id: 'b', tournament_id: 't6', points: 70, placement: 2 },
+        { season_id: 's1', player_id: 'c', tournament_id: 't6', points: 45, placement: 3 },
+      ]),
+    )
+    expect(recordCoinTransaction).toHaveBeenCalledWith(client, 'a', 500, 'tournament_placement', 't6')
+    expect(recordCoinTransaction).toHaveBeenCalledWith(client, 'b', 300, 'tournament_placement', 't6')
+    expect(recordCoinTransaction).toHaveBeenCalledWith(client, 'c', 150, 'tournament_placement', 't6')
   })
 })

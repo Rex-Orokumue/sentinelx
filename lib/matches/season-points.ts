@@ -10,6 +10,8 @@ import {
 import { recordCoinTransaction } from '@/lib/coins/service'
 import { awardXP } from '@/lib/membership/xp'
 import { checkAndUnlockAchievements } from '@/lib/achievements/unlock'
+import { pointsForRoundRobinRank, coinsForRoundRobinRank, xpForRoundRobinRank } from '@/lib/tournaments/round-robin-placement'
+import { sortStandings, type MembershipInput } from '@/lib/tournaments/standings'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -60,7 +62,7 @@ const CHAMPIONS_CUP_XP: Record<number, number> = { 1: 3000, 2: 2000, 3: 1200, 5:
 export async function awardSeasonPoints(admin: Admin, tournamentId: string): Promise<void> {
   const { data: tournament } = await admin
     .from('tournaments')
-    .select('id, tournament_type, season_id')
+    .select('id, tournament_type, season_id, format')
     .eq('id', tournamentId)
     .maybeSingle()
   if (!tournament) return
@@ -72,6 +74,58 @@ export async function awardSeasonPoints(admin: Admin, tournamentId: string): Pro
     .eq('status', 'active')
   const activePlayerIds = (registrations ?? []).map((r) => r.player_id)
   if (activePlayerIds.length === 0) return
+
+  if (tournament.format === 'round_robin') {
+    const { data: groupRow } = await admin
+      .from('groups')
+      .select('id')
+      .eq('tournament_id', tournamentId)
+      .maybeSingle()
+    if (!groupRow) return
+    const { data: memberships } = await admin
+      .from('group_memberships')
+      .select('player_id, wins, draws, losses, goals_for, goals_against, points')
+      .eq('group_id', groupRow.id)
+    const standings = sortStandings(
+      (memberships ?? []).map(
+        (m): MembershipInput => ({
+          playerId: m.player_id,
+          name: '',
+          wins: m.wins,
+          draws: m.draws,
+          losses: m.losses,
+          goalsFor: m.goals_for,
+          goalsAgainst: m.goals_against,
+          points: m.points,
+        }),
+      ),
+    )
+
+    if (tournament.season_id) {
+      const rows = standings.map((s) => ({
+        season_id: tournament.season_id as string,
+        player_id: s.playerId,
+        tournament_id: tournamentId,
+        points: pointsForRoundRobinRank(s.rank),
+        placement: s.rank,
+      }))
+      await admin.from('season_ranking_points').upsert(rows, { onConflict: 'season_id,player_id,tournament_id' })
+    }
+
+    for (const s of standings) {
+      const coins = coinsForRoundRobinRank(s.rank)
+      if (coins) await recordCoinTransaction(admin, s.playerId, coins, 'tournament_placement', tournamentId)
+      const xp = xpForRoundRobinRank(s.rank)
+      if (xp) await awardXP(admin, s.playerId, xp, 'tournament_placement', tournamentId)
+      await checkAndUnlockAchievements(admin, s.playerId, {
+        type: 'tournament_completed',
+        tournamentId,
+        placement: s.rank,
+        tournamentType: tournament.tournament_type,
+      })
+    }
+    return
+  }
 
   const { data: matches } = await admin
     .from('matches')

@@ -85,6 +85,25 @@ export async function recomputeGroupAndMaybeAdvance(
 ): Promise<void> {
   await recomputeGroupStats(admin, groupId)
 
+  const { data: tour } = await admin.from('tournaments').select('format').eq('id', tournamentId).maybeSingle()
+  if (tour?.format === 'round_robin') {
+    const { count: rrRemaining } = await admin
+      .from('matches')
+      .select('*', { count: 'exact', head: true })
+      .eq('tournament_id', tournamentId)
+      .neq('status', 'completed')
+    if (rrRemaining && rrRemaining > 0) return
+    const { data: claimed } = await admin
+      .from('tournaments')
+      .update({ status: 'completed' })
+      .eq('id', tournamentId)
+      .neq('status', 'completed')
+      .select('id')
+    if (!claimed || claimed.length === 0) return
+    await awardSeasonPoints(admin, tournamentId)
+    return
+  }
+
   // Generate the knockout stage once ALL group matches are complete and none exists yet.
   const { count: remaining } = await admin
     .from('matches')
