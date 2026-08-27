@@ -1,6 +1,7 @@
 import { matchWinnerId, type AdvanceMatch } from '@/lib/tournaments/advancement'
 
 export interface GameScopedMatch extends AdvanceMatch {
+  game_id: string
   game_name: string
   game_category: string
 }
@@ -79,4 +80,42 @@ export function footballGoalsByPlayer(matches: GameScopedMatch[]): Map<string, {
 
 export function categoryStat(stats: CategoryStat[], category: string): CategoryStat {
   return stats.find((s) => s.category === category) ?? { category, scored: 0, conceded: 0 }
+}
+
+// Same aggregation as scoreStatsByPlayerAndCategory, scoped to one game_id
+// instead of one category — lets a category with 2+ active games (e.g.
+// football: DLS + EA FC Mobile) be narrowed to a single game's numbers
+// without touching the category-wide aggregate at all.
+export function scoreStatsByPlayerAndGame(
+  matches: GameScopedMatch[],
+  gameId: string,
+): Map<string, { scored: number; conceded: number }> {
+  const result = new Map<string, { scored: number; conceded: number }>()
+  for (const match of matches) {
+    if (match.game_id !== gameId) continue
+    if (match.status !== 'completed') continue
+    if (match.score_a == null || match.score_b == null) continue
+    if (!match.player_a_id || !match.player_b_id) continue
+
+    const a = result.get(match.player_a_id) ?? { scored: 0, conceded: 0 }
+    a.scored += match.score_a
+    a.conceded += match.score_b
+    result.set(match.player_a_id, a)
+
+    const b = result.get(match.player_b_id) ?? { scored: 0, conceded: 0 }
+    b.scored += match.score_b
+    b.conceded += match.score_a
+    result.set(match.player_b_id, b)
+  }
+  return result
+}
+
+export interface GameStat {
+  gameId: string
+  scored: number
+  conceded: number
+}
+
+export function gameStat(stats: GameStat[], gameId: string): GameStat {
+  return stats.find((s) => s.gameId === gameId) ?? { gameId, scored: 0, conceded: 0 }
 }
