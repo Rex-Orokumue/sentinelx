@@ -5,7 +5,7 @@ import { TierBadge } from '@/components/player/TierBadge'
 import { MembershipBadge } from '@/components/player/MembershipBadge'
 import { HexAvatar } from '@/components/shared/HexAvatar'
 import type { RankedPlayer, LeaderboardMetric } from '@/lib/rankings/leaderboard'
-import { categoryStat } from '@/lib/rankings/game-breakdown'
+import { categoryStat, gameStat } from '@/lib/rankings/game-breakdown'
 import { CATEGORY_META } from '@/lib/games/categories'
 import type { MembershipTier } from '@/lib/membership/tiers'
 
@@ -23,18 +23,26 @@ const METRIC_VALUE: Record<LeaderboardMetric, (p: RankedPlayer) => number> = {
   fighting: (p) => categoryStat(p.categoryStats, 'fighting').scored,
   shooter: (p) => categoryStat(p.categoryStats, 'shooter').scored,
 }
+const CATEGORY_METRICS: LeaderboardMetric[] = ['football', 'fighting', 'shooter']
 
 export function LeaderboardTable({
   players,
   currentUserId,
   metric,
+  gameId,
 }: {
   players: RankedPlayer[]
   currentUserId: string | null
   metric: LeaderboardMetric
+  gameId?: string | null
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const metricValue = METRIC_VALUE[metric]
+  // Must mirror rankPlayersBy's own gameId-aware lead selection exactly —
+  // otherwise sort order and the displayed number silently disagree (a
+  // real bug caught in manual QA: filtering to a specific game correctly
+  // re-sorted the table but kept showing everyone's category-wide total).
+  const metricValue: (p: RankedPlayer) => number =
+    gameId && CATEGORY_METRICS.includes(metric) ? (p) => gameStat(p.gameStats, gameId).scored : METRIC_VALUE[metric]
   const expandable = metric === 'wins'
 
   return (

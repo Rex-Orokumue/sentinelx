@@ -86,7 +86,7 @@ export function LeaderboardTabs({
           ))}
         </div>
       )}
-      <LeaderboardTable players={ranked} currentUserId={currentUserId} metric={metric} />
+      <LeaderboardTable players={ranked} currentUserId={currentUserId} metric={metric} gameId={gameId} />
     </div>
   )
 }
