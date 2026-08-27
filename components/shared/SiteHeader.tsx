@@ -10,9 +10,10 @@ import { BalanceChips } from '@/components/shared/BalanceChips'
 import { NotificationBell } from '@/components/shared/NotificationBell'
 import { MobileNavSheet } from '@/components/shared/MobileNavSheet'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
+import { NavMoreDropdown } from '@/components/shared/NavMoreDropdown'
 import type { NavSession } from '@/lib/nav/session'
 import type { AdminSheetData } from '@/lib/admin/nav'
-import { NAVBAR_LINKS } from '@/lib/nav/links'
+import { NAVBAR_PRIMARY_LINKS, NAVBAR_MORE_LINKS } from '@/lib/nav/links'
 
 export function SiteHeader({
   session,
@@ -43,15 +44,23 @@ export function SiteHeader({
             </span>
           </Link>
 
-          {/* Desktop-only primary links */}
-          <div className="hidden items-center gap-1 lg:flex">
-            {NAVBAR_LINKS.map((item) => {
+          {/* Desktop-only primary links — kept to 5 items (see
+              lib/nav/links.ts NAVBAR_PRIMARY_LINKS) so this row plus the
+              logo and the account cluster never overflows the viewport;
+              the rest live in the More dropdown right after it. Gated on
+              `xl` (1280px), not `lg` (1024px): measured content width for
+              logo + 5 links + More + full account cluster is ~1132px, which
+              still overflows in the 1024-1279px band even at 5 links —
+              `xl` matches this header's own max-w-7xl (1280px) cap, so the
+              full row only ever renders where it's guaranteed to fit. */}
+          <div className="hidden min-w-0 items-center gap-1 xl:flex">
+            {NAVBAR_PRIMARY_LINKS.map((item) => {
               const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`border-b-2 px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-1.5 text-sm font-medium transition-colors ${
                     active
                       ? 'border-sx-purple text-white'
                       : 'border-transparent text-white/70 hover:text-white'
@@ -61,9 +70,13 @@ export function SiteHeader({
                 </Link>
               )
             })}
+            <NavMoreDropdown
+              links={NAVBAR_MORE_LINKS}
+              active={NAVBAR_MORE_LINKS.some((item) => pathname.startsWith(item.href))}
+            />
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <LanguageSwitcher />
 
             {/* WhatsApp community CTA — all breakpoints */}
@@ -99,7 +112,7 @@ export function SiteHeader({
               onClick={() => setDrawerOpen(true)}
               aria-label="Open menu"
               aria-expanded={drawerOpen}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/5 lg:hidden"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-white/80 transition hover:bg-white/5 xl:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>

@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { mergeNavLinks, SHEET_SITE_LINKS, NAVBAR_LINKS, PILLAR_LINKS, type NavLink } from './links'
+import {
+  mergeNavLinks,
+  SHEET_SITE_LINKS,
+  NAVBAR_LINKS,
+  NAVBAR_PRIMARY_LINKS,
+  NAVBAR_MORE_LINKS,
+  PILLAR_LINKS,
+  type NavLink,
+} from './links'
 
 describe('mergeNavLinks', () => {
   it('keeps every link from the first list, in order', () => {
@@ -61,5 +69,30 @@ describe('SHEET_SITE_LINKS', () => {
 
   it('leads with Home, from NAVBAR_LINKS', () => {
     expect(SHEET_SITE_LINKS[0]).toEqual({ href: '/', labelKey: 'home' })
+  })
+})
+
+describe('NAVBAR_PRIMARY_LINKS / NAVBAR_MORE_LINKS', () => {
+  it('together contain exactly the same links as NAVBAR_LINKS, no more, no fewer', () => {
+    const combined = [...NAVBAR_PRIMARY_LINKS, ...NAVBAR_MORE_LINKS]
+    expect(combined).toHaveLength(NAVBAR_LINKS.length)
+    for (const link of NAVBAR_LINKS) {
+      expect(combined).toContainEqual(link)
+    }
+  })
+
+  it('have no overlap with each other', () => {
+    const primaryHrefs = new Set(NAVBAR_PRIMARY_LINKS.map((l) => l.href))
+    for (const link of NAVBAR_MORE_LINKS) {
+      expect(primaryHrefs.has(link.href)).toBe(false)
+    }
+  })
+
+  it('keeps the primary row short enough to fit alongside the account cluster (5 items)', () => {
+    expect(NAVBAR_PRIMARY_LINKS.length).toBeLessThanOrEqual(5)
+  })
+
+  it('primary row leads with Home', () => {
+    expect(NAVBAR_PRIMARY_LINKS[0]).toEqual({ href: '/', labelKey: 'home' })
   })
 })
