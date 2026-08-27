@@ -164,10 +164,18 @@ re-encodes and strips the offending metadata.
 | # | Task | Status |
 |---|------|--------|
 | 31a | Core mechanics — EA FC Mobile activated (2nd game), new `round_robin` tournament format (Circuit Cup: single-group table, no knockout), generalized 1st/2nd/3rd prize-split (`prize_second`/`prize_third`, Elite Cup ₦8k/₦4k/₦3k default), season-leaderboard game-scoping fix (a real latent bug: `season_ranking_points`/`season_noshow_penalties` weren't scoped past `season_id`, so two games sharing a season would have merged points) | ✅ |
-| 31b | Discovery UI — `/seasons` page becomes multi-game (game-grouped tabs/sections), Rankings + Hall of Fame gain a per-game sub-filter within each category tab (today's category grouping would otherwise silently blend DLS and FC Mobile's football stats into one bucket) | ⬜ |
+| 31b | Discovery UI — `/seasons` page becomes multi-game (game-grouped tabs), Rankings + Hall of Fame gain a per-game sub-filter within each category tab (today's category grouping would otherwise silently blend DLS and FC Mobile's football stats into one bucket) | ✅ |
 
 Spec: `docs/superpowers/specs/2026-08-27-fc-mobile-competition-structure-design.md`.
 Plan (31a): `docs/superpowers/plans/2026-08-27-fc-mobile-competition-structure-core.md`.
+Plan (31b): `docs/superpowers/plans/2026-08-27-fc-mobile-competition-structure-discovery-ui.md`.
+New `lib/rankings/game-breakdown.ts` `scoreStatsByPlayerAndGame`/`gameStat` sit alongside the
+existing category-scoped aggregation — "All Football" is unchanged, per-game views are additive.
+New `lib/games/season-tier-labels.ts` (code-level constant, same pattern as `CATEGORY_META`, not a
+DB table) carries the FC Mobile Circuit Cup/Elite Cup vs DLS Community Club/Masters copy the
+`/seasons` page renders per game. Manual QA caught one real bug: `LeaderboardTable`'s displayed
+number had its own independent category-wide lookup, disconnected from the per-game sort — fixed
+before merge.
 Elite Cup reuses the existing Masters invitation/cascade flow (`lib/seasons/invitation-actions.ts`) as-is — verified against the live implementation, no new invitation code needed once the game-scoping fix landed. Third-place prize crediting reuses the existing auto-generated + admin-manual-credit third-place match mechanics, also unchanged.
 
 ---
