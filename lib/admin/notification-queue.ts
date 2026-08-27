@@ -86,7 +86,7 @@ async function fetchResultItems(supabase: SupabaseClient): Promise<AdminNotifica
         'player_b:profiles!matches_player_b_id_fkey(username, display_name), ' +
         'tournament:tournaments(title), match_results(count)',
     )
-    .in('status', ['scheduled', 'live', 'disputed', 'cancelled'])
+    .in('status', ['scheduled', 'live', 'disputed'])
 
   const rows = ((data as unknown[] | null) ?? []) as Row[]
   const createdAtById = new Map(rows.map((r) => [r.id, r.created_at]))

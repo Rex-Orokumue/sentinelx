@@ -28,7 +28,7 @@ export default async function AdminResultsPage() {
         'tournament:tournaments(title, slug), ' +
         'match_results(score_a, score_b)',
     )
-    .in('status', ['scheduled', 'live', 'disputed', 'cancelled'])
+    .in('status', ['scheduled', 'live', 'disputed'])
 
   const rawRows = (data as unknown[] | null) ?? []
   const tournamentIds = Array.from(

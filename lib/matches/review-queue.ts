@@ -15,7 +15,7 @@ export interface ReviewMatchInput {
   noshowFlaggedAt: string | null
 }
 
-// Split matches (already limited to status scheduled/live/disputed/cancelled) into three
+// Split matches (already limited to status scheduled/live/disputed) into three
 // actionable buckets. `now` is injected for deterministic tests.
 //
 // Full-day matches are deliberately excluded from the time-based "no submission"

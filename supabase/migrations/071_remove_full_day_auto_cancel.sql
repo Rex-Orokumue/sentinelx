@@ -13,7 +13,24 @@
 -- is_full_day/auto_expired/full_day_alert_sent_at columns are left in place
 -- (auto_expired/full_day_alert_sent_at simply go unused going forward) —
 -- dropping columns is out of scope for this fix.
-select cron.unschedule('expire-full-day-matches');
-select cron.unschedule('notify-expired-full-day-matches');
+--
+-- Both jobs were scheduled directly against the live DB, not via a tracked
+-- migration (same untracked-cron-job convention 070_chat_system.sql already
+-- notes) — so on a fresh environment replaying migrations from scratch
+-- (a new project, `supabase db reset`, a preview branch) neither job exists
+-- yet, and a bare cron.unschedule() errors on "job not found", aborting the
+-- whole migration run. Guard each one so this migration replays cleanly
+-- regardless of environment.
+do $$
+begin
+  perform cron.unschedule('expire-full-day-matches');
+exception when others then null;
+end $$;
 
-drop function public.expire_full_day_matches();
+do $$
+begin
+  perform cron.unschedule('notify-expired-full-day-matches');
+exception when others then null;
+end $$;
+
+drop function if exists public.expire_full_day_matches();

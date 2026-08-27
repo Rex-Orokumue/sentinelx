@@ -23,3 +23,35 @@ describe('middleware composition', () => {
     expect(updateSession).toHaveBeenCalledWith(expect.anything(), '/dashboard', 'fr')
   })
 })
+
+describe('middleware matcher', () => {
+  // Next.js's `config.matcher` strings are applied as regexes matched against
+  // the pathname with a leading slash. This directly guards the bug that
+  // shipped in 9a8b0fb: without an exclusion here, next-intl rewrites these
+  // root-level special routes to a locale-prefixed path that doesn't exist,
+  // 404ing them — which silently broke service worker registration (and so
+  // background FCM push) in production for three days before anyone noticed.
+  async function matches(pathname: string): Promise<boolean> {
+    const { config } = await import('./middleware')
+    return new RegExp(`^${config.matcher[0]}$`).test(pathname)
+  }
+
+  it.each([
+    '/sw.js',
+    '/manifest.webmanifest',
+    '/robots.txt',
+    '/sitemap.xml',
+    '/opengraph-image',
+    '/apple-icon',
+    '/icon',
+  ])('excludes root-level special route %s from locale rewriting', async (pathname) => {
+    expect(await matches(pathname)).toBe(false)
+  })
+
+  it.each(['/tournaments', '/en/dashboard', '/fr/store', '/players/someuser'])(
+    'still matches a real page route %s',
+    async (pathname) => {
+      expect(await matches(pathname)).toBe(true)
+    },
+  )
+})
