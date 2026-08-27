@@ -26,7 +26,16 @@ export const config = {
   // app/[locale] (spec §4, it's the locale-invariant PWA fallback sw.js
   // falls back to); letting next-intl's middleware process it rewrites it
   // to /en/offline internally, which doesn't exist and 404s.
+  //
+  // sw.js/manifest.webmanifest/robots.txt/sitemap.xml/opengraph-image/
+  // apple-icon/icon are the same problem for every other root-level special
+  // file (app/sw.js's public/ copy, app/manifest.ts, app/robots.ts,
+  // app/sitemap.ts, app/opengraph-image.tsx, app/apple-icon.tsx, app/icon.tsx
+  // — all deliberately outside app/[locale], none of them pages) — without
+  // this exclusion next-intl rewrites them to /en/... too and 404s them.
+  // This broke service worker registration in production (no FCM background
+  // push could display) since this middleware was introduced.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|auth/confirm|api|offline|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|auth/confirm|api|offline|sw\\.js|manifest\\.webmanifest|robots\\.txt|sitemap\\.xml|opengraph-image|apple-icon|icon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)',
   ],
 }
