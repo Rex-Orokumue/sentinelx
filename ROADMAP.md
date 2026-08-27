@@ -159,9 +159,22 @@ re-encodes and strips the offending metadata.
 | 29 | Sponsored data support — per-tournament perk (text + WhatsApp), claim button for semi-finalists/finalists | ✅ |
 | 30 | Match recording submission via WhatsApp — button on result submission alongside the existing screenshot/URL fields | ✅ |
 
+## v4.1 — FC Mobile Competition Structure
+
+| # | Task | Status |
+|---|------|--------|
+| 31a | Core mechanics — EA FC Mobile activated (2nd game), new `round_robin` tournament format (Circuit Cup: single-group table, no knockout), generalized 1st/2nd/3rd prize-split (`prize_second`/`prize_third`, Elite Cup ₦8k/₦4k/₦3k default), season-leaderboard game-scoping fix (a real latent bug: `season_ranking_points`/`season_noshow_penalties` weren't scoped past `season_id`, so two games sharing a season would have merged points) | ✅ |
+| 31b | Discovery UI — `/seasons` page becomes multi-game (game-grouped tabs/sections), Rankings + Hall of Fame gain a per-game sub-filter within each category tab (today's category grouping would otherwise silently blend DLS and FC Mobile's football stats into one bucket) | ⬜ |
+
+Spec: `docs/superpowers/specs/2026-08-27-fc-mobile-competition-structure-design.md`.
+Plan (31a): `docs/superpowers/plans/2026-08-27-fc-mobile-competition-structure-core.md`.
+Elite Cup reuses the existing Masters invitation/cascade flow (`lib/seasons/invitation-actions.ts`) as-is — verified against the live implementation, no new invitation code needed once the game-scoping fix landed. Third-place prize crediting reuses the existing auto-generated + admin-manual-credit third-place match mechanics, also unchanged.
+
 ---
 
 ## Follow-ups / tech debt
+
+- ✅ **Desktop navbar horizontal-scroll fix:** `NAVBAR_LINKS` had grown to 9 items rendered in one non-wrapping row alongside a 5-element account cluster, overflowing the viewport and breaking link labels mid-word at real desktop widths. Split into `NAVBAR_PRIMARY_LINKS` (5 core destinations, always visible) + `NAVBAR_MORE_LINKS` (Games/Seasons/Store/About, tucked into a new `NavMoreDropdown`); the full desktop treatment now gates on `xl` (1280px, matching the header's own `max-w-7xl` cap) instead of `lg` (1024px), which measurement showed still overflowed even at 5 links.
 
 - ✅ **Homepage promo banner:** reusable admin-manageable banner (`/admin/banners`) —
   image + link + active toggle, independent of tournament publish status. Lets staff
