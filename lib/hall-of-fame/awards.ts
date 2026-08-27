@@ -1,5 +1,5 @@
 import { isRankingEligible, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
-import { categoryStat } from '@/lib/rankings/game-breakdown'
+import { categoryStat, gameStat } from '@/lib/rankings/game-breakdown'
 import { getChampion, getThirdPlace, type BracketMatch } from '@/lib/tournaments/bracket'
 
 function winRate(p: PlayerStatsInput): number {
@@ -38,6 +38,19 @@ export function pickCategoryAward(players: PlayerStatsInput[], category: string)
 // Kept for existing callers/tests — identical to pickCategoryAward(players, 'football').
 export function pickGoldenBoot(players: PlayerStatsInput[]): PlayerStatsInput | null {
   return pickCategoryAward(players, 'football')
+}
+
+// Same rule as pickCategoryAward, scoped to one game instead of one
+// category — the per-game Hall of Fame filter (a category with 2+ active
+// games gets one of these per game, alongside the existing "All X" award).
+export function pickGameAward(players: PlayerStatsInput[], gameId: string): PlayerStatsInput | null {
+  const eligible = players.filter(isRankingEligible)
+  if (eligible.length === 0) return null
+  const ranked = [...eligible].sort(
+    (a, b) => gameStat(b.gameStats, gameId).scored - gameStat(a.gameStats, gameId).scored || b.wins - a.wins,
+  )
+  const top = ranked[0]
+  return gameStat(top.gameStats, gameId).scored > 0 ? top : null
 }
 
 export interface ChampionInput {
