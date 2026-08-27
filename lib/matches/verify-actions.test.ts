@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { completeTournamentIfFinal, creditThirdPlacePrize } from './verify-actions'
+import { completeTournamentIfFinal, creditThirdPlacePrize, recomputeGroupAndMaybeAdvance } from './verify-actions'
 
 vi.mock('@/lib/wallet/service', () => ({ creditWallet: vi.fn() }))
 vi.mock('./season-points', () => ({ awardSeasonPoints: vi.fn() }))
@@ -108,6 +108,82 @@ describe('completeTournamentIfFinal — prize split', () => {
     const admin = fakeAdminForComplete({ prizePool: 50000, prizeSecond: null, prizeThird: null })
     await completeTournamentIfFinal(admin as never, 't1', 'semi_final', decisiveFinal)
     expect(creditWallet).not.toHaveBeenCalled()
+  })
+})
+
+// Covers recomputeGroupAndMaybeAdvance's round_robin branch specifically —
+// the group_knockout branch it falls back to for every other format is
+// exercised only via live/manual QA today (this codebase's Supabase-backed
+// admin/match actions are not otherwise unit-tested), same as
+// bracket-admin-actions.ts's generate(). This one new branch is worth its
+// own mock given it auto-completes a tournament and fires the one-time
+// season-points award exactly once.
+function fakeAdminForRoundRobinAdvance(opts: { format: string; remaining: number; alreadyCompleted?: boolean }) {
+  let completed = opts.alreadyCompleted ?? false
+  return {
+    from(table: string) {
+      if (table === 'tournaments') {
+        return {
+          select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { format: opts.format } }) }) }),
+          update: () => ({
+            eq: () => ({
+              neq: () => ({
+                select: async () => {
+                  if (completed) return { data: [] }
+                  completed = true
+                  return { data: [{ id: 't1' }] }
+                },
+              }),
+            }),
+          }),
+        }
+      }
+      if (table === 'group_memberships') {
+        // Empty group -> computeGroupStats([], []) returns [] -> recomputeGroupStats
+        // issues zero update() calls, so this table only ever needs to answer select().
+        return { select: () => ({ eq: async () => ({ data: [] }) }) }
+      }
+      if (table === 'matches') {
+        return {
+          select: (_cols: unknown, countOpts?: unknown) => {
+            // The remaining-incomplete-matches count check: .select('*',{count,head}).eq('tournament_id',_).neq('status','completed')
+            if (countOpts) {
+              return { eq: () => ({ neq: async () => ({ count: opts.remaining }) }) }
+            }
+            // recomputeGroupStats' group-scoped query: .select('cols').eq('group_id',_).eq('status','completed')
+            return { eq: () => ({ eq: async () => ({ data: [] }) }) }
+          },
+        }
+      }
+      throw new Error(`unexpected table ${table}`)
+    },
+  }
+}
+
+describe('recomputeGroupAndMaybeAdvance — round_robin', () => {
+  it('does not complete the tournament while matches remain', async () => {
+    const { awardSeasonPoints } = await import('./season-points')
+    vi.mocked(awardSeasonPoints).mockClear()
+    const admin = fakeAdminForRoundRobinAdvance({ format: 'round_robin', remaining: 2 })
+    await recomputeGroupAndMaybeAdvance(admin as never, 't1', 'g1')
+    expect(awardSeasonPoints).not.toHaveBeenCalled()
+  })
+
+  it('completes the tournament and awards season points exactly once when the last match confirms', async () => {
+    const { awardSeasonPoints } = await import('./season-points')
+    vi.mocked(awardSeasonPoints).mockClear()
+    const admin = fakeAdminForRoundRobinAdvance({ format: 'round_robin', remaining: 0 })
+    await recomputeGroupAndMaybeAdvance(admin as never, 't1', 'g1')
+    expect(awardSeasonPoints).toHaveBeenCalledWith(admin, 't1')
+    expect(awardSeasonPoints).toHaveBeenCalledTimes(1)
+  })
+
+  it('is idempotent — a second call after completion does not re-award points', async () => {
+    const { awardSeasonPoints } = await import('./season-points')
+    vi.mocked(awardSeasonPoints).mockClear()
+    const admin = fakeAdminForRoundRobinAdvance({ format: 'round_robin', remaining: 0, alreadyCompleted: true })
+    await recomputeGroupAndMaybeAdvance(admin as never, 't1', 'g1')
+    expect(awardSeasonPoints).not.toHaveBeenCalled()
   })
 })
 
