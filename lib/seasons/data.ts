@@ -80,22 +80,38 @@ function toRows(
 // "season cumulative") — that qualification ranking (lib/seasons/
 // invitation-actions.ts) reads real season_ranking_points rows directly and
 // is completely unaffected by this provisional layer.
-export async function getSeasonLeaderboard(admin: Admin, seasonId: string): Promise<SeasonLeaderboardRow[]> {
+export async function getSeasonLeaderboard(admin: Admin, seasonId: string, gameId: string): Promise<SeasonLeaderboardRow[]> {
   const { data: seasonTournamentsData } = await admin
     .from('tournaments')
     .select('id, status, tournament_type')
     .eq('season_id', seasonId)
+    .eq('game_id', gameId)
     .in('tournament_type', ['community_club', 'masters'])
   const seasonTournaments = seasonTournamentsData ?? []
   const tournamentIds = seasonTournaments.map((t) => t.id)
   const activeTournaments = seasonTournaments.filter((t) => t.status === 'active')
 
+  // season_ranking_points/season_noshow_penalties are keyed by season_id,
+  // not game_id (that column doesn't exist on either table) — scoping by
+  // season_id alone would sum every game sharing this season together.
+  // season_ranking_points has its own tournament_id column, so it's filtered
+  // directly; season_noshow_penalties only has match_id, so it's filtered
+  // via this game's matches — the same two-step getMonthlyLeaderboard below
+  // already uses.
+  const { data: gameMatches } =
+    tournamentIds.length > 0
+      ? await admin.from('matches').select('id').in('tournament_id', tournamentIds)
+      : { data: [] as { id: string }[] }
+  const gameMatchIds = (gameMatches ?? []).map((m) => m.id)
+
   const [{ data: registrations }, { data: pointsRows }, { data: penaltyRows }, provisionalByTournament] = await Promise.all([
     tournamentIds.length > 0
       ? admin.from('tournament_registrations').select('player_id').in('tournament_id', tournamentIds).eq('status', 'active')
       : Promise.resolve({ data: [] as { player_id: string }[] }),
-    admin.from('season_ranking_points').select('player_id, points').eq('season_id', seasonId),
-    admin.from('season_noshow_penalties').select('player_id, points').eq('season_id', seasonId),
+    admin.from('season_ranking_points').select('player_id, points').eq('season_id', seasonId).in('tournament_id', tournamentIds),
+    gameMatchIds.length > 0
+      ? admin.from('season_noshow_penalties').select('player_id, points').eq('season_id', seasonId).in('match_id', gameMatchIds)
+      : Promise.resolve({ data: [] as { player_id: string; points: number }[] }),
     Promise.all(
       activeTournaments.map(async (t) => {
         const [{ data: activeRegs }, { data: matches }] = await Promise.all([
@@ -139,6 +155,7 @@ export async function getMonthlyLeaderboard(
   admin: Admin,
   seasonId: string,
   monthStart: Date,
+  gameId: string,
 ): Promise<SeasonLeaderboardRow[]> {
   const monthEnd = new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth() + 1, 1))
   const monthStartUtc = new Date(Date.UTC(monthStart.getUTCFullYear(), monthStart.getUTCMonth(), 1))
@@ -147,6 +164,7 @@ export async function getMonthlyLeaderboard(
     .from('tournaments')
     .select('id')
     .eq('season_id', seasonId)
+    .eq('game_id', gameId)
     .eq('tournament_type', 'community_club')
     .gte('tournament_start', monthStartUtc.toISOString())
     .lt('tournament_start', monthEnd.toISOString())

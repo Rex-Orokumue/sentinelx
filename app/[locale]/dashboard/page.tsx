@@ -161,9 +161,13 @@ export default async function DashboardPage() {
   let monthlyRank: number | null = null
   let monthlyPoints = 0
   if (activeSeason) {
+    // DLS-only for now, matching this card's pre-multi-game behavior — see
+    // the equivalent note on app/[locale]/seasons/[slug]/page.tsx. Showing a
+    // per-game season standing here is a separate follow-up.
+    const { data: dlsGame } = await supabase.from('games').select('id').eq('slug', 'dls').maybeSingle()
     const [seasonBoard, monthlyBoard] = await Promise.all([
-      getSeasonLeaderboard(createAdminClient(), activeSeason.id),
-      getMonthlyLeaderboard(createAdminClient(), activeSeason.id, new Date()),
+      getSeasonLeaderboard(createAdminClient(), activeSeason.id, dlsGame?.id ?? ''),
+      getMonthlyLeaderboard(createAdminClient(), activeSeason.id, new Date(), dlsGame?.id ?? ''),
     ])
     const seasonIdx = seasonBoard.findIndex((r) => r.playerId === user.id)
     seasonRank = seasonIdx >= 0 ? seasonIdx + 1 : null

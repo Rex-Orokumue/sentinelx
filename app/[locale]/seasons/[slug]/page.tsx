@@ -39,6 +39,12 @@ export default async function SeasonPage({ params }: { params: { slug: string } 
 
   const admin = createAdminClient()
   const supabase = createClient()
+  // This page is DLS-only today (built before any second game existed) —
+  // scoping explicitly to DLS's game_id keeps that exact behavior now that
+  // getSeasonLeaderboard requires a game and a second game (FC Mobile)
+  // shares this same season. Becoming genuinely multi-game (tabs/sections
+  // per game) is a separate follow-up.
+  const { data: dlsGame } = await supabase.from('games').select('id').eq('slug', 'dls').maybeSingle()
   const [
     { data: tournaments },
     leaderboard,
@@ -50,9 +56,10 @@ export default async function SeasonPage({ params }: { params: { slug: string } 
       .from('tournaments')
       .select('id, title, slug, tournament_type, status, tournament_start, invitation_only')
       .eq('season_id', season.id)
+      .eq('game_id', dlsGame?.id ?? '')
       .neq('tournament_type', 'open')
       .order('tournament_start'),
-    getSeasonLeaderboard(admin, season.id),
+    getSeasonLeaderboard(admin, season.id, dlsGame?.id ?? ''),
     supabase.auth.getUser(),
   ])
 
