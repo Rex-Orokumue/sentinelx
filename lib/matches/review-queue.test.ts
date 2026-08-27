@@ -8,7 +8,6 @@ function m(over: Partial<ReviewMatchInput> & { id: string }): ReviewMatchInput {
     status: 'scheduled',
     scheduledAt: null,
     isFullDay: false,
-    autoExpired: false,
     submissionCount: 0,
     hasMismatch: false,
     round: 'group',
@@ -51,18 +50,8 @@ describe('bucketReviewQueue', () => {
     )
     expect(r.needsReview.concat(r.noSubmission, r.disputed)).toEqual([])
   })
-  it('routes an auto-expired match to No submission', () => {
-    const r = bucketReviewQueue(
-      [m({ id: 'ax', status: 'cancelled', autoExpired: true, submissionCount: 0 })],
-      NOW,
-    )
-    expect(r.noSubmission.map((x) => x.id)).toEqual(['ax'])
-  })
-  it('excludes a cancelled match that was not auto-expired', () => {
-    const r = bucketReviewQueue(
-      [m({ id: 'c', status: 'cancelled', autoExpired: false, submissionCount: 0 })],
-      NOW,
-    )
+  it('excludes a cancelled match (cancellation is never auto-resolved into a review bucket)', () => {
+    const r = bucketReviewQueue([m({ id: 'c', status: 'cancelled', submissionCount: 0 })], NOW)
     expect(r.needsReview.concat(r.noSubmission, r.disputed)).toEqual([])
   })
   it('routes a flagged full-day match with no submission to No submission', () => {

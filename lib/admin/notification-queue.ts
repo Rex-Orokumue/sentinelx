@@ -70,7 +70,6 @@ async function fetchResultItems(supabase: SupabaseClient): Promise<AdminNotifica
     status: string
     scheduled_at: string | null
     is_full_day: boolean
-    auto_expired: boolean
     noshow_flagged_at: string | null
     created_at: string
     player_a: NameRef
@@ -82,7 +81,7 @@ async function fetchResultItems(supabase: SupabaseClient): Promise<AdminNotifica
   const { data } = await supabase
     .from('matches')
     .select(
-      'id, round, status, scheduled_at, is_full_day, auto_expired, noshow_flagged_at, created_at, ' +
+      'id, round, status, scheduled_at, is_full_day, noshow_flagged_at, created_at, ' +
         'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
         'player_b:profiles!matches_player_b_id_fkey(username, display_name), ' +
         'tournament:tournaments(title), match_results(count)',
@@ -99,7 +98,6 @@ async function fetchResultItems(supabase: SupabaseClient): Promise<AdminNotifica
       status: m.status,
       scheduledAt: m.scheduled_at,
       isFullDay: m.is_full_day,
-      autoExpired: m.auto_expired,
       submissionCount: m.match_results?.[0]?.count ?? 0,
       hasMismatch: false, // this call site only counts for the notification bell, never displays the flag
       round: m.round,
