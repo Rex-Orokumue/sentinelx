@@ -182,6 +182,18 @@ Elite Cup reuses the existing Masters invitation/cascade flow (`lib/seasons/invi
 
 ## Follow-ups / tech debt
 
+- ✅ **Middleware 25s timeout fix (production incident):** Vercel's runtime error data showed `/middleware`
+  hitting the platform's 25s hard ceiling ~80 times over 7 days across 12 users — never on `/dashboard` or
+  `/admin` despite them calling the identical Supabase method, isolating the failure to middleware's
+  execution path. Root cause: `getUser()` makes a network round-trip to Supabase's auth endpoint on
+  literally every call, and this middleware runs on nearly every route — any transient stall hung the
+  whole site until Vercel killed the request. Fixed by switching to `getSession()` (cookie-read locally,
+  network only on an actual token refresh) — safe because `/dashboard` and `/admin`
+  (`requireStaff`/`requireAdmin`) already make their own independent, network-verified `getUser()` call;
+  middleware was never the real security boundary, only a fast redirect. The residual refresh-triggered
+  network call is still wrapped in a short bounded timeout; on any failure the request now passes through
+  completely unmodified (no redirect either way) rather than guessing "unauthenticated" and wrongly
+  bouncing a real user to `/login`.
 - ✅ **Desktop navbar horizontal-scroll fix:** `NAVBAR_LINKS` had grown to 9 items rendered in one non-wrapping row alongside a 5-element account cluster, overflowing the viewport and breaking link labels mid-word at real desktop widths. Split into `NAVBAR_PRIMARY_LINKS` (5 core destinations, always visible) + `NAVBAR_MORE_LINKS` (Games/Seasons/Store/About, tucked into a new `NavMoreDropdown`); the full desktop treatment now gates on `xl` (1280px, matching the header's own `max-w-7xl` cap) instead of `lg` (1024px), which measurement showed still overflowed even at 5 links.
 
 - ✅ **Homepage promo banner:** reusable admin-manageable banner (`/admin/banners`) —
