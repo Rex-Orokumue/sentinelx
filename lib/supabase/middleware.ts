@@ -12,6 +12,48 @@ const PROTECTED = ['/dashboard', '/admin']
 const PROTECTED_EXACT = ['/players']
 const AUTH_PAGES = ['/login', '/signup']
 
+// getSession() reads the JWT from the cookie locally and only touches the
+// network when the access token actually needs refreshing — unlike
+// getUser(), which makes a network round-trip on every single call. This
+// middleware runs on nearly every route (see the matcher in middleware.ts),
+// so getUser() here meant a mandatory external network call on every page
+// load; when Supabase's Edge-reachable auth endpoint occasionally stalled,
+// the whole site hung until Vercel's 25s function ceiling killed it
+// (confirmed live via Vercel's runtime error data — 80+ occurrences, only
+// ever on /middleware, never on /dashboard or /admin despite those making
+// the identical getUser() call themselves).
+//
+// This is safe to loosen because middleware was never the real security
+// boundary to begin with: /dashboard (app/[locale]/dashboard/page.tsx) and
+// /admin (requireStaff/requireAdmin in lib/admin/auth.ts) already make
+// their own independent, network-verified getUser() call — middleware's
+// job is only a fast, friendly redirect (?next= param, avoiding a flash of
+// protected content), not the authoritative check.
+//
+// Kept short — comfortably under Vercel's ceiling — and any failure
+// (timeout or rejection) is treated the same: pass the request through
+// completely unmodified, no redirect in either direction. Guessing
+// "authenticated" on a failure would be a real security hole; guessing
+// "unauthenticated" is exactly the wrongful-login-redirect this was meant
+// to stop. Deferring entirely to the page-level check is the only safe
+// choice, and it's already the real gate regardless.
+const SESSION_CHECK_TIMEOUT_MS = 4000
+
+async function sessionUser(
+  supabase: ReturnType<typeof createServerClient<Database>>,
+): Promise<{ id: string } | null | 'unresolved'> {
+  try {
+    const result = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise<'unresolved'>((resolve) => setTimeout(() => resolve('unresolved'), SESSION_CHECK_TIMEOUT_MS)),
+    ])
+    if (result === 'unresolved') return 'unresolved'
+    return result.data.session?.user ?? null
+  } catch {
+    return 'unresolved'
+  }
+}
+
 export async function updateSession(
   request: NextRequest,
   pathname: string,
@@ -38,7 +80,9 @@ export async function updateSession(
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const result = await sessionUser(supabase)
+  if (result === 'unresolved') return { response, redirected: false }
+  const user = result
 
   const redirectTo = (targetPath: string, search?: URLSearchParams) => {
     const url = request.nextUrl.clone()
