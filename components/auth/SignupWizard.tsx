@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import Link from 'next/link'
 import { Check, X, Loader2, Eye, EyeOff, AlertTriangle } from 'lucide-react'
-import { signup, type ActionState } from '@/lib/auth/actions'
+import { signup, resendConfirmation, type ActionState } from '@/lib/auth/actions'
 import { useUsernameAvailability } from '@/hooks/useUsernameAvailability'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,11 +29,26 @@ function SubmitButton() {
   )
 }
 
+function ResendButton() {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="font-semibold text-violet-400 hover:text-violet-300 disabled:opacity-60"
+    >
+      {pending ? 'Sending…' : "Resend it"}
+    </button>
+  )
+}
+
 export function SignupWizard({ refCode }: { refCode: string | null }) {
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [state, formAction] = useFormState<ActionState, FormData>(signup, undefined)
+  const [resendState, resendAction] = useFormState<ActionState, FormData>(resendConfirmation, undefined)
   const availability = useUsernameAvailability(username)
 
   useEffect(() => {
@@ -46,7 +61,27 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
         <Dots step={3} />
         <h1 className="mb-2 text-xl font-bold">Check your email</h1>
         <p className="text-sm text-slate-400">
-          We sent a confirmation link to your inbox. Click it to activate your account, then log in.
+          We sent a confirmation link to <span className="font-semibold text-white">{email}</span>. Click it to
+          activate your account, then log in and pick your handle.
+        </p>
+        <div className="mt-5 rounded-lg border border-slate-800 bg-slate-900/60 p-3 text-sm text-slate-300">
+          {resendState?.success ? (
+            <p className="text-emerald-400">{resendState.success}</p>
+          ) : (
+            <>
+              <p className="mb-2">Nothing after a few minutes? Check your spam folder, then:</p>
+              <form action={resendAction}>
+                <input type="hidden" name="email" value={email} />
+                <ResendButton />
+              </form>
+              {resendState?.error && <p className="mt-1 text-red-400">{resendState.error}</p>}
+            </>
+          )}
+        </div>
+        <p className="mt-4 text-xs text-slate-500">
+          Email links sometimes get held up. Signing up with Google skips confirmation entirely —{' '}
+          <Link href="/signup" className="text-violet-400 hover:text-violet-300">start over</Link> and use the
+          Google button.
         </p>
       </div>
     )
@@ -61,8 +96,14 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
 
       {/* Step 1 — username only */}
       <div className={step === 1 ? 'block' : 'hidden'}>
-        <h1 className="mb-1 text-xl font-bold">Choose your handle</h1>
-        <p className="mb-6 text-sm text-slate-400">This is your public username on SentinelX Esports.</p>
+        <h1 className="mb-1 text-xl font-bold">Join SentinelX Esports</h1>
+        <p className="mb-4 text-sm text-slate-400">Fastest way in — no email confirmation needed:</p>
+        <GoogleSignInButton next="/dashboard" />
+        <div className="my-4 flex items-center gap-3">
+          <div className="h-px flex-1 bg-slate-800" />
+          <span className="text-xs text-slate-500">OR SIGN UP WITH EMAIL</span>
+          <div className="h-px flex-1 bg-slate-800" />
+        </div>
         <div className="space-y-1.5">
           <Label htmlFor="username-input">Username</Label>
           <div className="relative">
@@ -74,7 +115,6 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
               autoCapitalize="off"
               autoCorrect="off"
               spellCheck={false}
-              autoFocus
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2">
               {availability === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
@@ -94,23 +134,16 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
         <Button
           type="button"
           className="mt-4 w-full"
+          variant="outline"
           disabled={availability !== 'available' && availability !== 'unknown'}
           onClick={() => setStep(2)}
         >
-          Continue
+          Continue with email
         </Button>
         <p className="mt-4 text-center text-sm text-slate-400">
           Already have an account?{' '}
           <Link href="/login" className="text-violet-400 hover:text-violet-300">Log in</Link>
         </p>
-        <div className="mt-4 flex items-center gap-3">
-          <div className="h-px flex-1 bg-slate-800" />
-          <span className="text-xs text-slate-500">OR</span>
-          <div className="h-px flex-1 bg-slate-800" />
-        </div>
-        <div className="mt-4">
-          <GoogleSignInButton next="/dashboard" />
-        </div>
       </div>
 
       {/* Step 2 — email + password */}
@@ -122,7 +155,15 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" name="email" type="email" autoComplete="email" required />
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="password">Password</Label>
