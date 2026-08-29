@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import Link from 'next/link'
-import { Check, X, Loader2, Eye, EyeOff } from 'lucide-react'
+import { Check, X, Loader2, Eye, EyeOff, AlertTriangle } from 'lucide-react'
 import { signup, type ActionState } from '@/lib/auth/actions'
 import { useUsernameAvailability } from '@/hooks/useUsernameAvailability'
 import { Button } from '@/components/ui/button'
@@ -80,14 +80,23 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
               {availability === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
               {availability === 'available' && <Check className="h-4 w-4 text-green-500" />}
               {(availability === 'taken' || availability === 'invalid') && <X className="h-4 w-4 text-red-500" />}
+              {availability === 'unknown' && <AlertTriangle className="h-4 w-4 text-amber-500" />}
             </span>
           </div>
           {availability === 'taken' && <p className="text-sm text-red-400">That username is taken.</p>}
           {availability === 'invalid' && (
             <p className="text-sm text-red-400">3–20 characters: letters, numbers, underscores.</p>
           )}
+          {availability === 'unknown' && (
+            <p className="text-sm text-amber-400">Couldn&apos;t verify right now — you can still continue.</p>
+          )}
         </div>
-        <Button type="button" className="mt-4 w-full" disabled={availability !== 'available'} onClick={() => setStep(2)}>
+        <Button
+          type="button"
+          className="mt-4 w-full"
+          disabled={availability !== 'available' && availability !== 'unknown'}
+          onClick={() => setStep(2)}
+        >
           Continue
         </Button>
         <p className="mt-4 text-center text-sm text-slate-400">

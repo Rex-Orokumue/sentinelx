@@ -39,6 +39,28 @@ const AUTH_PAGES = ['/login', '/signup']
 // choice, and it's already the real gate regardless.
 const SESSION_CHECK_TIMEOUT_MS = 4000
 
+type OnboardingProfile = { username: string | null; phone_verified_at: string | null }
+
+// Same bound-and-fail-open treatment as sessionUser() above, one query
+// later: this backs resolveOnboardingGate() and previously had no timeout
+// or catch of its own, so a stalled or failing lookup could hang or throw
+// out of updateSession() entirely on every /dashboard visit.
+async function onboardingProfile(
+  supabase: ReturnType<typeof createServerClient<Database>>,
+  userId: string,
+): Promise<OnboardingProfile | 'unresolved'> {
+  try {
+    const result = await Promise.race([
+      supabase.from('profiles').select('username, phone_verified_at').eq('id', userId).maybeSingle(),
+      new Promise<'unresolved'>((resolve) => setTimeout(() => resolve('unresolved'), SESSION_CHECK_TIMEOUT_MS)),
+    ])
+    if (result === 'unresolved') return 'unresolved'
+    return result.data ?? { username: null, phone_verified_at: null }
+  } catch {
+    return 'unresolved'
+  }
+}
+
 async function sessionUser(
   supabase: ReturnType<typeof createServerClient<Database>>,
 ): Promise<{ id: string } | null | 'unresolved'> {
@@ -102,16 +124,14 @@ export async function updateSession(
   }
 
   if (user && pathname.startsWith('/dashboard')) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('username, phone_verified_at')
-      .eq('id', user.id)
-      .maybeSingle()
-    const gate = resolveOnboardingGate({
-      username: profile?.username ?? null,
-      phoneVerifiedAt: profile?.phone_verified_at ?? null,
-    })
-    if (gate) return redirectTo(gate)
+    const profile = await onboardingProfile(supabase, user.id)
+    if (profile !== 'unresolved') {
+      const gate = resolveOnboardingGate({
+        username: profile.username,
+        phoneVerifiedAt: profile.phone_verified_at,
+      })
+      if (gate) return redirectTo(gate)
+    }
   }
 
   return { response, redirected: false }

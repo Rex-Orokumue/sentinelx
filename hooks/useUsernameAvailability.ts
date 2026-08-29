@@ -1,9 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { usernameSchema } from '@/lib/auth/schema'
+import { checkUsernameAvailability } from './checkUsernameAvailability'
 
-type Status = 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
+export type Status = 'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'unknown'
 
 export function useUsernameAvailability(username: string): Status {
   const [status, setStatus] = useState<Status>('idle')
@@ -15,16 +15,15 @@ export function useUsernameAvailability(username: string): Status {
       return
     }
     setStatus('checking')
+    let cancelled = false
     const handle = setTimeout(async () => {
-      const supabase = createClient()
-      const { data } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('username', parsed.data)
-        .maybeSingle()
-      setStatus(data ? 'taken' : 'available')
+      const result = await checkUsernameAvailability(parsed.data)
+      if (!cancelled) setStatus(result)
     }, 400)
-    return () => clearTimeout(handle)
+    return () => {
+      cancelled = true
+      clearTimeout(handle)
+    }
   }, [username])
 
   return status
