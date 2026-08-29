@@ -24,6 +24,21 @@ export function isInterceptableLinkClick(info: LinkClickInfo, currentOrigin: str
   return url.origin === currentOrigin
 }
 
+// Has the client-side navigation actually landed on the pending target?
+// `current` is the live route — `usePathname()` plus `useSearchParams().toString()`,
+// which never carries a leading "?". `target` is built from a URL object, whose
+// `.search` DOES carry the "?" when non-empty. Normalise both sides before
+// comparing or every query-string navigation looks permanently unsettled and
+// the overlay hangs. Redirects are handled separately (via `useTransition`'s
+// pending flag) — this check only confirms an exact-match arrival.
+export function isNavigationSettled(
+  current: { pathname: string; search: string },
+  target: { pathname: string; search: string },
+): boolean {
+  const strip = (s: string) => (s.startsWith('?') ? s.slice(1) : s)
+  return current.pathname === target.pathname && strip(current.search) === strip(target.search)
+}
+
 // Given an intercepted, same-origin click, should the overlay actually play?
 // Compared as full URL (pathname + search + hash), not just pathname — a
 // query-string-only change is a real navigation (e.g. a same-page filter

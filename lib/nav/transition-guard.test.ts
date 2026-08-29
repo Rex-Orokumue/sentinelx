@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isInterceptableLinkClick, shouldPlayTransition, type LinkClickInfo } from './transition-guard'
+import { isInterceptableLinkClick, isNavigationSettled, shouldPlayTransition, type LinkClickInfo } from './transition-guard'
 
 const ORIGIN = 'https://sentinelxesports.vercel.app'
 function baseInfo(overrides: Partial<LinkClickInfo> = {}): LinkClickInfo {
@@ -73,5 +73,41 @@ describe('shouldPlayTransition', () => {
 
   it('does not play when the user prefers reduced motion, even for a real navigation', () => {
     expect(shouldPlayTransition(FROM, `${ORIGIN}/community`, true)).toBe(false)
+  })
+})
+
+describe('isNavigationSettled', () => {
+  // The live route comes from usePathname() + useSearchParams().toString() —
+  // the latter never carries a leading "?". The pending target is built from
+  // a URL object, whose .search DOES carry the "?". The comparison must
+  // survive that mismatch or the overlay hangs forever on any query-string nav.
+  it('is settled when pathname and query match, target query carrying a leading "?"', () => {
+    expect(
+      isNavigationSettled(
+        { pathname: '/rankings', search: 'game=fc-mobile' },
+        { pathname: '/rankings', search: '?game=fc-mobile' },
+      ),
+    ).toBe(true)
+  })
+
+  it('is settled for a plain navigation with no query string on either side', () => {
+    expect(
+      isNavigationSettled({ pathname: '/community', search: '' }, { pathname: '/community', search: '' }),
+    ).toBe(true)
+  })
+
+  it('is not settled while the pathname still differs from the target', () => {
+    expect(
+      isNavigationSettled({ pathname: '/tournaments', search: '' }, { pathname: '/community', search: '' }),
+    ).toBe(false)
+  })
+
+  it('is not settled when the query string has not caught up to the target yet', () => {
+    expect(
+      isNavigationSettled(
+        { pathname: '/rankings', search: '' },
+        { pathname: '/rankings', search: '?game=fc-mobile' },
+      ),
+    ).toBe(false)
   })
 })
