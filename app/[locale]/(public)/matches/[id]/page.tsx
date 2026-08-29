@@ -15,6 +15,7 @@ import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 import { formatFixtureDate } from '@/lib/format'
 import { resolveBackLink } from '@/lib/nav/back-link'
 import { buildRecordingWhatsAppUrl } from '@/lib/matches/recording-whatsapp'
+import { opponentDisplayName } from '@/lib/matches/opponent'
 import { ShareCardButton } from '@/components/match/ShareCardButton'
 import { HexAvatar } from '@/components/shared/HexAvatar'
 import type { MembershipTier } from '@/lib/membership/tiers'
@@ -31,6 +32,11 @@ type ProfileRef = {
 
 function nameOf(p: ProfileRef): string {
   return p?.display_name ?? p?.username ?? 'TBD'
+}
+
+// player_b's slot, bye-aware: an empty slot on a bye match reads "BYE", not "TBD".
+function opponentName(m: { player_b: ProfileRef; status: string }): string {
+  return opponentDisplayName(m.player_b?.display_name ?? m.player_b?.username, m.status)
 }
 
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -74,7 +80,7 @@ async function getMatch(id: string): Promise<MatchRow | null> {
 export async function generateMetadata({ params }: { params: { id: string; locale: Locale } }): Promise<Metadata> {
   const m = await getMatch(params.id)
   if (!m) return { title: 'Match — Sentinel X' }
-  const title = `${nameOf(m.player_a)} vs ${nameOf(m.player_b)} — Sentinel X`
+  const title = `${nameOf(m.player_a)} vs ${opponentName(m)} — Sentinel X`
   const description = m.tournaments ? `${m.tournaments.title} on Sentinel X.` : 'Mobile esports match on Sentinel X.'
   return buildMetadata({ title, description, path: `/matches/${m.id}`, locale: params.locale })
 }
@@ -179,7 +185,7 @@ export default async function MatchCentrePage({
       : null
   const wagerCoinBalance = user ? await getCoinBalance(admin, user.id) : 0
 
-  const shareText = `${nameOf(m.player_a)} vs ${nameOf(m.player_b)} on Sentinel X 🎮 ${SITE_URL}/matches/${m.id}`
+  const shareText = `${nameOf(m.player_a)} vs ${opponentName(m)} on Sentinel X 🎮 ${SITE_URL}/matches/${m.id}`
 
   // This page is entered from the bracket, the dashboard, a player profile and
   // TV — a single hardcoded back link sent everyone to the tournament page,
@@ -210,7 +216,7 @@ export default async function MatchCentrePage({
         data={buildMatchJsonLd({
           id: m.id,
           playerAName: nameOf(m.player_a),
-          playerBName: nameOf(m.player_b),
+          playerBName: opponentName(m),
           status: m.status,
           scoreA: m.score_a,
           scoreB: m.score_b,
@@ -223,13 +229,13 @@ export default async function MatchCentrePage({
           data={buildBreadcrumbJsonLd([
             { name: 'Tournaments', path: '/tournaments' },
             { name: m.tournaments.title, path: `/tournaments/${m.tournaments.slug}` },
-            { name: `${nameOf(m.player_a)} vs ${nameOf(m.player_b)}`, path: `/matches/${m.id}` },
+            { name: `${nameOf(m.player_a)} vs ${opponentName(m)}`, path: `/matches/${m.id}` },
           ])}
         />
       ) : (
         <JsonLd
           data={buildBreadcrumbJsonLd([
-            { name: `${nameOf(m.player_a)} vs ${nameOf(m.player_b)}`, path: `/matches/${m.id}` },
+            { name: `${nameOf(m.player_a)} vs ${opponentName(m)}`, path: `/matches/${m.id}` },
           ])}
         />
       )}
@@ -263,11 +269,11 @@ export default async function MatchCentrePage({
           <div className="flex flex-1 flex-col items-center gap-2 sm:flex-row">
             <HexAvatar
               src={m.player_b?.avatar_url ?? null}
-              username={nameOf(m.player_b)}
+              username={opponentName(m)}
               tier={(m.player_b?.membership_tier ?? 'recruit') as MembershipTier}
               size="md"
             />
-            <p className="text-lg font-bold text-white">{nameOf(m.player_b)}</p>
+            <p className="text-lg font-bold text-white">{opponentName(m)}</p>
           </div>
         </div>
       </div>
@@ -293,7 +299,7 @@ export default async function MatchCentrePage({
           playerAId={m.player_a_id ?? ''}
           playerBId={m.player_b_id ?? ''}
           playerAName={nameOf(m.player_a)}
-          playerBName={nameOf(m.player_b)}
+          playerBName={opponentName(m)}
           playerAAvatar={m.player_a?.avatar_url ?? null}
           playerBAvatar={m.player_b?.avatar_url ?? null}
           playerATier={(m.player_a?.membership_tier ?? 'recruit') as MembershipTier}
@@ -312,7 +318,7 @@ export default async function MatchCentrePage({
           matchId={m.id}
           alreadyCheckedIn={iCheckedIn}
           opponentCheckedIn={opponentCheckedIn}
-          opponentName={user!.id === m.player_a_id ? nameOf(m.player_b) : nameOf(m.player_a)}
+          opponentName={user!.id === m.player_a_id ? opponentName(m) : nameOf(m.player_a)}
         />
       )}
 
@@ -322,13 +328,13 @@ export default async function MatchCentrePage({
           <ResultSubmissionForm
             matchId={m.id}
             playerAName={nameOf(m.player_a)}
-            playerBName={nameOf(m.player_b)}
+            playerBName={opponentName(m)}
             recordingWhatsAppUrl={buildRecordingWhatsAppUrl({
               adminWhatsapp: process.env.NEXT_PUBLIC_ADMIN_WHATSAPP ?? null,
               username: myUsername,
               tournamentTitle: m.tournaments?.title ?? 'Sentinel X',
               playerAName: nameOf(m.player_a),
-              playerBName: nameOf(m.player_b),
+              playerBName: opponentName(m),
             })}
             initial={
               myResult
