@@ -15,6 +15,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   completed: { label: 'Completed', cls: 'text-emerald-400' },
   disputed: { label: 'Disputed', cls: 'text-amber-400' },
   cancelled: { label: 'Cancelled', cls: 'text-slate-500' },
+  bye: { label: 'Bye', cls: 'text-slate-500' },
 }
 
 export function FixtureCard({ fixture }: { fixture: DashboardFixture }) {
@@ -40,7 +41,9 @@ export function FixtureCard({ fixture }: { fixture: DashboardFixture }) {
       <Link href={`/matches/${fixture.id}?from=dashboard`} className="block">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate font-bold text-white">vs {fixture.opponentName}</p>
+            <p className="truncate font-bold text-white">
+              {fixture.status === 'bye' ? 'Bye — auto-advanced' : `vs ${fixture.opponentName}`}
+            </p>
             <p className="mt-0.5 truncate text-xs text-slate-500">
               {fixture.tournamentTitle} · {ROUND_LABELS[fixture.round] ?? fixture.round} ·{' '}
               {formatFixtureDate(fixture.scheduledAt, fixture.isFullDay) ?? 'Time TBD'}
