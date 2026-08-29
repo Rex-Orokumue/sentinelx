@@ -85,3 +85,35 @@ describe('updateSession — bounded session check', () => {
     }
   })
 })
+
+describe('updateSession — bounded onboarding gate check', () => {
+  // Same failure mode as the session check above, one query later: the
+  // profile lookup backing resolveOnboardingGate() had no timeout or catch
+  // of its own. A stalled or failing lookup must not block or misroute an
+  // otherwise-authenticated dashboard visit — fail open, same as the
+  // session check does.
+  it('does not redirect to onboarding when the profile lookup times out', async () => {
+    vi.useFakeTimers()
+    try {
+      getSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' } } } })
+      maybeSingle.mockImplementationOnce(() => new Promise(() => {})) // never resolves
+      const { updateSession } = await import('./middleware')
+      const request = new NextRequest('https://sentinelx.gg/dashboard')
+      const resultPromise = updateSession(request, '/dashboard', 'en')
+      await vi.runAllTimersAsync()
+      const result = await resultPromise
+      expect(result.redirected).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not redirect to onboarding when the profile lookup rejects', async () => {
+    getSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' } } } })
+    maybeSingle.mockRejectedValueOnce(new Error('network error'))
+    const { updateSession } = await import('./middleware')
+    const request = new NextRequest('https://sentinelx.gg/dashboard')
+    const result = await updateSession(request, '/dashboard', 'en')
+    expect(result.redirected).toBe(false)
+  })
+})

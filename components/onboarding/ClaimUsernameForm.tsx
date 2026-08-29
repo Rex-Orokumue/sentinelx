@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
-import { Check, X, Loader2 } from 'lucide-react'
+import { Check, X, Loader2, AlertTriangle } from 'lucide-react'
 import { claimUsername, type ClaimUsernameState } from '@/lib/onboarding/actions'
 import { useUsernameAvailability } from '@/hooks/useUsernameAvailability'
 import { Button } from '@/components/ui/button'
@@ -42,15 +42,19 @@ export function ClaimUsernameForm() {
             {availability === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-slate-400" />}
             {availability === 'available' && <Check className="h-4 w-4 text-green-500" />}
             {(availability === 'taken' || availability === 'invalid') && <X className="h-4 w-4 text-red-500" />}
+            {availability === 'unknown' && <AlertTriangle className="h-4 w-4 text-amber-500" />}
           </span>
         </div>
         {availability === 'taken' && <p className="text-sm text-red-400">That username is taken.</p>}
         {availability === 'invalid' && (
           <p className="text-sm text-red-400">3–20 characters: letters, numbers, underscores.</p>
         )}
+        {availability === 'unknown' && (
+          <p className="text-sm text-amber-400">Couldn&apos;t verify right now — you can still continue.</p>
+        )}
       </div>
       {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
-      <SubmitButton disabled={availability !== 'available'} />
+      <SubmitButton disabled={availability !== 'available' && availability !== 'unknown'} />
     </form>
   )
 }
