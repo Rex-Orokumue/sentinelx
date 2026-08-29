@@ -11,5 +11,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['**/*.test.ts'],
+    // Linked git worktrees under .claude/ carry their own copy of the suite;
+    // without this every test there is collected and counted twice.
+    exclude: ['**/node_modules/**', '**/.claude/**'],
   },
 })
