@@ -2,6 +2,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { LOCALES } from '@/i18n/locales'
 import {
@@ -12,7 +13,10 @@ import {
 } from './schema'
 import { mapSignupError } from './errors'
 
-export type ActionState = { error?: string; success?: string } | undefined
+// `needsConfirmation` is set by login() when the account exists but the email
+// was never confirmed — the form then offers a "resend" button instead of the
+// dead-end "invalid email or password".
+export type ActionState = { error?: string; success?: string; needsConfirmation?: boolean } | undefined
 
 function safeNext(value: FormDataEntryValue | null): string {
   const next = typeof value === 'string' ? value : ''
@@ -28,7 +32,15 @@ export async function login(_prev: ActionState, formData: FormData): Promise<Act
 
   const supabase = createClient()
   const { error } = await supabase.auth.signInWithPassword(parsed.data)
-  if (error) return { error: 'Invalid email or password.' }
+  if (error) {
+    if ((error as { code?: string }).code === 'email_not_confirmed') {
+      return {
+        error: "Your email isn't confirmed yet — check your inbox (and spam) for the link.",
+        needsConfirmation: true,
+      }
+    }
+    return { error: 'Invalid email or password.' }
+  }
 
   revalidatePath('/', 'layout')
   redirect(safeNext(formData.get('next')))
@@ -46,26 +58,11 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
   const { username, email, password, ref } = parsed.data
   const supabase = createClient()
 
-  // Precise username-availability check before signUp. `profiles` is
-  // publicly readable (profiles_public_read) and username uniqueness is
-  // case-sensitive (`username text UNIQUE`), so an exact match mirrors the
-  // DB constraint. This is the primary path — the constraint itself remains
-  // the backstop for the rare check-then-insert race.
-  const { data: existing, error: lookupError } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('username', username)
-    .maybeSingle()
-  if (lookupError) {
-    // Fail open: don't block signup on a lookup hiccup — the UNIQUE
-    // constraint still protects us. Log so it's visible in Vercel logs.
-    console.error('[signup] username availability check failed', {
-      code: lookupError.code,
-      message: lookupError.message,
-    })
-  } else if (existing) {
-    return { error: 'That username is taken — go back and pick another.' }
-  }
+  // The username is NOT claimed here — see migration 073. It rides along as
+  // signup metadata and is claimed after email confirmation at
+  // /onboarding/username (which pre-fills from this value). Claiming it up
+  // front meant an undelivered confirmation email locked the handle forever.
+  // The wizard still shows a live availability hint, but it's advisory.
 
   // The email link format (token_hash + type + next) is controlled by the
   // Supabase "Confirm signup" template, which routes to /auth/confirm.
@@ -98,6 +95,31 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
   }
 
   return { success: 'check-email' }
+}
+
+// Re-send the signup confirmation link. Offered on the "check your email"
+// screen and on login when the account exists but isn't confirmed. Neutral
+// response regardless of whether the address maps to an unconfirmed account,
+// and a send-rate-limit error is swallowed (the user just tried) — anything
+// else is logged for Vercel.
+export async function resendConfirmation(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const email = String(formData.get('email') ?? '').trim().toLowerCase()
+  if (!z.string().email().safeParse(email).success) {
+    return { error: 'Enter a valid email address.' }
+  }
+
+  const supabase = createClient()
+  const { error } = await supabase.auth.resend({ type: 'signup', email })
+  if (error && (error as { code?: string }).code !== 'over_email_send_rate_limit') {
+    console.error('[resendConfirmation] resend failed', {
+      code: (error as { code?: string }).code,
+      message: error.message,
+    })
+  }
+  return {
+    success:
+      "If that address still needs confirming, a fresh link is on its way. Check your spam folder — and Google sign-in skips email entirely.",
+  }
 }
 
 export async function requestReset(_prev: ActionState, formData: FormData): Promise<ActionState> {

@@ -17,8 +17,8 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   )
 }
 
-export function ClaimUsernameForm() {
-  const [username, setUsername] = useState('')
+export function ClaimUsernameForm({ defaultUsername = '' }: { defaultUsername?: string }) {
+  const [username, setUsername] = useState(defaultUsername)
   const [state, formAction] = useFormState<ClaimUsernameState, FormData>(claimUsername, undefined)
   const availability = useUsernameAvailability(username)
 

@@ -19,11 +19,16 @@ export default async function ClaimUsernamePage() {
     .maybeSingle()
   if (profile?.username) redirect('/dashboard')
 
+  // Email signups carry the handle picked in the wizard as signup metadata
+  // (see migration 073) — pre-fill it so the common case is a single tap.
+  const desired = user.user_metadata?.username
+  const defaultUsername = typeof desired === 'string' ? desired : ''
+
   return (
     <div>
       <h1 className="mb-1 text-xl font-bold">Choose your handle</h1>
       <p className="mb-6 text-sm text-slate-400">This is your public username on SentinelX Esports.</p>
-      <ClaimUsernameForm />
+      <ClaimUsernameForm defaultUsername={defaultUsername} />
     </div>
   )
 }
