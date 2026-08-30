@@ -234,6 +234,52 @@ export async function removeRegistration(
   return { success: true }
 }
 
+// Permanently delete a registration row — list cleanup only, and only for a
+// row that's already out of the tournament (removed or disqualified). Every
+// bit of the player's competitive data — matches, group standings,
+// sx_score_events (including a disqualification's -50 conduct penalty and its
+// reason), notifications — keys off player_id, not this row, so none of it is
+// touched. Admin-only because deleting the row also drops its
+// disqualification_note audit line.
+export async function deleteRegistration(
+  _prev: DisqualifyState,
+  formData: FormData,
+): Promise<DisqualifyState> {
+  await requireAdmin()
+  const registrationId = String(formData.get('registrationId') ?? '')
+  const tournamentId = String(formData.get('tournamentId') ?? '')
+  if (!registrationId || !tournamentId) return { error: 'Missing registration.' }
+
+  const admin = createAdminClient()
+
+  // A substitute registration points back here via replaces_registration_id
+  // (a NO ACTION FK) — deleting this row would leave that link dangling.
+  const { data: replacedBy } = await admin
+    .from('tournament_registrations')
+    .select('id')
+    .eq('replaces_registration_id', registrationId)
+    .maybeSingle()
+  if (replacedBy) {
+    return {
+      error: 'A substitute was added for this player — the record they replaced has to stay.',
+    }
+  }
+
+  const { data: deleted, error } = await admin
+    .from('tournament_registrations')
+    .delete()
+    .eq('id', registrationId)
+    .in('status', ['removed', 'disqualified'])
+    .select('id')
+  if (error) return { error: 'Could not delete this registration. Please try again.' }
+  if (!deleted || deleted.length === 0) {
+    return { error: 'Only a removed or disqualified registration can be deleted.' }
+  }
+
+  revalidatePath(`/admin/tournaments/${tournamentId}/registrations`)
+  return { success: true }
+}
+
 // Delete a waitlisted registration row entirely — waitlisted players haven't
 // paid or been placed, so there's nothing to preserve.
 export async function removeFromWaitlist(
