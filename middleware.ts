@@ -35,7 +35,15 @@ export const config = {
   // this exclusion next-intl rewrites them to /en/... too and 404s them.
   // This broke service worker registration in production (no FCM background
   // push could display) since this middleware was introduced.
+  //
+  // `auth/` covers EVERY route handler under app/auth/ — the email
+  // confirm/recovery route (auth/confirm) and the OAuth callback
+  // (auth/oauth/callback, Google sign-in). Both are outside app/[locale];
+  // rewriting them to /en/auth/... 404s the callback and lands the user on a
+  // blank page mid-login. No user-facing auth page lives at /auth/* (they're
+  // /login, /signup, etc. under app/[locale]/(auth)), so excluding the whole
+  // prefix is safe and covers any future callback route.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|auth/confirm|api|offline|sw\\.js|manifest\\.webmanifest|robots\\.txt|sitemap\\.xml|opengraph-image|apple-icon|icon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|auth/|api|offline|sw\\.js|manifest\\.webmanifest|robots\\.txt|sitemap\\.xml|opengraph-image|apple-icon|icon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)',
   ],
 }

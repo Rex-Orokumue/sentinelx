@@ -44,6 +44,11 @@ describe('middleware matcher', () => {
     '/opengraph-image',
     '/apple-icon',
     '/icon',
+    // Non-localized route handlers under app/auth/. /auth/confirm was already
+    // excluded; /auth/oauth/callback (Google sign-in) was missed and got
+    // rewritten to /en/auth/oauth/callback — a 404 blank screen mid-login.
+    '/auth/confirm',
+    '/auth/oauth/callback',
   ])('excludes root-level special route %s from locale rewriting', async (pathname) => {
     expect(await matches(pathname)).toBe(false)
   })
