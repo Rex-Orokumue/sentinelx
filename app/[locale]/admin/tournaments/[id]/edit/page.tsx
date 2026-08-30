@@ -46,6 +46,7 @@ export default async function EditTournamentPage({ params }: { params: { id: str
     tournamentType: t.tournament_type,
     seasonId: t.season_id ?? '',
     format: t.format,
+    manualKnockoutPairing: t.manual_knockout_pairing,
     prizeSecond: moneyStr(t.prize_second),
     prizeThird: moneyStr(t.prize_third),
   }

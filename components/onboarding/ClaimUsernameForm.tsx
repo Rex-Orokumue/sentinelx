@@ -17,13 +17,20 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
   )
 }
 
-export function ClaimUsernameForm({ defaultUsername = '' }: { defaultUsername?: string }) {
+export function ClaimUsernameForm({
+  defaultUsername = '',
+  next,
+}: {
+  defaultUsername?: string
+  next?: string
+}) {
   const [username, setUsername] = useState(defaultUsername)
   const [state, formAction] = useFormState<ClaimUsernameState, FormData>(claimUsername, undefined)
   const availability = useUsernameAvailability(username)
 
   return (
     <form action={formAction} className="space-y-4">
+      {next && <input type="hidden" name="next" value={next} />}
       <div className="space-y-1.5">
         <Label htmlFor="username-input">Username</Label>
         <div className="relative">

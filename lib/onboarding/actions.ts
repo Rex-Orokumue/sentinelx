@@ -2,6 +2,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { usernameSchema } from '@/lib/auth/schema'
+import { safeInternalPath } from './safe-path'
 
 export type ClaimUsernameState = { error?: string } | undefined
 
@@ -36,5 +37,5 @@ export async function claimUsername(
     return { error: 'Could not save your username. Please try again.' }
   }
 
-  redirect('/dashboard')
+  redirect(safeInternalPath(formData.get('next') as string | null, '/dashboard'))
 }

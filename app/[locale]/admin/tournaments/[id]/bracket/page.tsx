@@ -4,6 +4,10 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
 import { loadBracketView } from '@/lib/tournaments/bracket-view'
+import {
+  computePendingKnockoutRound,
+  computeRearrangeableKnockoutRound,
+} from '@/lib/tournaments/knockout-pairing'
 import { buildFixtureContactMap } from '@/lib/matches/admin-whatsapp'
 import { BracketActions } from '@/components/admin/BracketActions'
 import { AdminBracketView } from '@/components/admin/AdminBracketView'
@@ -16,12 +20,36 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
   const supabase = createClient()
   const { data: t } = await supabase
     .from('tournaments')
-    .select('id, title, status, round_start_date, round_gap_days, format')
+    .select('id, title, status, round_start_date, round_gap_days, format, manual_knockout_pairing')
     .eq('id', params.id)
     .maybeSingle()
   if (!t) notFound()
 
   const view = await loadBracketView(supabase, t.id, t.format)
+
+  const groupStageDone =
+    view.hasGroups &&
+    view.fixtures.completed.length > 0 &&
+    view.fixtures.live.length === 0 &&
+    view.fixtures.upcoming.length === 0 &&
+    view.fixtures.disputedOrCancelled.length === 0
+
+  const pendingRound = t.manual_knockout_pairing
+    ? computePendingKnockoutRound({
+        manualPairingEnabled: true,
+        hasGroups: view.hasGroups,
+        groupStageComplete: groupStageDone,
+        standings: view.standings.map((g) => ({
+          groupName: g.groupName,
+          rows: g.rows.map((r) => ({ playerId: r.playerId, name: r.name, advancing: r.advancing })),
+        })),
+        knockoutRounds: view.rounds.map((r) => ({ round: r.round, matches: r.matches })),
+      })
+    : null
+
+  const rearrangeableRound = computeRearrangeableKnockoutRound({
+    knockoutRounds: view.rounds.map((r) => ({ round: r.round, matches: r.matches })),
+  })
   const { count: paidCount } = await supabase
     .from('tournament_registrations')
     .select('*', { count: 'exact', head: true })
@@ -118,6 +146,8 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
           champion={view.champion}
           hasGroups={view.hasGroups}
           contacts={contacts}
+          pendingRound={pendingRound}
+          rearrangeableRound={rearrangeableRound}
         />
       )}
     </section>

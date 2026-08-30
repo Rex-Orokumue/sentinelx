@@ -1,11 +1,16 @@
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
+import { safeInternalPath } from '@/lib/onboarding/safe-path'
 import { ClaimUsernameForm } from '@/components/onboarding/ClaimUsernameForm'
 
 export const metadata: Metadata = { title: 'Choose your username · SentinelX Esports' }
 
-export default async function ClaimUsernamePage() {
+export default async function ClaimUsernamePage({
+  searchParams,
+}: {
+  searchParams: { next?: string }
+}) {
   const supabase = createClient()
   const {
     data: { user },
@@ -17,18 +22,19 @@ export default async function ClaimUsernamePage() {
     .select('username')
     .eq('id', user.id)
     .maybeSingle()
-  if (profile?.username) redirect('/dashboard')
+  if (profile?.username) redirect(safeInternalPath(searchParams.next, '/dashboard'))
 
   // Email signups carry the handle picked in the wizard as signup metadata
   // (see migration 073) — pre-fill it so the common case is a single tap.
   const desired = user.user_metadata?.username
   const defaultUsername = typeof desired === 'string' ? desired : ''
+  const next = safeInternalPath(searchParams.next, '')
 
   return (
     <div>
       <h1 className="mb-1 text-xl font-bold">Choose your handle</h1>
       <p className="mb-6 text-sm text-slate-400">This is your public username on SentinelX Esports.</p>
-      <ClaimUsernameForm defaultUsername={defaultUsername} />
+      <ClaimUsernameForm defaultUsername={defaultUsername} next={next || undefined} />
     </div>
   )
 }

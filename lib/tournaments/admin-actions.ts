@@ -35,6 +35,7 @@ function parseForm(formData: FormData) {
     tournamentType: formData.get('tournamentType') ?? 'open',
     seasonId: formData.get('seasonId') ?? '',
     format: formData.get('format') ?? 'group_knockout',
+    manualKnockoutPairing: formData.get('manualKnockoutPairing') ?? 'false',
     prizeSecond: formData.get('prizeSecond') ?? '',
     prizeThird: formData.get('prizeThird') ?? '',
   })
@@ -62,6 +63,7 @@ function toRow(d: TournamentInput) {
     season_id: d.seasonId === '' ? null : d.seasonId,
     invitation_only: d.tournamentType === 'masters' || d.tournamentType === 'champions_cup',
     format: d.format,
+    manual_knockout_pairing: d.manualKnockoutPairing,
     prize_second: d.prizeSecond === '' ? null : d.prizeSecond,
     prize_third: d.prizeThird === '' ? null : d.prizeThird,
   }

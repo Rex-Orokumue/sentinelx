@@ -23,6 +23,7 @@ export interface TournamentFormValues {
   tournamentType: string
   seasonId: string
   format: string
+  manualKnockoutPairing: boolean
   prizeSecond: string
   prizeThird: string
 }
@@ -150,6 +151,23 @@ export function TournamentForm({
           <option value="round_robin">Round Robin (table only, no bracket)</option>
         </select>
       </div>
+
+      <label className="flex items-start gap-2 text-sm text-slate-300">
+        <input
+          type="checkbox"
+          name="manualKnockoutPairing"
+          value="true"
+          defaultChecked={initial.manualKnockoutPairing}
+          className="mt-0.5 accent-violet-600"
+        />
+        <span>
+          Arrange knockout pairings manually
+          <span className="mt-0.5 block text-xs text-slate-500">
+            Completed rounds won&apos;t auto-generate the next round — you&apos;ll arrange each
+            round&apos;s fixtures on the bracket page before players are notified.
+          </span>
+        </span>
+      </label>
 
       {isInvitationOnly && (
         <p className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-xs text-violet-300">

@@ -34,6 +34,7 @@ export function RegistrationPanel({
   hasRules,
   loggedIn,
   coinBalance,
+  hasUsername,
 }: {
   view: RegView
   tournamentId: string
@@ -44,6 +45,7 @@ export function RegistrationPanel({
   hasRules: boolean
   loggedIn: boolean
   coinBalance: number
+  hasUsername: boolean
 }) {
   const bracketHref = `/tournaments/${slug}/bracket`
 
@@ -62,10 +64,24 @@ export function RegistrationPanel({
   }
 
   if (view === 'can_register' || view === 'complete_payment') {
+    if (!hasUsername) {
+      return (
+        <div className={box}>
+          <p className="text-sm text-slate-300">Claim your SentinelX username before registering.</p>
+          <Link
+            href={`/onboarding/username?next=/tournaments/${slug}`}
+            className="mt-3 block w-full rounded-xl bg-violet-600 px-7 py-3.5 text-center text-sm font-bold text-white transition-colors hover:bg-violet-500"
+          >
+            Choose your username
+          </Link>
+        </div>
+      )
+    }
     return (
       <div className={box}>
         <RegisterForm
           tournamentId={tournamentId}
+          slug={slug}
           fee={fee}
           prefill={prefill}
           hasRules={hasRules}
@@ -208,6 +224,7 @@ type CoinTier = '0' | '500' | '1000'
 
 function RegisterForm({
   tournamentId,
+  slug,
   fee,
   prefill,
   hasRules,
@@ -215,6 +232,7 @@ function RegisterForm({
   isCompletingPayment,
 }: {
   tournamentId: string
+  slug: string
   fee: number
   prefill: { displayName: string; whatsapp: string }
   hasRules: boolean
@@ -293,6 +311,14 @@ function RegisterForm({
           </label>
         )}
         {state?.error && <p className="text-center text-sm text-red-400">{state.error}</p>}
+        {state?.needsUsername && (
+          <Link
+            href={`/onboarding/username?next=/tournaments/${slug}`}
+            className="block text-center text-sm font-bold text-violet-400 hover:text-violet-300"
+          >
+            Choose your username →
+          </Link>
+        )}
         <SubmitButton label={label} pendingLabel={pendingLabel} />
       </form>
       <p className="mt-2 text-center text-xs text-slate-500">

@@ -83,6 +83,7 @@ export default async function TournamentDetailPage({
   let registrationStatus: string | null = null
   let prefill = { displayName: '', whatsapp: '' }
   let coinBalance = 0
+  let hasUsername = true
   if (user) {
     const [{ data: reg }, { data: profile }, balance] = await Promise.all([
       supabase
@@ -91,13 +92,18 @@ export default async function TournamentDetailPage({
         .eq('tournament_id', t.id)
         .eq('player_id', user.id)
         .maybeSingle(),
-      supabase.from('profiles').select('display_name, whatsapp_number').eq('id', user.id).maybeSingle(),
+      supabase
+        .from('profiles')
+        .select('display_name, whatsapp_number, username')
+        .eq('id', user.id)
+        .maybeSingle(),
       getCoinBalance(admin, user.id),
     ])
     existingStatus = reg?.payment_status ?? null
     registrationStatus = reg?.status ?? null
     prefill = { displayName: profile?.display_name ?? '', whatsapp: profile?.whatsapp_number ?? '' }
     coinBalance = balance
+    hasUsername = !!profile?.username
   }
 
   const view = resolveRegistrationView({
@@ -207,6 +213,7 @@ export default async function TournamentDetailPage({
           hasRules={!!t.rules}
           loggedIn={!!user}
           coinBalance={coinBalance}
+          hasUsername={hasUsername}
         />
       </div>
 
