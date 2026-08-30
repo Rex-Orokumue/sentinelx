@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import { safeInternalPath } from '@/lib/onboarding/actions'
+import { safeInternalPath } from '@/lib/onboarding/safe-path'
 import { ClaimUsernameForm } from '@/components/onboarding/ClaimUsernameForm'
 
 export const metadata: Metadata = { title: 'Choose your username · SentinelX Esports' }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { safeInternalPath } from './actions'
+import { safeInternalPath } from './safe-path'
 
 describe('safeInternalPath', () => {
   it('keeps a relative in-app path', () => {

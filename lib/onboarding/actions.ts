@@ -2,15 +2,9 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { usernameSchema } from '@/lib/auth/schema'
+import { safeInternalPath } from './safe-path'
 
 export type ClaimUsernameState = { error?: string } | undefined
-
-// Only allow a same-origin relative path as a post-claim redirect target —
-// never a protocol-relative ("//host") or absolute URL.
-export function safeInternalPath(next: string | null | undefined, fallback: string): string {
-  if (typeof next !== 'string' || !next.startsWith('/') || next.startsWith('//')) return fallback
-  return next
-}
 
 export async function claimUsername(
   _prev: ClaimUsernameState,
