@@ -85,7 +85,11 @@ export async function recomputeGroupAndMaybeAdvance(
 ): Promise<void> {
   await recomputeGroupStats(admin, groupId)
 
-  const { data: tour } = await admin.from('tournaments').select('format').eq('id', tournamentId).maybeSingle()
+  const { data: tour } = await admin
+    .from('tournaments')
+    .select('format, manual_knockout_pairing')
+    .eq('id', tournamentId)
+    .maybeSingle()
   if (tour?.format === 'round_robin') {
     const { count: rrRemaining } = await admin
       .from('matches')
@@ -103,6 +107,11 @@ export async function recomputeGroupAndMaybeAdvance(
     await awardSeasonPoints(admin, tournamentId)
     return
   }
+
+  // Manual knockout pairing: hold the first knockout round for the admin to
+  // arrange on the bracket page (createKnockoutRound). Standings above are
+  // already refreshed; nothing else to do here.
+  if (tour?.manual_knockout_pairing) return
 
   // Generate the knockout stage once ALL group matches are complete and none exists yet.
   const { count: remaining } = await admin
@@ -188,6 +197,15 @@ export async function recomputeGroupAndMaybeAdvance(
 
 // Create the next knockout round once the current round is fully resolved.
 export async function advanceKnockout(admin: Admin, tournamentId: string, round: string): Promise<void> {
+  // Manual knockout pairing: the admin arranges the next round on the bracket
+  // page (createKnockoutRound) — never auto-generate it.
+  const { data: t } = await admin
+    .from('tournaments')
+    .select('manual_knockout_pairing')
+    .eq('id', tournamentId)
+    .maybeSingle()
+  if (t?.manual_knockout_pairing) return
+
   const { data: roundMatches } = await admin
     .from('matches')
     .select('status, score_a, score_b, player_a_id, player_b_id')

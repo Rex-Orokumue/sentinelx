@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { completeTournamentIfFinal, creditThirdPlacePrize, recomputeGroupAndMaybeAdvance } from './verify-actions'
+import { advanceKnockout, completeTournamentIfFinal, creditThirdPlacePrize, recomputeGroupAndMaybeAdvance } from './verify-actions'
 
 vi.mock('@/lib/wallet/service', () => ({ creditWallet: vi.fn() }))
 vi.mock('./season-points', () => ({ awardSeasonPoints: vi.fn() }))
@@ -184,6 +184,71 @@ describe('recomputeGroupAndMaybeAdvance — round_robin', () => {
     const admin = fakeAdminForRoundRobinAdvance({ format: 'round_robin', remaining: 0, alreadyCompleted: true })
     await recomputeGroupAndMaybeAdvance(admin as never, 't1', 'g1')
     expect(awardSeasonPoints).not.toHaveBeenCalled()
+  })
+})
+
+// Group-knockout advance path with manual_knockout_pairing ON: recomputeGroupStats
+// runs (empty group), then the gate must stop before any groups/advancer query.
+function fakeAdminForManualPairingGroup() {
+  return {
+    from(table: string) {
+      if (table === 'group_memberships')
+        return { select: () => ({ eq: async () => ({ data: [] }) }) }
+      if (table === 'tournaments')
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: { format: 'group_knockout', manual_knockout_pairing: true },
+              }),
+            }),
+          }),
+        }
+      if (table === 'matches')
+        return {
+          select: (_c: unknown, opts?: unknown) =>
+            opts
+              ? { eq: () => ({ neq: async () => ({ count: 0 }) }) }
+              : { eq: () => ({ eq: async () => ({ data: [] }) }) },
+        }
+      if (table === 'groups') throw new Error('must not reach advancer collection when flag is on')
+      throw new Error(`unexpected table ${table}`)
+    },
+  }
+}
+
+describe('recomputeGroupAndMaybeAdvance — manual_knockout_pairing', () => {
+  it('does not generate the first knockout round when the flag is on', async () => {
+    const { notifyNewFixtures } = await import('@/lib/notifications/fixture-created')
+    vi.mocked(notifyNewFixtures).mockClear()
+    const admin = fakeAdminForManualPairingGroup()
+    await expect(recomputeGroupAndMaybeAdvance(admin as never, 't1', 'g1')).resolves.toBeUndefined()
+    expect(notifyNewFixtures).not.toHaveBeenCalled()
+  })
+})
+
+function fakeAdminForAdvanceKnockoutFlag(flag: boolean) {
+  return {
+    from(table: string) {
+      if (table === 'tournaments')
+        return {
+          select: () => ({
+            eq: () => ({ maybeSingle: async () => ({ data: { manual_knockout_pairing: flag } }) }),
+          }),
+        }
+      if (table === 'matches') {
+        if (flag) throw new Error('must not query matches when the flag is on')
+        return { select: () => ({ eq: () => ({ eq: async () => ({ data: [] }) }) }) }
+      }
+      throw new Error(`unexpected table ${table}`)
+    },
+  }
+}
+
+describe('advanceKnockout — manual_knockout_pairing', () => {
+  it('returns early without touching matches when the flag is on', async () => {
+    const admin = fakeAdminForAdvanceKnockoutFlag(true)
+    await expect(advanceKnockout(admin as never, 't1', 'quarter_final')).resolves.toBeUndefined()
   })
 })
 
