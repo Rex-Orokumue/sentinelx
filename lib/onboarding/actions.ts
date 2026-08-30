@@ -5,6 +5,13 @@ import { usernameSchema } from '@/lib/auth/schema'
 
 export type ClaimUsernameState = { error?: string } | undefined
 
+// Only allow a same-origin relative path as a post-claim redirect target —
+// never a protocol-relative ("//host") or absolute URL.
+export function safeInternalPath(next: string | null | undefined, fallback: string): string {
+  if (typeof next !== 'string' || !next.startsWith('/') || next.startsWith('//')) return fallback
+  return next
+}
+
 export async function claimUsername(
   _prev: ClaimUsernameState,
   formData: FormData,
@@ -36,5 +43,5 @@ export async function claimUsername(
     return { error: 'Could not save your username. Please try again.' }
   }
 
-  redirect('/dashboard')
+  redirect(safeInternalPath(formData.get('next') as string | null, '/dashboard'))
 }

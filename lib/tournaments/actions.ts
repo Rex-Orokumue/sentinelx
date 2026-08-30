@@ -11,7 +11,7 @@ import { settleReferralForPaidEntry } from '@/lib/referrals/credit'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
 
-export type RegisterState = { error?: string } | undefined
+export type RegisterState = { error?: string; needsUsername?: boolean } | undefined
 
 export async function registerForTournament(
   _prev: RegisterState,
@@ -35,6 +35,18 @@ export async function registerForTournament(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to register.' }
+
+  // A nameless profile (Google sign-in / deferred username claim — migration
+  // 073) would land in the bracket as "TBD". Force the handle claim first;
+  // the /dashboard onboarding gate does not cover this public route.
+  const { data: callerProfile } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (!callerProfile?.username) {
+    return { error: 'Claim a username before registering.', needsUsername: true }
+  }
 
   // Re-fetch server-side; never trust the client for status, capacity, or rules.
   const { data: tournament } = await supabase
