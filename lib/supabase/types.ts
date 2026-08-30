@@ -2247,6 +2247,7 @@ export type Database = {
           game_id: string
           id: string
           invitation_only: boolean
+          manual_knockout_pairing: boolean
           max_players: number | null
           prize_pool: number
           prize_second: number | null
@@ -2277,6 +2278,7 @@ export type Database = {
           game_id: string
           id?: string
           invitation_only?: boolean
+          manual_knockout_pairing?: boolean
           max_players?: number | null
           prize_pool?: number
           prize_second?: number | null
@@ -2307,6 +2309,7 @@ export type Database = {
           game_id?: string
           id?: string
           invitation_only?: boolean
+          manual_knockout_pairing?: boolean
           max_players?: number | null
           prize_pool?: number
           prize_second?: number | null

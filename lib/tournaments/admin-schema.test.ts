@@ -86,6 +86,17 @@ describe('tournamentSchema', () => {
   it('rejects an unknown format', () => {
     expect(tournamentSchema.safeParse({ ...valid, format: 'bogus' }).success).toBe(false)
   })
+  it('defaults manualKnockoutPairing to false and coerces a "true" checkbox value', () => {
+    const r1 = tournamentSchema.safeParse(valid)
+    expect(r1.success).toBe(true)
+    if (r1.success) expect(r1.data.manualKnockoutPairing).toBe(false)
+
+    const r2 = tournamentSchema.safeParse({ ...valid, manualKnockoutPairing: 'true' })
+    expect(r2.success && r2.data.manualKnockoutPairing).toBe(true)
+
+    const r3 = tournamentSchema.safeParse({ ...valid, manualKnockoutPairing: 'false' })
+    expect(r3.success && r3.data.manualKnockoutPairing).toBe(false)
+  })
   it('defaults prizeSecond/prizeThird to empty and accepts numeric values', () => {
     const r1 = tournamentSchema.safeParse(valid)
     expect(r1.success).toBe(true)

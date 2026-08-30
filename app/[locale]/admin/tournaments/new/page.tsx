@@ -26,6 +26,7 @@ const EMPTY: TournamentFormValues = {
   tournamentType: 'open',
   seasonId: '',
   format: 'group_knockout',
+  manualKnockoutPairing: false,
   prizeSecond: '',
   prizeThird: '',
 }

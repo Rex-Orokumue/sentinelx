@@ -33,6 +33,10 @@ export const tournamentSchema = z
     tournamentType: z.enum(['open', 'community_club', 'masters', 'champions_cup']),
     seasonId: z.union([z.literal(''), z.string().uuid()]),
     format: z.enum(['group_knockout', 'round_robin']).default('group_knockout'),
+    manualKnockoutPairing: z
+      .union([z.literal('true'), z.literal('false'), z.literal(''), z.boolean()])
+      .transform((v) => v === true || v === 'true')
+      .default(false),
     prizeSecond: z.union([z.literal(''), money(1_000_000_000)]).default(''),
     prizeThird: z.union([z.literal(''), money(1_000_000_000)]).default(''),
   })
