@@ -7,6 +7,7 @@ import { formatDateTime } from '@/lib/format'
 import { RefundButton } from './RefundButton'
 import { DisqualifyButton } from './DisqualifyButton'
 import { RemoveButton } from './RemoveButton'
+import { DeleteRegistrationButton } from './DeleteRegistrationButton'
 import { SubstituteForm } from './SubstituteForm'
 
 export interface AdminRegistrationRow {
@@ -93,15 +94,23 @@ export function RegistrationsTable({
                       <div className="flex flex-col gap-1">
                         <span className="text-xs font-bold text-red-400">Disqualified</span>
                         {isAdmin && !substitutedIds.has(r.id) && (
-                          <SubstituteForm
-                            tournamentId={tournamentId}
-                            disqualifiedRegistrationId={r.id}
-                            waitlistUsernames={waitlistUsernames}
-                          />
+                          <>
+                            <SubstituteForm
+                              tournamentId={tournamentId}
+                              disqualifiedRegistrationId={r.id}
+                              waitlistUsernames={waitlistUsernames}
+                            />
+                            <DeleteRegistrationButton registrationId={r.id} tournamentId={tournamentId} />
+                          </>
                         )}
                       </div>
                     ) : r.status === 'removed' ? (
-                      <span className="text-xs font-bold text-amber-400">Removed</span>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-xs font-bold text-amber-400">Removed</span>
+                        {isAdmin && (
+                          <DeleteRegistrationButton registrationId={r.id} tournamentId={tournamentId} />
+                        )}
+                      </div>
                     ) : r.status === 'waitlisted' ? (
                       <span className="text-xs font-bold text-amber-400">Waitlisted</span>
                     ) : isAdmin ? (
