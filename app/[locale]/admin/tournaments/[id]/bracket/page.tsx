@@ -144,6 +144,7 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
           rounds={view.rounds}
           projected={view.projected}
           champion={view.champion}
+          thirdPlaceMatch={view.thirdPlaceMatch}
           hasGroups={view.hasGroups}
           contacts={contacts}
           pendingRound={pendingRound}

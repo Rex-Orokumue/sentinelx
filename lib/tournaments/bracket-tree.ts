@@ -45,6 +45,11 @@ export function projectBracketRounds(advancerCount: number): ProjectedRound[] {
 export function buildBracketDisplay(
   actualRounds: { round: string; label: string; matches: BracketMatch[] }[],
   projected: ProjectedRound[],
+  // The bronze match: built from the two semifinal losers, feeding nothing —
+  // it doesn't fit the winners-advance topology above, so it isn't part of
+  // that pairing at all. It's a sibling of the Final, not a successor, so it
+  // rides along as one more slot in the Final's column once it exists.
+  thirdPlace?: BracketMatch | null,
 ): DisplayRound[] {
   const shape: ProjectedRound[] =
     projected.length > 0
@@ -103,6 +108,10 @@ export function buildBracketDisplay(
     }
 
     display.unshift({ round: s.round, label: s.label, groups })
+  }
+
+  if (thirdPlace && display[display.length - 1].round === 'final') {
+    display[display.length - 1].groups.push([thirdPlace])
   }
 
   return display
