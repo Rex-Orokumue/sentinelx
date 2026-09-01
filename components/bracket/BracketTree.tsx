@@ -11,12 +11,14 @@ export function BracketTree({
   rounds,
   projected = [],
   champion,
+  thirdPlace,
 }: {
   rounds: { round: string; label: string; matches: BracketMatch[] }[]
   projected?: ProjectedRound[]
   champion?: { id: string; name: string } | null
+  thirdPlace?: BracketMatch | null
 }) {
-  const display = buildBracketDisplay(rounds, projected)
+  const display = buildBracketDisplay(rounds, projected, thirdPlace)
   if (display.length === 0) return null
 
   return (
@@ -36,25 +38,36 @@ export function BracketTree({
                   {round.label}
                 </h3>
                 <div className="flex flex-1 flex-col">
-                  {round.groups.map((group, groupIndex) => (
-                    <div
-                      key={`${round.round}-${groupIndex}`}
-                      className={`relative flex flex-1 flex-col ${isFinalColumn ? '' : 'pr-4'}`}
-                    >
-                      {group.map((slot, slotIndex) => (
-                        // Each slot takes an equal share of the band and centres
-                        // itself, so two slots sit at 25% and 75% of the band
-                        // height — exactly where the connector expects them.
-                        <div
-                          key={slot?.id ?? `${round.round}-${groupIndex}-${slotIndex}`}
-                          className="flex flex-1 items-center py-1"
-                        >
-                          {slot ? <MatchNode match={slot} /> : <EmptySlot />}
-                        </div>
-                      ))}
-                      {!isFinalColumn && group.length > 0 && <Connector slotCount={group.length} />}
-                    </div>
-                  ))}
+                  {round.groups.map((group, groupIndex) => {
+                    // The bronze match rides along as an extra slot in the
+                    // Final's column (see buildBracketDisplay) — give it its
+                    // own caption so it doesn't read as part of the Final.
+                    const isThirdPlaceGroup = group[0]?.round === 'third_place'
+                    return (
+                      <div
+                        key={`${round.round}-${groupIndex}`}
+                        className={`relative flex flex-1 flex-col ${isFinalColumn ? '' : 'pr-4'}`}
+                      >
+                        {isThirdPlaceGroup && (
+                          <p className="mb-1 px-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                            🥉 Third Place
+                          </p>
+                        )}
+                        {group.map((slot, slotIndex) => (
+                          // Each slot takes an equal share of the band and centres
+                          // itself, so two slots sit at 25% and 75% of the band
+                          // height — exactly where the connector expects them.
+                          <div
+                            key={slot?.id ?? `${round.round}-${groupIndex}-${slotIndex}`}
+                            className="flex flex-1 items-center py-1"
+                          >
+                            {slot ? <MatchNode match={slot} /> : <EmptySlot />}
+                          </div>
+                        ))}
+                        {!isFinalColumn && group.length > 0 && <Connector slotCount={group.length} />}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )
@@ -111,7 +124,9 @@ function MatchNode({ match }: { match: BracketMatch }) {
       <PlayerRow name={match.playerA.name} score={match.score_a} won={aWon} />
       <div className="h-px bg-slate-800" />
       {isBye ? (
-        <p className="px-2 py-1.5 text-[10px] italic text-slate-600">Bye — auto-advances</p>
+        <p className="px-2 py-1.5 text-[10px] italic text-slate-600">
+          {match.round === 'third_place' ? 'Awarded — no match played' : 'Bye — auto-advances'}
+        </p>
       ) : (
         <PlayerRow name={match.playerB.name} score={match.score_b} won={bWon} />
       )}

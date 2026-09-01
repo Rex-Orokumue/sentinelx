@@ -18,6 +18,10 @@ function match(id: string, aId: string, bId: string): BracketMatch {
   }
 }
 
+function thirdPlaceMatch(id: string, aId: string, bId: string): BracketMatch {
+  return { ...match(id, aId, bId), round: 'third_place', status: 'scheduled', score_a: null, score_b: null }
+}
+
 const ids = (round: { groups: (BracketMatch | null)[][] }) =>
   round.groups.map((g) => g.map((m) => m?.id ?? null))
 
@@ -157,5 +161,23 @@ describe('buildBracketDisplay', () => {
 
   it('returns nothing when there is neither a projection nor a match', () => {
     expect(buildBracketDisplay([], [])).toEqual([])
+  })
+
+  it('appends the third-place match as an extra slot below the final', () => {
+    const final = [{ round: 'final', label: 'Final', matches: [match('f', 'a', 'b')] }]
+    const tp = thirdPlaceMatch('tp', 'c', 'd')
+    const display = buildBracketDisplay(final, [], tp)
+    expect(display.map((r) => r.round)).toEqual(['final'])
+    expect(ids(display[0])).toEqual([['f'], ['tp']])
+  })
+
+  it('leaves the final column untouched when there is no third-place match yet', () => {
+    const final = [{ round: 'final', label: 'Final', matches: [match('f', 'a', 'b')] }]
+    expect(ids(buildBracketDisplay(final, [], null)[0])).toEqual([['f']])
+    expect(ids(buildBracketDisplay(final, [])[0])).toEqual([['f']])
+  })
+
+  it('does not attach a third-place match when there is no final column to attach to', () => {
+    expect(buildBracketDisplay([], [], thirdPlaceMatch('tp', 'c', 'd'))).toEqual([])
   })
 })

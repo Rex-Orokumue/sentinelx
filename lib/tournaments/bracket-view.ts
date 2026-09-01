@@ -27,6 +27,9 @@ export interface BracketView {
   projected: ProjectedRound[]
   champion: { id: string; name: string } | null
   thirdPlace: { id: string; name: string } | null
+  // The bronze match itself, for the bracket tree — thirdPlace above is just
+  // the winner, for the summary banner.
+  thirdPlaceMatch: BracketMatch | null
   hasGroups: boolean
   hasKnockout: boolean
 }
@@ -149,6 +152,7 @@ export async function loadBracketView(
     projected: hasGroups && format !== 'round_robin' ? projectBracketRounds((groups ?? []).length * ADVANCE_PER_GROUP) : [],
     champion: getChampion(allMatches),
     thirdPlace: getThirdPlace(allMatches),
+    thirdPlaceMatch: allMatches.find((m) => m.round === 'third_place') ?? null,
     hasGroups,
     hasKnockout: rounds.length > 0,
   }

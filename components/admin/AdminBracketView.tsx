@@ -20,11 +20,15 @@ export function AdminBracketView({
   rounds,
   projected,
   champion,
+  thirdPlaceMatch,
   hasGroups,
   contacts,
   pendingRound,
   rearrangeableRound,
-}: Pick<BracketView, 'standings' | 'fixtures' | 'rounds' | 'projected' | 'champion' | 'hasGroups'> & {
+}: Pick<
+  BracketView,
+  'standings' | 'fixtures' | 'rounds' | 'projected' | 'champion' | 'thirdPlaceMatch' | 'hasGroups'
+> & {
   tournamentId: string
   status: string
   contacts: FixtureContacts
@@ -91,7 +95,7 @@ export function AdminBracketView({
         </details>
       )}
 
-      <BracketTree rounds={rounds} projected={projected} champion={champion} />
+      <BracketTree rounds={rounds} projected={projected} champion={champion} thirdPlace={thirdPlaceMatch} />
     </>
   )
 }
