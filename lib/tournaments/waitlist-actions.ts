@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { registrationDetailsSchema } from './registration-schema'
 
-export type JoinWaitlistState = { error?: string; success?: boolean } | undefined
+export type JoinWaitlistState = { error?: string; success?: boolean; needsUsername?: boolean } | undefined
 
 // A player signals availability as a potential substitute once registration
 // is closed/active. No payment — admin promotes a waitlisted entry into a
@@ -27,6 +27,19 @@ export async function joinWaitlist(_prev: JoinWaitlistState, formData: FormData)
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to join the waitlist.' }
+
+  // Same gate as registerForTournament — a nameless profile (Google sign-in /
+  // deferred username claim — migration 073) would land in the bracket as
+  // "TBD" if promoted to a substitute later. The /dashboard onboarding gate
+  // does not cover this public route.
+  const { data: callerProfile } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (!callerProfile?.username) {
+    return { error: 'Claim a username before joining the waitlist.', needsUsername: true }
+  }
 
   const { data: tournament } = await supabase
     .from('tournaments')

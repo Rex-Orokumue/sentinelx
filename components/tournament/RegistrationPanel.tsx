@@ -156,7 +156,21 @@ export function RegistrationPanel({
             <p className="mb-3 text-center text-xs text-slate-500">
               A registered player drops out sometimes — join the waitlist to be considered as a substitute.
             </p>
-            <WaitlistForm tournamentId={tournamentId} prefill={prefill} hasRules={hasRules} />
+            {hasUsername ? (
+              <WaitlistForm tournamentId={tournamentId} slug={slug} prefill={prefill} hasRules={hasRules} />
+            ) : (
+              <>
+                <p className="mb-3 text-center text-sm text-slate-300">
+                  Claim your SentinelX username before joining the waitlist.
+                </p>
+                <Link
+                  href={`/onboarding/username?next=/tournaments/${slug}`}
+                  className="block w-full rounded-xl bg-violet-600 px-7 py-3.5 text-center text-sm font-bold text-white transition-colors hover:bg-violet-500"
+                >
+                  Choose your username
+                </Link>
+              </>
+            )}
           </div>
         ) : (
           <Link
@@ -172,10 +186,12 @@ export function RegistrationPanel({
 
 function WaitlistForm({
   tournamentId,
+  slug,
   prefill,
   hasRules,
 }: {
   tournamentId: string
+  slug: string
   prefill: { displayName: string; whatsapp: string }
   hasRules: boolean
 }) {
@@ -210,6 +226,14 @@ function WaitlistForm({
         </label>
       )}
       {state?.error && <p className="text-center text-sm text-red-400">{state.error}</p>}
+      {state?.needsUsername && (
+        <Link
+          href={`/onboarding/username?next=/tournaments/${slug}`}
+          className="block text-center text-sm font-bold text-violet-400 hover:text-violet-300"
+        >
+          Choose your username →
+        </Link>
+      )}
       <button
         type="submit"
         className="w-full rounded-xl border border-amber-500/40 px-7 py-3 text-sm font-bold text-amber-400 transition-colors hover:bg-amber-500/10"
