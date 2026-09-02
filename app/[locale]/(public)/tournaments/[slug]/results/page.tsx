@@ -10,12 +10,20 @@ import type { Locale } from '@/i18n/locales'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
+import { GameBadge } from '@/components/game/GameBadge'
+import { resolveGameIconUrl } from '@/lib/games/icon'
+
+type ResultsGameRef = { name: string; icon_url: string | null; slug: string | null; category: string | null } | null
+
+function firstGame(g: unknown): ResultsGameRef {
+  return (Array.isArray(g) ? g[0] ?? null : g) as ResultsGameRef
+}
 
 async function getTournament(slug: string) {
   const supabase = createClient()
   const { data } = await supabase
     .from('tournaments')
-    .select('id, title, slug, status')
+    .select('id, title, slug, status, games(name, icon_url, slug, category)')
     .eq('slug', slug)
     .maybeSingle()
   if (!data || data.status === 'draft') return null
@@ -47,6 +55,7 @@ export default async function TournamentResultsPage({
 }) {
   const t = await getTournament(params.slug)
   if (!t) notFound()
+  const game = firstGame(t.games)
 
   const supabase = createClient()
   const matches = await listCompletedMatches(supabase, t.id)
@@ -66,7 +75,18 @@ export default async function TournamentResultsPage({
       <Link href={`/tournaments/${t.slug}`} className="mt-6 mb-4 inline-block text-sm text-violet-400 hover:text-violet-300">
         ← {t.title}
       </Link>
-      <h1 className="mb-4 text-xl font-black text-white">Results</h1>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <h1 className="text-xl font-black text-white">Results</h1>
+        {game && (
+          <GameBadge
+            name={game.name}
+            iconUrl={resolveGameIconUrl(game)}
+            category={game.category}
+            showName
+            className="text-xs font-semibold uppercase tracking-wide text-slate-500"
+          />
+        )}
+      </div>
       <ResultsDateFilter groups={groups} activeDate={activeDate} basePath={`/tournaments/${t.slug}/results`} />
       <CompletedMatchesList groups={visibleGroups} />
     </div>

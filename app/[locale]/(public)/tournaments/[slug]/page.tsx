@@ -15,6 +15,8 @@ import { JsonLd } from '@/components/seo/JsonLd'
 import { buildTournamentJsonLd } from '@/lib/seo/schema/event'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 import { getCoinBalance } from '@/lib/coins/service'
+import { GameBadge } from '@/components/game/GameBadge'
+import { resolveGameIconUrl } from '@/lib/games/icon'
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   active:              { label: 'LIVE',        cls: 'bg-red-500/20 text-red-400 border-red-500/30' },
@@ -28,7 +30,7 @@ async function getTournament(slug: string) {
   const { data } = await supabase
     .from('tournaments')
     .select(
-      'id, title, slug, description, banner_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, tournament_end, rules, invitation_only, games(name, icon_url, slug)',
+      'id, title, slug, description, banner_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, tournament_end, rules, invitation_only, games(name, icon_url, slug, category)',
     )
     .eq('slug', slug)
     .maybeSingle()
@@ -118,7 +120,7 @@ export default async function TournamentDetailPage({
 
   const status = STATUS[t.status] ?? STATUS.completed
   const start = formatDate(t.tournament_start)
-  const game = t.games as { name: string; icon_url: string | null; slug: string } | null
+  const game = t.games as { name: string; icon_url: string | null; slug: string; category: string | null } | null
   const shareText = `${t.title} on Sentinel X — ${formatNaira(t.prize_pool)} prize pool 🎮 ${SITE_URL}/tournaments/${t.slug}`
 
   return (
@@ -169,7 +171,12 @@ export default async function TournamentDetailPage({
 
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">
+          <p className="mb-1 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">
+            <GameBadge
+              name={game?.name ?? 'Mobile Esports'}
+              iconUrl={resolveGameIconUrl(game)}
+              category={game?.category}
+            />
             {game?.name ?? 'Mobile Esports'}
           </p>
           <h1 className="text-2xl font-black leading-tight text-white">{t.title}</h1>

@@ -1,11 +1,15 @@
 import Link from 'next/link'
 import { EmptyState } from '@/components/shared/EmptyState'
+import { GameBadge } from '@/components/game/GameBadge'
 
 export interface RegistrationRow {
   id: string
   paymentStatus: string
   tournamentTitle: string
   tournamentSlug: string
+  gameName?: string | null
+  gameIconUrl?: string | null
+  gameCategory?: string | null
 }
 
 const PAYMENT: Record<string, { label: string; cls: string }> = {
@@ -39,14 +43,28 @@ function RegistrationCard({ reg }: { reg: RegistrationRow }) {
   const p = PAYMENT[reg.paymentStatus] ?? { label: reg.paymentStatus, cls: 'text-slate-400' }
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
-      <div className="min-w-0">
-        <Link
-          href={`/tournaments/${reg.tournamentSlug}`}
-          className="block truncate font-bold text-white hover:text-violet-300"
-        >
-          {reg.tournamentTitle}
-        </Link>
-        <p className={`mt-0.5 text-xs font-semibold ${p.cls}`}>{p.label}</p>
+      <div className="flex min-w-0 items-center gap-3">
+        {reg.gameName && (
+          <GameBadge
+            name={reg.gameName}
+            iconUrl={reg.gameIconUrl}
+            category={reg.gameCategory}
+            size="md"
+            className="shrink-0"
+          />
+        )}
+        <div className="min-w-0">
+          <Link
+            href={`/tournaments/${reg.tournamentSlug}`}
+            className="block truncate font-bold text-white hover:text-violet-300"
+          >
+            {reg.tournamentTitle}
+          </Link>
+          <p className={`mt-0.5 text-xs font-semibold ${p.cls}`}>
+            {reg.gameName ? `${reg.gameName} · ` : ''}
+            {p.label}
+          </p>
+        </div>
       </div>
       {reg.paymentStatus === 'pending' && (
         <Link

@@ -11,12 +11,20 @@ import type { Locale } from '@/i18n/locales'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
+import { GameBadge } from '@/components/game/GameBadge'
+import { resolveGameIconUrl } from '@/lib/games/icon'
+
+type BracketGameRef = { name: string; icon_url: string | null; slug: string | null; category: string | null } | null
+
+function firstGame(g: unknown): BracketGameRef {
+  return (Array.isArray(g) ? g[0] ?? null : g) as BracketGameRef
+}
 
 async function getTournament(slug: string) {
   const supabase = createClient()
   const { data } = await supabase
     .from('tournaments')
-    .select('id, title, slug, status, format')
+    .select('id, title, slug, status, format, games(name, icon_url, slug, category)')
     .eq('slug', slug)
     .maybeSingle()
   if (!data || data.status === 'draft') return null
@@ -42,6 +50,7 @@ export async function generateMetadata({
 export default async function BracketPage({ params }: { params: { slug: string } }) {
   const t = await getTournament(params.slug)
   if (!t) notFound()
+  const game = firstGame(t.games)
 
   // A generated-but-unpublished bracket (registration_closed) is a staff-only preview.
   const isPreview = t.status === 'registration_closed'
@@ -56,7 +65,18 @@ export default async function BracketPage({ params }: { params: { slug: string }
           >
             ← {t.title}
           </Link>
-          <h1 className="mb-6 text-2xl font-black text-white">Bracket</h1>
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-black text-white">Bracket</h1>
+            {game && (
+              <GameBadge
+                name={game.name}
+                iconUrl={resolveGameIconUrl(game)}
+                category={game.category}
+                showName
+                className="text-xs font-semibold uppercase tracking-wide text-slate-500"
+              />
+            )}
+          </div>
           <div className="rounded-2xl border border-slate-800 bg-slate-900/50 py-12 text-center">
             <p className="text-3xl">🗂️</p>
             <p className="mt-3 font-bold text-white">Bracket is being finalized</p>
@@ -88,7 +108,18 @@ export default async function BracketPage({ params }: { params: { slug: string }
       >
         ← {t.title}
       </Link>
-      <h1 className="mb-6 text-2xl font-black text-white">Bracket</h1>
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <h1 className="text-2xl font-black text-white">Bracket</h1>
+        {game && (
+          <GameBadge
+            name={game.name}
+            iconUrl={resolveGameIconUrl(game)}
+            category={game.category}
+            showName
+            className="text-xs font-semibold uppercase tracking-wide text-slate-500"
+          />
+        )}
+      </div>
 
       {view.champion && (
         <div className="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-5 py-4 text-center">
