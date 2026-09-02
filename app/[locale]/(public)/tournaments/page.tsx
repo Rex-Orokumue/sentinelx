@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 }
 
 const SELECT_COLS =
-  'id, title, slug, prize_pool, registration_fee, status, tournament_start, registration_end, tournament_end, max_players, format, tournament_type'
+  'id, title, slug, prize_pool, registration_fee, status, tournament_start, registration_end, tournament_end, max_players, format, tournament_type, card_image_url'
 
 type SearchParams = { game?: string; q?: string; tab?: string; sort?: string; page?: string }
 
@@ -225,7 +225,7 @@ export default async function TournamentsPage({ searchParams }: { searchParams: 
           ) : (
             <div className="space-y-4">
               {tournaments.map((t) => (
-                <TournamentCard key={t.id} tournament={t} />
+                <TournamentCard key={t.id} tournament={t} variant="row" />
               ))}
             </div>
           )}

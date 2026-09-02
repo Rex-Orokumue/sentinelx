@@ -33,6 +33,7 @@ export default async function EditTournamentPage({ params }: { params: { id: str
     gameId: t.game_id,
     description: t.description ?? '',
     bannerUrl: t.banner_url ?? '',
+    cardImageUrl: t.card_image_url ?? '',
     registrationFee: moneyStr(t.registration_fee),
     prizePool: moneyStr(t.prize_pool),
     maxPlayers: t.max_players == null ? '' : String(t.max_players),

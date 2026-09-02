@@ -7,6 +7,7 @@ const valid = {
   slug: '',
   description: '',
   bannerUrl: '',
+  cardImageUrl: '',
   registrationFee: '500',
   prizePool: '0',
   maxPlayers: '16',

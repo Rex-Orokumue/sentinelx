@@ -13,6 +13,7 @@ const EMPTY: TournamentFormValues = {
   gameId: '',
   description: '',
   bannerUrl: '',
+  cardImageUrl: '',
   registrationFee: '500',
   prizePool: '0',
   maxPlayers: '',

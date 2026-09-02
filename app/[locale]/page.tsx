@@ -58,7 +58,7 @@ export default async function HomePage() {
     supabase
       .from('tournaments')
       .select(
-        'id, title, slug, prize_pool, registration_fee, status, tournament_start, registration_end, tournament_end, max_players, format, tournament_type, games(name, icon_url, slug, category)'
+        'id, title, slug, prize_pool, registration_fee, status, tournament_start, registration_end, tournament_end, max_players, format, tournament_type, card_image_url, games(name, icon_url, slug, category)'
       )
       .in('status', ['active', 'registration_open'])
       .order('created_at', { ascending: false })

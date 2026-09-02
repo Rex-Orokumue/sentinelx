@@ -1,6 +1,6 @@
-// Client-side canvas resize to a max width before upload (spec §6/§14 —
-// "compress to max 800px wide … client-side canvas resize is acceptable").
-// Browser-only; never imported from a Server Component/Action.
+// Client-side canvas resize to a max width before upload — keeps uploaded
+// images (community posts, tournament card art, …) to a sane size without a
+// server round-trip. Browser-only; never imported from a Server Component/Action.
 export function resizeImageToMaxWidth(file: File, maxWidth = 800): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image()

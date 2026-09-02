@@ -23,7 +23,7 @@ import { WagerWidget } from '@/components/match/WagerWidget'
 import { wagerWindowOpen } from '@/lib/wagers/market'
 import { getCoinBalance } from '@/lib/coins/service'
 import { GameBadge } from '@/components/game/GameBadge'
-import { resolveGameIconUrl } from '@/lib/games/icon'
+import { resolveTournamentImageUrl } from '@/lib/games/icon'
 
 type ProfileRef = {
   username: string | null
@@ -52,7 +52,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 
 const MATCH_SELECT =
   'id, round, status, score_a, score_b, scheduled_at, is_full_day, youtube_stream_url, replay_url, player_a_id, player_b_id, ' +
-  'tournaments(title, slug, games(name, icon_url, slug, category)), ' +
+  'tournaments(title, slug, card_image_url, games(name, icon_url, slug, category)), ' +
   'player_a:profiles!matches_player_a_id_fkey(username, display_name, avatar_url, membership_tier), ' +
   'player_b:profiles!matches_player_b_id_fkey(username, display_name, avatar_url, membership_tier)'
 
@@ -72,6 +72,7 @@ type MatchRow = {
     | {
         title: string
         slug: string
+        card_image_url: string | null
         games: MatchGameRef | MatchGameRef[]
       }
     | null
@@ -111,6 +112,7 @@ export default async function MatchCentrePage({
   const m = await getMatch(params.id)
   if (!m) notFound()
   const game = matchGame(m.tournaments)
+  const gameImage = resolveTournamentImageUrl(m.tournaments?.card_image_url, game)
   const admin = createAdminClient()
 
   const {
@@ -266,7 +268,7 @@ export default async function MatchCentrePage({
         </div>
         {game && (
           <p className="mb-3 flex items-center justify-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            <GameBadge name={game.name} iconUrl={resolveGameIconUrl(game)} category={game.category} />
+            <GameBadge name={game.name} iconUrl={gameImage} category={game.category} size="md" />
             {game.name}
           </p>
         )}

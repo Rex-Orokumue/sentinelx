@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { formatNaira } from '@/lib/format'
 import type { TournamentCardData } from '@/components/tournament/TournamentCard'
 import { GameBadge } from '@/components/game/GameBadge'
-import { resolveGameIconUrl } from '@/lib/games/icon'
+import { resolveTournamentImageUrl } from '@/lib/games/icon'
 
 // Full-width banner directly under the Hero. Replaces the old
 // StatsBar+LiveTournamentCard slot. Renders nothing when there's no
@@ -22,14 +22,12 @@ export function LiveTournamentStrip({ tournament: t }: { tournament: TournamentC
           {isLive ? 'Live Now' : 'Registration Open'}
         </span>
         <span className="inline-flex items-center gap-2 font-display text-base font-bold uppercase tracking-wide text-white">
-          {t.games && (
-            <GameBadge
-              name={t.games.name}
-              iconUrl={resolveGameIconUrl(t.games)}
-              category={t.games.category}
-              size="md"
-            />
-          )}
+          <GameBadge
+            name={t.games?.name ?? t.title}
+            iconUrl={resolveTournamentImageUrl(t.card_image_url, t.games)}
+            category={t.games?.category}
+            size="lg"
+          />
           {t.title}
         </span>
         <span className="flex flex-wrap items-center gap-3 text-sm">

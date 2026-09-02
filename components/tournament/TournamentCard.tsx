@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { formatDate, formatNaira } from '@/lib/format'
-import { GameBadge } from '@/components/game/GameBadge'
-import { resolveGameIconUrl } from '@/lib/games/icon'
+import { resolveTournamentImageUrl } from '@/lib/games/icon'
+import { gameGenreEmoji } from '@/lib/games/genre-emoji'
 
 export interface TournamentCardData {
   id: string
@@ -16,6 +16,7 @@ export interface TournamentCardData {
   max_players: number | null
   format?: string | null
   tournament_type?: string | null
+  card_image_url?: string | null
   games: { name: string; icon_url: string | null; slug?: string | null; category?: string | null } | null
 }
 
@@ -37,9 +38,12 @@ function humanize(value: string): string {
 export function TournamentCard({
   tournament: t,
   featured = false,
+  variant = 'grid',
 }: {
   tournament: TournamentCardData
   featured?: boolean
+  /** 'row' = horizontal (listing page); 'grid' = image-on-top (homepage grid). */
+  variant?: 'grid' | 'row'
 }) {
   const status = STATUS[t.status] ?? STATUS.completed
   // Champions Cup — the annual invitational flagship (see
@@ -47,11 +51,18 @@ export function TournamentCard({
   // constraint: 'open' | 'community_club' | 'masters' | 'champions_cup').
   // Gets the gold-accent treatment; the mockup's "Season Championship" card.
   const isChampionsCup = t.tournament_type === 'champions_cup'
+  const isRow = variant === 'row'
+
+  const gameName = t.games?.name ?? 'Mobile Esports'
+  const imageUrl = resolveTournamentImageUrl(t.card_image_url, t.games)
+  const emoji = gameGenreEmoji(t.games?.category)
 
   return (
     <Link
       href={`/tournaments/${t.slug}`}
-      className={`flex flex-col rounded-xl border p-5 transition-all hover:-translate-y-0.5 ${
+      className={`group flex overflow-hidden rounded-xl border transition-all hover:-translate-y-0.5 ${
+        isRow ? 'flex-row' : 'flex-col'
+      } ${
         isChampionsCup
           ? 'border-sx-amber/25 bg-gradient-to-br from-sx-amber/[0.06] to-sx-surface hover:shadow-[0_0_15px_rgba(245,158,11,0.15)]'
           : `bg-sx-surface hover:shadow-[0_0_15px_rgba(124,58,237,0.15)] ${
@@ -59,79 +70,111 @@ export function TournamentCard({
             }`
       }`}
     >
-      <div className="mb-3 flex items-start justify-between gap-3">
-        {isChampionsCup ? (
-          <span className="rounded-md border border-sx-amber/25 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-sx-amber">
-            Season Championship
+      <CardImage isRow={isRow} src={imageUrl} emoji={emoji} alt={gameName} />
+
+      <div className={`flex min-w-0 flex-1 flex-col ${isRow ? 'p-4 sm:p-5' : 'p-5'}`}>
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <span
+            className={`min-w-0 truncate rounded-md border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
+              isChampionsCup ? 'border-sx-amber/25 text-sx-amber' : 'border-sx-border text-sx-gray'
+            }`}
+          >
+            {isChampionsCup ? 'Season Championship' : gameName}
           </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-md border border-sx-border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-sx-gray">
-            <GameBadge
-              name={t.games?.name ?? 'Mobile Esports'}
-              iconUrl={resolveGameIconUrl(t.games)}
-              category={t.games?.category}
-            />
-            {t.games?.name ?? 'Mobile Esports'}
+          <span
+            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${status.cls}`}
+          >
+            {status.dot && <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-sx-green" />}
+            {status.label}
           </span>
-        )}
-        <span
-          className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${status.cls}`}
+        </div>
+
+        <h3
+          className={`mb-3.5 font-display font-bold leading-tight ${
+            featured && !isRow ? 'text-2xl' : 'text-lg'
+          } ${isChampionsCup ? 'text-sx-amber' : 'text-white'}`}
         >
-          {status.dot && <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-sx-green" />}
-          {status.label}
+          {t.title}
+        </h3>
+
+        <div className="mb-4 grid flex-1 grid-cols-2 gap-x-3 gap-y-2.5">
+          <Stat label="Prize Pool" value={formatNaira(t.prize_pool)} accent="gold" />
+          <Stat label="Format" value={t.format ? humanize(t.format) : '—'} />
+          {isChampionsCup ? (
+            <>
+              <Stat label="Eligibility" value="Top 16 Players" />
+              <Stat label="Qualifier" value="Auto — Season Points" />
+            </>
+          ) : (
+            <>
+              <Stat label="Entry Fee" value={formatNaira(t.registration_fee)} />
+              <Stat
+                label={t.status === 'registration_closed' ? 'Starts' : 'Max Players'}
+                value={
+                  t.status === 'registration_closed' && t.tournament_start
+                    ? formatDate(t.tournament_start) ?? '—'
+                    : t.max_players != null
+                      ? String(t.max_players)
+                      : '—'
+                }
+                accent={t.status === 'registration_open' ? 'green' : undefined}
+              />
+            </>
+          )}
+        </div>
+
+        <span
+          className={`block rounded-lg py-2.5 text-center font-display text-xs font-bold uppercase tracking-wide ${
+            isChampionsCup
+              ? 'border border-sx-amber/30 text-sx-amber'
+              : t.status === 'registration_open'
+                ? 'bg-sx-purple text-white'
+                : 'border border-white/10 text-sx-gray'
+          }`}
+        >
+          {isChampionsCup
+            ? 'Learn More'
+            : t.status === 'registration_open'
+              ? `Register Now — ${formatNaira(t.registration_fee)}`
+              : 'View Details'}
         </span>
       </div>
-
-      <h3
-        className={`mb-3.5 font-display font-bold leading-tight ${featured ? 'text-2xl' : 'text-lg'} ${
-          isChampionsCup ? 'text-sx-amber' : 'text-white'
-        }`}
-      >
-        {t.title}
-      </h3>
-
-      <div className="mb-4 grid flex-1 grid-cols-2 gap-x-3 gap-y-2.5">
-        <Stat label="Prize Pool" value={formatNaira(t.prize_pool)} accent="gold" />
-        <Stat label="Format" value={t.format ? humanize(t.format) : '—'} />
-        {isChampionsCup ? (
-          <>
-            <Stat label="Eligibility" value="Top 16 Players" />
-            <Stat label="Qualifier" value="Auto — Season Points" />
-          </>
-        ) : (
-          <>
-            <Stat label="Entry Fee" value={formatNaira(t.registration_fee)} />
-            <Stat
-              label={t.status === 'registration_closed' ? 'Starts' : 'Max Players'}
-              value={
-                t.status === 'registration_closed' && t.tournament_start
-                  ? formatDate(t.tournament_start) ?? '—'
-                  : t.max_players != null
-                    ? String(t.max_players)
-                    : '—'
-              }
-              accent={t.status === 'registration_open' ? 'green' : undefined}
-            />
-          </>
-        )}
-      </div>
-
-      <span
-        className={`block rounded-lg py-2.5 text-center font-display text-xs font-bold uppercase tracking-wide ${
-          isChampionsCup
-            ? 'border border-sx-amber/30 text-sx-amber'
-            : t.status === 'registration_open'
-              ? 'bg-sx-purple text-white'
-              : 'border border-white/10 text-sx-gray'
-        }`}
-      >
-        {isChampionsCup
-          ? 'Learn More'
-          : t.status === 'registration_open'
-            ? `Register Now — ${formatNaira(t.registration_fee)}`
-            : 'View Details'}
-      </span>
     </Link>
+  )
+}
+
+function CardImage({
+  isRow,
+  src,
+  emoji,
+  alt,
+}: {
+  isRow: boolean
+  src: string | null
+  emoji: string
+  alt: string
+}) {
+  const shape = isRow
+    ? 'w-28 shrink-0 self-stretch sm:w-40'
+    : 'h-36 w-full'
+
+  return (
+    <div className={`relative overflow-hidden bg-gradient-to-br from-sx-purple/25 to-sx-surface ${shape}`}>
+      {src ? (
+        // card_image_url and the local /games art are plain URLs; next/image
+        // has no remotePatterns configured.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt={alt}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+      ) : (
+        <span className="absolute inset-0 flex items-center justify-center text-4xl opacity-80">
+          {emoji}
+        </span>
+      )}
+    </div>
   )
 }
 

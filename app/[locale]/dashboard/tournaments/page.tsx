@@ -3,12 +3,18 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { MyTournaments, type RegistrationRow } from '@/components/dashboard/MyTournaments'
 import { DashboardShell } from '@/components/dashboard/DashboardShell'
-import { resolveGameIconUrl } from '@/lib/games/icon'
+import { resolveTournamentImageUrl } from '@/lib/games/icon'
 
 export const metadata: Metadata = { title: 'My Tournaments · SentinelX Esports', robots: { index: false, follow: false } }
 
 type GameRef = { name: string; icon_url: string | null; slug: string | null; category: string | null }
-type TournamentShape = { title: string; slug: string; status: string; games: GameRef | GameRef[] | null }
+type TournamentShape = {
+  title: string
+  slug: string
+  status: string
+  card_image_url: string | null
+  games: GameRef | GameRef[] | null
+}
 type TournamentRef = TournamentShape | TournamentShape[] | null
 function firstTournament(t: TournamentRef): TournamentShape | null {
   return Array.isArray(t) ? t[0] ?? null : t
@@ -27,7 +33,7 @@ export default async function DashboardTournamentsPage() {
   const { data: regsRes } = await supabase
     .from('tournament_registrations')
     .select(
-      'id, payment_status, registered_at, tournament:tournaments(title, slug, status, games(name, icon_url, slug, category))',
+      'id, payment_status, registered_at, tournament:tournaments(title, slug, status, card_image_url, games(name, icon_url, slug, category))',
     )
     .eq('player_id', user.id)
     .order('registered_at', { ascending: false })
@@ -42,7 +48,7 @@ export default async function DashboardTournamentsPage() {
       tournamentTitle: t?.title ?? 'Tournament',
       tournamentSlug: t?.slug ?? '',
       gameName: g?.name ?? null,
-      gameIconUrl: resolveGameIconUrl(g),
+      gameIconUrl: resolveTournamentImageUrl(t?.card_image_url, g),
       gameCategory: g?.category ?? null,
     }
   })

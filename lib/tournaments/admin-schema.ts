@@ -17,6 +17,7 @@ export const tournamentSchema = z
     slug: z.union([z.literal(''), z.string().trim().max(120)]),
     description: optionalText(2000),
     bannerUrl: optionalUrl,
+    cardImageUrl: optionalUrl,
     registrationFee: money(1_000_000),
     prizePool: money(1_000_000_000),
     maxPlayers: z.union([

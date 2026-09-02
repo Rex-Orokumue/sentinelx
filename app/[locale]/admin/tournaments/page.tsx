@@ -5,7 +5,7 @@ import { requireStaff } from '@/lib/admin/auth'
 import { missingForPublish } from '@/lib/tournaments/readiness'
 import { TournamentListRow, type AdminTournamentRow } from '@/components/admin/TournamentListRow'
 import { AdminTournamentGameFilter } from '@/components/admin/AdminTournamentGameFilter'
-import { resolveGameIconUrl } from '@/lib/games/icon'
+import { resolveTournamentImageUrl } from '@/lib/games/icon'
 import {
   ADMIN_TOURNAMENT_STATUS_FILTERS,
   filterStatusValues,
@@ -45,7 +45,7 @@ export default async function AdminTournamentsPage({ searchParams }: { searchPar
   let query = supabase
     .from('tournaments')
     .select(
-      'id, title, slug, status, game_id, max_players, registration_fee, prize_pool, registration_start, registration_end, tournament_start, tournament_end, games(name, icon_url, slug, category)',
+      'id, title, slug, status, game_id, card_image_url, max_players, registration_fee, prize_pool, registration_start, registration_end, tournament_start, tournament_end, games(name, icon_url, slug, category)',
     )
     .order('created_at', { ascending: false })
 
@@ -70,6 +70,7 @@ export default async function AdminTournamentsPage({ searchParams }: { searchPar
       slug: string
       status: string
       game_id: string | null
+      card_image_url: string | null
       max_players: number | null
       registration_fee: number | null
       prize_pool: number | null
@@ -86,7 +87,7 @@ export default async function AdminTournamentsPage({ searchParams }: { searchPar
       slug: t.slug,
       status: t.status,
       gameName: g?.name ?? null,
-      gameIconUrl: resolveGameIconUrl(g),
+      gameIconUrl: resolveTournamentImageUrl(t.card_image_url, g),
       gameCategory: g?.category ?? null,
       publishBlockers: missingForPublish({
         gameId: t.game_id,
