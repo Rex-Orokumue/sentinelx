@@ -8,6 +8,7 @@ import {
   type PublishState,
 } from '@/lib/tournaments/admin-actions'
 import { CancelTournamentButton } from './CancelTournamentButton'
+import { GameBadge } from '@/components/game/GameBadge'
 
 export interface AdminTournamentRow {
   id: string
@@ -15,6 +16,8 @@ export interface AdminTournamentRow {
   slug: string
   status: string
   gameName: string | null
+  gameIconUrl: string | null
+  gameCategory: string | null
   publishBlockers: string[] // from missingForPublish; only meaningful when status === 'draft'
   paidRegistrations: number
 }
@@ -40,14 +43,23 @@ export function TournamentListRow({ t, isAdmin }: { t: AdminTournamentRow; isAdm
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="truncate font-bold text-white">{t.title}</p>
-          <p className="mt-0.5 text-xs text-slate-500">
-            {t.gameName ?? 'No game'} ·{' '}
-            <span className={STATUS[t.status] ?? 'text-slate-400'}>
-              {t.status.replace(/_/g, ' ')}
-            </span>
-          </p>
+        <div className="flex min-w-0 items-center gap-3">
+          <GameBadge
+            name={t.gameName ?? 'No game'}
+            iconUrl={t.gameIconUrl}
+            category={t.gameCategory}
+            size="md"
+            className="shrink-0"
+          />
+          <div className="min-w-0">
+            <p className="truncate font-bold text-white">{t.title}</p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {t.gameName ?? 'No game'} ·{' '}
+              <span className={STATUS[t.status] ?? 'text-slate-400'}>
+                {t.status.replace(/_/g, ' ')}
+              </span>
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link

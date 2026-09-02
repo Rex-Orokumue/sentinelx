@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { formatDate, formatNaira } from '@/lib/format'
+import { GameBadge } from '@/components/game/GameBadge'
+import { resolveGameIconUrl } from '@/lib/games/icon'
 
 export interface TournamentCardData {
   id: string
@@ -14,7 +16,7 @@ export interface TournamentCardData {
   max_players: number | null
   format?: string | null
   tournament_type?: string | null
-  games: { name: string; icon_url: string | null } | null
+  games: { name: string; icon_url: string | null; slug?: string | null; category?: string | null } | null
 }
 
 const STATUS: Record<string, { label: string; cls: string; dot?: boolean }> = {
@@ -58,13 +60,20 @@ export function TournamentCard({
       }`}
     >
       <div className="mb-3 flex items-start justify-between gap-3">
-        <span
-          className={`rounded-md border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
-            isChampionsCup ? 'border-sx-amber/25 text-sx-amber' : 'border-sx-border text-sx-gray'
-          }`}
-        >
-          {isChampionsCup ? 'Season Championship' : t.games?.name ?? 'Mobile Esports'}
-        </span>
+        {isChampionsCup ? (
+          <span className="rounded-md border border-sx-amber/25 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-sx-amber">
+            Season Championship
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-sx-border px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-sx-gray">
+            <GameBadge
+              name={t.games?.name ?? 'Mobile Esports'}
+              iconUrl={resolveGameIconUrl(t.games)}
+              category={t.games?.category}
+            />
+            {t.games?.name ?? 'Mobile Esports'}
+          </span>
+        )}
         <span
           className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${status.cls}`}
         >

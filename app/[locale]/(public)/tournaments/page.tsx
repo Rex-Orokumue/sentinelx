@@ -54,7 +54,9 @@ export default async function TournamentsPage({ searchParams }: { searchParams: 
   const page = Math.max(1, Number.parseInt(searchParams.page ?? '1', 10) || 1)
   const offset = (page - 1) * PAGE_SIZE
 
-  const gamesSelect = gameFilter ? 'games!inner(name, icon_url, slug)' : 'games(name, icon_url, slug)'
+  const gamesSelect = gameFilter
+    ? 'games!inner(name, icon_url, slug, category)'
+    : 'games(name, icon_url, slug, category)'
   const cols = `${SELECT_COLS}, ${gamesSelect}`
 
   let listQuery = supabase.from('tournaments').select(cols, { count: 'exact' })

@@ -22,6 +22,8 @@ import type { MembershipTier } from '@/lib/membership/tiers'
 import { WagerWidget } from '@/components/match/WagerWidget'
 import { wagerWindowOpen } from '@/lib/wagers/market'
 import { getCoinBalance } from '@/lib/coins/service'
+import { GameBadge } from '@/components/game/GameBadge'
+import { resolveGameIconUrl } from '@/lib/games/icon'
 
 type ProfileRef = {
   username: string | null
@@ -50,7 +52,7 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 
 const MATCH_SELECT =
   'id, round, status, score_a, score_b, scheduled_at, is_full_day, youtube_stream_url, replay_url, player_a_id, player_b_id, ' +
-  'tournaments(title, slug), ' +
+  'tournaments(title, slug, games(name, icon_url, slug, category)), ' +
   'player_a:profiles!matches_player_a_id_fkey(username, display_name, avatar_url, membership_tier), ' +
   'player_b:profiles!matches_player_b_id_fkey(username, display_name, avatar_url, membership_tier)'
 
@@ -66,9 +68,22 @@ type MatchRow = {
   replay_url: string | null
   player_a_id: string | null
   player_b_id: string | null
-  tournaments: { title: string; slug: string } | null
+  tournaments:
+    | {
+        title: string
+        slug: string
+        games: MatchGameRef | MatchGameRef[]
+      }
+    | null
   player_a: ProfileRef
   player_b: ProfileRef
+}
+
+type MatchGameRef = { name: string; icon_url: string | null; slug: string | null; category: string | null } | null
+
+function matchGame(t: MatchRow['tournaments']): MatchGameRef {
+  if (!t) return null
+  return (Array.isArray(t.games) ? t.games[0] ?? null : t.games) as MatchGameRef
 }
 
 async function getMatch(id: string): Promise<MatchRow | null> {
@@ -95,6 +110,7 @@ export default async function MatchCentrePage({
   const supabase = createClient()
   const m = await getMatch(params.id)
   if (!m) notFound()
+  const game = matchGame(m.tournaments)
   const admin = createAdminClient()
 
   const {
@@ -248,6 +264,12 @@ export default async function MatchCentrePage({
         <div className="mb-3 flex justify-center">
           <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${status.cls}`}>{status.label}</span>
         </div>
+        {game && (
+          <p className="mb-3 flex items-center justify-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <GameBadge name={game.name} iconUrl={resolveGameIconUrl(game)} category={game.category} />
+            {game.name}
+          </p>
+        )}
         {formatFixtureDate(m.scheduled_at, m.is_full_day) && (
           <p className="mb-3 text-center text-xs font-semibold text-slate-400">
             {formatFixtureDate(m.scheduled_at, m.is_full_day)}
