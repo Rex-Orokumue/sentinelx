@@ -12,7 +12,7 @@ import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 import { GameBadge } from '@/components/game/GameBadge'
-import { resolveGameIconUrl } from '@/lib/games/icon'
+import { resolveTournamentImageUrl } from '@/lib/games/icon'
 
 type BracketGameRef = { name: string; icon_url: string | null; slug: string | null; category: string | null } | null
 
@@ -24,7 +24,7 @@ async function getTournament(slug: string) {
   const supabase = createClient()
   const { data } = await supabase
     .from('tournaments')
-    .select('id, title, slug, status, format, games(name, icon_url, slug, category)')
+    .select('id, title, slug, status, format, card_image_url, games(name, icon_url, slug, category)')
     .eq('slug', slug)
     .maybeSingle()
   if (!data || data.status === 'draft') return null
@@ -51,6 +51,7 @@ export default async function BracketPage({ params }: { params: { slug: string }
   const t = await getTournament(params.slug)
   if (!t) notFound()
   const game = firstGame(t.games)
+  const gameImage = resolveTournamentImageUrl(t.card_image_url, game)
 
   // A generated-but-unpublished bracket (registration_closed) is a staff-only preview.
   const isPreview = t.status === 'registration_closed'
@@ -70,8 +71,9 @@ export default async function BracketPage({ params }: { params: { slug: string }
             {game && (
               <GameBadge
                 name={game.name}
-                iconUrl={resolveGameIconUrl(game)}
+                iconUrl={gameImage}
                 category={game.category}
+                size="md"
                 showName
                 className="text-xs font-semibold uppercase tracking-wide text-slate-500"
               />
@@ -113,8 +115,9 @@ export default async function BracketPage({ params }: { params: { slug: string }
         {game && (
           <GameBadge
             name={game.name}
-            iconUrl={resolveGameIconUrl(game)}
+            iconUrl={gameImage}
             category={game.category}
+            size="md"
             showName
             className="text-xs font-semibold uppercase tracking-wide text-slate-500"
           />

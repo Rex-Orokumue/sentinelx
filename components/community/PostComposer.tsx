@@ -5,7 +5,7 @@ import { X, ImagePlus } from 'lucide-react'
 import { HexAvatar } from '@/components/shared/HexAvatar'
 import { createClient } from '@/lib/supabase/client'
 import { createPost } from '@/lib/community/post-actions'
-import { resizeImageToMaxWidth } from '@/lib/community/resize-image'
+import { resizeImageToMaxWidth } from '@/lib/media/resize-image'
 import type { MembershipTier } from '@/lib/membership/tiers'
 
 const MAX_CHARS = 500

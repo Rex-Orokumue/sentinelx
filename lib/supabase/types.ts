@@ -2239,6 +2239,7 @@ export type Database = {
       tournaments: {
         Row: {
           banner_url: string | null
+          card_image_url: string | null
           created_at: string
           data_support_text: string | null
           data_support_whatsapp: string | null
@@ -2270,6 +2271,7 @@ export type Database = {
         }
         Insert: {
           banner_url?: string | null
+          card_image_url?: string | null
           created_at?: string
           data_support_text?: string | null
           data_support_whatsapp?: string | null
@@ -2301,6 +2303,7 @@ export type Database = {
         }
         Update: {
           banner_url?: string | null
+          card_image_url?: string | null
           created_at?: string
           data_support_text?: string | null
           data_support_whatsapp?: string | null

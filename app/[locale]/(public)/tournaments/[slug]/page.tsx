@@ -17,6 +17,8 @@ import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 import { getCoinBalance } from '@/lib/coins/service'
 import { GameBadge } from '@/components/game/GameBadge'
 import { resolveGameIconUrl } from '@/lib/games/icon'
+import { gameGenreEmoji } from '@/lib/games/genre-emoji'
+import { splitRules } from '@/lib/tournaments/split-rules'
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   active:              { label: 'LIVE',        cls: 'bg-red-500/20 text-red-400 border-red-500/30' },
@@ -30,7 +32,7 @@ async function getTournament(slug: string) {
   const { data } = await supabase
     .from('tournaments')
     .select(
-      'id, title, slug, description, banner_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, tournament_end, rules, invitation_only, games(name, icon_url, slug, category)',
+      'id, title, slug, description, banner_url, card_image_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, tournament_end, rules, invitation_only, games(name, icon_url, slug, category)',
     )
     .eq('slug', slug)
     .maybeSingle()
@@ -121,6 +123,9 @@ export default async function TournamentDetailPage({
   const status = STATUS[t.status] ?? STATUS.completed
   const start = formatDate(t.tournament_start)
   const game = t.games as { name: string; icon_url: string | null; slug: string; category: string | null } | null
+  // Detail-page hero: the tournament's own upload, else its banner, else the
+  // game's artwork. Falls to the genre emoji only if a game has no art at all.
+  const heroImage = t.card_image_url?.trim() || t.banner_url || resolveGameIconUrl(game)
   const shareText = `${t.title} on Sentinel X — ${formatNaira(t.prize_pool)} prize pool 🎮 ${SITE_URL}/tournaments/${t.slug}`
 
   return (
@@ -160,13 +165,17 @@ export default async function TournamentDetailPage({
         </div>
       )}
 
-      {t.banner_url && (
+      {heroImage ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={t.banner_url}
-          alt={t.title}
-          className="mb-5 aspect-video w-full rounded-2xl border border-slate-800 object-cover"
+          src={heroImage}
+          alt={game?.name ? `${game.name} — ${t.title}` : t.title}
+          className="mb-5 aspect-video max-h-72 w-full rounded-2xl border border-slate-800 object-cover"
         />
+      ) : (
+        <div className="mb-5 flex aspect-video max-h-72 w-full items-center justify-center rounded-2xl border border-slate-800 bg-gradient-to-br from-violet-600/25 to-slate-900 text-6xl">
+          {gameGenreEmoji(game?.category)}
+        </div>
       )}
 
       <div className="mb-4 flex items-start justify-between gap-3">
@@ -217,7 +226,9 @@ export default async function TournamentDetailPage({
           fee={t.registration_fee}
           loginHref={`/login?next=/tournaments/${t.slug}`}
           prefill={prefill}
-          hasRules={!!t.rules}
+          rules={splitRules(t.rules)}
+          gameName={game?.name ?? 'Mobile Esports'}
+          tournamentTitle={t.title}
           loggedIn={!!user}
           coinBalance={coinBalance}
           hasUsername={hasUsername}

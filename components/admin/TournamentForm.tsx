@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import { type TournamentFormState } from '@/lib/tournaments/admin-actions'
+import { TournamentCardImageField } from './TournamentCardImageField'
 
 export interface TournamentFormValues {
   id?: string
@@ -10,6 +11,7 @@ export interface TournamentFormValues {
   gameId: string
   description: string
   bannerUrl: string
+  cardImageUrl: string
   registrationFee: string
   prizePool: string
   maxPlayers: string
@@ -225,6 +227,8 @@ export function TournamentForm({
         name="dataSupportWhatsapp"
         defaultValue={initial.dataSupportWhatsapp}
       />
+
+      <TournamentCardImageField initialUrl={initial.cardImageUrl} />
 
       <Field label="Banner URL" name="bannerUrl" type="url" defaultValue={initial.bannerUrl} />
 

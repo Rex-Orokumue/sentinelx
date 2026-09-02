@@ -25,3 +25,20 @@ export function resolveGameIconUrl(game: GameIconSource | null | undefined): str
   if (game.slug) return findOptionalPublicImage('games', game.slug)
   return null
 }
+
+/**
+ * Best image for a specific tournament:
+ *   1. its own card_image_url (admin upload)
+ *   2. the game's icon / local key art (resolveGameIconUrl)
+ *   3. null — caller shows the genre emoji fallback
+ *
+ * Server-only (step 2 reads the filesystem).
+ */
+export function resolveTournamentImageUrl(
+  cardImageUrl: string | null | undefined,
+  game: GameIconSource | null | undefined,
+): string | null {
+  const own = cardImageUrl?.trim()
+  if (own) return own
+  return resolveGameIconUrl(game)
+}

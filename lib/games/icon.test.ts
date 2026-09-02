@@ -5,7 +5,7 @@ vi.mock('@/lib/media/optional-image', () => ({
   findOptionalPublicImage: (...args: unknown[]) => findOptionalPublicImage(...args),
 }))
 
-import { resolveGameIconUrl } from './icon'
+import { resolveGameIconUrl, resolveTournamentImageUrl } from './icon'
 
 beforeEach(() => {
   findOptionalPublicImage.mockReset()
@@ -44,5 +44,27 @@ describe('resolveGameIconUrl', () => {
     expect(resolveGameIconUrl(undefined)).toBeNull()
     expect(resolveGameIconUrl({ icon_url: null })).toBeNull()
     expect(findOptionalPublicImage).not.toHaveBeenCalled()
+  })
+})
+
+describe('resolveTournamentImageUrl', () => {
+  it('prefers the tournament card image over the game', () => {
+    findOptionalPublicImage.mockReturnValue('/games/dls.jpeg')
+    expect(
+      resolveTournamentImageUrl('https://cdn.example.com/cup.png', { icon_url: null, slug: 'dls' }),
+    ).toBe('https://cdn.example.com/cup.png')
+    expect(findOptionalPublicImage).not.toHaveBeenCalled()
+  })
+
+  it('falls through to the game image when there is no card image', () => {
+    findOptionalPublicImage.mockReturnValue('/games/dls.jpeg')
+    expect(resolveTournamentImageUrl(null, { icon_url: null, slug: 'dls' })).toBe('/games/dls.jpeg')
+    expect(resolveTournamentImageUrl('   ', { icon_url: null, slug: 'dls' })).toBe('/games/dls.jpeg')
+  })
+
+  it('returns null when neither the tournament nor the game has an image', () => {
+    findOptionalPublicImage.mockReturnValue(null)
+    expect(resolveTournamentImageUrl(null, { icon_url: null, slug: 'blood-strike' })).toBeNull()
+    expect(resolveTournamentImageUrl(undefined, null)).toBeNull()
   })
 })

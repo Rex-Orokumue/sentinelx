@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { useFormState, useFormStatus } from 'react-dom'
+import { useFormState } from 'react-dom'
 import { useState } from 'react'
 import { registerForTournament, type RegisterState } from '@/lib/tournaments/actions'
 import { joinWaitlist, type JoinWaitlistState } from '@/lib/tournaments/waitlist-actions'
@@ -8,19 +8,7 @@ import type { RegView } from '@/lib/tournaments/view'
 import { formatNaira } from '@/lib/format'
 import { Field } from '@/components/dashboard/FormField'
 import { COINS_HALF_ENTRY, COINS_PER_ENTRY, NAIRA_PER_COIN } from '@/lib/coins/value'
-
-function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
-  const { pending } = useFormStatus()
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="w-full rounded-xl bg-violet-600 px-7 py-3.5 text-sm font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-60"
-    >
-      {pending ? pendingLabel : label}
-    </button>
-  )
-}
+import { RegistrationGate } from './RegistrationGate'
 
 const box = 'rounded-2xl border border-slate-800 bg-slate-900 p-5'
 
@@ -31,7 +19,9 @@ export function RegistrationPanel({
   fee,
   loginHref,
   prefill,
-  hasRules,
+  rules,
+  gameName,
+  tournamentTitle,
   loggedIn,
   coinBalance,
   hasUsername,
@@ -42,7 +32,9 @@ export function RegistrationPanel({
   fee: number
   loginHref: string
   prefill: { displayName: string; whatsapp: string }
-  hasRules: boolean
+  rules: string[]
+  gameName: string
+  tournamentTitle: string
   loggedIn: boolean
   coinBalance: number
   hasUsername: boolean
@@ -84,7 +76,9 @@ export function RegistrationPanel({
           slug={slug}
           fee={fee}
           prefill={prefill}
-          hasRules={hasRules}
+          rules={rules}
+          gameName={gameName}
+          tournamentTitle={tournamentTitle}
           coinBalance={coinBalance}
           isCompletingPayment={view === 'complete_payment'}
         />
@@ -157,7 +151,14 @@ export function RegistrationPanel({
               A registered player drops out sometimes — join the waitlist to be considered as a substitute.
             </p>
             {hasUsername ? (
-              <WaitlistForm tournamentId={tournamentId} slug={slug} prefill={prefill} hasRules={hasRules} />
+              <WaitlistForm
+                tournamentId={tournamentId}
+                slug={slug}
+                prefill={prefill}
+                rules={rules}
+                gameName={gameName}
+                tournamentTitle={tournamentTitle}
+              />
             ) : (
               <>
                 <p className="mb-3 text-center text-sm text-slate-300">
@@ -188,12 +189,16 @@ function WaitlistForm({
   tournamentId,
   slug,
   prefill,
-  hasRules,
+  rules,
+  gameName,
+  tournamentTitle,
 }: {
   tournamentId: string
   slug: string
   prefill: { displayName: string; whatsapp: string }
-  hasRules: boolean
+  rules: string[]
+  gameName: string
+  tournamentTitle: string
 }) {
   const [state, formAction] = useFormState<JoinWaitlistState, FormData>(joinWaitlist, undefined)
 
@@ -219,12 +224,6 @@ function WaitlistForm({
         placeholder="Your IGN or player tag"
         required={false}
       />
-      {hasRules && (
-        <label className="flex items-start gap-2 text-xs text-slate-400">
-          <input type="checkbox" name="agreedToRules" value="true" required className="mt-0.5 accent-violet-600" />
-          <span>I have read and agree to the tournament rules.</span>
-        </label>
-      )}
       {state?.error && <p className="text-center text-sm text-red-400">{state.error}</p>}
       {state?.needsUsername && (
         <Link
@@ -234,12 +233,14 @@ function WaitlistForm({
           Choose your username →
         </Link>
       )}
-      <button
-        type="submit"
-        className="w-full rounded-xl border border-amber-500/40 px-7 py-3 text-sm font-bold text-amber-400 transition-colors hover:bg-amber-500/10"
-      >
-        Join waitlist
-      </button>
+      <RegistrationGate
+        mode="waitlist"
+        gameName={gameName}
+        tournamentTitle={tournamentTitle}
+        rules={rules}
+        actionLabel="Join waitlist"
+        pendingLabel="Joining…"
+      />
     </form>
   )
 }
@@ -251,7 +252,9 @@ function RegisterForm({
   slug,
   fee,
   prefill,
-  hasRules,
+  rules,
+  gameName,
+  tournamentTitle,
   coinBalance,
   isCompletingPayment,
 }: {
@@ -259,7 +262,9 @@ function RegisterForm({
   slug: string
   fee: number
   prefill: { displayName: string; whatsapp: string }
-  hasRules: boolean
+  rules: string[]
+  gameName: string
+  tournamentTitle: string
   coinBalance: number
   isCompletingPayment: boolean
 }) {
@@ -328,12 +333,6 @@ function RegisterForm({
             <p className="mt-2 text-right text-xs font-bold text-white">You pay: {formatNaira(youPay)}</p>
           </div>
         )}
-        {hasRules && (
-          <label className="flex items-start gap-2 text-xs text-slate-400">
-            <input type="checkbox" name="agreedToRules" value="true" required className="mt-0.5 accent-violet-600" />
-            <span>I have read and agree to the tournament rules.</span>
-          </label>
-        )}
         {state?.error && <p className="text-center text-sm text-red-400">{state.error}</p>}
         {state?.needsUsername && (
           <Link
@@ -343,7 +342,14 @@ function RegisterForm({
             Choose your username →
           </Link>
         )}
-        <SubmitButton label={label} pendingLabel={pendingLabel} />
+        <RegistrationGate
+          mode="register"
+          gameName={gameName}
+          tournamentTitle={tournamentTitle}
+          rules={rules}
+          actionLabel={label}
+          pendingLabel={pendingLabel}
+        />
       </form>
       <p className="mt-2 text-center text-xs text-slate-500">
         {youPay === 0 && tier !== '0'
