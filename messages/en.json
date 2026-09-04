@@ -169,6 +169,7 @@
     "s10P1": "We will notify you via the platform or email if we make significant changes to this policy. The latest version is always available at sentinelxesports.com/privacy."
   },
   "refundPolicy": {
+    "summary": "The short version: entry fees come back if a tournament is cancelled or cannot run — not if you are disqualified or simply change your mind. A payment that debited you but failed to register is always refunded.",
     "eyebrow": "Legal",
     "title": "Refund Policy",
     "subtitle": "Last updated: August 2026",
@@ -288,6 +289,7 @@
     "questionsP1": "Contact us at <email>sentinelxesports@gmail.com</email>."
   },
   "tournamentGuide": {
+    "summary": "The short version: check the game, format, and schedule before you register, keep your screen recording running through your match, and submit your result promptly with a screenshot.",
     "eyebrow": "Support",
     "title": "Tournament Guide",
     "subtitle": "Everything you need to know.",

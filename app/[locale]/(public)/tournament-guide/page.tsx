@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
-import { StaticPageShell, proseClassName } from '@/components/static/StaticPageShell'
+import { LegalDocShell } from '@/components/static/LegalDocShell'
 import { listItemTag } from '@/components/static/richTags'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
@@ -18,55 +18,60 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 export default async function TournamentGuidePage() {
   const t = await getTranslations('tournamentGuide')
   return (
-    <StaticPageShell eyebrow={t('eyebrow')} title={t('title')} subtitle={t('subtitle')}>
-      <div className={proseClassName}>
-        <h2>{t('beforeRegHeading')}</h2>
-        <p>
-          <strong>{t('checkGameLabel')}</strong> {t('checkGameP')}
-        </p>
-        <p>
-          <strong>{t('checkFormatLabel')}</strong> {t('checkFormatP')}
-        </p>
-        <p>
-          <strong>{t('checkScheduleLabel')}</strong> {t('checkScheduleP')}
-        </p>
-        <p>
-          <strong>{t('checkBalanceLabel')}</strong> {t('checkBalanceP')}
-        </p>
-
-        <h2>{t('registeringHeading')}</h2>
-        <ol>{t.rich('registeringList', listItemTag)}</ol>
-
-        <h2>{t('afterRegHeading')}</h2>
-        <p>{t('afterRegP1')}</p>
-        <p>{t('afterRegP2')}</p>
-
-        <h2>{t('playingHeading')}</h2>
-        <p>
-          <strong>{t('prepareLabel')}</strong> {t('prepareP')}
-        </p>
-        <p>
-          <strong>{t('recordLabel')}</strong> {t('recordP')}
-        </p>
-        <p>
-          <strong>{t('joinLabel')}</strong> {t('joinP')}
-        </p>
-        <p>
-          <strong>{t('playLabel')}</strong> {t('playP')}
-        </p>
-
-        <h2>{t('submittingHeading')}</h2>
-        <p>{t('submittingIntro')}</p>
-        <ol>{t.rich('submittingList', listItemTag)}</ol>
-        <p>{t('submittingP2')}</p>
-
-        <h2>{t('afterSubmissionHeading')}</h2>
-        <p>{t('afterSubmissionP1')}</p>
-        <p>{t('afterSubmissionP2')}</p>
-
-        <h2>{t('tipsHeading')}</h2>
-        <ul>{t.rich('tipsList', listItemTag)}</ul>
-      </div>
-    </StaticPageShell>
+    <LegalDocShell
+      eyebrow={t('eyebrow')}
+      title={t('title')}
+      subtitle={t('subtitle')}
+      summary={t('summary')}
+      sections={[
+        {
+          id: 'before-you-register',
+          title: t('beforeRegHeading'),
+          body: (
+            <>
+              <p><strong>{t('checkGameLabel')}</strong> {t('checkGameP')}</p>
+              <p><strong>{t('checkFormatLabel')}</strong> {t('checkFormatP')}</p>
+              <p><strong>{t('checkScheduleLabel')}</strong> {t('checkScheduleP')}</p>
+              <p><strong>{t('checkBalanceLabel')}</strong> {t('checkBalanceP')}</p>
+            </>
+          ),
+        },
+        { id: 'registering', title: t('registeringHeading'), body: <ol>{t.rich('registeringList', listItemTag)}</ol> },
+        {
+          id: 'after-registering',
+          title: t('afterRegHeading'),
+          body: <><p>{t('afterRegP1')}</p><p>{t('afterRegP2')}</p></>,
+        },
+        {
+          id: 'playing',
+          title: t('playingHeading'),
+          body: (
+            <>
+              <p><strong>{t('prepareLabel')}</strong> {t('prepareP')}</p>
+              <p><strong>{t('recordLabel')}</strong> {t('recordP')}</p>
+              <p><strong>{t('joinLabel')}</strong> {t('joinP')}</p>
+              <p><strong>{t('playLabel')}</strong> {t('playP')}</p>
+            </>
+          ),
+        },
+        {
+          id: 'submitting',
+          title: t('submittingHeading'),
+          body: (
+            <>
+              <p>{t('submittingIntro')}</p>
+              <ol>{t.rich('submittingList', listItemTag)}</ol>
+              <p>{t('submittingP2')}</p>
+            </>
+          ),
+        },
+        {
+          id: 'after-submission',
+          title: t('afterSubmissionHeading'),
+          body: <><p>{t('afterSubmissionP1')}</p><p>{t('afterSubmissionP2')}</p></>,
+        },
+        { id: 'tips', title: t('tipsHeading'), body: <ul>{t.rich('tipsList', listItemTag)}</ul> },
+      ]}
+    />
   )
 }

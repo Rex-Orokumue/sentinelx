@@ -169,6 +169,7 @@
     "s10P1": "We go notify you through di platform or email if we make any major change to dis policy. Di latest version dey always available for sentinelxesports.com/privacy."
   },
   "refundPolicy": {
+    "summary": "Di short version: entry fee dey come back if dem cancel tournament or e no fit run — no be if dem disqualify you or you just change your mind. Payment wey debit you but no register, we dey always refund am.",
     "eyebrow": "Legal",
     "title": "Refund Policy",
     "subtitle": "Last update: August 2026",
@@ -288,6 +289,7 @@
     "questionsP1": "Contact us for <email>sentinelxesports@gmail.com</email>."
   },
   "tournamentGuide": {
+    "summary": "Di short version: check di game, format, and schedule before you register, make your screen recording dey run throughout your match, and submit your result quick quick with screenshot.",
     "eyebrow": "Support",
     "title": "Tournament Guide",
     "subtitle": "Everything wey you need to know.",

@@ -169,6 +169,7 @@
     "s10P1": "Nous vous informerons via la plateforme ou par e-mail en cas de modification importante de cette politique. La dernière version est toujours disponible sur sentinelxesports.com/privacy."
   },
   "refundPolicy": {
+    "summary": "En résumé : les frais d’inscription sont remboursés si un tournoi est annulé ou ne peut pas avoir lieu — pas si vous êtes disqualifié ou si vous changez simplement d’avis. Un paiement qui vous a été débité mais n’a pas validé l’inscription est toujours remboursé.",
     "eyebrow": "Mentions légales",
     "title": "Politique de remboursement",
     "subtitle": "Dernière mise à jour : août 2026",
@@ -288,6 +289,7 @@
     "questionsP1": "Contactez-nous à <email>sentinelxesports@gmail.com</email>."
   },
   "tournamentGuide": {
+    "summary": "En résumé : vérifiez le jeu, le format et le calendrier avant de vous inscrire, laissez votre enregistrement d’écran tourner pendant tout le match, et soumettez votre résultat rapidement avec une capture d’écran.",
     "eyebrow": "Assistance",
     "title": "Guide du tournoi",
     "subtitle": "Tout ce que vous devez savoir.",
