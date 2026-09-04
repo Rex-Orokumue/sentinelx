@@ -424,6 +424,8 @@
     "ctaButton": "Join the Community →"
   },
   "contact": {
+    "whatsappResponsePill": "Replies within 24h",
+    "beforeYouWrite": "Many answers are already in the <help>Help Centre</help> — or ask the in-app assistant. Still need us? Reach out below.",
     "eyebrow": "Support",
     "title": "Contact Us",
     "subtitle": "Whether you have a question about a tournament, a problem with your account, or something else — we're reachable and we respond.",

@@ -424,6 +424,8 @@
     "ctaButton": "Join Di Community →"
   },
   "contact": {
+    "whatsappResponsePill": "We dey reply within 24h",
+    "beforeYouWrite": "Plenty answers dey already for di <help>Help Centre</help> — or ask di in-app assistant. You still need us? Reach out below.",
     "eyebrow": "Support",
     "title": "Contact Us",
     "subtitle": "Wheda you get question about tournament, problem with your account, or something else — we dey reachable and we dey respond.",
