@@ -118,7 +118,10 @@
   "privacy": {
     "eyebrow": "Mentions légales",
     "title": "Politique de confidentialité",
-    "subtitle": "Dernière mise à jour : août 2026 · Conforme à la loi nigériane sur la protection des données de 2023 (NDPA)",
+    "subtitle": "Comment nous collectons, utilisons et protégeons vos données personnelles.",
+    "metaUpdated": "Dernière mise à jour : septembre 2026",
+    "metaCompliance": "Loi nigériane sur la protection des données 2023",
+    "summary": "En résumé : nous collectons ce qui est nécessaire pour gérer votre compte, les tournois et les paiements — nous ne vendons rien à des annonceurs. Votre nom d’utilisateur, votre profil et votre historique de match sont publics. Vous pouvez demander à consulter, corriger, exporter ou supprimer vos données à tout moment. Tous les détails sont ci-dessous.",
     "metaTitle": "Politique de confidentialité",
     "metaDescription": "Comment SentinelX Esports collecte, utilise et protège vos données personnelles conformément à la loi nigériane sur la protection des données de 2023.",
     "s1Heading": "1. Qui contrôle vos données",
@@ -131,7 +134,7 @@
     "s2Tournament": "Lorsque vous vous inscrivez à un tournoi :",
     "s2TournamentList": "<li>Informations de paiement (traitées par Paystack — nous recevons une référence de transaction, pas les détails de votre carte)</li><li>Coordonnées bancaires (collectées par Paystack pour les retraits de gains — stockées par Paystack, pas par nous)</li>",
     "s2Play": "Lorsque vous jouez :",
-    "s2PlayList": "<li>Historique des matchs, scores et résultats</li><li>SX Score et classements</li><li>Succès et solde de SX Coins</li><li>Captures d'écran et enregistrements de match que vous soumettez pour la vérification des résultats</li>",
+    "s2PlayList": "<li>Historique des matchs, scores et résultats</li><li>SX Score et classements</li><li>Succès et solde de SX Coins</li><li>Captures d'écran et enregistrements de match que vous soumettez pour la vérification des résultats</li><li>Paris communautaires — les matchs sur lesquels vous avez misé, vos choix, les montants misés et les résultats</li><li>Historique des transactions de SX Coins (gains, dépenses, paris, remboursements)</li>",
     "s2Auto": "Automatiquement :",
     "s2AutoList": "<li>Données de journal (adresse IP, type de navigateur, pages visitées) — utilisées pour la sécurité et la correction de bugs</li><li>Cookies de session (nécessaires au fonctionnement de la connexion)</li>",
     "s3Heading": "3. Pourquoi nous utilisons vos données",
@@ -142,6 +145,7 @@
       "payment": { "purpose": "Traitement des paiements d'inscription aux tournois", "basis": "Exécution du contrat" },
       "prizes": { "purpose": "Versement des gains", "basis": "Exécution du contrat" },
       "whatsapp": { "purpose": "Envoi de notifications de match (WhatsApp)", "basis": "Consentement — vous y adhérez en ajoutant votre numéro de téléphone" },
+      "wagering": { "purpose": "Gestion des paris communautaires", "basis": "Exécution du contrat" },
       "improving": { "purpose": "Amélioration de la plateforme", "basis": "Intérêt légitime" },
       "fraud": { "purpose": "Prévention de la fraude et de la triche", "basis": "Intérêt légitime" },
       "compliance": { "purpose": "Conformité avec la loi nigériane", "basis": "Obligation légale" }

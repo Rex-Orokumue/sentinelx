@@ -118,7 +118,10 @@
   "privacy": {
     "eyebrow": "Legal",
     "title": "Privacy Policy",
-    "subtitle": "Last updated: August 2026 · Compliant with the Nigeria Data Protection Act 2023 (NDPA)",
+    "subtitle": "How we collect, use, and protect your personal data.",
+    "metaUpdated": "Last updated September 2026",
+    "metaCompliance": "Nigeria Data Protection Act 2023",
+    "summary": "The short version: we collect what we need to run your account, tournaments, and payouts — we don’t sell anything to advertisers. Your username, profile and match record are public. You can ask to see, correct, export or delete your data at any time. The full detail is below.",
     "metaTitle": "Privacy Policy",
     "metaDescription": "How SentinelX Esports collects, uses, and protects your personal data under Nigeria's Data Protection Act 2023.",
     "s1Heading": "1. Who Controls Your Data",
@@ -131,7 +134,7 @@
     "s2Tournament": "When you register for a tournament:",
     "s2TournamentList": "<li>Payment information (processed by Paystack — we receive a transaction reference, not your card details)</li><li>Bank account details (collected by Paystack for prize withdrawals — stored by Paystack, not by us)</li>",
     "s2Play": "When you play:",
-    "s2PlayList": "<li>Match history, scores, and results</li><li>SX Score and rankings</li><li>Achievements and SX Coins balance</li><li>Match screenshots and recordings you submit for result verification</li>",
+    "s2PlayList": "<li>Match history, scores, and results</li><li>SX Score and rankings</li><li>Achievements and SX Coins balance</li><li>Match screenshots and recordings you submit for result verification</li><li>Community wagering — the matches you staked on, your picks, stake amounts, and outcomes</li><li>SX Coins transaction history (earns, spends, wagers, refunds)</li>",
     "s2Auto": "Automatically:",
     "s2AutoList": "<li>Log data (IP address, browser type, pages visited) — used for security and to fix bugs</li><li>Session cookies (required for login to work)</li>",
     "s3Heading": "3. Why We Use Your Data",
@@ -142,6 +145,7 @@
       "payment": { "purpose": "Processing tournament entry payments", "basis": "Contract performance" },
       "prizes": { "purpose": "Paying out prizes", "basis": "Contract performance" },
       "whatsapp": { "purpose": "Sending match notifications (WhatsApp)", "basis": "Consent — you opt in by adding your phone number" },
+      "wagering": { "purpose": "Running community wagering", "basis": "Contract performance" },
       "improving": { "purpose": "Improving the platform", "basis": "Legitimate interest" },
       "fraud": { "purpose": "Preventing fraud and cheating", "basis": "Legitimate interest" },
       "compliance": { "purpose": "Complying with Nigerian law", "basis": "Legal obligation" }
