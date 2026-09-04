@@ -528,5 +528,11 @@
     "comingSoonLabel": "Coming Soon",
     "teamLeaguesTitle": "Team & School Leagues",
     "teamLeaguesBody": "teams representing a school or state, with team-vs-team standings."
+  },
+  "legalCommon": {
+    "tocLabel": "On this page",
+    "summaryLabel": "In plain English",
+    "contactCtaHeading": "Still have questions?",
+    "contactCtaButton": "Contact us"
   }
 }

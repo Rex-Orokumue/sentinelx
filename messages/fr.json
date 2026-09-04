@@ -528,5 +528,11 @@
     "comingSoonLabel": "Bientôt disponible",
     "teamLeaguesTitle": "Ligues d'équipes et scolaires",
     "teamLeaguesBody": "des équipes représentant une école ou un état, avec des classements équipe contre équipe."
+  },
+  "legalCommon": {
+    "tocLabel": "Sur cette page",
+    "summaryLabel": "En clair",
+    "contactCtaHeading": "D’autres questions ?",
+    "contactCtaButton": "Nous contacter"
   }
 }

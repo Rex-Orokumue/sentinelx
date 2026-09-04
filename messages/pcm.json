@@ -528,5 +528,11 @@
     "comingSoonLabel": "Coming Soon",
     "teamLeaguesTitle": "Team & School Leagues",
     "teamLeaguesBody": "teams wey dey represent school or state, with team-vs-team standings."
+  },
+  "legalCommon": {
+    "tocLabel": "Wetin dey dis page",
+    "summaryLabel": "For plain English",
+    "contactCtaHeading": "You still get question?",
+    "contactCtaButton": "Contact Us"
   }
 }
