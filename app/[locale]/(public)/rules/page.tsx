@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
-import { StaticPageShell, proseClassName } from '@/components/static/StaticPageShell'
+import { LegalDocShell } from '@/components/static/LegalDocShell'
 import { listItemTag } from '@/components/static/richTags'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
@@ -18,32 +18,20 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 export default async function RulesPage() {
   const t = await getTranslations('rules')
   return (
-    <StaticPageShell eyebrow={t('eyebrow')} title={t('title')}>
-      <div className={proseClassName}>
-        <h2>{t('eligibilityHeading')}</h2>
-        <ul>{t.rich('eligibilityList', listItemTag)}</ul>
-
-        <h2>{t('beforeHeading')}</h2>
-        <ul>{t.rich('beforeList', listItemTag)}</ul>
-
-        <h2>{t('playingHeading')}</h2>
-        <ul>{t.rich('playingList', listItemTag)}</ul>
-
-        <h2>{t('submittingHeading')}</h2>
-        <ul>{t.rich('submittingList', listItemTag)}</ul>
-
-        <h2>{t('noShowHeading')}</h2>
-        <ul>{t.rich('noShowList', listItemTag)}</ul>
-
-        <h2>{t('disputesHeading')}</h2>
-        <ul>{t.rich('disputesList', listItemTag)}</ul>
-
-        <h2>{t('conductHeading')}</h2>
-        <ul>{t.rich('conductList', listItemTag)}</ul>
-
-        <h2>{t('prizesHeading')}</h2>
-        <ul>{t.rich('prizesList', listItemTag)}</ul>
-      </div>
-    </StaticPageShell>
+    <LegalDocShell
+      eyebrow={t('eyebrow')}
+      title={t('title')}
+      summary={t('summary')}
+      sections={[
+        { id: 'eligibility', title: t('eligibilityHeading'), body: <ul>{t.rich('eligibilityList', listItemTag)}</ul> },
+        { id: 'before-your-match', title: t('beforeHeading'), body: <ul>{t.rich('beforeList', listItemTag)}</ul> },
+        { id: 'during-play', title: t('playingHeading'), body: <ul>{t.rich('playingList', listItemTag)}</ul> },
+        { id: 'submitting-results', title: t('submittingHeading'), body: <ul>{t.rich('submittingList', listItemTag)}</ul> },
+        { id: 'no-shows', title: t('noShowHeading'), body: <ul>{t.rich('noShowList', listItemTag)}</ul> },
+        { id: 'disputes', title: t('disputesHeading'), body: <ul>{t.rich('disputesList', listItemTag)}</ul> },
+        { id: 'conduct', title: t('conductHeading'), body: <ul>{t.rich('conductList', listItemTag)}</ul> },
+        { id: 'prizes', title: t('prizesHeading'), body: <ul>{t.rich('prizesList', listItemTag)}</ul> },
+      ]}
+    />
   )
 }

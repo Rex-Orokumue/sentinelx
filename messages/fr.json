@@ -192,6 +192,7 @@
     "s5P1": "Écrivez à <email>sentinelxesports@gmail.com</email> avec votre nom d'utilisateur, le nom du tournoi et la raison de votre demande. Nous répondrons sous 3 jours ouvrés."
   },
   "rules": {
+    "summary": "En résumé : soyez à l’heure, jouez le format défini par le tournoi, gardez un enregistrement et soumettez votre résultat avec des preuves. Les absences et la triche vous coûtent des points de SX Score. La décision d’un administrateur sur un litige est définitive.",
     "eyebrow": "Assistance",
     "title": "Règlement des tournois",
     "metaTitle": "Règlement des tournois",
