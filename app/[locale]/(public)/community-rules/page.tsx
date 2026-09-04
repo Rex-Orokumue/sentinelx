@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
-import { StaticPageShell, proseClassName } from '@/components/static/StaticPageShell'
+import { LegalDocShell } from '@/components/static/LegalDocShell'
 import { emailTag, strongTag } from '@/components/static/richTags'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
@@ -18,33 +18,40 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 export default async function CommunityRulesPage() {
   const t = await getTranslations('communityRules')
   return (
-    <StaticPageShell eyebrow={t('eyebrow')} title={t('title')}>
-      <div className={proseClassName}>
-        <p>{t('intro')}</p>
-
-        <h2>{t('basicHeading')}</h2>
-        <p>{t('basicP1')}</p>
-
-        <h2>{t('notAllowedHeading')}</h2>
-        <h3>{t('harassmentHeading')}</h3>
-        <p>{t('harassmentP1')}</p>
-        <h3>{t('spamHeading')}</h3>
-        <p>{t('spamP1')}</p>
-        <h3>{t('falseInfoHeading')}</h3>
-        <p>{t('falseInfoP1')}</p>
-        <h3>{t('privacyHeading')}</h3>
-        <p>{t('privacyP1')}</p>
-        <h3>{t('cheatingHeading')}</h3>
-        <p>{t('cheatingP1')}</p>
-        <h3>{t('nsfwHeading')}</h3>
-        <p>{t('nsfwP1')}</p>
-
-        <h2>{t('consequencesHeading')}</h2>
-        <p>{t.rich('consequencesP1', { ...strongTag, br: () => <br /> })}</p>
-
-        <h2>{t('reportingHeading')}</h2>
-        <p>{t.rich('reportingP1', emailTag())}</p>
-      </div>
-    </StaticPageShell>
+    <LegalDocShell
+      eyebrow={t('eyebrow')}
+      title={t('title')}
+      summary={t('summary')}
+      sections={[
+        { id: 'overview', title: t('overviewHeading'), body: <p>{t('intro')}</p> },
+        { id: 'the-basics', title: t('basicHeading'), body: <p>{t('basicP1')}</p> },
+        {
+          id: 'not-allowed',
+          title: t('notAllowedHeading'),
+          body: (
+            <>
+              <h3>{t('harassmentHeading')}</h3>
+              <p>{t('harassmentP1')}</p>
+              <h3>{t('spamHeading')}</h3>
+              <p>{t('spamP1')}</p>
+              <h3>{t('falseInfoHeading')}</h3>
+              <p>{t('falseInfoP1')}</p>
+              <h3>{t('privacyHeading')}</h3>
+              <p>{t('privacyP1')}</p>
+              <h3>{t('cheatingHeading')}</h3>
+              <p>{t('cheatingP1')}</p>
+              <h3>{t('nsfwHeading')}</h3>
+              <p>{t('nsfwP1')}</p>
+            </>
+          ),
+        },
+        {
+          id: 'consequences',
+          title: t('consequencesHeading'),
+          body: <p>{t.rich('consequencesP1', { ...strongTag, br: () => <br /> })}</p>,
+        },
+        { id: 'reporting', title: t('reportingHeading'), body: <p>{t.rich('reportingP1', emailTag())}</p> },
+      ]}
+    />
   )
 }

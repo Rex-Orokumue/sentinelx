@@ -215,6 +215,8 @@
     "prizesList": "<li>Prize dey enter di winner wallet after admin confam di final result</li><li>Players must complete KYC verification before dem withdraw prize money</li><li>Withdrawal request dey process within 1–5 business days</li>"
   },
   "communityRules": {
+    "summary": "Di short version: respect people. No harassment, no spam, no doxxing, no cheating talk, no NSFW content. If you break dis ones, dem go mute, suspend, or ban you.",
+    "overviewHeading": "Overview",
     "eyebrow": "Community",
     "title": "Community Rules",
     "metaTitle": "Community Rules",
@@ -241,6 +243,7 @@
     "reportingP1": "You see something wey break dis rules? Use di report button for any post, or email <email>sentinelxesports@gmail.com</email>. Admin team dey review reports. We dey take every report serious."
   },
   "safety": {
+    "summary": "Di short version: protect your login and no share your password with anybody — we no go ever ask you for am. Trade only through di platform escrow, and report anything wey no look right.",
     "eyebrow": "Support",
     "title": "Stay Safe for SentinelX",
     "metaTitle": "Stay Safe for SentinelX",

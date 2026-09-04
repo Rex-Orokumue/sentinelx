@@ -215,6 +215,8 @@
     "prizesList": "<li>Les gains sont crédités sur le portefeuille du gagnant après confirmation du résultat final par l'administrateur</li><li>Les joueurs doivent compléter la vérification KYC avant de retirer leurs gains</li><li>Les demandes de retrait sont traitées sous 1 à 5 jours ouvrés</li>"
   },
   "communityRules": {
+    "summary": "En résumé : traitez les autres avec respect. Pas de harcèlement, de spam, de divulgation de données personnelles, d’incitation à la triche ni de contenu NSFW. Enfreindre ces règles entraîne une mise en sourdine, une suspension ou un bannissement.",
+    "overviewHeading": "Aperçu",
     "eyebrow": "Communauté",
     "title": "Règles de la communauté",
     "metaTitle": "Règles de la communauté",
@@ -241,6 +243,7 @@
     "reportingP1": "Vous voyez quelque chose qui enfreint ces règles ? Utilisez le bouton de signalement sur n'importe quelle publication, ou écrivez à <email>sentinelxesports@gmail.com</email>. Les signalements sont examinés par l'équipe d'administration. Nous prenons chaque signalement au sérieux."
   },
   "safety": {
+    "summary": "En résumé : protégez vos identifiants et ne partagez jamais votre mot de passe — nous ne vous le demanderons jamais. N’échangez qu’via l’escrow de la plateforme, et signalez tout ce qui vous semble suspect.",
     "eyebrow": "Assistance",
     "title": "Restez en sécurité sur SentinelX",
     "metaTitle": "Restez en sécurité sur SentinelX",
