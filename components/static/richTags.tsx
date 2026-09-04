@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Link } from '@/i18n/navigation'
 
 // Shared next-intl `t.rich()` tag renderers for the static/legal pages
 // (terms, privacy, rules, safety, escrow, tournament-guide, ...). Message
@@ -39,7 +40,7 @@ export function linkTag(href: string, opts: { external?: boolean } = {}) {
           {chunks}
         </a>
       ) : (
-        <a href={href}>{chunks}</a>
+        <Link href={href}>{chunks}</Link>
       ),
   }
 }
