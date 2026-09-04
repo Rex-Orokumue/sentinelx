@@ -73,7 +73,9 @@
   "terms": {
     "eyebrow": "Legal",
     "title": "Terms of Service",
-    "subtitle": "Last updated: August 2026",
+    "subtitle": "The terms that govern your use of the SentinelX platform.",
+    "metaUpdated": "Last updated September 2026",
+    "summary": "The short version: you must be 13 or older, one account per person, and you play fair — real results, backed by proof. Prize money pays to your bank through Paystack after an ID check. SX Coins are platform points with no cash value. Nigerian law applies. This summary is not the legal text — the sections below are.",
     "metaTitle": "Terms of Service",
     "metaDescription": "The terms that govern using the SentinelX Esports platform.",
     "s1Heading": "1. Who We Are",
@@ -88,37 +90,44 @@
     "s4Heading": "4. Tournaments and Entry Fees",
     "s4P1": "Tournament entry fees are set per event and displayed clearly before registration. The current standard fee is ₦500. By registering and completing payment, you confirm your intent to participate.",
     "s4P2": "Entry fees are processed securely by Paystack. We do not store your card details.",
-    "s4P3": "SX Coins may be used to reduce or eliminate entry fees where that option is offered. See the Refund Policy for how cancellations are handled.",
+    "s4P3": "SX Coins may be used to reduce or eliminate entry fees where that option is offered. See the <link>Refund Policy</link> for how cancellations are handled.",
     "s5Heading": "5. Match Rules and Fair Play",
     "s5Intro": "All players must compete honestly. The following are prohibited:",
     "s5List": "<li>Submitting false or manipulated match results</li><li>Using external tools, scripts, or exploits to gain an advantage</li><li>Colluding with an opponent to produce a predetermined result</li><li>Threatening, harassing, or abusing opponents</li>",
-    "s5P2": "Match results must be submitted with supporting evidence (screenshot and screen recording). Admin decisions on disputed results are final.",
+    "s5P2": "Match results must be submitted with supporting evidence (screenshot and screen recording). Admin decisions on disputed results are final. Full conduct and match rules are in the <link>Tournament Rules</link>.",
     "s5P3": "A no-show — failing to appear for your scheduled match without notice — results in a forfeit and a penalty to your SX Score.",
     "s6Heading": "6. Prizes and Withdrawals",
     "s6P1": "Prize money is paid to the bank account you link to your player dashboard via Paystack. You must complete identity verification before your first withdrawal.",
     "s6P2": "We aim to process approved withdrawals within 1–5 business days. We are not responsible for delays caused by your bank.",
     "s7Heading": "7. SX Coins",
-    "s7P1": "SX Coins are a virtual in-platform currency. They are earned by competing and spending time on the platform. SX Coins have no monetary value and cannot be exchanged for cash. They may be used within the platform for entry fee discounts, community features, and the in-platform store.",
-    "s8Heading": "8. Gaming Exchange",
-    "s8P1": "The Gaming Exchange (powered by Zolarux escrow) allows players to buy and sell gaming accounts and in-game items. SentinelX provides the platform and escrow infrastructure. We are not party to the transaction between buyer and seller and are not liable for disputes that arise from transactions conducted outside the platform's escrow system.",
-    "s9Heading": "9. Community Standards",
-    "s9P1": "You agree to treat all other members of the SentinelX community with respect. Hate speech, discrimination, threats, and harassment are not tolerated and will result in suspension or permanent ban. See our Community Rules for the full standards.",
-    "s10Heading": "10. Intellectual Property",
-    "s10P1": "All SentinelX branding, design, and original content is owned by SentinelX Esports. You may not reproduce, copy, or distribute our content without written permission. Content you post (match screenshots, community posts) remains yours, but you grant us a licence to display it on the platform.",
-    "s11Heading": "11. Limitation of Liability",
-    "s11P1": "SentinelX Esports is not liable for indirect, incidental, or consequential losses arising from your use of the platform. Our total liability to you for any claim shall not exceed the total entry fees you have paid to us in the 3 months prior to the claim.",
-    "s11P2": "We do not guarantee uninterrupted access to the platform. We will make reasonable efforts to restore service promptly in the event of downtime.",
-    "s12Heading": "12. Changes to These Terms",
-    "s12P1": "We may update these Terms from time to time. We will notify you via the platform or email when significant changes are made. Continuing to use SentinelX after changes are posted means you accept the updated terms.",
-    "s13Heading": "13. Governing Law",
-    "s13P1": "These Terms are governed by the laws of the Federal Republic of Nigeria. Any disputes shall be subject to the jurisdiction of Nigerian courts.",
-    "s14Heading": "14. Contact",
-    "s14P1": "Questions about these Terms? Email us at <email>sentinelxesports@gmail.com</email> or message us on WhatsApp: <whatsapp>+234 903 239 5685</whatsapp>."
+    "s7P1": "SX Coins are a virtual in-platform currency. They are earned by competing and spending time on the platform. SX Coins have no monetary value and cannot be exchanged for cash. They may be used within the platform for entry fee discounts, community features, and the in-platform store. SX Coins may also be staked in community wagering (see section 8), and can be lost if your wager does not win.",
+    "s8Heading": "8. Community Wagering (SX Coins)",
+    "s8P1": "You may stake SX Coins on the outcome of a match you are not playing in. Wagering is optional and uses SX Coins only.",
+    "s8List": "<li>Wagering opens once both players are confirmed for a scheduled match and closes 15 minutes before the scheduled start time. For matches scheduled across a full day, it closes 24 hours after that day begins.</li><li>A 5% platform fee is taken from the losing pool. Winnings are paid in SX Coins only.</li><li>Wagers settle automatically from the admin-confirmed match result, and that settlement is final.</li><li>If a match is voided or a result is overturned, every stake is returned in full.</li>",
+    "s8P2": "Because SX Coins have no monetary value and cannot be exchanged for cash, community wagering is not betting for money.",
+    "s9Heading": "9. Gaming Exchange",
+    "s9P1": "The Gaming Exchange (powered by Zolarux escrow) allows players to buy and sell gaming accounts and in-game items. SentinelX provides the platform and escrow infrastructure. We are not party to the transaction between buyer and seller and are not liable for disputes that arise from transactions conducted outside the platform's escrow system. See <link>how escrow works</link> for the step-by-step.",
+    "s10Heading": "10. Community Standards",
+    "s10P1": "You agree to treat all other members of the SentinelX community with respect. Hate speech, discrimination, threats, and harassment are not tolerated and will result in suspension or permanent ban. See our <link>Community Rules</link> for the full standards.",
+    "s11Heading": "11. Intellectual Property",
+    "s11P1": "All SentinelX branding, design, and original content is owned by SentinelX Esports. You may not reproduce, copy, or distribute our content without written permission. Content you post (match screenshots, community posts) remains yours, but you grant us a licence to display it on the platform.",
+    "s12Heading": "12. Limitation of Liability",
+    "s12P1": "SentinelX Esports is not liable for indirect, incidental, or consequential losses arising from your use of the platform. Our total liability to you for any claim shall not exceed the total entry fees you have paid to us in the 3 months prior to the claim.",
+    "s12P2": "We do not guarantee uninterrupted access to the platform. We will make reasonable efforts to restore service promptly in the event of downtime.",
+    "s13Heading": "13. Changes to These Terms",
+    "s13P1": "We may update these Terms from time to time. We will notify you via the platform or email when significant changes are made. Continuing to use SentinelX after changes are posted means you accept the updated terms.",
+    "s14Heading": "14. Governing Law",
+    "s14P1": "These Terms are governed by the laws of the Federal Republic of Nigeria. Any disputes shall be subject to the jurisdiction of Nigerian courts.",
+    "s15Heading": "15. Contact",
+    "s15P1": "Questions about these Terms? Email us at <email>sentinelxesports@gmail.com</email> or message us on WhatsApp: <whatsapp>+234 903 239 5685</whatsapp>."
   },
   "privacy": {
     "eyebrow": "Legal",
     "title": "Privacy Policy",
-    "subtitle": "Last updated: August 2026 · Compliant with the Nigeria Data Protection Act 2023 (NDPA)",
+    "subtitle": "How we collect, use, and protect your personal data.",
+    "metaUpdated": "Last updated September 2026",
+    "metaCompliance": "Nigeria Data Protection Act 2023",
+    "summary": "The short version: we collect what we need to run your account, tournaments, and payouts — we don’t sell anything to advertisers. Your username, profile and match record are public. You can ask to see, correct, export or delete your data at any time. The full detail is below.",
     "metaTitle": "Privacy Policy",
     "metaDescription": "How SentinelX Esports collects, uses, and protects your personal data under Nigeria's Data Protection Act 2023.",
     "s1Heading": "1. Who Controls Your Data",
@@ -131,7 +140,7 @@
     "s2Tournament": "When you register for a tournament:",
     "s2TournamentList": "<li>Payment information (processed by Paystack — we receive a transaction reference, not your card details)</li><li>Bank account details (collected by Paystack for prize withdrawals — stored by Paystack, not by us)</li>",
     "s2Play": "When you play:",
-    "s2PlayList": "<li>Match history, scores, and results</li><li>SX Score and rankings</li><li>Achievements and SX Coins balance</li><li>Match screenshots and recordings you submit for result verification</li>",
+    "s2PlayList": "<li>Match history, scores, and results</li><li>SX Score and rankings</li><li>Achievements and SX Coins balance</li><li>Match screenshots and recordings you submit for result verification</li><li>Community wagering — the matches you staked on, your picks, stake amounts, and outcomes</li><li>SX Coins transaction history (earns, spends, wagers, refunds)</li>",
     "s2Auto": "Automatically:",
     "s2AutoList": "<li>Log data (IP address, browser type, pages visited) — used for security and to fix bugs</li><li>Session cookies (required for login to work)</li>",
     "s3Heading": "3. Why We Use Your Data",
@@ -142,6 +151,7 @@
       "payment": { "purpose": "Processing tournament entry payments", "basis": "Contract performance" },
       "prizes": { "purpose": "Paying out prizes", "basis": "Contract performance" },
       "whatsapp": { "purpose": "Sending match notifications (WhatsApp)", "basis": "Consent — you opt in by adding your phone number" },
+      "wagering": { "purpose": "Running community wagering", "basis": "Contract performance" },
       "improving": { "purpose": "Improving the platform", "basis": "Legitimate interest" },
       "fraud": { "purpose": "Preventing fraud and cheating", "basis": "Legitimate interest" },
       "compliance": { "purpose": "Complying with Nigerian law", "basis": "Legal obligation" }
@@ -169,6 +179,7 @@
     "s10P1": "We will notify you via the platform or email if we make significant changes to this policy. The latest version is always available at sentinelxesports.com/privacy."
   },
   "refundPolicy": {
+    "summary": "The short version: entry fees come back if a tournament is cancelled or cannot run — not if you are disqualified or simply change your mind. A payment that debited you but failed to register is always refunded.",
     "eyebrow": "Legal",
     "title": "Refund Policy",
     "subtitle": "Last updated: August 2026",
@@ -192,6 +203,7 @@
     "s5P1": "Email <email>sentinelxesports@gmail.com</email> with your username, the tournament name, and the reason for your request. We will respond within 3 business days."
   },
   "rules": {
+    "summary": "The short version: show up on time, play the format the tournament sets, keep a recording, and submit your result with proof. No-shows and cheating cost you SX Score. An admin’s ruling on a dispute is final.",
     "eyebrow": "Support",
     "title": "Tournament Rules",
     "metaTitle": "Tournament Rules",
@@ -214,6 +226,8 @@
     "prizesList": "<li>Prizes are credited to the winner's wallet after admin confirms the final result</li><li>Players must complete KYC verification before withdrawing prize money</li><li>Withdrawal requests are processed within 1–5 business days</li>"
   },
   "communityRules": {
+    "summary": "The short version: treat people with respect. No harassment, spam, doxxing, cheating talk, or NSFW content. Breaking these gets you muted, suspended, or banned.",
+    "overviewHeading": "Overview",
     "eyebrow": "Community",
     "title": "Community Rules",
     "metaTitle": "Community Rules",
@@ -240,6 +254,7 @@
     "reportingP1": "See something that breaks these rules? Use the report button on any post, or email <email>sentinelxesports@gmail.com</email>. Reports are reviewed by the admin team. We take every report seriously."
   },
   "safety": {
+    "summary": "The short version: protect your login and never share your password — we will never ask for it. Trade only through the platform’s escrow, and report anything that feels off.",
     "eyebrow": "Support",
     "title": "Stay Safe on SentinelX",
     "metaTitle": "Stay Safe on SentinelX",
@@ -265,8 +280,9 @@
     "metaTitle": "Safe Trading with Zolarux Escrow",
     "metaDescription": "How Zolarux Escrow protects buyers and sellers on the SentinelX Gaming Exchange.",
     "whatIsExchangeHeading": "What Is the Gaming Exchange?",
-    "whatIsExchangeP1": "The Gaming Exchange is SentinelX's marketplace for gaming accounts, in-game items, and digital gaming assets. It's built for Nigerian mobile gamers who want to buy and sell safely — without the risk of being scammed.",
-    "whatIsExchangeP2": "Every transaction on the Exchange is protected by Zolarux Escrow. <link>Browse the Exchange →</link>",
+    "summary": "The short version: the Gaming Exchange will hold the buyer’s payment safely until both sides confirm the deal is done. Trade outside the escrow and you carry the risk yourself.",
+    "whatIsExchangeP1": "The Gaming Exchange will be SentinelX’s marketplace for gaming accounts, in-game items, and digital gaming assets — built for Nigerian mobile gamers who want to buy and sell safely, without the risk of being scammed. It is not live yet; this page explains how it will work when it launches.",
+    "whatIsExchangeP2": "Every transaction on the Exchange will be protected by Zolarux Escrow. <link>Browse the Exchange →</link>",
     "whatIsEscrowHeading": "What Is Zolarux Escrow?",
     "whatIsEscrowP1": "Zolarux is an independent escrow service. Escrow means a trusted third party holds a payment until both sides of a transaction are satisfied. Neither the buyer's money nor the seller's item is transferred until the deal is confirmed as complete.",
     "whatIsEscrowP2": "This protects both parties.",
@@ -284,6 +300,7 @@
     "questionsP1": "Contact us at <email>sentinelxesports@gmail.com</email>."
   },
   "tournamentGuide": {
+    "summary": "The short version: check the game, format, and schedule before you register, keep your screen recording running through your match, and submit your result promptly with a screenshot.",
     "eyebrow": "Support",
     "title": "Tournament Guide",
     "subtitle": "Everything you need to know.",
@@ -407,6 +424,8 @@
     "ctaButton": "Join the Community →"
   },
   "contact": {
+    "whatsappResponsePill": "Replies within 24h",
+    "beforeYouWrite": "Many answers are already in the <help>Help Centre</help> — or ask the in-app assistant. Still need us? Reach out below.",
     "eyebrow": "Support",
     "title": "Contact Us",
     "subtitle": "Whether you have a question about a tournament, a problem with your account, or something else — we're reachable and we respond.",
@@ -528,5 +547,11 @@
     "comingSoonLabel": "Coming Soon",
     "teamLeaguesTitle": "Team & School Leagues",
     "teamLeaguesBody": "teams representing a school or state, with team-vs-team standings."
+  },
+  "legalCommon": {
+    "tocLabel": "On this page",
+    "summaryLabel": "In plain English",
+    "contactCtaHeading": "Still have questions?",
+    "contactCtaButton": "Contact us"
   }
 }

@@ -73,7 +73,9 @@
   "terms": {
     "eyebrow": "Legal",
     "title": "Terms of Service",
-    "subtitle": "Last update: August 2026",
+    "subtitle": "Di terms wey dey guide how you dey use SentinelX platform.",
+    "metaUpdated": "Last update: September 2026",
+    "summary": "Di short version: you must reach 13 years or pass, na one account per person, and you must play fair — real results, with evidence. Prize money dey enter your bank through Paystack after ID check. SX Coins na platform points wey no get cash value. Naija law dey apply. Dis summary no be di legal text — na di sections wey dey below.",
     "metaTitle": "Terms of Service",
     "metaDescription": "The terms wey dey guide how you go use SentinelX Esports platform.",
     "s1Heading": "1. Who We Be",
@@ -88,37 +90,44 @@
     "s4Heading": "4. Tournaments and Entry Fee",
     "s4P1": "Every tournament get entry fee wey dem go show you clearly before you register. Right now, standard fee na ₦500. If you register and complete payment, e mean say you don confam say you wan play.",
     "s4P2": "Paystack dey process entry fee safely. We no dey keep your card details.",
-    "s4P3": "You fit use SX Coins to reduce or waive entry fee where dem allow am. Check our Refund Policy to see how cancellation dey work.",
+    "s4P3": "You fit use SX Coins to reduce or waive entry fee where dem allow am. Check our <link>Refund Policy</link> to see how cancellation dey work.",
     "s5Heading": "5. Match Rules and Fair Play",
     "s5Intro": "Every player must play straight. Dis ones no dey allowed:",
     "s5List": "<li>To submit fake or manipulated match result</li><li>To use outside tools, scripts, or exploit to get advantage</li><li>To gang up with your opponent to fix result</li><li>To threaten, harass, or abuse your opponent</li>",
-    "s5P2": "You must submit match result with evidence (screenshot and screen recording). Wetin admin decide for disputed result, na im be final.",
+    "s5P2": "You must submit match result with evidence (screenshot and screen recording). Wetin admin decide for disputed result, na im be final. Di full conduct and match rules dey inside di <link>Tournament Rules</link>.",
     "s5P3": "No-show — wey mean say you no show up for your match without notice — go make you forfeit and lose SX Score.",
     "s6Heading": "6. Prize Money and Withdrawal",
     "s6P1": "Prize money dey enter di bank account wey you link to your player dashboard through Paystack. You must complete identity verification before your first withdrawal.",
     "s6P2": "We dey try process approved withdrawal within 1–5 business days. If your bank delay am, na dem cause am, no be us.",
     "s7Heading": "7. SX Coins",
-    "s7P1": "SX Coins na virtual currency wey dey inside di platform. You go earn am as you dey play and spend time for di platform. SX Coins no get any cash value and you no fit change am to money. You fit use am inside di platform for entry fee discount, community features, and di in-platform store.",
-    "s8Heading": "8. Gaming Exchange",
-    "s8P1": "Gaming Exchange (wey Zolarux escrow dey power) make players fit buy and sell gaming accounts and in-game items. SentinelX dey provide di platform and escrow infrastructure. We no be part of di transaction between buyer and seller and we no dey responsible for any dispute wey come from transaction wey happen outside di platform escrow system.",
-    "s9Heading": "9. Community Standards",
-    "s9P1": "You agree to respect every other member of SentinelX community. Hate speech, discrimination, threat, and harassment no get space here — e go cause suspension or permanent ban. Check our Community Rules to see di full standards.",
-    "s10Heading": "10. Intellectual Property",
-    "s10P1": "All SentinelX branding, design, and original content na SentinelX Esports property. You no fit copy or share our content without written permission. Content wey you post (match screenshots, community posts) still remain yours, but you dey give us licence to show am for di platform.",
-    "s11Heading": "11. Limitation of Liability",
-    "s11P1": "SentinelX Esports no dey liable for indirect, incidental, or consequential loss wey come from how you dey use di platform. Di total wey we fit owe you for any claim no go pass di total entry fee wey you don pay us for di last 3 months before di claim.",
-    "s11P2": "We no dey guarantee say platform go dey up 24/7. We go try our best to restore service quick quick if downtime happen.",
-    "s12Heading": "12. Changes to Dis Terms",
-    "s12P1": "We fit update dis Terms anytime. We go notify you through di platform or email if any major change happen. If you still dey use SentinelX after we post di changes, e mean say you don accept di new terms.",
-    "s13Heading": "13. Governing Law",
-    "s13P1": "Dis Terms dey follow di law of Federal Republic of Nigeria. Any dispute go dey under Nigerian court jurisdiction.",
-    "s14Heading": "14. Contact",
-    "s14P1": "You get question about dis Terms? Email us for <email>sentinelxesports@gmail.com</email> or message us for WhatsApp: <whatsapp>+234 903 239 5685</whatsapp>."
+    "s7P1": "SX Coins na virtual currency wey dey inside di platform. You go earn am as you dey play and spend time for di platform. SX Coins no get any cash value and you no fit change am to money. You fit use am inside di platform for entry fee discount, community features, and di in-platform store. You fit also stake SX Coins for community wagering (see section 8), and you fit lose am if your wager no win.",
+    "s8Heading": "8. Community Wagering (SX Coins)",
+    "s8P1": "You fit stake SX Coins on di outcome of match wey you no dey play. Wagering na optional and na SX Coins only e dey use.",
+    "s8List": "<li>Wagering dey open once dem confirm di two players for scheduled match, and e dey close 15 minutes before di scheduled start time. For matches wey dem schedule for full day, e dey close 24 hours after dat day start.</li><li>Dem dey take 5% platform fee from di losing pool. Winnings na SX Coins only.</li><li>Wager dey settle automatically from di match result wey admin confirm, and dat settlement na final.</li><li>If dem void match or overturn result, dem go return every stake in full.</li>",
+    "s8P2": "Because SX Coins no get any cash value and you no fit change am to money, community wagering no be betting for money.",
+    "s9Heading": "9. Gaming Exchange",
+    "s9P1": "Gaming Exchange (wey Zolarux escrow dey power) make players fit buy and sell gaming accounts and in-game items. SentinelX dey provide di platform and escrow infrastructure. We no be part of di transaction between buyer and seller and we no dey responsible for any dispute wey come from transaction wey happen outside di platform escrow system. Check <link>how escrow dey work</link> for di step-by-step.",
+    "s10Heading": "10. Community Standards",
+    "s10P1": "You agree to respect every other member of SentinelX community. Hate speech, discrimination, threat, and harassment no get space here — e go cause suspension or permanent ban. Check our <link>Community Rules</link> to see di full standards.",
+    "s11Heading": "11. Intellectual Property",
+    "s11P1": "All SentinelX branding, design, and original content na SentinelX Esports property. You no fit copy or share our content without written permission. Content wey you post (match screenshots, community posts) still remain yours, but you dey give us licence to show am for di platform.",
+    "s12Heading": "12. Limitation of Liability",
+    "s12P1": "SentinelX Esports no dey liable for indirect, incidental, or consequential loss wey come from how you dey use di platform. Di total wey we fit owe you for any claim no go pass di total entry fee wey you don pay us for di last 3 months before di claim.",
+    "s12P2": "We no dey guarantee say platform go dey up 24/7. We go try our best to restore service quick quick if downtime happen.",
+    "s13Heading": "13. Changes to Dis Terms",
+    "s13P1": "We fit update dis Terms anytime. We go notify you through di platform or email if any major change happen. If you still dey use SentinelX after we post di changes, e mean say you don accept di new terms.",
+    "s14Heading": "14. Governing Law",
+    "s14P1": "Dis Terms dey follow di law of Federal Republic of Nigeria. Any dispute go dey under Nigerian court jurisdiction.",
+    "s15Heading": "15. Contact",
+    "s15P1": "You get question about dis Terms? Email us for <email>sentinelxesports@gmail.com</email> or message us for WhatsApp: <whatsapp>+234 903 239 5685</whatsapp>."
   },
   "privacy": {
     "eyebrow": "Legal",
     "title": "Privacy Policy",
-    "subtitle": "Last update: August 2026 · E dey follow Nigeria Data Protection Act 2023 (NDPA)",
+    "subtitle": "How we dey collect, use, and protect your personal data.",
+    "metaUpdated": "Last update: September 2026",
+    "metaCompliance": "Nigeria Data Protection Act 2023",
+    "summary": "Di short version: we dey collect wetin we need to run your account, tournaments, and payout — we no dey sell anything to advertisers. Your username, profile and match record dey public. You fit ask to see, correct, export or delete your data anytime. Di full detail dey below.",
     "metaTitle": "Privacy Policy",
     "metaDescription": "How SentinelX Esports dey collect, use, and protect your personal data under Nigeria Data Protection Act 2023.",
     "s1Heading": "1. Who Dey Control Your Data",
@@ -131,7 +140,7 @@
     "s2Tournament": "Wen you register for tournament:",
     "s2TournamentList": "<li>Payment information (Paystack dey process am — we dey receive transaction reference, no be your card details)</li><li>Bank account details (Paystack dey collect am for prize withdrawal — Paystack dey store am, no be us)</li>",
     "s2Play": "Wen you dey play:",
-    "s2PlayList": "<li>Match history, score, and result</li><li>SX Score and ranking</li><li>Achievement and SX Coins balance</li><li>Match screenshot and recording wey you submit for result verification</li>",
+    "s2PlayList": "<li>Match history, score, and result</li><li>SX Score and ranking</li><li>Achievement and SX Coins balance</li><li>Match screenshot and recording wey you submit for result verification</li><li>Community wagering — di matches wey you stake on, your picks, stake amount, and outcome</li><li>SX Coins transaction history (earn, spend, wager, refund)</li>",
     "s2Auto": "Automatically:",
     "s2AutoList": "<li>Log data (IP address, browser type, pages wey you visit) — we dey use am for security and to fix bugs</li><li>Session cookies (na im make login work)</li>",
     "s3Heading": "3. Why We Dey Use Your Data",
@@ -142,6 +151,7 @@
       "payment": { "purpose": "To process tournament entry payment", "basis": "Contract performance" },
       "prizes": { "purpose": "To pay out prize", "basis": "Contract performance" },
       "whatsapp": { "purpose": "To send match notification (WhatsApp)", "basis": "Consent — you opt in wen you add your phone number" },
+      "wagering": { "purpose": "To run community wagering", "basis": "Contract performance" },
       "improving": { "purpose": "To improve di platform", "basis": "Legitimate interest" },
       "fraud": { "purpose": "To prevent fraud and cheating", "basis": "Legitimate interest" },
       "compliance": { "purpose": "To comply with Nigerian law", "basis": "Legal obligation" }
@@ -169,6 +179,7 @@
     "s10P1": "We go notify you through di platform or email if we make any major change to dis policy. Di latest version dey always available for sentinelxesports.com/privacy."
   },
   "refundPolicy": {
+    "summary": "Di short version: entry fee dey come back if dem cancel tournament or e no fit run — no be if dem disqualify you or you just change your mind. Payment wey debit you but no register, we dey always refund am.",
     "eyebrow": "Legal",
     "title": "Refund Policy",
     "subtitle": "Last update: August 2026",
@@ -192,6 +203,7 @@
     "s5P1": "Email <email>sentinelxesports@gmail.com</email> with your username, tournament name, and di reason for your request. We go respond within 3 business days."
   },
   "rules": {
+    "summary": "Di short version: show up on time, play di format wey di tournament set, keep recording, and submit your result with evidence. No-show and cheating go cost you SX Score. Wetin admin rule for dispute, na im be final.",
     "eyebrow": "Support",
     "title": "Tournament Rules",
     "metaTitle": "Tournament Rules",
@@ -214,6 +226,8 @@
     "prizesList": "<li>Prize dey enter di winner wallet after admin confam di final result</li><li>Players must complete KYC verification before dem withdraw prize money</li><li>Withdrawal request dey process within 1–5 business days</li>"
   },
   "communityRules": {
+    "summary": "Di short version: respect people. No harassment, no spam, no doxxing, no cheating talk, no NSFW content. If you break dis ones, dem go mute, suspend, or ban you.",
+    "overviewHeading": "Overview",
     "eyebrow": "Community",
     "title": "Community Rules",
     "metaTitle": "Community Rules",
@@ -240,6 +254,7 @@
     "reportingP1": "You see something wey break dis rules? Use di report button for any post, or email <email>sentinelxesports@gmail.com</email>. Admin team dey review reports. We dey take every report serious."
   },
   "safety": {
+    "summary": "Di short version: protect your login and no share your password with anybody — we no go ever ask you for am. Trade only through di platform escrow, and report anything wey no look right.",
     "eyebrow": "Support",
     "title": "Stay Safe for SentinelX",
     "metaTitle": "Stay Safe for SentinelX",
@@ -265,8 +280,9 @@
     "metaTitle": "Trade Safe with Zolarux Escrow",
     "metaDescription": "How Zolarux Escrow dey protect buyers and sellers for SentinelX Gaming Exchange.",
     "whatIsExchangeHeading": "Wetin Be Gaming Exchange?",
-    "whatIsExchangeP1": "Gaming Exchange na SentinelX marketplace for gaming accounts, in-game items, and digital gaming assets. Dem build am for Nigerian mobile gamers wey wan buy and sell safe — without any risk of scam.",
-    "whatIsExchangeP2": "Every transaction for di Exchange dey protected by Zolarux Escrow. <link>Browse di Exchange →</link>",
+    "summary": "Di short version: di Gaming Exchange go hold di buyer payment safe until di two sides confirm say di deal don complete. If you trade outside di escrow, na you carry di risk.",
+    "whatIsExchangeP1": "Di Gaming Exchange go be SentinelX marketplace for gaming accounts, in-game items, and digital gaming assets — dem build am for Naija mobile gamers wey wan buy and sell safe, without any risk of scam. E never dey live; dis page dey explain how e go work wen e launch.",
+    "whatIsExchangeP2": "Every transaction for di Exchange go dey protected by Zolarux Escrow. <link>Browse di Exchange →</link>",
     "whatIsEscrowHeading": "Wetin Be Zolarux Escrow?",
     "whatIsEscrowP1": "Zolarux na independent escrow service. Escrow mean say trusted third party go hold payment until both sides of transaction satisfy. Buyer money and seller item no go transfer until dem confam say deal don complete.",
     "whatIsEscrowP2": "Dis one dey protect both parties.",
@@ -284,6 +300,7 @@
     "questionsP1": "Contact us for <email>sentinelxesports@gmail.com</email>."
   },
   "tournamentGuide": {
+    "summary": "Di short version: check di game, format, and schedule before you register, make your screen recording dey run throughout your match, and submit your result quick quick with screenshot.",
     "eyebrow": "Support",
     "title": "Tournament Guide",
     "subtitle": "Everything wey you need to know.",
@@ -407,6 +424,8 @@
     "ctaButton": "Join Di Community →"
   },
   "contact": {
+    "whatsappResponsePill": "We dey reply within 24h",
+    "beforeYouWrite": "Plenty answers dey already for di <help>Help Centre</help> — or ask di in-app assistant. You still need us? Reach out below.",
     "eyebrow": "Support",
     "title": "Contact Us",
     "subtitle": "Wheda you get question about tournament, problem with your account, or something else — we dey reachable and we dey respond.",
@@ -528,5 +547,11 @@
     "comingSoonLabel": "Coming Soon",
     "teamLeaguesTitle": "Team & School Leagues",
     "teamLeaguesBody": "teams wey dey represent school or state, with team-vs-team standings."
+  },
+  "legalCommon": {
+    "tocLabel": "Wetin dey dis page",
+    "summaryLabel": "For plain English",
+    "contactCtaHeading": "You still get question?",
+    "contactCtaButton": "Contact Us"
   }
 }

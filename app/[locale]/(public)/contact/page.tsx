@@ -1,7 +1,9 @@
+import type { ReactNode } from 'react'
 import { Mail } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
+import { Link } from '@/i18n/navigation'
 import { StaticPageShell } from '@/components/static/StaticPageShell'
 import { emailTag, listItemTag } from '@/components/static/richTags'
 
@@ -18,28 +20,53 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 
 const WHATSAPP_HREF = 'https://wa.me/2349032395685?text=Hi%20SentinelX%2C%20I%20need%20help%20with...'
 
+const helpTag = {
+  help: (chunks: ReactNode) => (
+    <Link href="/help" className="font-semibold text-sx-purple-text hover:text-white">
+      {chunks}
+    </Link>
+  ),
+}
+
 export default async function ContactPage() {
   const t = await getTranslations('contact')
+  const commonIssues: { label: string; body: string }[] = [
+    { label: t('forgotPasswordLabel'), body: t('forgotPasswordP') },
+    { label: t('paymentIssueLabel'), body: t('paymentIssueP') },
+    { label: t('matchDisputeLabel'), body: t('matchDisputeP') },
+    { label: t('withdrawalLabel'), body: t('withdrawalP') },
+  ]
+
   return (
     <StaticPageShell eyebrow={t('eyebrow')} title={t('title')} subtitle={t('subtitle')}>
+      <p className="mb-6 text-sm text-sx-gray">{t.rich('beforeYouWrite', helpTag)}</p>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-sx-border bg-sx-surface p-6">
-          <p className="mb-2 flex items-center gap-2 text-sm font-bold text-white">
-            <Mail className="h-4 w-4 text-sx-purple-text" /> {t('emailLabel')}
-          </p>
+          <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-sx-purple/15 text-sx-purple-text">
+            <Mail className="h-4 w-4" />
+          </span>
+          <p className="text-sm font-bold text-white">{t('emailLabel')}</p>
           <a
             href="mailto:sentinelxesports@gmail.com"
-            className="text-sm font-semibold text-sx-purple-text hover:text-white"
+            className="mt-1 block text-sm font-semibold text-sx-purple-text hover:text-white"
           >
             sentinelxesports@gmail.com
           </a>
           <p className="mt-2 text-xs text-sx-gray">{t('emailResponseNote')}</p>
         </div>
+
         <div className="rounded-xl border border-sx-border bg-sx-surface p-6">
-          <p className="mb-2 flex items-center gap-2 text-sm font-bold text-white">
-            <WhatsAppIcon className="h-4 w-4 text-[#25D366]" /> {t('whatsappLabel')}
-          </p>
-          <p className="text-sm font-semibold text-white">+234 903 239 5685</p>
+          <span className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-[#25D366]/15 text-[#25D366]">
+            <WhatsAppIcon className="h-4 w-4" />
+          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-bold text-white">{t('whatsappLabel')}</p>
+            <span className="rounded-full bg-sx-green/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sx-green">
+              {t('whatsappResponsePill')}
+            </span>
+          </div>
+          <p className="mt-1 text-sm font-semibold text-white">+234 903 239 5685</p>
           <p className="mt-2 text-xs text-sx-gray">{t('whatsappNote')}</p>
           <a
             href={WHATSAPP_HREF}
@@ -56,23 +83,23 @@ export default async function ContactPage() {
         <h2>{t('whatToIncludeHeading')}</h2>
         <p>{t('whatToIncludeIntro')}</p>
         <ul>{t.rich('whatToIncludeList', listItemTag)}</ul>
+      </div>
 
-        <h2>{t('commonIssuesHeading')}</h2>
-        <p>
-          <strong>{t('forgotPasswordLabel')}</strong> {t('forgotPasswordP')}
-        </p>
-        <p>
-          <strong>{t('paymentIssueLabel')}</strong> {t('paymentIssueP')}
-        </p>
-        <p>
-          <strong>{t('matchDisputeLabel')}</strong> {t('matchDisputeP')}
-        </p>
-        <p>
-          <strong>{t('withdrawalLabel')}</strong> {t('withdrawalP')}
-        </p>
+      <div className="mt-8 rounded-xl border border-sx-border bg-sx-surface p-6">
+        <h2 className="mb-4 font-display text-lg font-bold text-white">{t('commonIssuesHeading')}</h2>
+        <dl className="space-y-3">
+          {commonIssues.map((issue) => (
+            <div key={issue.label}>
+              <dt className="text-sm font-bold text-white">{issue.label}</dt>
+              <dd className="text-sm text-sx-gray">{issue.body}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
 
-        <h2>{t('reportAbuseHeading')}</h2>
-        <p>{t.rich('reportAbuseP1', emailTag())}</p>
+      <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/5 p-6">
+        <h2 className="mb-2 font-display text-lg font-bold text-white">{t('reportAbuseHeading')}</h2>
+        <p className="text-sm text-sx-gray">{t.rich('reportAbuseP1', emailTag())}</p>
       </div>
     </StaticPageShell>
   )
