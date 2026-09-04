@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
-import { StaticPageShell, proseClassName } from '@/components/static/StaticPageShell'
+import { LegalDocShell } from '@/components/static/LegalDocShell'
 import { emailTag, linkTag, listItemTag } from '@/components/static/richTags'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
@@ -18,35 +18,42 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
 export default async function EscrowPage() {
   const t = await getTranslations('escrow')
   return (
-    <StaticPageShell eyebrow={t('eyebrow')} title={t('title')}>
-      <div className={proseClassName}>
-        <h2>{t('whatIsExchangeHeading')}</h2>
-        <p>{t('whatIsExchangeP1')}</p>
-        <p>{t.rich('whatIsExchangeP2', linkTag('/exchange'))}</p>
-
-        <h2>{t('whatIsEscrowHeading')}</h2>
-        <p>{t('whatIsEscrowP1')}</p>
-        <p>{t('whatIsEscrowP2')}</p>
-
-        <h2>{t('howItWorksHeading')}</h2>
-        <p>
-          <strong>{t('buyerLabel')}</strong>
-        </p>
-        <ol>{t.rich('buyerList', listItemTag)}</ol>
-        <p>{t('buyerP2')}</p>
-        <p>
-          <strong>{t('sellerLabel')}</strong>
-        </p>
-        <ol>{t.rich('sellerList', listItemTag)}</ol>
-        <p>{t('sellerP2')}</p>
-
-        <h2>{t('whyNotDirectHeading')}</h2>
-        <p>{t('whyNotDirectP1')}</p>
-        <p>{t('whyNotDirectP2')}</p>
-
-        <h2>{t('questionsHeading')}</h2>
-        <p>{t.rich('questionsP1', emailTag())}</p>
-      </div>
-    </StaticPageShell>
+    <LegalDocShell
+      eyebrow={t('eyebrow')}
+      title={t('title')}
+      summary={t('summary')}
+      sections={[
+        {
+          id: 'what-is-the-exchange',
+          title: t('whatIsExchangeHeading'),
+          body: <><p>{t('whatIsExchangeP1')}</p><p>{t.rich('whatIsExchangeP2', linkTag('/exchange'))}</p></>,
+        },
+        {
+          id: 'what-is-escrow',
+          title: t('whatIsEscrowHeading'),
+          body: <><p>{t('whatIsEscrowP1')}</p><p>{t('whatIsEscrowP2')}</p></>,
+        },
+        {
+          id: 'how-it-works',
+          title: t('howItWorksHeading'),
+          body: (
+            <>
+              <p><strong>{t('buyerLabel')}</strong></p>
+              <ol>{t.rich('buyerList', listItemTag)}</ol>
+              <p>{t('buyerP2')}</p>
+              <p><strong>{t('sellerLabel')}</strong></p>
+              <ol>{t.rich('sellerList', listItemTag)}</ol>
+              <p>{t('sellerP2')}</p>
+            </>
+          ),
+        },
+        {
+          id: 'why-not-direct',
+          title: t('whyNotDirectHeading'),
+          body: <><p>{t('whyNotDirectP1')}</p><p>{t('whyNotDirectP2')}</p></>,
+        },
+        { id: 'questions', title: t('questionsHeading'), body: <p>{t.rich('questionsP1', emailTag())}</p> },
+      ]}
+    />
   )
 }
