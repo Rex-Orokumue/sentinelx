@@ -2,7 +2,10 @@ import { timingSafeEqual } from 'crypto'
 import { formatNaira } from '@/lib/format'
 import { SITE_URL } from '@/lib/seo/site'
 
-export const ESCROW_RETURN_URL = `${SITE_URL}/dashboard?tab=orders`
+// /dashboard has no `tab` param — the buy/sell/orders view is its own route,
+// so the old `?tab=orders` silently returned buyers to the dashboard index
+// after paying, with no sign of the order they had just placed.
+export const ESCROW_RETURN_URL = `${SITE_URL}/dashboard/marketplace`
 
 // 08120288390 in wa.me's required international format (no leading 0, no +).
 export const ZOLARUX_WHATSAPP_NUMBER = '2348120288390'

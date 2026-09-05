@@ -21,6 +21,15 @@
     "tv": "TV",
     "more": "More"
   },
+  "exchangeNav": {
+    "title": "Gaming Exchange",
+    "tagline": "Powered by Zolarux escrow",
+    "browse": "Browse",
+    "sell": "Sell",
+    "orders": "My Orders",
+    "escrow": "How escrow works",
+    "trust": "Every trade is protected by Zolarux escrow."
+  },
   "home": {
     "upcomingHeading": "Upcoming",
     "topPlayersHeading": "Top Players",

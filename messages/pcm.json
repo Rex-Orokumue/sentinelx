@@ -21,6 +21,15 @@
     "tv": "TV",
     "more": "More"
   },
+  "exchangeNav": {
+    "title": "Gaming Exchange",
+    "tagline": "Zolarux escrow dey power am",
+    "browse": "Browse",
+    "sell": "Sell",
+    "orders": "My Orders",
+    "escrow": "How escrow dey work",
+    "trust": "Zolarux escrow dey protect every trade."
+  },
   "home": {
     "upcomingHeading": "Wetin dey come",
     "topPlayersHeading": "Top Players",

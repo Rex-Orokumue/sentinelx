@@ -21,6 +21,15 @@
     "tv": "TV",
     "more": "Plus"
   },
+  "exchangeNav": {
+    "title": "Gaming Exchange",
+    "tagline": "Propulsé par l’escrow Zolarux",
+    "browse": "Parcourir",
+    "sell": "Vendre",
+    "orders": "Mes commandes",
+    "escrow": "Comment fonctionne l’escrow",
+    "trust": "Chaque transaction est protégée par l’escrow Zolarux."
+  },
   "home": {
     "upcomingHeading": "À venir",
     "topPlayersHeading": "Meilleurs joueurs",

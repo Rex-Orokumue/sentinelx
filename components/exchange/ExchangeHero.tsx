@@ -40,12 +40,10 @@ export function ExchangeHero() {
 
       <div className="relative grid gap-8 lg:grid-cols-12 lg:items-center lg:gap-6">
         {/* Copy */}
+        {/* No "Gaming Exchange" eyebrow here — ExchangeSubHeader now carries
+            that wordmark directly above this hero on every section route. */}
         <div className="lg:col-span-6">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-sx-purple-text">
-            Gaming Exchange
-          </p>
-
-          <h1 className="mt-3 font-display text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
+          <h1 className="font-display text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
             <span className="block text-white">BUY. SELL. TRADE.</span>
             <span className="block text-sx-purple-text">PLAY MORE.</span>
           </h1>
