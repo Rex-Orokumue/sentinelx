@@ -7,7 +7,7 @@ import { AdminOrderRow, type AdminOrderRow as AdminOrderRowType } from '@/compon
 import { ExchangeListingRow, type AdminListing } from '@/components/admin/ExchangeListingRow'
 import { primaryImageUrl } from '@/lib/exchange/images'
 import { EmptyState } from '@/components/shared/EmptyState'
-import type { ListingCategory } from '@/lib/exchange/schema'
+import type { ListingBadge, ListingCategory } from '@/lib/exchange/schema'
 import { buildSellerWhatsAppUrl } from '@/lib/exchange/admin-whatsapp'
 import { hasAnyOrder, hasInProgressOrder } from '@/lib/exchange/admin-guards'
 
@@ -56,7 +56,7 @@ export default async function AdminExchangePage({
   let allListingsQuery = supabase
     .from('marketplace_listings')
     .select(
-      'id, title, price, category, status, ' +
+      'id, title, price, category, status, badge, original_price, ' +
         'seller:profiles!marketplace_listings_seller_id_fkey(username, whatsapp_number, country), ' +
         'listing_images(image_url, display_order)',
     )
@@ -82,6 +82,8 @@ export default async function AdminExchangePage({
     category: ListingCategory
     status: AdminListing['status']
     seller: ListingSeller | ListingSeller[] | null
+    badge: string | null
+    original_price: number | null
     listing_images: { image_url: string; display_order: number }[] | null
   }
   const allListingRows = (allListingsData ?? []) as unknown as AllListingRow[]
@@ -108,6 +110,8 @@ export default async function AdminExchangePage({
       price: r.price,
       category: r.category,
       status: r.status,
+      badge: r.badge as ListingBadge | null,
+      originalPrice: r.original_price,
       sellerName: seller?.username ?? 'seller',
       primaryImage: primaryImageUrl(r.listing_images ?? []),
       whatsappUrl: buildSellerWhatsAppUrl({

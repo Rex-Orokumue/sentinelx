@@ -69,6 +69,18 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
   // pending/removed listing (e.g. right after submitting it for review).
   if (l.status !== 'active' && !isOwner) notFound()
 
+  // Ranks the Trending Now panel on /exchange. Owner views don't count — a
+  // seller refreshing their own page shouldn't climb the rankings. A view
+  // counter must never take the page down, so failures are swallowed.
+  if (!isOwner) {
+    void supabase
+      .rpc('increment_listing_view', { p_listing_id: params.id })
+      .then(
+        () => undefined,
+        () => undefined,
+      )
+  }
+
   const images = [...(l.listing_images ?? [])]
     .sort((a, b) => a.display_order - b.display_order)
     .map((i) => i.image_url)

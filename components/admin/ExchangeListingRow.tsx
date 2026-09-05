@@ -1,8 +1,14 @@
 'use client'
 import { useFormState } from 'react-dom'
-import { deleteListingAdmin, markListingSoldAdmin, type ActionState } from '@/lib/exchange/admin-actions'
+import {
+  deleteListingAdmin,
+  markListingSoldAdmin,
+  setListingMerchandising,
+  type ActionState,
+} from '@/lib/exchange/admin-actions'
 import { formatNaira } from '@/lib/format'
-import { CATEGORY_LABELS, type ListingCategory } from '@/lib/exchange/schema'
+import { CATEGORY_LABELS, LISTING_BADGES, type ListingBadge, type ListingCategory } from '@/lib/exchange/schema'
+import { BADGE_PRESENTATION } from '@/lib/exchange/badges'
 import { WhatsAppChip } from '@/components/shared/WhatsAppChip'
 
 export interface AdminListing {
@@ -16,6 +22,8 @@ export interface AdminListing {
   whatsappUrl: string | null
   canDelete: boolean
   canMarkSold: boolean
+  badge: ListingBadge | null
+  originalPrice: number | null
 }
 
 const STATUS_CLS: Record<AdminListing['status'], string> = {
@@ -29,7 +37,8 @@ const STATUS_CLS: Record<AdminListing['status'], string> = {
 export function ExchangeListingRow({ listing }: { listing: AdminListing }) {
   const [deleteState, del] = useFormState<ActionState, FormData>(deleteListingAdmin, undefined)
   const [soldState, markSold] = useFormState<ActionState, FormData>(markListingSoldAdmin, undefined)
-  const err = deleteState?.error || soldState?.error
+  const [merchState, saveMerch] = useFormState<ActionState, FormData>(setListingMerchandising, undefined)
+  const err = deleteState?.error || soldState?.error || merchState?.error
   const showMarkSold = listing.status === 'active' || listing.status === 'reserved'
 
   return (
@@ -95,6 +104,41 @@ export function ExchangeListingRow({ listing }: { listing: AdminListing }) {
         </form>
         <WhatsAppChip name={`Message @${listing.sellerName}`} url={listing.whatsappUrl} />
       </div>
+
+      {/* Merchandising: the promo badge and the was-price behind the discount pill. */}
+      <form action={saveMerch} className="mt-3 flex flex-wrap items-end gap-2 border-t border-slate-800 pt-3">
+        <input type="hidden" name="id" value={listing.id} />
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium text-slate-400">Badge</span>
+          <select
+            name="badge"
+            defaultValue={listing.badge ?? ''}
+            className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-white focus:border-violet-500 focus:outline-none"
+          >
+            <option value="">None</option>
+            {LISTING_BADGES.map((b) => (
+              <option key={b} value={b}>{BADGE_PRESENTATION[b].label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium text-slate-400">Original price (₦)</span>
+          <input
+            name="originalPrice"
+            type="number"
+            defaultValue={listing.originalPrice ?? ''}
+            placeholder="—"
+            className="w-32 rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
+          />
+        </label>
+        <button
+          type="submit"
+          className="rounded-lg border border-slate-700 px-4 py-2 text-xs font-bold text-slate-200 hover:border-slate-500"
+        >
+          Save
+        </button>
+        {merchState?.success && <span className="text-xs text-emerald-400">Saved</span>}
+      </form>
 
       {err && <p className="mt-2 text-xs text-red-400">{err}</p>}
     </div>
