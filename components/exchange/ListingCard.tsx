@@ -37,11 +37,14 @@ export function ListingCard({ listing }: { listing: ListingCardData }) {
     >
       <div className="relative aspect-square w-full bg-sx-bg">
         {listing.primaryImage ? (
+          // Absolutely positioned so a tall image can't contribute height: with
+          // `h-full` on an aspect-ratio box whose height is auto, the image's
+          // natural height wins and stretches the square, breaking row alignment.
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={listing.primaryImage}
             alt={listing.title}
-            className="h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-3xl text-sx-border">🎮</div>

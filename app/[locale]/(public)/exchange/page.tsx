@@ -118,13 +118,16 @@ export default async function ExchangePage({ searchParams }: { searchParams: Sea
       <ExchangeHero />
       <EscrowStrip />
 
+      {/* min-w-0: grid items default to min-width:auto, so without this the
+          horizontally-scrolling category row sizes these columns to its own
+          max-content width and the whole page scrolls sideways on a phone. */}
       <div className="grid gap-6 lg:grid-cols-12">
-        <div className="space-y-6 lg:col-span-8">
+        <div className="min-w-0 space-y-6 lg:col-span-8">
           <CategoryGrid counts={counts} />
           <FeaturedListings listings={listings} />
         </div>
 
-        <aside className="space-y-6 lg:col-span-4">
+        <aside className="min-w-0 space-y-6 lg:col-span-4">
           <QuickActionsPanel signedIn={signedIn} />
           <TrustPanel />
           <TrendingNow listings={trending} />

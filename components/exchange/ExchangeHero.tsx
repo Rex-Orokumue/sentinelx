@@ -29,10 +29,13 @@ const PERKS: { icon: LucideIcon; label: string }[] = [
 export function ExchangeHero() {
   return (
     <section className="relative overflow-hidden rounded-3xl border border-sx-border bg-sx-surface px-5 py-8 sm:px-8 lg:px-10 lg:py-12">
-      {/* Purple wash behind the mascot, matching the mockup's hero glow. */}
+      {/* Purple wash behind the mascot, matching the mockup's hero glow. Spans
+          the full section with an ellipse sized in percentages: a partial-width
+          box clipped the circle before it faded, leaving a hard vertical seam
+          down the hero on narrow screens. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 w-2/3 bg-[radial-gradient(circle_at_60%_50%,rgba(124,58,237,0.25),transparent_70%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_55%_60%_at_72%_45%,rgba(124,58,237,0.25),transparent_70%)]"
       />
 
       <div className="relative grid gap-8 lg:grid-cols-12 lg:items-center lg:gap-6">
