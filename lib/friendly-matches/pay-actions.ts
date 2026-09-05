@@ -5,8 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { initializeTransaction, buildFriendlyStakeReference } from '@/lib/paystack/server'
 import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+import { SITE_URL } from '@/lib/seo/site'
 
 export type PayStakeState = { error?: string } | undefined
 

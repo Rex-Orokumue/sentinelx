@@ -12,6 +12,7 @@ import { RewardsProgressWidget } from '@/components/wallet/RewardsProgressWidget
 import { ReferralEarningsCard } from '@/components/wallet/ReferralEarningsCard'
 import { WithdrawalStatusPanel } from '@/components/wallet/WithdrawalStatusPanel'
 import { mapTransactionRows, type RawWalletTxnRow } from '@/lib/wallet/transactions'
+import { SITE_URL } from '@/lib/seo/site'
 import { monthOverMonthChange } from '@/lib/wallet/earnings-trend'
 import { summarizeEarningsByCategory } from '@/lib/wallet/breakdown'
 import { getCoinBalance } from '@/lib/coins/service'
@@ -67,7 +68,6 @@ export default async function WalletOverviewPage() {
   const referralCoinsEarned = ((referralCoinTxRes.data ?? []) as { amount: number }[]).reduce((sum, t) => sum + t.amount, 0)
   const tournamentPrizeTrendPct = monthOverMonthChange(allTxnRows, 'tournament_prize', new Date())
   const balance = walletRes.data?.balance ?? 0
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
   const mascotUrl = findOptionalPublicImage('mascot', 'mascot-wallet')
 
   const { data: coinTxRows } = await admin
@@ -101,7 +101,7 @@ export default async function WalletOverviewPage() {
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <ReferralEarningsCard
-          referralLink={`${siteUrl}/signup?ref=${profileRes.data?.username ?? ''}`}
+          referralLink={`${SITE_URL}/signup?ref=${profileRes.data?.username ?? ''}`}
           convertedReferrals={referralsRes.count ?? 0}
           totalCoinsEarned={referralCoinsEarned}
         />

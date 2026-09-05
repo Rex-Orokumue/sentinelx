@@ -8,8 +8,7 @@ import { registrationDetailsSchema, coinsUsedSchema } from './registration-schem
 import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
 import { NAIRA_PER_COIN } from '@/lib/coins/value'
 import { settleReferralForPaidEntry } from '@/lib/referrals/credit'
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+import { SITE_URL } from '@/lib/seo/site'
 
 export type RegisterState = { error?: string; needsUsername?: boolean } | undefined
 

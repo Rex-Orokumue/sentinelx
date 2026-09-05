@@ -5,8 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { initializeTransaction, buildWalletDepositReference } from '@/lib/paystack/server'
 import { computePaystackFee } from '@/lib/paystack/fees'
 import { walletDepositSchema } from './schema'
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+import { SITE_URL } from '@/lib/seo/site'
 
 export type WalletDepositState = { error?: string } | undefined
 

@@ -1,4 +1,4 @@
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelxesports.com.ng'
 export const SITE_NAME = 'SentinelX Esports'
 export const SITE_SHORT_NAME = 'SentinelX'
 export const SITE_TAGLINE = "Nigeria's Home of Mobile Esports"

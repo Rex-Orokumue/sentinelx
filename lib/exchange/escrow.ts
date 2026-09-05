@@ -1,7 +1,8 @@
 import { timingSafeEqual } from 'crypto'
 import { formatNaira } from '@/lib/format'
+import { SITE_URL } from '@/lib/seo/site'
 
-export const ESCROW_RETURN_URL = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'}/dashboard?tab=orders`
+export const ESCROW_RETURN_URL = `${SITE_URL}/dashboard?tab=orders`
 
 // 08120288390 in wa.me's required international format (no leading 0, no +).
 export const ZOLARUX_WHATSAPP_NUMBER = '2348120288390'

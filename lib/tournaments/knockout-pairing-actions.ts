@@ -14,10 +14,9 @@ import { nextRoundScheduledAt } from './round-schedule'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 import { notifyInApp } from '@/lib/notifications/inbox'
 import { pushToPlayer } from '@/lib/notifications/push'
+import { SITE_URL } from '@/lib/seo/site'
 
 export type KnockoutPairingState = { error?: string; success?: boolean } | undefined
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
 
 const assignmentSchema = z.object({
   byePlayerIds: z.array(z.string().uuid()),

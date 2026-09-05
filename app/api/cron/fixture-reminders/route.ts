@@ -4,8 +4,7 @@ import { notifyInApp } from '@/lib/notifications/inbox'
 import { pushToPlayer } from '@/lib/notifications/push'
 import { reminderKey } from '@/lib/notifications/keys'
 import { isWithinReminderWindow } from '@/lib/notifications/window'
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+import { SITE_URL } from '@/lib/seo/site'
 
 type NameRef =
   | { display_name: string | null; username: string | null }

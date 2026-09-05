@@ -5,8 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { initializeTransaction, buildReference } from '@/lib/paystack/server'
 import { cascadeNextInvitation } from './invitation-actions'
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+import { SITE_URL } from '@/lib/seo/site'
 
 export type InvitationResponseState = { error?: string; success?: boolean } | undefined
 

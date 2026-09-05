@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { HexAvatar } from '@/components/shared/HexAvatar'
 import type { MembershipTier } from '@/lib/membership/tiers'
+import { SITE_URL } from '@/lib/seo/site'
 
 export interface ReferredPlayer {
   id: string
@@ -44,8 +45,7 @@ export function ReferralPanel({
   milestoneHistory: MilestoneHistoryEntry[]
 }) {
   const [copied, setCopied] = useState(false)
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
-  const link = `${siteUrl}/signup?ref=${username}`
+  const link = `${SITE_URL}/signup?ref=${username}`
   const shareText = `Come compete on SentinelX — Nigeria's home of mobile esports! Sign up here: ${link}`
   const shareUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`
 

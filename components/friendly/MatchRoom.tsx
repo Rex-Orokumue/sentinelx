@@ -5,8 +5,7 @@ import { payStake, type PayStakeState } from '@/lib/friendly-matches/pay-actions
 import { submitFriendlyResult } from '@/lib/friendly-matches/result-actions'
 import { acceptChallenge, declineChallenge, type FriendlyActionState } from '@/lib/friendly-matches/actions'
 import { createClient } from '@/lib/supabase/client'
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://sentinelx.gg'
+import { SITE_URL } from '@/lib/seo/site'
 
 export function MatchRoom({
   matchId,
