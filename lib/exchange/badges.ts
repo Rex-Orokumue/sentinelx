@@ -1,9 +1,11 @@
 import type { ListingBadge } from './schema'
 
 export const BADGE_PRESENTATION: Record<ListingBadge, { label: string; className: string }> = {
+  // The sx palette has no red or blue, so HOT and NEW borrow Tailwind's —
+  // the mockup draws them red and blue and the badges must stay distinguishable.
   featured: { label: 'FEATURED', className: 'bg-sx-purple text-white' },
   hot: { label: 'HOT', className: 'bg-red-600 text-white' },
-  top_deal: { label: 'TOP DEAL', className: 'bg-emerald-600 text-white' },
+  top_deal: { label: 'TOP DEAL', className: 'bg-sx-green text-white' },
   new: { label: 'NEW', className: 'bg-sky-600 text-white' },
 }
 
