@@ -259,7 +259,12 @@ function GameCard({ game }: { game: GameWithCounts }) {
         !game.active ? 'opacity-80' : ''
       }`}
     >
-      <div className="relative h-36">
+      {/* 16:9 to match the key art in public/games (all 1280x720). A fixed
+          height here made the frame's ratio drift with the card width —
+          1.97 at desktop but 2.36 at tablet — and object-cover absorbed the
+          mismatch by cropping up to a quarter of the art, half of it off the
+          top. Matching the source ratio crops nothing at any width. */}
+      <div className="relative aspect-video">
         {bannerImg ? (
           <Image src={bannerImg} alt={game.name} fill className="object-cover" />
         ) : (
