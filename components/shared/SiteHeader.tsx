@@ -93,7 +93,15 @@ export function SiteHeader({
             {/* Notifications — every breakpoint, never in the bottom tab bar */}
             {session.isLoggedIn && (
               <>
-                <BalanceChips walletBalance={session.walletBalance} coinBalance={session.coinBalance} />
+                {/* Balance chips measured 145px of a 328px content row at
+                    360px — with the logo (115px), language switcher, bell and
+                    hamburger all `shrink-0`, that overflowed the header by
+                    ~70px and made every page scroll sideways on a phone.
+                    Below `sm` the balances move into MobileNavSheet, which
+                    has room for the full, ungrouped numbers. */}
+                <div className="hidden sm:block">
+                  <BalanceChips walletBalance={session.walletBalance} coinBalance={session.coinBalance} />
+                </div>
                 <NotificationBell
                   initialNotifications={session.recentNotifications}
                   initialUnreadCount={session.unreadNotificationCount}

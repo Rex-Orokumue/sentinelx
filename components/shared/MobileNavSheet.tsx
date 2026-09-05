@@ -9,6 +9,7 @@ import { SHEET_SITE_LINKS } from '@/lib/nav/links'
 import { isAdminNavActive, type AdminSheetData } from '@/lib/admin/nav'
 import { countByHref } from '@/lib/admin/notification-copy'
 import type { NavSession } from '@/lib/nav/session'
+import { BalanceChips } from './BalanceChips'
 
 const activeLinkStyle = { background: 'rgba(124,58,237,0.15)' }
 
@@ -196,6 +197,11 @@ export function MobileNavSheet({
         <NavSection id="account" label="Account">
           {session.isLoggedIn ? (
             <>
+              {/* The header hides these below `sm` so it doesn't overflow;
+                  this is where a phone user sees their balances. */}
+              <div className="mb-2 px-3 sm:hidden">
+                <BalanceChips walletBalance={session.walletBalance} coinBalance={session.coinBalance} />
+              </div>
               <SheetLink
                 href={session.username ? `/players/${session.username}` : '/dashboard'}
                 active={false}
