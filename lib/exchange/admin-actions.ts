@@ -7,6 +7,7 @@ import { notifyInApp } from '@/lib/notifications/inbox'
 import { notify } from '@/lib/notifications/notify'
 import { hasAnyOrder, hasInProgressOrder } from './admin-guards'
 import { transitionForEvent } from './escrow'
+import { LISTING_BADGES, type ListingBadge } from './schema'
 
 export type ActionState = { error?: string; success?: boolean } | undefined
 
@@ -167,5 +168,53 @@ export async function markListingSoldAdmin(_prev: ActionState, formData: FormDat
   revalidatePath('/exchange')
   revalidatePath('/admin/exchange')
   revalidatePath('/dashboard')
+  return { success: true }
+}
+
+// Merchandising controls for the /exchange page: the promo badge shown on a
+// listing card and the was-price that drives the derived discount pill. Staff
+// only — the role is checked server-side, never trusted from the form.
+export async function setListingMerchandising(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  await requireStaff()
+
+  const id = String(formData.get('id') ?? '')
+  if (!id) return { error: 'Missing listing.' }
+
+  const rawBadge = String(formData.get('badge') ?? '')
+  const badge = rawBadge === '' ? null : rawBadge
+  if (badge !== null && !LISTING_BADGES.includes(badge as ListingBadge)) {
+    return { error: 'Unknown badge.' }
+  }
+
+  const rawOriginal = String(formData.get('originalPrice') ?? '').trim()
+  const originalPrice = rawOriginal === '' ? null : Number(rawOriginal)
+  if (originalPrice !== null && (!Number.isInteger(originalPrice) || originalPrice <= 0)) {
+    return { error: 'Original price must be a whole number of naira.' }
+  }
+
+  const supabase = createClient()
+  const { data: listing } = await supabase
+    .from('marketplace_listings')
+    .select('price')
+    .eq('id', id)
+    .maybeSingle()
+  if (!listing) return { error: 'Listing not found.' }
+
+  // Mirrors the DB CHECK, so the admin sees a sentence instead of a constraint error.
+  if (originalPrice !== null && originalPrice <= listing.price) {
+    return { error: 'Original price must be higher than the asking price.' }
+  }
+
+  const { error } = await supabase
+    .from('marketplace_listings')
+    .update({ badge, original_price: originalPrice })
+    .eq('id', id)
+  if (error) return { error: 'Could not update the listing.' }
+
+  revalidatePath('/exchange')
+  revalidatePath('/admin/exchange')
   return { success: true }
 }

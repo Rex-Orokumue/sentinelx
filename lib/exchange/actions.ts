@@ -16,6 +16,8 @@ export async function createListing(input: {
   price: number
   gameId?: string
   description?: string
+  subtitle?: string
+  originalPrice?: number
   imageUrls: string[]
 }): Promise<{ id?: string; error?: string }> {
   const supabase = createClient()
@@ -30,6 +32,8 @@ export async function createListing(input: {
     price: input.price,
     gameId: input.gameId ?? '',
     description: input.description ?? '',
+    subtitle: input.subtitle ?? '',
+    originalPrice: input.originalPrice ?? '',
   })
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const d = parsed.data
@@ -48,6 +52,8 @@ export async function createListing(input: {
       price: d.price,
       game_id: d.gameId || null,
       description: d.description || null,
+      subtitle: d.subtitle || null,
+      original_price: typeof d.originalPrice === 'number' ? d.originalPrice : null,
       status: 'pending',
     })
     .select('id')

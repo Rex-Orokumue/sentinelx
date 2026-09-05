@@ -3,7 +3,12 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { createListing } from '@/lib/exchange/actions'
-import { LISTING_CATEGORIES, CATEGORY_LABELS, type ListingCategory } from '@/lib/exchange/schema'
+import {
+  LISTING_CATEGORIES,
+  CATEGORY_LABELS,
+  SUBTITLE_MAX_LENGTH,
+  type ListingCategory,
+} from '@/lib/exchange/schema'
 import { imageRequired } from '@/lib/exchange/images'
 
 interface Img {
@@ -75,6 +80,8 @@ export function ListingForm({ games }: { games: { id: string; name: string }[] }
         price: Number(fd.get('price') ?? 0),
         gameId: String(fd.get('gameId') ?? '') || undefined,
         description: String(fd.get('description') ?? '') || undefined,
+        subtitle: String(fd.get('subtitle') ?? '') || undefined,
+        originalPrice: Number(fd.get('originalPrice') ?? 0) || undefined,
         imageUrls: images.map((i) => i.url),
       })
       if (res.error) setError(res.error)
@@ -109,7 +116,33 @@ export function ListingForm({ games }: { games: { id: string; name: string }[] }
           ))}
         </select>
       </div>
+      <div className="space-y-1.5">
+        <label htmlFor="subtitle" className="text-xs font-medium text-slate-400">Short description (optional)</label>
+        <input
+          id="subtitle"
+          name="subtitle"
+          type="text"
+          maxLength={SUBTITLE_MAX_LENGTH}
+          placeholder="Max Team | 5★ Players"
+          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
+        />
+        <p className="text-[11px] text-slate-500">
+          One line shown on your listing card. Leave it empty and we&apos;ll use the start of your description.
+        </p>
+      </div>
       <Field label="Price (₦)" name="price" type="number" required />
+      <div className="space-y-1.5">
+        <label htmlFor="originalPrice" className="text-xs font-medium text-slate-400">Original price (₦, optional)</label>
+        <input
+          id="originalPrice"
+          name="originalPrice"
+          type="number"
+          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
+        />
+        <p className="text-[11px] text-slate-500">
+          Shows a crossed-out was-price and a discount badge. Must be higher than your asking price.
+        </p>
+      </div>
       <div className="space-y-1.5">
         <label htmlFor="description" className="text-xs font-medium text-slate-400">Description</label>
         <textarea id="description" name="description" rows={4} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none" />
