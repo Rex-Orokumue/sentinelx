@@ -48,7 +48,7 @@ export default async function RankingsPage() {
     supabase
       .from('profiles')
       .select(
-        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sx_score, sentinel_tier, membership_tier',
+        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sx_score, sentinel_tier, membership_tier, deleted_at',
       )
       .gte('total_matches', RANKING_MIN_MATCHES)
       .order('wins', { ascending: false })
@@ -109,6 +109,7 @@ export default async function RankingsPage() {
       id: p.id,
       username: p.username,
       displayName: p.display_name,
+      deletedAt: p.deleted_at,
       avatarUrl: p.avatar_url,
       country: p.country,
       wins: p.wins,
