@@ -17,19 +17,30 @@ function swQueryString(): string {
 // installability. Chrome (and other browsers) will not offer to install a
 // site without an active, controlling service worker that has a fetch
 // handler, and that has nothing to do with notification permission:
-// registering a service worker itself never prompts the user for
-// anything. This was missing entirely — the only place sw.js ever got
-// registered was inside requestPushPermission() below, gated behind the
-// "Enable Push Notifications" button, so almost no visitor ever triggered
-// registration at all and the site was never actually installable.
-// Registers without the Firebase query-string params (sw.js only sets up
-// push messaging when those are present, guarding against a crash on
-// missing config) — requestPushPermission() below re-registers the same
-// scope with real params when the player opts into push, which is a
-// normal, harmless service-worker update, not a conflict.
+// registering a service worker itself never prompts the user for anything.
+//
+// MUST register the SAME URL as requestPushPermission(), params included.
+// Service worker registrations are keyed by *scope*, not script URL, and
+// both of these resolve to scope '/'. Registering a different script URL
+// for a scope replaces whatever was there. This function runs on every
+// page load; requestPushPermission() runs once. So a param-less
+// registration here silently replaced the configured worker on the very
+// next navigation after a player enabled push — and since sw.js gates its
+// entire Firebase block on params.get('apiKey'), the worker left
+// controlling the page had no onBackgroundMessage handler.
+//
+// Payloads are data-only (see sendToTokens in lib/notifications/fcm.ts),
+// so the browser does not auto-display them either: every push was
+// delivered to the device and silently dropped, while FCM reported
+// success and nothing logged an error anywhere. Push worked for exactly
+// one page view after opting in, then died permanently.
+//
+// Passing the params here is safe when Firebase is unconfigured: the
+// values are empty strings, params.get('apiKey') is falsy, and sw.js skips
+// push setup exactly as it did before while still installing for offline.
 export function registerServiceWorker(): void {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
-  navigator.serviceWorker.register('/sw.js').catch((err) => {
+  navigator.serviceWorker.register(`/sw.js?${swQueryString()}`).catch((err) => {
     console.error('[pwa] service worker registration failed', err)
   })
 }
@@ -61,6 +72,49 @@ export async function requestPushPermission(): Promise<boolean> {
     body: JSON.stringify({ token }),
   })
   return res.ok
+}
+
+// Silently re-registers this browser's token when push permission has ALREADY
+// been granted. Safe to call on every page load — it never prompts.
+//
+// Exists because token acquisition used to be a one-time manual button press
+// while token loss is automatic and continuous: sign-out deleted them, FCM
+// rotates them, and stale-token cleanup removes them. A population that can
+// only shrink is why push coverage sat at 12 of 102 players. With this, a lost
+// token is re-acquired on the player's next visit without them doing anything.
+//
+// Deliberately does NOT call Notification.requestPermission(): prompting
+// unasked on page load is how a site gets its notifications permanently
+// blocked by the browser. Opting in stays an explicit user action
+// (requestPushPermission below); this only repairs a grant that already exists.
+export async function refreshPushToken(): Promise<boolean> {
+  const app = getFirebaseApp()
+  if (!app || typeof window === 'undefined' || !('Notification' in window)) return false
+  if (Notification.permission !== 'granted') return false
+  if (!('serviceWorker' in navigator)) return false
+
+  try {
+    const registration = await navigator.serviceWorker.register(`/sw.js?${swQueryString()}`)
+    const { getMessaging, getToken } = await import('firebase/messaging')
+    const token = await getToken(getMessaging(app), {
+      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+      serviceWorkerRegistration: registration,
+    })
+    if (!token) return false
+
+    // Upserts on conflict, so re-sending an unchanged token is a cheap no-op
+    // that also refreshes last_active and re-sets the device cookie.
+    const res = await fetch('/api/notifications/fcm-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    })
+    return res.ok
+  } catch (err) {
+    // Best-effort: a failed refresh must never disrupt the page.
+    console.error('[push] token refresh failed', err)
+    return false
+  }
 }
 
 // Called from the Settings "Disable" button and from signOut() — removes

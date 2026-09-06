@@ -48,7 +48,14 @@ export async function sendToTokens(
   data: Record<string, string>,
 ): Promise<void> {
   const messaging = getFirebaseMessaging()
-  if (!messaging || tokens.length === 0) return
+  if (!messaging) return
+  // Distinguished from a successful send on purpose. A player with no tokens
+  // is the most common reason a push "doesn't arrive" — 90 of 102 players
+  // were in that state — and silence made it indistinguishable from delivery.
+  if (tokens.length === 0) {
+    console.info('[FCM] no tokens for this recipient — nothing sent', { type: data.type })
+    return
+  }
   const admin = createAdminClient()
   // title/body travel inside `data`, never as a top-level `notification`
   // field — a `notification` payload makes the browser auto-display the
@@ -66,12 +73,38 @@ export async function sendToTokens(
       webpush: { fcmOptions: { link: data.url } },
     })
     const staleIds: string[] = []
+    // Every non-stale failure used to vanish here. A credentials error, a
+    // quota rejection, a malformed payload — all silently discarded, which is
+    // why "push never arrives" was indistinguishable from "push was never
+    // attempted" and took a production DevTools session to diagnose.
+    const otherErrors: string[] = []
     res.responses.forEach((r, idx) => {
       const code = r.error?.code
-      if (!r.success && (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token')) {
+      if (r.success) return
+      if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') {
         staleIds.push(chunk[idx].id)
+      } else {
+        otherErrors.push(code ?? 'unknown')
       }
     })
+
+    const succeeded = res.responses.filter((r) => r.success).length
+    console.info('[FCM] send complete', {
+      type: data.type,
+      attempted: chunk.length,
+      succeeded,
+      stale: staleIds.length,
+      failed: otherErrors.length,
+    })
+    if (otherErrors.length > 0) {
+      console.error('[FCM] send failed for reasons other than a stale token', {
+        type: data.type,
+        // Array.from rather than spreading the Set: the project's TS target
+        // predates downlevelIteration.
+        codes: Array.from(new Set(otherErrors)),
+      })
+    }
+
     if (staleIds.length > 0) await admin.from('fcm_tokens').delete().in('id', staleIds)
   }
 }

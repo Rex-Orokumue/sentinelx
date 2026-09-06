@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { DEVICE_TOKEN_COOKIE, DEVICE_TOKEN_MAX_AGE } from '@/lib/notifications/device-cookie'
 
 export async function POST(req: Request) {
   const supabase = createClient()
@@ -15,6 +17,17 @@ export async function POST(req: Request) {
     .from('fcm_tokens')
     .upsert({ player_id: user.id, token, last_active: new Date().toISOString() }, { onConflict: 'token' })
   if (error) return NextResponse.json({ error: 'Could not save token' }, { status: 500 })
+
+  // Remember which token belongs to THIS browser, so signOut() — a plain
+  // server action with no access to client state — can deregister only this
+  // device instead of every device the player owns.
+  cookies().set(DEVICE_TOKEN_COOKIE, token, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: DEVICE_TOKEN_MAX_AGE,
+  })
   return NextResponse.json({ ok: true })
 }
 
@@ -30,5 +43,7 @@ export async function DELETE(req: Request) {
   if (token) query.eq('token', token)
   const { error } = await query
   if (error) return NextResponse.json({ error: 'Could not remove token' }, { status: 500 })
+
+  cookies().delete(DEVICE_TOKEN_COOKIE)
   return NextResponse.json({ ok: true })
 }

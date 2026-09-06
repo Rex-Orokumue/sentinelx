@@ -14,6 +14,7 @@ import {
 import { mapSignupError } from './errors'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isIdentifierBanned, isUsernameRetired } from './signup-blocks'
+import { DEVICE_TOKEN_COOKIE } from '@/lib/notifications/device-cookie'
 
 // `needsConfirmation` is set by login() when the account exists but the email
 // was never confirmed — the form then offers a "resend" button instead of the
@@ -168,14 +169,28 @@ export async function resetPassword(_prev: ActionState, formData: FormData): Pro
 
 export async function signOut(): Promise<void> {
   const supabase = createClient()
-  // Best-effort — a failed token cleanup must never block sign-out. Uses
-  // the request-scoped client (not createAdminClient) so fcm_tokens_owner's
-  // RLS policy (player_id = auth.uid()) does the scoping for us.
+  // Best-effort — a failed token cleanup must never block sign-out. Uses the
+  // request-scoped client (not createAdminClient) so fcm_tokens_owner's RLS
+  // policy (player_id = auth.uid()) does the scoping for us.
+  //
+  // Deletes ONLY this device's token. Every device has its own token stored
+  // as its own row, so the previous `.eq('player_id', user.id)` matched all
+  // of them: signing out on a laptop silently killed push on the player's
+  // phone, with no indication and no way back but the Settings toggle.
+  //
+  // The token arrives via a cookie set by /api/notifications/fcm-token,
+  // because signOut is a plain server action used directly as a form action
+  // in three places and has no access to client state.
   try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (user) await supabase.from('fcm_tokens').delete().eq('player_id', user.id)
+    const deviceToken = cookies().get(DEVICE_TOKEN_COOKIE)?.value
+    if (deviceToken) {
+      await supabase.from('fcm_tokens').delete().eq('token', deviceToken)
+      cookies().delete(DEVICE_TOKEN_COOKIE)
+    }
+    // No cookie means a session predating this change. Deleting nothing is
+    // the safe branch: the next sign-in on this browser re-upserts the same
+    // token under the new player (onConflict: 'token'), so it self-corrects —
+    // whereas deleting everything is the bug being fixed.
   } catch {
     // ignore
   }

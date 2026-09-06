@@ -79,3 +79,82 @@ describe('sendToTokens', () => {
     expect(call.data).toMatchObject({ title: 'Hi', body: 'There', url: '/x', type: 'result_confirmed' })
   })
 })
+
+// The send path reported nothing — not on success, not on failure. Only
+// stale-token cleanup had any visible effect, so a credentials error, a quota
+// rejection or a malformed payload vanished without trace. That is why "push
+// never arrives" could not be told apart from "push was never attempted".
+// These assertions exist so it stays observable.
+describe('sendToTokens observability', () => {
+  beforeEach(() => {
+    vi.stubEnv(
+      'FIREBASE_SERVICE_ACCOUNT_JSON',
+      JSON.stringify({
+        project_id: 'sx-test',
+        client_email: 'sa@sx-test.iam.gserviceaccount.com',
+        private_key: '-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n',
+      }),
+    )
+    sendEachForMulticast.mockReset()
+    deleteIn.mockClear()
+  })
+
+  it('logs a summary of every send', async () => {
+    const log = vi.spyOn(console, 'info').mockImplementation(() => {})
+    sendEachForMulticast.mockResolvedValueOnce({ responses: [{ success: true }, { success: true }] })
+    vi.resetModules()
+    const { sendToTokens } = await import('./fcm')
+    await sendToTokens(
+      [
+        { id: 'r1', token: 't1' },
+        { id: 'r2', token: 't2' },
+      ],
+      { title: 'Hi', body: 'There' },
+      { url: '/x', type: 'result_confirmed' },
+    )
+    expect(log).toHaveBeenCalled()
+    const line = JSON.stringify(log.mock.calls[0])
+    expect(line).toContain('[FCM]')
+    expect(line).toContain('result_confirmed')
+    log.mockRestore()
+  })
+
+  // The case that matters: FCM rejected the message for a reason that is NOT
+  // a stale token, so nothing is cleaned up and nothing else notices.
+  it('logs the error code when a send fails for a non-stale reason', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+    sendEachForMulticast.mockResolvedValueOnce({
+      responses: [
+        { success: false, error: { code: 'messaging/authentication-error', message: 'bad creds' } },
+      ],
+    })
+    vi.resetModules()
+    const { sendToTokens } = await import('./fcm')
+    await sendToTokens([{ id: 'r1', token: 't1' }], { title: 'Hi', body: 'There' }, { url: '/x' })
+    expect(err).toHaveBeenCalled()
+    expect(JSON.stringify(err.mock.calls)).toContain('messaging/authentication-error')
+    err.mockRestore()
+  })
+
+  it('does not log a failure when every send succeeds', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+    sendEachForMulticast.mockResolvedValueOnce({ responses: [{ success: true }] })
+    vi.resetModules()
+    const { sendToTokens } = await import('./fcm')
+    await sendToTokens([{ id: 'r1', token: 't1' }], { title: 'Hi', body: 'There' }, { url: '/x' })
+    expect(err).not.toHaveBeenCalled()
+    err.mockRestore()
+  })
+
+  // A player with no tokens at all is the most common reason a push "doesn't
+  // arrive" — 90 of 102 players were in that state — and it looked identical
+  // to a successful send.
+  it('logs when there are no tokens to send to', async () => {
+    const log = vi.spyOn(console, 'info').mockImplementation(() => {})
+    vi.resetModules()
+    const { sendToTokens } = await import('./fcm')
+    await sendToTokens([], { title: 'Hi', body: 'There' }, { url: '/x', type: 'match_assigned' })
+    expect(JSON.stringify(log.mock.calls)).toContain('no tokens')
+    log.mockRestore()
+  })
+})
