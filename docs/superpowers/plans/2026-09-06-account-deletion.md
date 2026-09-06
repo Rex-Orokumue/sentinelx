@@ -25,6 +25,64 @@
 
 ---
 
+### Task 0: Disable the delete button in production (prerequisite)
+
+**Files:**
+- Modify: `components/settings/AccountSection.tsx`
+
+**Why this must ship before Task 1.** Task 1 drops `profiles_id_fkey`. Between that migration landing and Task 9 replacing `deleteAccount`, production still runs the old delete path — and without the cascade, a successful delete would remove the auth user while leaving a fully-populated profile behind: username, phone, WhatsApp number, bio. That is a PII leak created purely by task ordering. Only ~20 of 102 users can currently delete at all, but the window is avoidable, so avoid it.
+
+This task is **merged and deployed to production on its own**, before any migration is applied.
+
+- [ ] **Step 1: Replace the button with an interim notice**
+
+In `components/settings/AccountSection.tsx`, replace `<DeleteAccountButton />` with:
+
+```tsx
+<p className="text-xs leading-relaxed text-sx-gray">
+  Account deletion is temporarily unavailable while we rebuild it. To delete
+  your account in the meantime, email{' '}
+  <a href="mailto:sentinelxesports@gmail.com" className="font-semibold text-sx-purple-text hover:text-sx-purple-light">
+    sentinelxesports@gmail.com
+  </a>{' '}
+  and we will action it for you.
+</p>
+```
+
+Leave `DeleteAccountButton` and `lib/settings/account.ts` in place — Task 9 rewrites them. Only the render is swapped.
+
+A notice rather than silently removing the button: Privacy Policy §6 commits to honouring deletion requests, so users must still be told how to exercise that right while the feature is out.
+
+- [ ] **Step 2: Typecheck**
+
+Run: `npx tsc --noEmit`
+Expected: exit 0. If `DeleteAccountButton` is now unused, prefix it or add an eslint-disable rather than deleting it — Task 9 needs the surrounding file structure.
+
+- [ ] **Step 3: Run the suite**
+
+Run: `npx vitest run`
+Expected: all pass.
+
+- [ ] **Step 4: Commit, merge and deploy**
+
+```bash
+git add components/settings/AccountSection.tsx
+git commit -m "chore(deletion): disable the broken delete button pending rebuild
+
+It fails for 82 of 102 users, and the schema change that fixes it would
+briefly leave the old path able to delete an auth user while orphaning a
+fully-populated profile. Point users at support until the rebuild lands.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+git checkout main && git merge <branch> && git push origin main
+```
+
+- [ ] **Step 5: Confirm it is live before proceeding**
+
+Wait for the Vercel deployment to reach `READY`, then load `/dashboard/settings` in production and confirm the notice renders and no delete button remains. **Do not start Task 1 until this is confirmed** — the whole point is that production cannot run the old delete path once the FK is gone.
+
+---
+
 ### Task 1: Schema migration
 
 **Files:**
@@ -89,9 +147,19 @@ ALTER TABLE public.banned_identifiers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_recovery_log ENABLE ROW LEVEL SECURITY;
 ```
 
-- [ ] **Step 2: Apply it**
+- [ ] **Step 2: Apply it to production**
+
+**Only after Task 0 is confirmed live.** Applied directly to production — no Supabase dev branch, by decision on 2026-09-06 (branches bill at $0.01344/hour and Task 0 closes the same window for free).
 
 Apply via the Supabase MCP `apply_migration` tool (name: `078_account_deletion`), or `npx supabase db push` if the CLI is reachable. Note: the CLI is intermittently unreachable on this machine — prefer MCP.
+
+Dropping a constraint is reversible while no orphaned profiles exist. If this needs backing out before Task 9 lands, re-add it with:
+
+```sql
+ALTER TABLE public.profiles
+  ADD CONSTRAINT profiles_id_fkey FOREIGN KEY (id)
+  REFERENCES auth.users(id) ON DELETE CASCADE;
+```
 
 - [ ] **Step 3: Verify**
 
