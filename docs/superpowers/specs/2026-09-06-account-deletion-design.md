@@ -54,11 +54,11 @@ row. Once we stop deleting it, all 57 keys stay valid as they are.
 
 One schema change makes this possible: **drop the FK from `profiles.id` to
 `auth.users(id)`**. Today that cascade is what destroys the profile when the
-auth user goes. Without it, the auth user can be deleted at the end of the
-grace period — genuinely revoking sign-in — while the tombstone profile
-remains. `profiles.id` stays a plain `uuid` primary key, and
-`handle_new_user()` keeps populating it with the auth user's id on signup
-exactly as it does now.
+auth user goes. Without it, the auth user can be deleted at execution —
+genuinely revoking sign-in — while the tombstone profile remains.
+`profiles.id` stays a plain `uuid` primary key, and `handle_new_user()`
+keeps populating it with the auth user's id on signup exactly as it does
+now.
 
 ### Retain / anonymise / delete
 
@@ -84,9 +84,6 @@ user depends on.**
 `post_reactions`, `profiles.referred_by`, `tv_videos.created_by`,
 `homepage_banners.created_by`.
 
-`admin_flags` is retained deliberately: a conduct or cheating record must
-outlive the account, or deletion becomes a way to launder a ban.
-
 Community posts and comments are retained under the tombstone so threads
 stay coherent — consistent with keeping match results visible.
 
@@ -95,36 +92,49 @@ stay coherent — consistent with keeping match results visible.
 ## 3. Lifecycle
 
 ```
-  Settings → Delete Account
-            │
-            ▼
-     ┌─────────────┐   guards fail
-     │  Requested  │◄───────────────  refused, with reasons (§5)
-     └──────┬──────┘
-            │  deletion_requested_at = now()
-            │  email + in-app banner
-            ▼
-     ┌─────────────────────────────┐
-     │  Grace — 15 days            │   user can sign in
-     │  account restricted (§6)    │   banner on every page
-     │  reminder email at day 12   │   Cancel available throughout
-     └──────┬───────────────┬──────┘
-            │               │  Cancel deletion
-     day 15 │               ▼
-            │        ┌─────────────┐
-            │        │   Active    │  restrictions lifted, email sent
-            │        └─────────────┘
-            ▼
-     ┌─────────────┐
-     │  Executed   │  anonymised, username retired, auth user deleted
-     └─────────────┘  irreversible
+  Settings → Account
+       │
+       ├──────────────── "Delete now" ────────────────┐
+       │                 (type username)              │
+       ▼                                              │
+  "Delete my account"                                 │
+       │                                              │
+       ▼                                              │
+  ┌─────────────┐   guards fail                       │
+  │  Requested  │◄───────────────  refused (§5)       │
+  └──────┬──────┘                                     │
+         │  deletion_requested_at = now()             │
+         │  email + in-app banner                     │
+         ▼                                            │
+  ┌─────────────────────────────┐                     │
+  │  Grace — 15 days            │  user can sign in   │
+  │  account restricted (§6)    │  banner every page  │
+  │  reminder email at day 12   │  Cancel throughout  │
+  └──────┬───────────────┬──────┘                     │
+         │               │  Cancel deletion           │
+  day 15 │               ▼                            │
+         │        ┌─────────────┐                     │
+         │        │   Active    │  restrictions lift  │
+         │        └─────────────┘                     │
+         ▼                                            │
+  ┌─────────────┐◄──────────────────────────────────-─┘
+  │  Executed   │  anonymised · username retired · auth user deleted
+  └─────────────┘  irreversible
 ```
 
 **The user can sign in during the grace period.** That is how they cancel,
-and it is what makes the banner in §7 reach them. Locking them out
-immediately would make the cancel link in a single email the only route
-back, which fails exactly the person who deletes in frustration and
-reconsiders a week later.
+and it is what makes the banner in §8 reach them. Locking them out
+immediately would make a link in a single email the only route back, which
+fails exactly the person who deletes in frustration and reconsiders a week
+later.
+
+**"Delete now"** skips the grace period and runs §9 synchronously. It is a
+deliberate escape hatch for someone who wants out immediately, and it
+removes the safety net the grace period provides — so it is gated on typing
+the **exact username**, not `DELETE`. That is a higher bar, works
+identically for password and Google accounts, and the final email still
+sends immediately so the account's real owner learns of it. The §5 guards
+apply unchanged.
 
 ---
 
@@ -149,30 +159,36 @@ CREATE TABLE public.retired_usernames (
   username    text PRIMARY KEY,
   retired_at  timestamptz NOT NULL DEFAULT now()
 );
+
+-- 4. Ban-evasion blocklist. Hashes only, for cheat-flagged accounts (§7).
+CREATE TABLE public.banned_identifiers (
+  hash        text PRIMARY KEY,
+  kind        text NOT NULL CHECK (kind IN ('email','phone')),
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
 ```
 
-The two columns are distinct states, not one field reused:
-`deletion_requested_at` set with `deleted_at` null means *in grace*;
-`deleted_at` set means *tombstone*. Cancelling clears
-`deletion_requested_at`.
+`deletion_requested_at` and `deleted_at` are distinct states, not one field
+reused: requested-and-not-deleted means *in grace*; `deleted_at` set means
+*tombstone*. Cancelling clears `deletion_requested_at`.
 
-`retired_usernames` holds **only the string**. It carries no user id and no
-foreign key, so it is not personal data once the profile is anonymised —
-which is what lets us block reuse permanently *and* honour erasure. Signup
-and username-change availability checks must consult it alongside
-`profiles.username`. A username is retired at **execution**, not at request,
-so a cancelled deletion leaves the handle untouched.
+`retired_usernames` holds **only the string** — no user id, no foreign key —
+so it is not personal data once the profile is anonymised. That is what lets
+us block reuse permanently *and* honour erasure. Signup and username-change
+availability checks must consult it alongside `profiles.username`. A
+username is retired at **execution**, not at request, so a cancelled
+deletion leaves the handle untouched.
 
-RLS: `retired_usernames` is not readable through PostgREST; the availability
-check runs server-side via the service-role client, matching how username
-collisions are handled today.
+Neither new table is readable through PostgREST; both are checked
+server-side via the service-role client, matching how username collisions
+are handled today.
 
 ---
 
 ## 5. Guards
 
-Checked at **request** time, and again at **execution** as a safety net.
-Deletion is refused if any hold:
+Checked at **request** time, at **execution** as a safety net, and on
+**"Delete now"**. Deletion is refused if any hold:
 
 | Blocker | Condition |
 |---|---|
@@ -192,7 +208,7 @@ blocker with its own remedy.
 
 **If the execution-time re-check fails**, the deletion is *paused*, not
 cancelled and not silently dropped: the user keeps their pending state, is
-emailed to say why, and the run is flagged for admin. Given §6, this should
+emailed to say why, and the run is flagged for admin. Given §6 this should
 be rare — a referral credit landing mid-grace is the realistic case.
 
 ---
@@ -220,7 +236,61 @@ restricted action fails in the Server Action, not merely in the UI.
 
 ---
 
-## 7. Communication
+## 7. Email reuse and ban evasion
+
+**The email address is released and can be used to register again.** At
+execution the row in `auth.users` is deleted, taking the email with it. A
+new signup with that address creates a genuinely new account — new UUID, SX
+Score back to 700, no history, no link to the tombstone. Nothing is
+restored.
+
+This is deliberately the opposite of the username policy, because the two
+are not alike:
+
+| | Username | Email |
+|---|---|---|
+| Visible to others | Yes — URLs, brackets, referral links | Never |
+| Third parties rely on it | Yes | No |
+| Blocking reuse protects | Other users, from impersonation | Nobody |
+| Retaining the string is | Not personal data once unlinked | **Unambiguously personal data** |
+
+A general `retired_emails` blocklist would be a list of real people's email
+addresses — exactly what erasure promises to remove — and would bar someone
+from ever returning because they once exercised a data right.
+
+**One exception: accounts flagged for cheating.** Retaining `admin_flags` on
+the tombstone does not by itself prevent ban evasion, since a new account
+built from the same email has no link to that tombstone. So at execution,
+**if and only if** the account has an `admin_flags` row with
+`severity = 'cheat'`, a one-way hash of its email and phone is written to
+`banned_identifiers`:
+
+```
+sha256(lower(trim(value)) || pepper)
+```
+
+The pepper is a server-side secret from env (`DELETION_HASH_PEPPER`),
+present so the table cannot be reversed by hashing a list of common
+addresses. No plaintext, no user id, no foreign key. Signup hashes the
+incoming email and rejects a match with the same generic "couldn't create
+that account" response used elsewhere, so the table's contents are not
+probeable.
+
+`severity = 'conduct'` flags (−50 SX Score) do **not** trigger this — a
+minor conduct flag should not bar someone for life.
+
+Admin needs a way to remove an entry, for a flag later judged wrong. Since
+the hash cannot be reversed, this is a small admin screen that takes an
+email address, hashes it, and deletes the matching row.
+
+**This retention must be disclosed** in the Privacy Policy (all three
+locales) alongside the existing §6 data-rights text: what is kept, that it
+is a one-way hash, that it applies only to accounts removed for cheating,
+and that it is retained indefinitely to enforce the sanction.
+
+---
+
+## 8. Communication
 
 "Clearly communicated" is the requirement, so the state is unmissable rather
 than buried in settings.
@@ -231,12 +301,20 @@ than buried in settings.
 >
 > Until then you can sign in and cancel at any time. Your match history and
 > tournament results will remain visible under "Deleted player". Your
-> username `sniperking` will be retired and cannot be used again.
+> username `sniperking` will be retired and cannot be used again. The email
+> address on the account can be used to register again later.
 >
 > Type DELETE to confirm.
 
-**Immediately after:** an email confirming the scheduled date with a direct
-cancel link, and an in-app inbox notification.
+**"Delete now" — a separate, stronger confirmation:**
+
+> This skips the 15-day grace period. Your account is deleted immediately.
+> There is no cancellation and no undo.
+>
+> Type your username `sniperking` to confirm.
+
+**Immediately after a request:** an email confirming the scheduled date with
+a direct cancel link, and an in-app inbox notification.
 
 **Throughout the grace period:** a persistent banner on every page while
 signed in — not dismissible, since dismissing the only warning about
@@ -248,30 +326,37 @@ impending deletion defeats it:
 **Day 12 (3 days remaining):** reminder email.
 
 **At execution:** a final email to the address *before* it is scrubbed,
-confirming the deletion is complete and irreversible.
+confirming the deletion is complete and irreversible. Sent for "Delete now"
+too.
 
 **On cancel:** confirmation email, banner clears, restrictions lift.
 
 All copy is new UI text and needs `en` / `fr` / `pcm` entries.
 
-Email requires a transactional sender — the app currently has no email path
-of its own (`lib/notifications/` covers WhatsApp via Termii, push, and the
-in-app inbox; auth mail goes through Supabase SMTP). Resend is verified for
+Email requires a transactional sender — the app has no email path of its own
+(`lib/notifications/` covers WhatsApp via Termii, push, and the in-app
+inbox; auth mail goes through Supabase SMTP). Resend is verified for
 `sentinelxesports.com.ng`, so this adds a small `lib/email/send.ts` wrapper
 over the Resend API, following the no-op-when-unconfigured pattern
 `TERMII_API_KEY` already uses.
 
 ---
 
-## 8. Execution
+## 9. Execution
 
-A cron route, `app/api/cron/execute-account-deletions/route.ts`, following
-the existing `CRON_SECRET` bearer-token pattern in
-`app/api/cron/fixture-reminders/route.ts`. It selects profiles where
-`deletion_requested_at <= now() - interval '15 days'` and `deleted_at IS
-NULL`, then per account:
+Two entry points, one code path:
 
-**Step 1 — Re-run guards** (§5). Pause and notify on failure.
+- **Scheduled** — `app/api/cron/execute-account-deletions/route.ts`,
+  following the `CRON_SECRET` bearer-token pattern in
+  `app/api/cron/fixture-reminders/route.ts`. Selects profiles where
+  `deletion_requested_at <= now() - interval '15 days'` and `deleted_at IS
+  NULL`.
+- **Immediate** — the "Delete now" Server Action, after username
+  confirmation.
+
+Per account:
+
+**Step 1 — Run guards** (§5). Pause and notify on failure.
 
 **Step 2 — Anonymise** (single transaction):
 
@@ -291,22 +376,24 @@ the retained match history and the leaderboards it feeds.
 **Step 3 — Retire the username.** Insert the original into
 `retired_usernames`, `ON CONFLICT DO NOTHING`.
 
-**Step 4 — Delete the private tables** listed in §2.
+**Step 4 — If cheat-flagged**, write the identifier hashes (§7).
 
-**Step 5 — Send the final email**, before the address is gone.
+**Step 5 — Delete the private tables** listed in §2.
 
-**Step 6 — Revoke sign-in.** `auth.admin.deleteUser(user.id)`. With the FK
+**Step 6 — Send the final email**, before the address is gone.
+
+**Step 7 — Revoke sign-in.** `auth.admin.deleteUser(user.id)`. With the FK
 dropped in §4, the tombstone profile is unaffected.
 
-Steps 2–4 run in one transaction via a `SECURITY DEFINER` RPC so a partial
-anonymisation cannot occur. Step 6 is a separate Auth API call that cannot
+Steps 2–5 run in one transaction via a `SECURITY DEFINER` RPC so a partial
+anonymisation cannot occur. Step 7 is a separate Auth API call that cannot
 join that transaction: if it fails, the profile is already anonymised and
 the user is effectively gone, so `deleted_at` stands and the error is logged
 for admin follow-up rather than rolled back.
 
 ---
 
-## 9. Display
+## 10. Display
 
 Every surface rendering a player identity must show "Deleted player" and
 must not link to a profile that no longer exists.
@@ -337,7 +424,7 @@ renumber historical standings.
 
 ---
 
-## 10. Testing
+## 11. Testing
 
 Pure logic, unit-tested in the existing vitest style:
 
@@ -349,24 +436,29 @@ Pure logic, unit-tested in the existing vitest style:
   §6 and permitted for the rest.
 - `lib/players/display.ts` — deleted profiles render the tombstone name and
   yield a `null` href; in-grace and live profiles are untouched.
+- Identifier hashing is stable, case- and whitespace-insensitive, and
+  differs without the pepper.
 - Username availability rejects a retired handle, case-insensitively if the
   existing check is.
 
 Integration, against a branch database:
 
-- A user with rows in every retained table executes successfully — this is
-  the case that fails today for 82 of 102 users.
+- A user with rows in every retained table executes successfully — the case
+  that fails today for 82 of 102 users.
 - Their `matches`, `tournament_registrations`, `sx_score_events`,
   `wallet_deposits` and `marketplace_orders` rows still exist afterwards.
 - Their `fcm_tokens`, `phone_verifications` and `player_kyc` rows are gone.
 - Cancelling mid-grace restores full function and leaves the username
   claimable by its owner.
 - The original username cannot be claimed by a new signup after execution.
+- **The original email can** be used to register a new account.
+- A cheat-flagged account's email cannot; a conduct-flagged one's can.
+- "Delete now" reaches the same end state without waiting.
 - The auth user can no longer sign in after execution.
 
 ---
 
-## 11. Out of scope
+## 12. Out of scope
 
 - **Generated usernames at signup** — a separate spec. It depends on this
   one only through the availability check, which must also consult
@@ -375,4 +467,4 @@ Integration, against a branch database:
   conduct; a ban is not a deletion.
 - **Data export** ("download my data") — a distinct data-rights feature.
 - **Undo after execution.** The grace period is the reversal window; once
-  step 6 runs there is no recovery.
+  step 7 runs there is no recovery, and "Delete now" waives it knowingly.
