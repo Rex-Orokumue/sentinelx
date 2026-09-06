@@ -12,6 +12,8 @@ import {
   resetPasswordSchema,
 } from './schema'
 import { mapSignupError } from './errors'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { isIdentifierBanned, isUsernameRetired } from './signup-blocks'
 
 // `needsConfirmation` is set by login() when the account exists but the email
 // was never confirmed — the form then offers a "resend" button instead of the
@@ -57,6 +59,21 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
 
   const { username, email, password, ref } = parsed.data
   const supabase = createClient()
+
+  // Ban evasion: only ever populated for accounts deleted while flagged for
+  // cheating. The message is the same generic one used for other signup
+  // failures — a distinct one would let anyone probe the blocklist for a
+  // given address.
+  const admin = createAdminClient()
+  if (await isIdentifierBanned(admin, email)) {
+    return { error: 'We could not create an account with those details.' }
+  }
+  // Checked here as well as at claim time: rejecting at the wizard is a far
+  // better experience than accepting the signup and refusing the handle after
+  // the user has confirmed their email.
+  if (await isUsernameRetired(admin, username)) {
+    return { error: 'That username is taken — try another.' }
+  }
 
   // The username is NOT claimed here — see migration 073. It rides along as
   // signup metadata and is claimed after email confirmation at

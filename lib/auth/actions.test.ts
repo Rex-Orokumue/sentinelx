@@ -13,6 +13,17 @@ const from = vi.fn((table: string) =>
 vi.mock('@/lib/supabase/server', () => ({
   createClient: () => ({ from, auth: { signUp, signInWithPassword, resend } }),
 }))
+
+// signup() consults retired_usernames and banned_identifiers through the
+// service-role client, which is a different client from the request-scoped one
+// above — hence a separate mock. Default: nothing retired, nothing banned.
+const adminMaybeSingle = vi.fn().mockResolvedValue({ data: null })
+const adminFrom = vi.fn(() => ({
+  select: () => ({ eq: () => ({ maybeSingle: adminMaybeSingle }) }),
+}))
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: () => ({ from: adminFrom }),
+}))
 vi.mock('next/navigation', () => ({ redirect: vi.fn() }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
@@ -32,6 +43,50 @@ beforeEach(() => {
   signInWithPassword.mockReset()
   resend.mockClear()
   resend.mockResolvedValue({ error: null })
+  adminMaybeSingle.mockReset()
+  adminMaybeSingle.mockResolvedValue({ data: null })
+})
+
+describe('signup blocks deleted-account identifiers', () => {
+  // signup() checks banned_identifiers first, then retired_usernames, so the
+  // order of these two lookups is what the mockResolvedValueOnce chains track.
+  it('rejects an email whose hash is in banned_identifiers', async () => {
+    adminMaybeSingle.mockResolvedValueOnce({ data: { hash: 'x' } })
+    const { signup } = await import('./actions')
+    const result = await signup(
+      undefined,
+      formData({ username: 'freehandle', email: 'cheat@x.com', password: 'password123' }),
+    )
+    expect(result).toEqual({ error: 'We could not create an account with those details.' })
+    // Generic on purpose: a distinct message would let anyone probe the
+    // blocklist for a given address.
+    expect(signUp).not.toHaveBeenCalled()
+  })
+
+  it('rejects a retired username', async () => {
+    adminMaybeSingle
+      .mockResolvedValueOnce({ data: null }) // not banned
+      .mockResolvedValueOnce({ data: { username: 'sniperking' } }) // retired
+    const { signup } = await import('./actions')
+    const result = await signup(
+      undefined,
+      formData({ username: 'sniperking', email: 'new@x.com', password: 'password123' }),
+    )
+    expect(result).toEqual({ error: 'That username is taken — try another.' })
+    expect(signUp).not.toHaveBeenCalled()
+  })
+
+  it('lets a clean signup through', async () => {
+    cookieGet.mockReturnValueOnce(undefined)
+    signUp.mockResolvedValueOnce({ data: { user: { id: 'user-9' } }, error: null })
+    const { signup } = await import('./actions')
+    const result = await signup(
+      undefined,
+      formData({ username: 'brandnew', email: 'ok@x.com', password: 'password123' }),
+    )
+    expect(result).toEqual({ success: 'check-email' })
+    expect(signUp).toHaveBeenCalledOnce()
+  })
 })
 
 describe('signup locale seeding', () => {

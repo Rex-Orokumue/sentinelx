@@ -5,7 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { initializeTransaction, buildWalletDepositReference } from '@/lib/paystack/server'
 import { computePaystackFee } from '@/lib/paystack/fees'
 import { walletDepositSchema } from './schema'
-import { SITE_URL } from '@/lib/seo/site'
+import { SITE_URL } from '@/lib/seo/site'
+import { assertNotPendingDeletion } from '@/lib/settings/restriction'
 
 export type WalletDepositState = { error?: string } | undefined
 
@@ -21,6 +22,10 @@ export async function initiateWalletDeposit(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to fund your wallet.' }
+  // An account pending deletion must not take on new obligations, or the
+  // guards that passed at request time no longer hold at execution.
+  const restricted = await assertNotPendingDeletion(createAdminClient(), user.id)
+  if (restricted) return { error: restricted }
 
   const amount = parsed.data.amount
   const fee = computePaystackFee(amount)

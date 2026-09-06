@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
 import { placeWagerSchema } from './schema'
-import { wagerWindowOpen } from './market'
+import { wagerWindowOpen } from './market'
+import { assertNotPendingDeletion } from '@/lib/settings/restriction'
 
 export type WagerState = { error?: string; success?: boolean } | undefined
 
@@ -22,6 +23,10 @@ export async function placeWager(_prev: WagerState, formData: FormData): Promise
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to place a wager.' }
+  // An account pending deletion must not take on new obligations, or the
+  // guards that passed at request time no longer hold at execution.
+  const restricted = await assertNotPendingDeletion(createAdminClient(), user.id)
+  if (restricted) return { error: restricted }
 
   const admin = createAdminClient()
   const { data: match } = await admin

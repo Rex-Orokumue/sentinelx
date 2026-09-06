@@ -8,7 +8,8 @@ import { registrationDetailsSchema, coinsUsedSchema } from './registration-schem
 import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
 import { NAIRA_PER_COIN } from '@/lib/coins/value'
 import { settleReferralForPaidEntry } from '@/lib/referrals/credit'
-import { SITE_URL } from '@/lib/seo/site'
+import { SITE_URL } from '@/lib/seo/site'
+import { assertNotPendingDeletion } from '@/lib/settings/restriction'
 
 export type RegisterState = { error?: string; needsUsername?: boolean } | undefined
 
@@ -34,6 +35,10 @@ export async function registerForTournament(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to register.' }
+  // An account pending deletion must not take on new obligations, or the
+  // guards that passed at request time no longer hold at execution.
+  const restricted = await assertNotPendingDeletion(createAdminClient(), user.id)
+  if (restricted) return { error: restricted }
 
   // A nameless profile (Google sign-in / deferred username claim — migration
   // 073) would land in the bracket as "TBD". Force the handle claim first;

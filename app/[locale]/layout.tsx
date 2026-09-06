@@ -7,6 +7,7 @@ import localFont from 'next/font/local'
 import { Barlow_Condensed, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SiteHeader } from '@/components/shared/SiteHeader'
+import { PendingDeletionBanner } from '@/components/shared/PendingDeletionBanner'
 import { SiteFooter } from '@/components/shared/SiteFooter'
 import { NavTransitionProvider } from '@/components/transitions/NavTransitionProvider'
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
@@ -113,6 +114,9 @@ export default async function LocaleLayout({
           <ServiceWorkerRegistration />
           <div className="flex min-h-screen flex-col">
             <SiteHeader session={navSession} whatsappUrl={WHATSAPP_COMMUNITY} adminNav={adminNav} />
+            {navSession.deletionRequestedAt && (
+              <PendingDeletionBanner requestedAt={navSession.deletionRequestedAt} />
+            )}
 
             <main className="flex-1">{children}</main>
 

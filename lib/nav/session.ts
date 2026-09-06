@@ -23,6 +23,7 @@ export interface NavSession {
   recentNotifications: NotificationItem[]
   walletBalance: number
   coinBalance: number
+  deletionRequestedAt: string | null
 }
 
 const LOGGED_OUT: NavSession = {
@@ -37,6 +38,7 @@ const LOGGED_OUT: NavSession = {
   recentNotifications: [],
   walletBalance: 0,
   coinBalance: 0,
+  deletionRequestedAt: null,
 }
 
 export async function getNavSession(): Promise<NavSession> {
@@ -48,7 +50,7 @@ export async function getNavSession(): Promise<NavSession> {
 
   const [{ data: profile }, staff, { count: unreadCount }, { data: notifRows }, { data: walletRow }, { data: coinsRow }] =
     await Promise.all([
-      supabase.from('profiles').select('username, display_name, avatar_url').eq('id', user.id).maybeSingle(),
+      supabase.from('profiles').select('username, display_name, avatar_url, deletion_requested_at').eq('id', user.id).maybeSingle(),
       getStaffContext(),
       supabase
         .from('player_notifications')
@@ -90,5 +92,6 @@ export async function getNavSession(): Promise<NavSession> {
     // throws) — the header must never break on either case.
     walletBalance: walletRow?.balance ?? 0,
     coinBalance: coinsRow?.balance ?? 0,
+    deletionRequestedAt: profile?.deletion_requested_at ?? null,
   }
 }

@@ -5,6 +5,9 @@ export interface PlayerStatsInput {
   id: string
   username: string | null
   displayName: string | null
+  // Optional so Hall of Fame and seasons, which build this same shape, need
+  // no change. Absent means live.
+  deletedAt?: string | null
   avatarUrl: string | null
   country: string | null
   wins: number

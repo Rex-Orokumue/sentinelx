@@ -38,12 +38,13 @@ import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 
 const PROFILE_COLS =
   'id, username, display_name, avatar_url, country, bio, created_at, sx_score, sentinel_tier, ' +
-  'total_matches, wins, losses, goals_scored, goals_conceded, total_titles, xp, membership_tier'
+  'total_matches, wins, losses, goals_scored, goals_conceded, total_titles, xp, membership_tier, deleted_at'
 
 type ProfileRow = {
   id: string
   username: string
   display_name: string | null
+  deleted_at: string | null
   avatar_url: string | null
   country: string | null
   bio: string | null
@@ -125,7 +126,13 @@ type FinalRow = {
 async function loadProfile(username: string): Promise<ProfileRow | null> {
   const supabase = createClient()
   const { data } = await supabase.from('profiles').select(PROFILE_COLS).eq('username', username).maybeSingle()
-  return (data as ProfileRow | null) ?? null
+  const row = (data as ProfileRow | null) ?? null
+  // A tombstone has no public profile: its handle is retired, and the row
+  // exists only to keep match history and financial records attributable.
+  // Filtering here covers both the page and generateMetadata, which share
+  // this loader — so a stale link 404s instead of rendering an empty shell.
+  if (row?.deleted_at) return null
+  return row
 }
 
 export async function generateMetadata({ params }: { params: { username: string; locale: Locale } }): Promise<Metadata> {

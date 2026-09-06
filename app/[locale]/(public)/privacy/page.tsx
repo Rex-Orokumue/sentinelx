@@ -102,7 +102,7 @@ export default async function PrivacyPage() {
             </>
           ),
         },
-        { id: 'retention', title: t('s7Heading'), body: <><p>{t('s7P1')}</p><p>{t('s7P2')}</p></> },
+        { id: 'retention', title: t('s7Heading'), body: <><p>{t('s7P1')}</p><p>{t('s7P2')}</p><p>{t('s7P3')}</p><p>{t('s7P4')}</p></> },
         { id: 'security', title: t('s8Heading'), body: <p>{t('s8P1')}</p> },
         { id: 'children', title: t('s9Heading'), body: <p>{t('s9P1')}</p> },
         { id: 'changes', title: t('s10Heading'), body: <p>{t('s10P1')}</p> },

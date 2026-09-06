@@ -99,7 +99,11 @@ export function LeaderboardTable({
                       />
                       <div className="min-w-0">
                         <p className="truncate font-semibold leading-tight text-white">
-                          {pl.username ? (
+                          {/* A tombstone keeps its rank — removing it would
+                              renumber historical standings — but its handle is
+                              retired and the profile page 404s, so it must not
+                              be a link. */}
+                          {pl.username && !pl.deletedAt ? (
                             <Link
                               href={`/players/${pl.username}`}
                               onClick={(e) => e.stopPropagation()}

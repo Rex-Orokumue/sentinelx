@@ -1,7 +1,8 @@
 'use server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { buildInitiatePayload, validatePurchase } from './escrow'
+import { buildInitiatePayload, validatePurchase } from './escrow'
+import { assertNotPendingDeletion } from '@/lib/settings/restriction'
 
 const GENERIC_ERROR = 'Secure checkout is temporarily unavailable. Please try again shortly.'
 
@@ -28,6 +29,10 @@ export async function initiateEscrowPurchase(
     sellerId: listing.seller_id,
   })
   if (guard) return { error: guard }
+  // An account pending deletion must not take on new obligations, or the
+  // guards that passed at request time no longer hold at execution.
+  const restricted = await assertNotPendingDeletion(createAdminClient(), user!.id)
+  if (restricted) return { error: restricted }
 
   const secret = process.env.SENTINELX_API_SECRET
   const url = process.env.ZOLARUX_INITIATE_URL

@@ -23,6 +23,18 @@ describe('joinWaitlist — username gate', () => {
         throw new Error(`unexpected table ${table}`)
       },
     } as never)
+    // joinWaitlist now checks the deletion-restriction state through the
+    // service-role client before the username gate; report a live account.
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    vi.mocked(createAdminClient).mockReturnValue({
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({ data: { deletion_requested_at: null, deleted_at: null } }),
+          }),
+        }),
+      }),
+    } as never)
     const { joinWaitlist } = await import('./waitlist-actions')
     const r = await joinWaitlist(
       undefined,
