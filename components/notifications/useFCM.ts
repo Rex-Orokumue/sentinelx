@@ -17,19 +17,30 @@ function swQueryString(): string {
 // installability. Chrome (and other browsers) will not offer to install a
 // site without an active, controlling service worker that has a fetch
 // handler, and that has nothing to do with notification permission:
-// registering a service worker itself never prompts the user for
-// anything. This was missing entirely — the only place sw.js ever got
-// registered was inside requestPushPermission() below, gated behind the
-// "Enable Push Notifications" button, so almost no visitor ever triggered
-// registration at all and the site was never actually installable.
-// Registers without the Firebase query-string params (sw.js only sets up
-// push messaging when those are present, guarding against a crash on
-// missing config) — requestPushPermission() below re-registers the same
-// scope with real params when the player opts into push, which is a
-// normal, harmless service-worker update, not a conflict.
+// registering a service worker itself never prompts the user for anything.
+//
+// MUST register the SAME URL as requestPushPermission(), params included.
+// Service worker registrations are keyed by *scope*, not script URL, and
+// both of these resolve to scope '/'. Registering a different script URL
+// for a scope replaces whatever was there. This function runs on every
+// page load; requestPushPermission() runs once. So a param-less
+// registration here silently replaced the configured worker on the very
+// next navigation after a player enabled push — and since sw.js gates its
+// entire Firebase block on params.get('apiKey'), the worker left
+// controlling the page had no onBackgroundMessage handler.
+//
+// Payloads are data-only (see sendToTokens in lib/notifications/fcm.ts),
+// so the browser does not auto-display them either: every push was
+// delivered to the device and silently dropped, while FCM reported
+// success and nothing logged an error anywhere. Push worked for exactly
+// one page view after opting in, then died permanently.
+//
+// Passing the params here is safe when Firebase is unconfigured: the
+// values are empty strings, params.get('apiKey') is falsy, and sw.js skips
+// push setup exactly as it did before while still installing for offline.
 export function registerServiceWorker(): void {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
-  navigator.serviceWorker.register('/sw.js').catch((err) => {
+  navigator.serviceWorker.register(`/sw.js?${swQueryString()}`).catch((err) => {
     console.error('[pwa] service worker registration failed', err)
   })
 }
