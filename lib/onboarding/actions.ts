@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { usernameSchema } from '@/lib/auth/schema'
 import { safeInternalPath } from './safe-path'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { isUsernameRetired } from '@/lib/auth/signup-blocks'
 
 export type ClaimUsernameState = { error?: string } | undefined
 
@@ -25,6 +27,14 @@ export async function claimUsername(
     .eq('username', parsed.data)
     .maybeSingle()
   if (existing) return { error: 'That username is taken — try another.' }
+
+  // A retired handle is free in `profiles` — the tombstone holds
+  // 'deleted_<id>' instead — so the uniqueness check above cannot see it.
+  // Without this, a deleted player's username would be claimable here even
+  // though signup rejects it.
+  if (await isUsernameRetired(createAdminClient(), parsed.data)) {
+    return { error: 'That username is taken — try another.' }
+  }
 
   const { error } = await supabase
     .from('profiles')
