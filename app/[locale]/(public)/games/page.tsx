@@ -9,6 +9,7 @@ import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { GameGenreTabs } from '@/components/games/GameGenreTabs'
 import { NotifyMeButton } from '@/components/games/NotifyMeButton'
 import { findOptionalPublicImage } from '@/lib/media/optional-image'
+import { fetchChampions, reigningChampionByGame, type ChampionEntry } from '@/lib/tournaments/champions'
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
@@ -74,6 +75,10 @@ export default async function GamesPage({
     supabase.from('tournaments').select('*', { count: 'exact', head: true }).neq('status', 'draft'),
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
   ])
+
+  // Reigning champion per game — the winner of that game's most recently
+  // completed tournament, from the shared resolver.
+  const reigning = reigningChampionByGame(await fetchChampions(supabase))
 
   let games = dedupeGamesByName(rawGames ?? [])
   if (genre !== 'all') games = games.filter((g) => (g as unknown as { category: string }).category === genre)
@@ -171,7 +176,7 @@ export default async function GamesPage({
       ) : (
         <div className="mb-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {withCounts.map((g) => (
-            <GameCard key={g.slug} game={g} />
+            <GameCard key={g.slug} game={g} champion={reigning.get(g.id) ?? null} />
           ))}
         </div>
       )}
@@ -247,7 +252,13 @@ type GameWithCounts = {
   playerCount: number
 }
 
-function GameCard({ game }: { game: GameWithCounts }) {
+function GameCard({
+  game,
+  champion,
+}: {
+  game: GameWithCounts
+  champion: ChampionEntry | null
+}) {
   const description =
     DESCRIPTIONS[game.name] ?? FALLBACK_BY_CATEGORY[game.category] ?? FALLBACK_BY_CATEGORY.other
   const isLive = game.active && game.tournamentCount > 0
@@ -290,6 +301,20 @@ function GameCard({ game }: { game: GameWithCounts }) {
           </span>
         </div>
         <p className="mb-3 text-xs text-sx-gray">{description}</p>
+        {/* Reigning champion — omitted entirely for a game whose tournaments
+            haven't produced a decided winner yet, so a newly activated game
+            simply has no line rather than an empty one. */}
+        {champion && (
+          <Link
+            href={`/tournaments/${champion.slug}`}
+            className="mb-3 flex items-center gap-1.5 text-[11px] text-sx-gray transition-colors hover:text-white"
+          >
+            <Trophy className="h-3 w-3 shrink-0 text-sx-amber" />
+            <span className="truncate">
+              Champion: <span className="font-semibold text-white">{champion.champion.name}</span>
+            </span>
+          </Link>
+        )}
         {game.active ? (
           <>
             <div className="mb-3 flex gap-3 text-[11px] text-sx-gray">
