@@ -4,7 +4,12 @@ import Link from 'next/link'
 import { TierBadge } from '@/components/player/TierBadge'
 import { MembershipBadge } from '@/components/player/MembershipBadge'
 import { HexAvatar } from '@/components/shared/HexAvatar'
+import { BadgeCheck } from 'lucide-react'
 import type { RankedPlayer, LeaderboardMetric } from '@/lib/rankings/leaderboard'
+import type { Trend } from '@/lib/rankings/trend'
+import { gameChipsFor } from '@/lib/rankings/game-chips'
+import { GameChips } from './GameChips'
+import { TrendCell } from './TrendCell'
 import { categoryStat, gameStat } from '@/lib/rankings/game-breakdown'
 import { CATEGORY_META } from '@/lib/games/categories'
 import type { MembershipTier } from '@/lib/membership/tiers'
@@ -27,11 +32,15 @@ const CATEGORY_METRICS: LeaderboardMetric[] = ['football', 'fighting', 'shooter'
 
 export function LeaderboardTable({
   players,
+  trendByPlayer,
+  pinnedViewer,
   currentUserId,
   metric,
   gameId,
 }: {
   players: RankedPlayer[]
+  trendByPlayer?: Map<string, Trend>
+  pinnedViewer?: RankedPlayer | null
   currentUserId: string | null
   metric: LeaderboardMetric
   gameId?: string | null
@@ -52,10 +61,11 @@ export function LeaderboardTable({
           <tr className="border-b border-sx-border text-[11px] uppercase tracking-widest text-sx-gray">
             <th className="px-3 py-3 text-left">#</th>
             <th className="px-2 py-3 text-left">Player</th>
+            <th className="hidden px-2 py-3 text-right lg:table-cell">Games Played</th>
             <th className="px-2 py-3 text-right">{METRIC_LABEL[metric]}</th>
+            <th className="hidden px-2 py-3 text-right sm:table-cell">Total Wins</th>
             <th className="px-2 py-3 text-right">Win%</th>
             <th className="hidden px-2 py-3 text-right sm:table-cell">Titles</th>
-            <th className="hidden px-3 py-3 text-right sm:table-cell">GD</th>
             <th className="hidden px-3 py-3 text-right lg:table-cell">Trend</th>
           </tr>
         </thead>
@@ -99,6 +109,12 @@ export function LeaderboardTable({
                           ) : (
                             name
                           )}
+                          {pl.kycVerified && (
+                            <BadgeCheck
+                              aria-label="Verified player"
+                              className="ml-1 inline-block h-3.5 w-3.5 align-text-bottom text-sx-purple-text"
+                            />
+                          )}
                           {isMe && <span className="ml-1 text-[11px] text-sx-purple-text">(you)</span>}
                           {expandable && (
                             <span className="ml-1.5 inline-block text-[10px] text-sx-gray">
@@ -106,6 +122,9 @@ export function LeaderboardTable({
                             </span>
                           )}
                         </p>
+                        {pl.country && (
+                          <p className="truncate text-[11px] leading-tight text-sx-gray">{pl.country}</p>
+                        )}
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                           <span title="SX Score reliability tier">
                             <TierBadge tier={pl.sentinelTier} />
@@ -117,19 +136,22 @@ export function LeaderboardTable({
                       </div>
                     </div>
                   </td>
+                  <td className="hidden px-2 py-3.5 text-right lg:table-cell">
+                    <GameChips data={gameChipsFor(pl.winsByGame)} />
+                  </td>
                   <td className="px-2 py-3.5 text-right font-bold text-sx-purple-text">{metricValue(pl)}</td>
+                  <td className="hidden px-2 py-3.5 text-right font-semibold text-white sm:table-cell">
+                    {pl.wins}
+                  </td>
                   <td className="px-2 py-3.5 text-right text-white/80">{Math.round(pl.winRate * 100)}%</td>
                   <td className="hidden px-2 py-3.5 text-right text-sx-gray sm:table-cell">{pl.totalTitles}</td>
-                  <td className="hidden px-3 py-3.5 text-right font-bold text-white sm:table-cell">
-                    {pl.goalDiff > 0 ? `+${pl.goalDiff}` : pl.goalDiff}
+                  <td className="hidden px-3 py-3.5 text-right lg:table-cell">
+                    <TrendCell trend={trendByPlayer?.get(pl.id)} />
                   </td>
-                  {/* No rank-history data exists yet to compute a real ▲/▼ move —
-                      shown as a neutral dash rather than a fabricated number. */}
-                  <td className="hidden px-3 py-3.5 text-right text-sx-gray lg:table-cell">—</td>
                 </tr>
                 {isExpanded && (
                   <tr className="border-b border-sx-border/60 bg-sx-bg/50 last:border-0">
-                    <td colSpan={7} className="px-6 py-3 text-xs text-sx-gray">
+                    <td colSpan={8} className="px-6 py-3 text-xs text-sx-gray">
                       {pl.winsByGame.length === 0
                         ? 'No wins recorded yet.'
                         : pl.winsByGame
@@ -141,6 +163,57 @@ export function LeaderboardTable({
               </Fragment>
             )
           })}
+
+          {/* The viewer's own row when they're ranked but not on this page —
+              the mockup's rank-63 row. Omitted when they're already visible
+              above, so the table never shows the same player twice. */}
+          {pinnedViewer && (
+            <tr
+              id="my-rank-row"
+              className="scroll-mt-24 border-t-2 border-t-sx-purple/40 bg-sx-purple/10"
+            >
+              <td className="px-3 py-3.5 font-bold text-sx-purple-text">#{pinnedViewer.rank}</td>
+              <td className="px-2 py-3.5">
+                <div className="flex items-center gap-2.5">
+                  <HexAvatar
+                    src={pinnedViewer.avatarUrl}
+                    username={pinnedViewer.displayName ?? pinnedViewer.username ?? 'You'}
+                    tier={(pinnedViewer.membershipTier ?? 'recruit') as MembershipTier}
+                    size="xs"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold leading-tight text-white">
+                      {pinnedViewer.displayName ?? pinnedViewer.username ?? 'You'}
+                      <span className="ml-1 text-[11px] text-sx-purple-text">(you)</span>
+                    </p>
+                    {pinnedViewer.country && (
+                      <p className="truncate text-[11px] leading-tight text-sx-gray">
+                        {pinnedViewer.country}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </td>
+              <td className="hidden px-2 py-3.5 text-right lg:table-cell">
+                <GameChips data={gameChipsFor(pinnedViewer.winsByGame)} />
+              </td>
+              <td className="px-2 py-3.5 text-right font-bold text-sx-purple-text">
+                {metricValue(pinnedViewer)}
+              </td>
+              <td className="hidden px-2 py-3.5 text-right font-semibold text-white sm:table-cell">
+                {pinnedViewer.wins}
+              </td>
+              <td className="px-2 py-3.5 text-right text-white/80">
+                {Math.round(pinnedViewer.winRate * 100)}%
+              </td>
+              <td className="hidden px-2 py-3.5 text-right text-sx-gray sm:table-cell">
+                {pinnedViewer.totalTitles}
+              </td>
+              <td className="hidden px-3 py-3.5 text-right lg:table-cell">
+                <TrendCell trend={trendByPlayer?.get(pinnedViewer.id)} />
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
