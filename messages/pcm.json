@@ -208,6 +208,8 @@
     "s7Heading": "7. Data Retention",
     "s7P1": "We dey keep your account data as long as your account still active. If you delete your account, we go erase your personal data within 30 days, except law force us to keep am (example, payment records fit stay till 7 years for tax and financial compliance).",
     "s7P2": "Match records and results fit remain for anonymised form for platform statistics.",
+    "s7P3": "You fit delete your account for Settings. We go schedule di deletion 15 days ahead and you fit cancel am any time inside dat period, or you fit choose make e delete immediately. When di deletion complete, we go remove your personal information — display name, profile photo, country, contact details and bio — and your profile go show as “Deleted player”. Your match results, tournament entries and payment records go remain as we tok for up. Your username go retire permanently and nobody fit use am again. We go release your email address and you fit use am open new account later.",
+    "s7P4": "Na one exception dey. If we remove account wey dem flag for cheating, we go keep one-way cryptographic hash of im email address and phone number so dat di same person no go fit register again sharp sharp. Person no fit reverse hash to get di original address. We go keep dis entries forever so di sanction go stand.",
     "s8Heading": "8. Security",
     "s8P1": "We dey use industry-standard security measures like encrypted connection (HTTPS), hashed password, and role-based access control. No system dey perfectly secure — if you feel say person don enter your account, contact us sharp sharp.",
     "s9Heading": "9. Children",

@@ -208,6 +208,8 @@
     "s7Heading": "7. Data Retention",
     "s7P1": "We keep your account data for as long as your account is active. If you delete your account, we will erase your personal data within 30 days, except where we are required by law to retain it (for example, payment records may be retained for up to 7 years for tax and financial compliance).",
     "s7P2": "Match records and results may be retained in anonymised form for platform statistics.",
+    "s7P3": "You can delete your account from Settings. Deletion is scheduled 15 days ahead and you can cancel at any point during that period, or choose to delete immediately. When deletion completes we remove your personal information — display name, profile photo, country, contact details and bio — and your profile appears as “Deleted player”. Your match results, tournament entries and payment records are retained as described above. Your username is retired permanently and cannot be reused. Your email address is released and can be used to register a new account later.",
+    "s7P4": "One exception applies. If an account is removed while flagged for cheating, we keep a one-way cryptographic hash of its email address and phone number so that the same person cannot immediately register again. A hash cannot be reversed to recover the original address. We retain these entries indefinitely to enforce the sanction.",
     "s8Heading": "8. Security",
     "s8P1": "We use industry-standard security measures including encrypted connections (HTTPS), hashed passwords, and role-based access controls. No system is perfectly secure — if you believe your account has been compromised, contact us immediately.",
     "s9Heading": "9. Children",
