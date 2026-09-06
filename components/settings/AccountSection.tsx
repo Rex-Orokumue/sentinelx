@@ -1,11 +1,8 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useFormState } from 'react-dom'
 import Link from 'next/link'
 import { requestReset, type ActionState } from '@/lib/auth/actions'
-import { deleteAccount, type DeleteAccountState } from '@/lib/settings/account'
-import { createClient } from '@/lib/supabase/client'
 
 export function AccountSection({ email, kycVerified }: { email: string; kycVerified: boolean }) {
   return (
@@ -76,58 +73,3 @@ function ChangePasswordButton({ email }: { email: string }) {
   )
 }
 
-// Unrendered while deletion is disabled above. Kept rather than deleted
-// because the rebuild replaces its body in place; removing it now would only
-// mean re-adding the same scaffolding.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function DeleteAccountButton() {
-  const [open, setOpen] = useState(false)
-  const [confirmText, setConfirmText] = useState('')
-  const router = useRouter()
-  const [state, formAction] = useFormState<DeleteAccountState, FormData>(async (prev, fd) => {
-    const result = await deleteAccount(prev, fd)
-    if (!result?.error) {
-      await createClient().auth.signOut()
-      router.push('/')
-    }
-    return result
-  }, undefined)
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="rounded-lg border border-red-900/50 px-4 py-2 text-sm font-bold text-red-400 hover:bg-red-950/30"
-      >
-        Delete Account
-      </button>
-    )
-  }
-
-  return (
-    <form action={formAction} className="space-y-2 rounded-xl border border-red-900/50 bg-red-950/10 p-4">
-      <p className="text-sm text-white">This permanently deletes your account and all associated data. Type <strong>DELETE</strong> to confirm.</p>
-      <input
-        type="text"
-        name="confirm"
-        value={confirmText}
-        onChange={(e) => setConfirmText(e.target.value)}
-        className="w-full rounded-lg border border-red-900/50 bg-slate-950 px-3 py-2 text-sm text-white"
-      />
-      {state?.error && <p className="text-xs text-red-400">{state.error}</p>}
-      <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={confirmText !== 'DELETE'}
-          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500 disabled:opacity-40"
-        >
-          Permanently Delete
-        </button>
-        <button type="button" onClick={() => setOpen(false)} className="rounded-lg border border-sx-border px-4 py-2 text-sm text-sx-gray">
-          Cancel
-        </button>
-      </div>
-    </form>
-  )
-}
