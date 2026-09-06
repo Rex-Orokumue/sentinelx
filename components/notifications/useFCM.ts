@@ -74,6 +74,49 @@ export async function requestPushPermission(): Promise<boolean> {
   return res.ok
 }
 
+// Silently re-registers this browser's token when push permission has ALREADY
+// been granted. Safe to call on every page load — it never prompts.
+//
+// Exists because token acquisition used to be a one-time manual button press
+// while token loss is automatic and continuous: sign-out deleted them, FCM
+// rotates them, and stale-token cleanup removes them. A population that can
+// only shrink is why push coverage sat at 12 of 102 players. With this, a lost
+// token is re-acquired on the player's next visit without them doing anything.
+//
+// Deliberately does NOT call Notification.requestPermission(): prompting
+// unasked on page load is how a site gets its notifications permanently
+// blocked by the browser. Opting in stays an explicit user action
+// (requestPushPermission below); this only repairs a grant that already exists.
+export async function refreshPushToken(): Promise<boolean> {
+  const app = getFirebaseApp()
+  if (!app || typeof window === 'undefined' || !('Notification' in window)) return false
+  if (Notification.permission !== 'granted') return false
+  if (!('serviceWorker' in navigator)) return false
+
+  try {
+    const registration = await navigator.serviceWorker.register(`/sw.js?${swQueryString()}`)
+    const { getMessaging, getToken } = await import('firebase/messaging')
+    const token = await getToken(getMessaging(app), {
+      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+      serviceWorkerRegistration: registration,
+    })
+    if (!token) return false
+
+    // Upserts on conflict, so re-sending an unchanged token is a cheap no-op
+    // that also refreshes last_active and re-sets the device cookie.
+    const res = await fetch('/api/notifications/fcm-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    })
+    return res.ok
+  } catch (err) {
+    // Best-effort: a failed refresh must never disrupt the page.
+    console.error('[push] token refresh failed', err)
+    return false
+  }
+}
+
 // Called from the Settings "Disable" button and from signOut() — removes
 // every token for the current player rather than tracking "this device's"
 // token client-side, which keeps the call trivially simple at the cost of

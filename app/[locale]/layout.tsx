@@ -111,7 +111,7 @@ export default async function LocaleLayout({
           <Suspense fallback={null}>
             <NavTransitionProvider />
           </Suspense>
-          <ServiceWorkerRegistration />
+          <ServiceWorkerRegistration isLoggedIn={navSession.isLoggedIn} />
           <div className="flex min-h-screen flex-col">
             <SiteHeader session={navSession} whatsappUrl={WHATSAPP_COMMUNITY} adminNav={adminNav} />
             {navSession.deletionRequestedAt && (
