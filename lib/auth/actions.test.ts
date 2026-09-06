@@ -1,15 +1,17 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
 const update = vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) }))
 const signUp = vi.fn()
 const signInWithPassword = vi.fn()
 const resend = vi.fn().mockResolvedValue({ error: null })
-const from = vi.fn((table: string) =>
-  table === 'profiles'
-    ? { select: () => ({ eq: () => ({ maybeSingle }) }), update }
-    : {},
-)
+const tokenDeleteEq = vi.fn().mockResolvedValue({ error: null })
+const tokenDelete = vi.fn(() => ({ eq: tokenDeleteEq }))
+const from = vi.fn((table: string) => {
+  if (table === 'profiles') return { select: () => ({ eq: () => ({ maybeSingle }) }), update }
+  if (table === 'fcm_tokens') return { delete: tokenDelete }
+  return {}
+})
 vi.mock('@/lib/supabase/server', () => ({
   createClient: () => ({ from, auth: { signUp, signInWithPassword, resend } }),
 }))
@@ -28,7 +30,10 @@ vi.mock('next/navigation', () => ({ redirect: vi.fn() }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
 const cookieGet = vi.fn()
-vi.mock('next/headers', () => ({ cookies: () => ({ get: cookieGet }) }))
+const cookieDelete = vi.fn()
+vi.mock('next/headers', () => ({
+  cookies: () => ({ get: cookieGet, delete: cookieDelete }),
+}))
 
 function formData(fields: Record<string, string>): FormData {
   const fd = new FormData()
@@ -164,5 +169,58 @@ describe('resendConfirmation', () => {
     const result = await resendConfirmation(undefined, formData({ email: 'not-an-email' }))
     expect(result?.error).toBeTruthy()
     expect(resend).not.toHaveBeenCalled()
+  })
+})
+
+// Every device has its own FCM token, stored as its own row. Deleting by
+// player_id matched all of them, so signing out on a laptop silently killed
+// push on the player's phone — with no indication anything had happened, and
+// no way back except finding the Settings toggle again.
+describe('signOut only deregisters the device it runs on', () => {
+  beforeEach(() => {
+    tokenDelete.mockClear()
+    tokenDeleteEq.mockClear()
+    cookieDelete.mockClear()
+  })
+
+  // cookieGet is shared with the locale-seeding tests, which use
+  // mockReturnValueOnce. A persistent mockReturnValue set here would leak
+  // into them if the runner ever reorders files.
+  afterEach(() => {
+    cookieGet.mockReset()
+  })
+
+  it('deletes only this device token when the device cookie is present', async () => {
+    cookieGet.mockReturnValue({ value: 'device-token-abc' })
+    const { signOut } = await import('./actions')
+    await signOut().catch(() => {}) // redirect() throws by design
+    expect(tokenDeleteEq).toHaveBeenCalledWith('token', 'device-token-abc')
+  })
+
+  it('never deletes by player_id, which would hit every device', async () => {
+    cookieGet.mockReturnValue({ value: 'device-token-abc' })
+    const { signOut } = await import('./actions')
+    await signOut().catch(() => {})
+    const columns = tokenDeleteEq.mock.calls.map((c) => c[0])
+    expect(columns).not.toContain('player_id')
+  })
+
+  // Legacy sessions registered before the cookie existed. Deleting nothing is
+  // the safe branch: the next sign-in on this browser re-upserts the same
+  // token under the new player (onConflict: 'token'), so it cannot leak
+  // notifications to the wrong person for long — whereas deleting everything
+  // is exactly the bug being fixed.
+  it('deletes nothing when there is no device cookie', async () => {
+    cookieGet.mockReturnValue(undefined)
+    const { signOut } = await import('./actions')
+    await signOut().catch(() => {})
+    expect(tokenDelete).not.toHaveBeenCalled()
+  })
+
+  it('clears the device cookie so a later sign-in starts clean', async () => {
+    cookieGet.mockReturnValue({ value: 'device-token-abc' })
+    const { signOut } = await import('./actions')
+    await signOut().catch(() => {})
+    expect(cookieDelete).toHaveBeenCalled()
   })
 })
