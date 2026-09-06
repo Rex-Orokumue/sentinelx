@@ -212,7 +212,7 @@ type SupabaseLike = any
 
 export async function fetchChampions(
   supabase: SupabaseLike,
-  opts: { gameId?: string } = {},
+  opts: { gameId?: string; tournamentId?: string } = {},
 ): Promise<ChampionEntry[]> {
   let tq = supabase
     .from('tournaments')
@@ -222,6 +222,7 @@ export async function fetchChampions(
     .eq('status', 'completed')
     .order('tournament_end', { ascending: false })
   if (opts.gameId) tq = tq.eq('game_id', opts.gameId)
+  if (opts.tournamentId) tq = tq.eq('id', opts.tournamentId)
 
   const { data: tRows } = await tq
   const tournaments = (tRows ?? []) as unknown as {

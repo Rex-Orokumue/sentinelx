@@ -17,6 +17,8 @@ import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 import { getCoinBalance } from '@/lib/coins/service'
 import { GameBadge } from '@/components/game/GameBadge'
 import { resolveGameIconUrl } from '@/lib/games/icon'
+import { ChampionBanner } from '@/components/tournaments/ChampionBanner'
+import { fetchChampions } from '@/lib/tournaments/champions'
 import { gameGenreEmoji } from '@/lib/games/genre-emoji'
 import { splitRules } from '@/lib/tournaments/split-rules'
 
@@ -128,8 +130,14 @@ export default async function TournamentDetailPage({
   const heroImage = t.card_image_url?.trim() || t.banner_url || resolveGameIconUrl(game)
   const shareText = `${t.title} on Sentinel X — ${formatNaira(t.prize_pool)} prize pool 🎮 ${SITE_URL}/tournaments/${t.slug}`
 
+  // Lead a finished tournament with its result. Undecided tournaments resolve
+  // to nothing and keep the plain presentation.
+  const championEntry =
+    t.status === 'completed' ? (await fetchChampions(supabase, { tournamentId: t.id }))[0] ?? null : null
+
   return (
     <div className="mx-auto max-w-3xl px-4 pb-20">
+      {championEntry && <ChampionBanner entry={championEntry} />}
       <JsonLd
         data={buildTournamentJsonLd({
           title: t.title,
