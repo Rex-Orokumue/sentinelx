@@ -1571,6 +1571,7 @@ export type Database = {
           metric_value: number
           player_id: string
           rank: number
+          scope_key: string | null
         }
         Insert: {
           captured_on: string
@@ -1580,6 +1581,7 @@ export type Database = {
           metric_value: number
           player_id: string
           rank: number
+          scope_key?: string | null
         }
         Update: {
           captured_on?: string
@@ -1589,6 +1591,7 @@ export type Database = {
           metric_value?: number
           player_id?: string
           rank?: number
+          scope_key?: string | null
         }
         Relationships: [
           {
