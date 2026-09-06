@@ -279,14 +279,34 @@ probeable.
 `severity = 'conduct'` flags (−50 SX Score) do **not** trigger this — a
 minor conduct flag should not bar someone for life.
 
-Admin needs a way to remove an entry, for a flag later judged wrong. Since
-the hash cannot be reversed, this is a small admin screen that takes an
-email address, hashes it, and deletes the matching row.
-
 **This retention must be disclosed** in the Privacy Policy (all three
 locales) alongside the existing §6 data-rights text: what is kept, that it
 is a one-way hash, that it applies only to accounts removed for cheating,
 and that it is retained indefinitely to enforce the sanction.
+
+### Admin recovery tools
+
+Both permanent decisions in this design — a retired username and a banned
+identifier — need a way back, because both can be made in error and neither
+is reversible from the user's side. One admin screen,
+`/admin/account-recovery`, carries both. Admin role only, not moderator:
+these are identity and sanction decisions, and moderators already have no
+financial or ban powers.
+
+**Release a retired username.** Takes a username, deletes its
+`retired_usernames` row, and the handle becomes claimable again. The
+realistic case is the one this design most likely generates support mail
+for: someone deletes as `sniperking`, returns a month later with the same
+email — which §7 allows — and finds they cannot have their name back. The
+screen warns that releasing it lets *anyone* claim it, not just the previous
+owner, since there is no longer any record of who that was.
+
+**Clear a banned identifier.** Takes an email or phone, hashes it with the
+same pepper, and deletes the matching row. The input is the plaintext value
+because the stored hash cannot be reversed. It reports whether a row
+matched, which is the only way to confirm the entry existed.
+
+Both actions write to the existing admin audit trail.
 
 ---
 
@@ -455,6 +475,9 @@ Integration, against a branch database:
 - A cheat-flagged account's email cannot; a conduct-flagged one's can.
 - "Delete now" reaches the same end state without waiting.
 - The auth user can no longer sign in after execution.
+- Releasing a retired username makes it claimable again; clearing a banned
+  identifier lets that email register. Both are admin-only — a moderator
+  session is refused.
 
 ---
 
