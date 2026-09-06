@@ -6,6 +6,13 @@ import { RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leade
 import { winsByPlayerAndGame, scoreStatsByPlayerAndCategory, scoreStatsByPlayerAndGame, type GameScopedMatch } from '@/lib/rankings/game-breakdown'
 import { CATEGORY_META } from '@/lib/games/categories'
 import { LeaderboardTabs } from '@/components/rankings/LeaderboardTabs'
+import { GameTabs } from '@/components/rankings/GameTabs'
+import { LeaderboardPagination } from '@/components/rankings/LeaderboardPagination'
+import { LeaderboardFilters } from '@/components/rankings/LeaderboardFilters'
+import { paginate } from '@/lib/rankings/pagination'
+import { longestWinStreakByPlayer, type StreakMatch } from '@/lib/rankings/streak'
+import { previousRankFor, trendFor, type RankSnapshot, type Trend } from '@/lib/rankings/trend'
+import { rankPlayersBy } from '@/lib/rankings/leaderboard'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
@@ -33,8 +40,16 @@ function firstTournamentRef(t: RawTournamentRef): { game: RawGameRef } | null {
   return Array.isArray(t) ? t[0] ?? null : t
 }
 
-export default async function RankingsPage() {
+export default async function RankingsPage({
+  searchParams,
+}: {
+  searchParams: { game?: string; page?: string; region?: string; season?: string }
+}) {
   const supabase = createClient()
+  const gameSlug = searchParams.game?.trim() || null
+  const regionFilter = searchParams.region?.trim() || null
+  const seasonFilter = searchParams.season?.trim() || null
+  const requestedPage = Number.parseInt(searchParams.page ?? '1', 10) || 1
   const [
     { data: profiles },
     { data: matchRows },
@@ -58,18 +73,17 @@ export default async function RankingsPage() {
     supabase
       .from('matches')
       .select(
-        'status, score_a, score_b, player_a_id, player_b_id, tournament:tournaments(game:games(id, name, category))',
+        'status, score_a, score_b, player_a_id, player_b_id, completed_at, tournament:tournaments(game:games(id, name, category))',
       )
       .eq('status', 'completed'),
     // Independent of match data — a category can be "active" (a tab should
     // show) even with zero completed matches played in it yet.
-    supabase.from('games').select('id, name, category').eq('active', true),
+    supabase.from('games').select('id, name, slug, category').eq('active', true),
     supabase.from('matches').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
     supabase.from('tournaments').select('prize_pool').eq('status', 'completed'),
     supabase.auth.getUser(),
   ])
 
-  const activeCategories = Array.from(new Set((activeGames ?? []).map((g) => g.category)))
   const prizesAwarded = (prizeRows ?? []).reduce((sum, r) => sum + (r.prize_pool ?? 0), 0)
 
   const rawMatches = ((matchRows as unknown[] | null) ?? []) as {
@@ -135,6 +149,98 @@ export default async function RankingsPage() {
     }),
   )
 
+  // ── Game scoping, filters, trend and pagination ──────────────────────
+  // Only games with a completed match get a tab: no tab should open an empty
+  // board. This also drives the "Games Included" stat beside it.
+  const gamesWithMatches = (activeGames ?? []).filter((g) =>
+    matches.some((m) => m.game_id === g.id),
+  )
+  const activeGame = gameSlug ? gamesWithMatches.find((g) => g.slug === gameSlug) ?? null : null
+
+  const [{ data: snapshotRows }, { data: seasonRows }] = await Promise.all([
+    supabase
+      .from('player_rank_snapshots')
+      .select('player_id, game_id, rank, captured_on')
+      .order('captured_on', { ascending: false })
+      .limit(2000),
+    supabase.from('seasons').select('id, name').order('start_date', { ascending: false }),
+  ])
+
+  const snapshots: RankSnapshot[] = ((snapshotRows as unknown[] | null) ?? []).map((raw) => {
+    const r = raw as { player_id: string; game_id: string | null; rank: number; captured_on: string }
+    return { playerId: r.player_id, gameId: r.game_id, rank: r.rank, capturedOn: r.captured_on }
+  })
+  const today = new Date().toISOString().slice(0, 10)
+
+  const regions = Array.from(
+    new Set((players.map((p) => p.country).filter(Boolean) as string[])),
+  ).sort()
+
+  // Who has actually competed in each game — participation, not just wins, so a
+  // player who has played that game without winning still appears on its tab.
+  const playersByGame = new Map<string, Set<string>>()
+  for (const m of matches) {
+    const set = playersByGame.get(m.game_id) ?? new Set<string>()
+    if (m.player_a_id) set.add(m.player_a_id)
+    if (m.player_b_id) set.add(m.player_b_id)
+    playersByGame.set(m.game_id, set)
+  }
+
+  // Region and game both narrow who is ranked at all, so ranks reflect the board
+  // being shown rather than global ranks with rows missing from the middle.
+  let filteredPlayers = regionFilter
+    ? players.filter((p) => p.country === regionFilter)
+    : players
+  if (activeGame) {
+    const competed = playersByGame.get(activeGame.id) ?? new Set<string>()
+    filteredPlayers = filteredPlayers.filter((p) => competed.has(p.id))
+  }
+
+  const scopedRanked = rankPlayersBy(
+    filteredPlayers,
+    activeGame ? 'wins' : 'score',
+    activeGame?.id,
+  )
+
+  const trendByPlayer: Record<string, Trend> = {}
+  for (const pl of scopedRanked) {
+    trendByPlayer[pl.id] = trendFor(
+      pl.rank,
+      previousRankFor(snapshots, pl.id, activeGame?.id ?? null, today),
+    )
+  }
+
+  const pageInfo = paginate(scopedRanked.length, requestedPage)
+  const pagePlayers = scopedRanked.slice(pageInfo.startIndex, pageInfo.endIndex)
+
+  const viewerRanked = user ? scopedRanked.find((p) => p.id === user.id) ?? null : null
+  const pinnedViewer =
+    viewerRanked && !pagePlayers.some((p) => p.id === viewerRanked.id) ? viewerRanked : null
+
+  const streakByPlayer = longestWinStreakByPlayer(matches as unknown as StreakMatch[])
+  // .forEach rather than spreading Map entries — this tsconfig has no
+  // downlevelIteration (see the same note in lib/rankings/game-breakdown.ts).
+  let topStreakId: string | null = null
+  let topStreakBest = 0
+  streakByPlayer.forEach((streak, playerId) => {
+    if (streak > topStreakBest) {
+      topStreakBest = streak
+      topStreakId = playerId
+    }
+  })
+  const topStreak = topStreakId ? players.find((p) => p.id === topStreakId) ?? null : null
+  const topStreakValue = topStreakBest
+
+  function hrefForPage(page: number): string {
+    const sp = new URLSearchParams()
+    if (gameSlug) sp.set('game', gameSlug)
+    if (regionFilter) sp.set('region', regionFilter)
+    if (seasonFilter) sp.set('season', seasonFilter)
+    if (page > 1) sp.set('page', String(page))
+    const q = sp.toString()
+    return q ? `/rankings?${q}` : '/rankings'
+  }
+
   const viewer = user ? players.find((p) => p.id === user.id) ?? null : null
   const topScore = [...players].sort((a, b) => b.sxScore - a.sxScore)[0] ?? null
   const topTitles = [...players].sort((a, b) => b.totalTitles - a.totalTitles)[0] ?? null
@@ -176,7 +282,7 @@ export default async function RankingsPage() {
       {/* ── Stats bar ─────────────────────────────────────────── */}
       <section className="mb-10 grid grid-cols-2 gap-4 rounded-xl border border-sx-border bg-sx-surface p-6 sm:grid-cols-4">
         <StatItem icon="👥" value={String(players.length)} label="Players Ranked" />
-        <StatItem icon="🎮" value={String(activeCategories.length)} label="Categories Included" />
+        <StatItem icon="🎮" value={String(gamesWithMatches.length)} label="Games Included" />
         <StatItem icon="⚔️" value={String(matchCount ?? 0)} label="Total Matches" />
         <StatItem icon="🏆" value={formatNaira(prizesAwarded)} label="Prizes Awarded" />
       </section>
@@ -194,13 +300,34 @@ export default async function RankingsPage() {
         {/* ── Right: sidebars (shown first on mobile) ── */}
         <aside className="order-first space-y-6 lg:order-last">
           <YourGlobalStatsCard viewer={viewer} isLoggedIn={!!user} />
-          <TopPerformersCard topScore={topScore} topTitles={topTitles} topWinRate={topWinRate} />
+          <TopPerformersCard
+            topScore={topScore}
+            topTitles={topTitles}
+            topWinRate={topWinRate}
+            topStreak={topStreak}
+            topStreakValue={topStreakValue}
+          />
+          <LeaderboardFilters
+            regions={regions}
+            seasons={(seasonRows ?? []) as { id: string; name: string }[]}
+            activeGame={gameSlug}
+            activeRegion={regionFilter}
+            activeSeason={seasonFilter}
+          />
         </aside>
 
         {/* ── Left: leaderboard table ─────────────────────── */}
         <div className="min-w-0">
-          <LeaderboardTabs players={players} currentUserId={user?.id ?? null} activeGames={activeGames ?? []} />
-          {players.length === 0 && (
+          <GameTabs games={gamesWithMatches} activeSlug={activeGame?.slug ?? null} />
+          <LeaderboardTabs
+            players={pagePlayers}
+            currentUserId={user?.id ?? null}
+            activeGames={activeGames ?? []}
+            trendByPlayer={trendByPlayer}
+            pinnedViewer={pinnedViewer}
+          />
+          <LeaderboardPagination info={pageInfo} hrefFor={hrefForPage} />
+          {scopedRanked.length === 0 && (
             <EmptyState icon="🏅" title="Rankings coming soon" body="Be the first to compete and claim the top spot." />
           )}
         </div>
@@ -303,10 +430,14 @@ function TopPerformersCard({
   topScore,
   topTitles,
   topWinRate,
+  topStreak,
+  topStreakValue,
 }: {
   topScore: PlayerStatsInput | null
   topTitles: PlayerStatsInput | null
   topWinRate: PlayerStatsInput | null
+  topStreak: PlayerStatsInput | null
+  topStreakValue: number
 }) {
   const rows = [
     { label: 'Most SX Score', player: topScore, value: topScore ? String(topScore.sxScore) : '—' },
@@ -319,11 +450,21 @@ function TopPerformersCard({
           ? `${Math.round((topWinRate.wins / topWinRate.totalMatches) * 100)}%`
           : '—',
     },
+    {
+      label: 'Longest Win Streak',
+      player: topStreak,
+      value: topStreak && topStreakValue > 0 ? `${topStreakValue} Wins` : '—',
+    },
   ]
 
   return (
     <div className="rounded-xl border border-sx-border bg-sx-surface p-6">
-      <p className="mb-4 text-xs font-bold uppercase tracking-widest text-sx-purple-text">Top Performers</p>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-xs font-bold uppercase tracking-widest text-sx-purple-text">Top Performers</p>
+        <Link href="/hall-of-fame" className="text-[11px] font-semibold text-sx-gray hover:text-white">
+          View All →
+        </Link>
+      </div>
       <div className="space-y-3">
         {rows.map((r) => (
           <div key={r.label} className="flex items-center justify-between gap-2">

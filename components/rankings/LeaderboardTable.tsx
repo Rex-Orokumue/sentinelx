@@ -39,7 +39,8 @@ export function LeaderboardTable({
   gameId,
 }: {
   players: RankedPlayer[]
-  trendByPlayer?: Map<string, Trend>
+  /** Plain object, not a Map: this crosses the server/client boundary. */
+  trendByPlayer?: Record<string, Trend>
   pinnedViewer?: RankedPlayer | null
   currentUserId: string | null
   metric: LeaderboardMetric
@@ -146,7 +147,7 @@ export function LeaderboardTable({
                   <td className="px-2 py-3.5 text-right text-white/80">{Math.round(pl.winRate * 100)}%</td>
                   <td className="hidden px-2 py-3.5 text-right text-sx-gray sm:table-cell">{pl.totalTitles}</td>
                   <td className="hidden px-3 py-3.5 text-right lg:table-cell">
-                    <TrendCell trend={trendByPlayer?.get(pl.id)} />
+                    <TrendCell trend={trendByPlayer?.[pl.id]} />
                   </td>
                 </tr>
                 {isExpanded && (
@@ -210,7 +211,7 @@ export function LeaderboardTable({
                 {pinnedViewer.totalTitles}
               </td>
               <td className="hidden px-3 py-3.5 text-right lg:table-cell">
-                <TrendCell trend={trendByPlayer?.get(pinnedViewer.id)} />
+                <TrendCell trend={trendByPlayer?.[pinnedViewer.id]} />
               </td>
             </tr>
           )}

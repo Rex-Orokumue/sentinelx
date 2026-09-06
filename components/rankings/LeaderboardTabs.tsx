@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { LeaderboardTable } from './LeaderboardTable'
 import { rankPlayersBy, type PlayerStatsInput, type LeaderboardMetric } from '@/lib/rankings/leaderboard'
 import { CATEGORY_META } from '@/lib/games/categories'
+import type { Trend } from '@/lib/rankings/trend'
+import type { RankedPlayer } from '@/lib/rankings/leaderboard'
 
 const BASE_TABS: { key: LeaderboardMetric; label: string }[] = [
   { key: 'wins', label: 'Wins' },
@@ -19,10 +21,15 @@ export function LeaderboardTabs({
   players,
   currentUserId,
   activeGames,
+  trendByPlayer,
+  pinnedViewer,
 }: {
   players: PlayerStatsInput[]
   currentUserId: string | null
   activeGames: ActiveGame[]
+  /** Plain object, not a Map — this crosses the server/client boundary. */
+  trendByPlayer?: Record<string, Trend>
+  pinnedViewer?: RankedPlayer | null
 }) {
   const activeCategories = Array.from(new Set(activeGames.map((g) => g.category)))
   const categoryTabs = activeCategories
@@ -86,7 +93,14 @@ export function LeaderboardTabs({
           ))}
         </div>
       )}
-      <LeaderboardTable players={ranked} currentUserId={currentUserId} metric={metric} gameId={gameId} />
+      <LeaderboardTable
+        players={ranked}
+        currentUserId={currentUserId}
+        metric={metric}
+        gameId={gameId}
+        trendByPlayer={trendByPlayer}
+        pinnedViewer={pinnedViewer}
+      />
     </div>
   )
 }
