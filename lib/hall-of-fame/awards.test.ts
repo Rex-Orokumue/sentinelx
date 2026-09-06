@@ -15,6 +15,7 @@ import type { BracketMatch } from '@/lib/tournaments/bracket'
 function p(over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput {
   return {
     username: over.id,
+    kycVerified: false,
     displayName: null,
     avatarUrl: null,
     country: null,

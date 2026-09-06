@@ -83,7 +83,7 @@ export default async function HallOfFamePage({
     supabase
       .from('profiles')
       .select(
-        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sx_score, sentinel_tier, membership_tier',
+        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sx_score, sentinel_tier, membership_tier, kyc_verified',
       )
       .gte('total_matches', RANKING_MIN_MATCHES),
     supabase
@@ -136,6 +136,7 @@ export default async function HallOfFamePage({
 
   const players: PlayerStatsInput[] = (profileRows ?? []).map((p) => ({
     id: p.id,
+    kycVerified: p.kyc_verified,
     username: p.username,
     displayName: p.display_name,
     avatarUrl: p.avatar_url,

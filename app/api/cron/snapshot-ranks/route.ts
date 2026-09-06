@@ -69,6 +69,8 @@ export async function POST(req: Request) {
         sxScore: p.sx_score,
         sentinelTier: null,
         membershipTier: 'recruit',
+        // Not read by either ranking sort; present to satisfy the shared type.
+        kycVerified: false,
       }) satisfies PlayerStatsInput,
   )
 

@@ -31,6 +31,10 @@ export interface PlayerStatsInput {
   sxScore: number
   sentinelTier: string | null
   membershipTier: string
+  // Drives the verified tick beside a name — the same signal the exchange uses
+  // for a verified seller. Required, not optional: an optional field would let a
+  // future call site silently render every player unverified.
+  kycVerified: boolean
 }
 
 export interface RankedPlayer extends PlayerStatsInput {

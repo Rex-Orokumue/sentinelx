@@ -4,6 +4,7 @@ import type { PlayerStatsInput } from './leaderboard'
 
 const player = (over: Partial<PlayerStatsInput> & { id: string }): PlayerStatsInput => ({
   username: over.id,
+  kycVerified: false,
   displayName: null,
   avatarUrl: null,
   country: null,
