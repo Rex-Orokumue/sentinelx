@@ -35,13 +35,13 @@ is pure and unit-tested; the route is thin glue.
 ### Task 1: Migration and types
 
 **Files:**
-- Create: `supabase/migrations/078_player_rank_snapshots.sql`
+- Create: `supabase/migrations/080_player_rank_snapshots.sql`
 - Modify: `lib/supabase/types.ts` (regenerated)
 
 - [ ] **Step 1: Write the migration**
 
 ```sql
--- 078_player_rank_snapshots.sql
+-- 080_player_rank_snapshots.sql
 -- Rank history for the leaderboard's Trend column. Rank is otherwise computed
 -- per request and discarded, so there is nothing to compare "now" against.
 -- game_id NULL = the global, all-games board.
@@ -86,7 +86,7 @@ and confirm `player_rank_snapshots` appears with all six columns.
 - [ ] **Step 3: Commit**
 
 ```bash
-git add supabase/migrations/078_player_rank_snapshots.sql lib/supabase/types.ts
+git add supabase/migrations/080_player_rank_snapshots.sql lib/supabase/types.ts
 git commit -m "feat(rankings): player_rank_snapshots table for leaderboard trend"
 ```
 
