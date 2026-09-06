@@ -2743,6 +2743,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      anonymise_account: { Args: { p_id: string }; Returns: undefined }
       expire_unconfirmed_signups: { Args: never; Returns: undefined }
       increment_listing_view: {
         Args: { p_listing_id: string }
