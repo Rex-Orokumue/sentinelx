@@ -35,7 +35,23 @@ export function AccountSection({ email, kycVerified }: { email: string; kycVerif
 
       <div className="mt-5 border-t border-red-900/40 pt-3">
         <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-red-400">Danger Zone</h3>
-        <DeleteAccountButton />
+        {/* Deletion is being rebuilt: the old path fails for 82 of 102 users
+            because 34 foreign keys onto profiles are NO ACTION, and the schema
+            change that fixes it would briefly let the old path orphan a
+            fully-populated profile. A notice rather than a silent removal —
+            Privacy Policy section 6 commits to honouring deletion requests, so
+            users must still be told how to exercise that right meanwhile. */}
+        <p className="text-xs leading-relaxed text-sx-gray">
+          Account deletion is temporarily unavailable while we rebuild it. To delete your account in
+          the meantime, email{' '}
+          <a
+            href="mailto:sentinelxesports@gmail.com"
+            className="font-semibold text-sx-purple-text hover:text-sx-purple-light"
+          >
+            sentinelxesports@gmail.com
+          </a>{' '}
+          and we will action it for you.
+        </p>
       </div>
     </section>
   )
@@ -60,6 +76,10 @@ function ChangePasswordButton({ email }: { email: string }) {
   )
 }
 
+// Unrendered while deletion is disabled above. Kept rather than deleted
+// because the rebuild replaces its body in place; removing it now would only
+// mean re-adding the same scaffolding.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function DeleteAccountButton() {
   const [open, setOpen] = useState(false)
   const [confirmText, setConfirmText] = useState('')
