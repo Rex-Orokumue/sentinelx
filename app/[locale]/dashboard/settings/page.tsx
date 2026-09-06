@@ -22,7 +22,7 @@ export default async function DashboardSettingsPage() {
   const [{ data: row }, { data: kyc }, { count: fcmTokenCount }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('display_name, username, avatar_url, membership_tier, whatsapp_number, country, bio, kyc_verified, username_changed_at, notification_prefs')
+      .select('display_name, username, avatar_url, membership_tier, whatsapp_number, country, bio, kyc_verified, username_changed_at, notification_prefs, deletion_requested_at')
       .eq('id', user.id)
       .maybeSingle(),
     createAdminClient().from('player_kyc').select('kyc_status').eq('player_id', user.id).maybeSingle(),
@@ -95,7 +95,12 @@ export default async function DashboardSettingsPage() {
             other: prefs.achievement_sharing?.other ?? false,
           }}
         />
-        <AccountSection email={user.email ?? ''} kycVerified={kyc?.kyc_status === 'verified' || !!row?.kyc_verified} />
+        <AccountSection
+          email={user.email ?? ''}
+          kycVerified={kyc?.kyc_status === 'verified' || !!row?.kyc_verified}
+          username={row?.username ?? null}
+          deletionRequestedAt={row?.deletion_requested_at ?? null}
+        />
       </div>
     </DashboardShell>
   )
