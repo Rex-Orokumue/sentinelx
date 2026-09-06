@@ -98,6 +98,56 @@ export type Database = {
           },
         ]
       }
+      admin_recovery_log: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          id: string
+          target: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          id?: string
+          target: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          id?: string
+          target?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_recovery_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      banned_identifiers: {
+        Row: {
+          created_at: string
+          hash: string
+          kind: string
+        }
+        Insert: {
+          created_at?: string
+          hash: string
+          kind: string
+        }
+        Update: {
+          created_at?: string
+          hash?: string
+          kind?: string
+        }
+        Relationships: []
+      }
       best_play_nominations: {
         Row: {
           created_at: string
@@ -1512,6 +1562,51 @@ export type Database = {
           },
         ]
       }
+      player_rank_snapshots: {
+        Row: {
+          captured_on: string
+          created_at: string
+          game_id: string | null
+          id: string
+          metric_value: number
+          player_id: string
+          rank: number
+        }
+        Insert: {
+          captured_on: string
+          created_at?: string
+          game_id?: string | null
+          id?: string
+          metric_value: number
+          player_id: string
+          rank: number
+        }
+        Update: {
+          captured_on?: string
+          created_at?: string
+          game_id?: string | null
+          id?: string
+          metric_value?: number
+          player_id?: string
+          rank?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_rank_snapshots_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_rank_snapshots_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_store_items: {
         Row: {
           equipped: boolean
@@ -1638,6 +1733,8 @@ export type Database = {
           bio: string | null
           country: string | null
           created_at: string
+          deleted_at: string | null
+          deletion_requested_at: string | null
           display_name: string | null
           goals_conceded: number
           goals_scored: number
@@ -1668,6 +1765,8 @@ export type Database = {
           bio?: string | null
           country?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deletion_requested_at?: string | null
           display_name?: string | null
           goals_conceded?: number
           goals_scored?: number
@@ -1698,6 +1797,8 @@ export type Database = {
           bio?: string | null
           country?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deletion_requested_at?: string | null
           display_name?: string | null
           goals_conceded?: number
           goals_scored?: number
@@ -1777,6 +1878,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      retired_usernames: {
+        Row: {
+          retired_at: string
+          username: string
+        }
+        Insert: {
+          retired_at?: string
+          username: string
+        }
+        Update: {
+          retired_at?: string
+          username?: string
+        }
+        Relationships: []
       }
       season_noshow_penalties: {
         Row: {
