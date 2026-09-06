@@ -142,3 +142,73 @@ describe('resolveChampion — round robin', () => {
     expect(resolveChampion({ bracketMatches: [] })).toBeNull()
   })
 })
+
+// ── Entries and selectors ─────────────────────────────────────────────
+import { groupByType, latestChampion, reigningChampionByGame, type ChampionEntry } from './champions'
+
+const entry = (over: Partial<ChampionEntry>): ChampionEntry => ({
+  tournamentId: 't1',
+  slug: 't-1',
+  title: 'T1',
+  tournamentType: 'open',
+  gameId: 'g1',
+  gameName: 'DLS',
+  date: '2026-01-01T00:00:00Z',
+  prizePool: 1000,
+  champion: { id: 'p1', name: 'P1' },
+  runnerUp: null,
+  championAvatarUrl: null,
+  ...over,
+})
+
+describe('groupByType', () => {
+  it('buckets every entry under its own type', () => {
+    const g = groupByType([
+      entry({ tournamentId: 'a', tournamentType: 'open' }),
+      entry({ tournamentId: 'b', tournamentType: 'masters' }),
+      entry({ tournamentId: 'c', tournamentType: 'open' }),
+    ])
+    expect(g.open.map((e) => e.tournamentId)).toEqual(['a', 'c'])
+    expect(g.masters).toHaveLength(1)
+  })
+
+  it('always returns a bucket for every type, so a section can check length safely', () => {
+    const g = groupByType([])
+    expect(g.open).toEqual([])
+    expect(g.masters).toEqual([])
+    expect(g.community_club).toEqual([])
+    expect(g.champions_cup).toEqual([])
+  })
+})
+
+describe('latestChampion', () => {
+  it('picks the most recent by date', () => {
+    const r = latestChampion([
+      entry({ tournamentId: 'old', date: '2026-01-01T00:00:00Z' }),
+      entry({ tournamentId: 'new', date: '2026-06-01T00:00:00Z' }),
+    ])
+    expect(r?.tournamentId).toBe('new')
+  })
+
+  it('returns null for no entries', () => {
+    expect(latestChampion([])).toBeNull()
+  })
+
+  it('ignores entries with no date rather than ranking them first', () => {
+    const r = latestChampion([entry({ tournamentId: 'undated', date: null }), entry({ tournamentId: 'dated' })])
+    expect(r?.tournamentId).toBe('dated')
+  })
+})
+
+describe('reigningChampionByGame', () => {
+  it('keeps only the most recent champion per game', () => {
+    const map = reigningChampionByGame([
+      entry({ tournamentId: 'dls-old', gameId: 'g1', date: '2026-01-01T00:00:00Z' }),
+      entry({ tournamentId: 'dls-new', gameId: 'g1', date: '2026-05-01T00:00:00Z' }),
+      entry({ tournamentId: 'fc', gameId: 'g2', date: '2026-03-01T00:00:00Z' }),
+    ])
+    expect(map.get('g1')?.tournamentId).toBe('dls-new')
+    expect(map.get('g2')?.tournamentId).toBe('fc')
+    expect(map.size).toBe(2)
+  })
+})
