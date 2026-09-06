@@ -138,6 +138,8 @@ export interface ChampionEntry {
   // Carried on the entry so the four surfaces don't each re-query profiles for
   // an avatar they already joined on the way to finding the champion.
   championAvatarUrl: string | null
+  // The Champions Cup card labels its winner with the season they won in.
+  seasonName: string | null
 }
 
 // Seeded with every type so a section can read `groups.masters.length` without
@@ -214,7 +216,9 @@ export async function fetchChampions(
 ): Promise<ChampionEntry[]> {
   let tq = supabase
     .from('tournaments')
-    .select('id, slug, title, tournament_type, prize_pool, tournament_end, game_id, games(name)')
+    .select(
+      'id, slug, title, tournament_type, prize_pool, tournament_end, game_id, games(name), season:seasons(name)',
+    )
     .eq('status', 'completed')
     .order('tournament_end', { ascending: false })
   if (opts.gameId) tq = tq.eq('game_id', opts.gameId)
@@ -229,6 +233,7 @@ export async function fetchChampions(
     tournament_end: string | null
     game_id: string | null
     games: { name: string } | { name: string }[] | null
+    season: { name: string } | { name: string }[] | null
   }[]
   if (tournaments.length === 0) return []
 
@@ -349,6 +354,7 @@ export async function fetchChampions(
       champion: result.champion,
       runnerUp: result.runnerUp,
       championAvatarUrl: avatarById.get(result.champion.id) ?? null,
+      seasonName: one(t.season)?.name ?? null,
     })
   }
 

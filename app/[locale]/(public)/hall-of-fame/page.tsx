@@ -7,7 +7,6 @@ import {
   deriveThirdPlaces,
   type ThirdPlaceInput,
 } from '@/lib/hall-of-fame/awards'
-import { deriveTournamentResults } from '@/lib/hall-of-fame/tournament-results'
 import {
   scoreStatsByPlayerAndCategory,
   scoreStatsByPlayerAndGame,
@@ -22,6 +21,9 @@ import { HeroSection } from '@/components/hall-of-fame/HeroSection'
 import { AllTimeAwardCard, AllTimeAwardEmptyCard } from '@/components/hall-of-fame/AllTimeAwardCard'
 import { CategoryAwardFilter, type AwardOption } from '@/components/hall-of-fame/CategoryAwardFilter'
 import { ChampionsCupCard, ChampionsCupEmptyCard } from '@/components/hall-of-fame/ChampionsCupCard'
+import { TournamentChampionCard } from '@/components/hall-of-fame/TournamentChampionCard'
+import { HallOfFameGameFilter } from '@/components/hall-of-fame/HallOfFameGameFilter'
+import { fetchChampions, groupByType } from '@/lib/tournaments/champions'
 import { MastersChampionCard, MastersChampionEmptyCard } from '@/components/hall-of-fame/MastersChampionCard'
 import { CommunityClubCard } from '@/components/hall-of-fame/CommunityClubCard'
 import { BronzeCard } from '@/components/hall-of-fame/BronzeCard'
@@ -63,8 +65,13 @@ function firstTournamentRef(t: RawTournamentRef): { game: RawGameRef } | null {
   return Array.isArray(t) ? t[0] ?? null : t
 }
 
-export default async function HallOfFamePage() {
+export default async function HallOfFamePage({
+  searchParams,
+}: {
+  searchParams: { game?: string }
+}) {
   const supabase = createClient()
+  const gameSlug = searchParams.game?.trim() || null
 
   // Awards: eligible profiles. Champions: completed tournaments + their completed finals.
   const [
@@ -72,9 +79,6 @@ export default async function HallOfFamePage() {
     { data: tournamentRows },
     { data: matchRows },
     { data: activeGames },
-    { data: mastersRows },
-    { data: communityClubRows },
-    { data: championsCupRows },
   ] = await Promise.all([
     supabase
       .from('profiles')
@@ -94,27 +98,7 @@ export default async function HallOfFamePage() {
       .eq('status', 'completed'),
     // Independent of match data — a category can be "active" even with zero
     // completed matches played in it yet.
-    supabase.from('games').select('id, name, category').eq('active', true),
-    supabase
-      .from('tournaments')
-      .select('id, slug, title, tournament_end, prize_pool, season:seasons(name)')
-      .eq('tournament_type', 'masters')
-      .eq('status', 'completed')
-      .order('tournament_end', { ascending: false }),
-    supabase
-      .from('tournaments')
-      .select('id, slug, title, tournament_end, prize_pool')
-      .eq('tournament_type', 'community_club')
-      .eq('status', 'completed')
-      .order('tournament_end', { ascending: false })
-      .limit(9),
-    supabase
-      .from('tournaments')
-      .select('id, slug, title, tournament_end, prize_pool, season:seasons(name)')
-      .eq('tournament_type', 'champions_cup')
-      .eq('status', 'completed')
-      .order('tournament_end', { ascending: false })
-      .limit(1),
+    supabase.from('games').select('id, name, slug, category').eq('active', true),
   ])
 
   const activeCategories = Array.from(new Set((activeGames ?? []).map((g) => g.category)))
@@ -275,107 +259,50 @@ export default async function HallOfFamePage() {
   const hasAwards = mvp != null || goldenBoot != null || categoryAwards.length > 0
   const hasBronze = thirdPlaces.length > 0
 
-  // ── Masters / Community Club / Champions Cup champions + runner-ups ────
-  const mastersIds = (mastersRows ?? []).map((t) => t.id)
-  const communityClubIds = (communityClubRows ?? []).map((t) => t.id)
-  const championsCupIds = (championsCupRows ?? []).map((t) => t.id)
-  const newTournamentIds = [...mastersIds, ...communityClubIds, ...championsCupIds]
-
-  const { data: newFinalRows } =
-    newTournamentIds.length > 0
-      ? await supabase
-          .from('matches')
-          .select(
-            'id, tournament_id, round, status, score_a, score_b, ' +
-              'player_a:profiles!matches_player_a_id_fkey(id, username, display_name, avatar_url, membership_tier, sentinel_tier), ' +
-              'player_b:profiles!matches_player_b_id_fkey(id, username, display_name, avatar_url, membership_tier, sentinel_tier)',
-          )
-          .in('tournament_id', newTournamentIds)
-          .eq('round', 'final')
-          .eq('status', 'completed')
-      : { data: [] as unknown[] }
-
-  type ProfileWithAvatarRef = {
+  // ── Champions, for every tournament type and every game ────────────────
+  // Champion resolution lives in lib/tournaments/champions.ts so the homepage,
+  // games page and tournament page share it. Type now decides which section a
+  // champion renders in — it is no longer a filter that can hide one.
+  const activeGameList = (activeGames ?? []) as unknown as {
     id: string
-    username: string | null
-    display_name: string | null
-    avatar_url: string | null
-    membership_tier: string | null
-    sentinel_tier: string | null
-  }
-  const newFinalByTournament = new Map<string, BracketMatch>()
-  const playerInfoById = new Map<string, ProfileWithAvatarRef>()
-  for (const raw of (newFinalRows as unknown[] | null) ?? []) {
-    const m = raw as {
+    name: string
+    slug: string
+    category: string
+  }[]
+  const selectedGame = gameSlug ? activeGameList.find((g) => g.slug === gameSlug) ?? null : null
+  // An unknown slug falls back to "all games" rather than showing nothing.
+  const gameFilterId = selectedGame?.id
+
+  const champions = await fetchChampions(supabase, gameFilterId ? { gameId: gameFilterId } : {})
+  const championGroups = groupByType(champions)
+
+  // Tier decorations for the champion cards.
+  const championIds = Array.from(new Set(champions.map((c) => c.champion.id)))
+  const { data: championProfileRows } = championIds.length
+    ? await supabase
+        .from('profiles')
+        .select('id, avatar_url, membership_tier, sentinel_tier')
+        .in('id', championIds)
+    : { data: [] as unknown[] }
+  const championProfileById = new Map<
+    string,
+    { avatar_url: string | null; membership_tier: string | null; sentinel_tier: string | null }
+  >()
+  for (const raw of (championProfileRows as unknown[] | null) ?? []) {
+    const r = raw as {
       id: string
-      tournament_id: string
-      round: string
-      status: string
-      score_a: number | null
-      score_b: number | null
-      player_a: ProfileWithAvatarRef | ProfileWithAvatarRef[] | null
-      player_b: ProfileWithAvatarRef | ProfileWithAvatarRef[] | null
+      avatar_url: string | null
+      membership_tier: string | null
+      sentinel_tier: string | null
     }
-    const a = Array.isArray(m.player_a) ? m.player_a[0] ?? null : m.player_a
-    const b = Array.isArray(m.player_b) ? m.player_b[0] ?? null : m.player_b
-    if (a) playerInfoById.set(a.id, a)
-    if (b) playerInfoById.set(b.id, b)
-    newFinalByTournament.set(m.tournament_id, {
-      id: m.id,
-      round: m.round,
-      group_id: null,
-      groupName: null,
-      status: m.status,
-      score_a: m.score_a,
-      score_b: m.score_b,
-      scheduled_at: null,
-      is_full_day: false,
-      playerA: { id: a?.id ?? '', name: a?.display_name ?? a?.username ?? 'TBD' },
-      playerB: { id: b?.id ?? '', name: b?.display_name ?? b?.username ?? 'TBD' },
-    })
+    championProfileById.set(r.id, r)
   }
 
-  type SeasonRef = { name: string } | { name: string }[] | null
-  const seasonName = (s: SeasonRef) => (Array.isArray(s) ? s[0]?.name : s?.name) ?? null
-
-  const mastersResults = deriveTournamentResults(
-    (mastersRows ?? []).map((t) => ({
-      tournamentId: t.id,
-      slug: t.slug,
-      title: t.title,
-      prizePool: t.prize_pool,
-      tournamentEnd: t.tournament_end,
-      finalMatch: newFinalByTournament.get(t.id) ?? null,
-    })),
-  )
-  const communityClubResults = deriveTournamentResults(
-    (communityClubRows ?? []).map((t) => ({
-      tournamentId: t.id,
-      slug: t.slug,
-      title: t.title,
-      prizePool: t.prize_pool,
-      tournamentEnd: t.tournament_end,
-      finalMatch: newFinalByTournament.get(t.id) ?? null,
-    })),
-  )
-  const championsCupResult =
-    deriveTournamentResults(
-      (championsCupRows ?? []).map((t) => ({
-        tournamentId: t.id,
-        slug: t.slug,
-        title: t.title,
-        prizePool: t.prize_pool,
-        tournamentEnd: t.tournament_end,
-        finalMatch: newFinalByTournament.get(t.id) ?? null,
-      })),
-    )[0] ?? null
-  const championsCupSeasonName = championsCupResult
-    ? seasonName((championsCupRows ?? []).find((t) => t.id === championsCupResult.tournamentId)?.season ?? null)
-    : null
+  const cupEntry = championGroups.champions_cup[0] ?? null
 
   // Achievement slugs for the Champions Cup champion's HexAvatar decorations.
-  const { data: cupChampAchievements } = championsCupResult
-    ? await supabase.from('player_achievements').select('achievements(slug)').eq('player_id', championsCupResult.champion.id)
+  const { data: cupChampAchievements } = cupEntry
+    ? await supabase.from('player_achievements').select('achievements(slug)').eq('player_id', cupEntry.champion.id)
     : { data: [] as unknown[] }
   const cupChampionSlugs = ((cupChampAchievements as unknown[] | null) ?? []).flatMap((raw) => {
     const r = raw as { achievements: { slug: string } | { slug: string }[] | null }
@@ -383,10 +310,18 @@ export default async function HallOfFamePage() {
     return ref?.slug ? [ref.slug] : []
   })
 
+  // Under a game filter an empty section is noise, so it is hidden; with no
+  // filter the aspirational empty cards stay, since they signal the intended
+  // competition structure.
+  const showEmptySections = !selectedGame
+
   return (
     <>
       <HeroSection />
       <div className="mx-auto max-w-3xl px-4 pb-20">
+        <div className="pt-8">
+          <HallOfFameGameFilter games={activeGameList} activeSlug={selectedGame?.slug ?? null} />
+        </div>
         <section className="border-b border-amber-500/10 py-16">
           <SectionHeader icon="☀️" title="All-Time Awards" subtitle="The greatest individuals in SentinelX history." tone="gold" />
           {hasAwards ? (
@@ -438,6 +373,7 @@ export default async function HallOfFamePage() {
           )}
         </section>
 
+        {(cupEntry || showEmptySections) && (
         <section
           className="border-y border-sx-purple/30 py-16"
           style={{ background: 'linear-gradient(180deg, rgba(124,58,237,0.08) 0%, transparent 100%)' }}
@@ -448,36 +384,38 @@ export default async function HallOfFamePage() {
             subtitle="The greatest prize in Nigerian mobile esports. Annual · Invitation Only."
             tone="purple"
           />
-          {championsCupResult ? (
+          {cupEntry ? (
             <ChampionsCupCard
-              avatarUrl={playerInfoById.get(championsCupResult.champion.id)?.avatar_url ?? null}
-              name={championsCupResult.champion.name}
+              avatarUrl={cupEntry.championAvatarUrl}
+              name={cupEntry.champion.name}
               achievements={cupChampionSlugs}
-              sentinelTier={playerInfoById.get(championsCupResult.champion.id)?.sentinel_tier ?? null}
-              slug={championsCupResult.slug}
-              date={championsCupResult.date}
-              prizePool={championsCupResult.prizePool}
-              seasonName={championsCupSeasonName}
+              sentinelTier={championProfileById.get(cupEntry.champion.id)?.sentinel_tier ?? null}
+              slug={cupEntry.slug}
+              date={cupEntry.date}
+              prizePool={cupEntry.prizePool ?? 0}
+              seasonName={cupEntry.seasonName}
             />
           ) : (
             <ChampionsCupEmptyCard />
           )}
         </section>
+        )}
 
+        {(championGroups.masters.length > 0 || showEmptySections) && (
         <section className="border-t border-amber-500/20 py-16">
           <SectionHeader icon="👑" title="Masters Champions" subtitle="Monthly elite champions — the top 16 per month, competing for the prize." tone="gold" />
-          {mastersResults.length > 0 ? (
+          {championGroups.masters.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2">
-              {mastersResults.map((r) => (
+              {championGroups.masters.map((r) => (
                 <MastersChampionCard
                   key={r.tournamentId}
                   title={r.title}
-                  avatarUrl={playerInfoById.get(r.champion.id)?.avatar_url ?? null}
+                  avatarUrl={r.championAvatarUrl}
                   name={r.champion.name}
-                  membershipTier={playerInfoById.get(r.champion.id)?.membership_tier ?? null}
-                  sentinelTier={playerInfoById.get(r.champion.id)?.sentinel_tier ?? null}
+                  membershipTier={championProfileById.get(r.champion.id)?.membership_tier ?? null}
+                  sentinelTier={championProfileById.get(r.champion.id)?.sentinel_tier ?? null}
                   slug={r.slug}
-                  prizePool={r.prizePool}
+                  prizePool={r.prizePool ?? 0}
                   runnerUpName={r.runnerUp?.name ?? null}
                 />
               ))}
@@ -486,18 +424,20 @@ export default async function HallOfFamePage() {
             <MastersChampionEmptyCard title="August 2026 Masters" />
           )}
         </section>
+        )}
 
+        {(championGroups.community_club.length > 0 || showEmptySections) && (
         <section className="py-16">
           <SectionHeader icon="⚡" title="Community Club Champions" subtitle="Weekly community tournaments — where every legend starts." />
-          {communityClubResults.length > 0 ? (
+          {championGroups.community_club.length > 0 ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {communityClubResults.map((r) => (
+              {championGroups.community_club.map((r) => (
                 <CommunityClubCard
                   key={r.tournamentId}
-                  avatarUrl={playerInfoById.get(r.champion.id)?.avatar_url ?? null}
+                  avatarUrl={r.championAvatarUrl}
                   name={r.champion.name}
-                  membershipTier={playerInfoById.get(r.champion.id)?.membership_tier ?? null}
-                  sentinelTier={playerInfoById.get(r.champion.id)?.sentinel_tier ?? null}
+                  membershipTier={championProfileById.get(r.champion.id)?.membership_tier ?? null}
+                  sentinelTier={championProfileById.get(r.champion.id)?.sentinel_tier ?? null}
                   slug={r.slug}
                   title={r.title}
                   date={r.date}
@@ -509,6 +449,26 @@ export default async function HallOfFamePage() {
             <EmptyState icon="⚡" title="No Community Club champions yet" body="Weekly champions appear here once a tournament finishes." />
           )}
         </section>
+        )}
+
+        {championGroups.open.length > 0 && (
+          <section className="py-16">
+            <SectionHeader
+              icon="🏆"
+              title="Tournament Champions"
+              subtitle="Every other competition across the platform."
+            />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {championGroups.open.map((entry) => (
+                <TournamentChampionCard
+                  key={entry.tournamentId}
+                  entry={entry}
+                  membershipTier={championProfileById.get(entry.champion.id)?.membership_tier ?? null}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="py-16">
           <SectionHeader icon="🥉" title="Bronze Finishes" subtitle="Third-place finishers across every tournament." />

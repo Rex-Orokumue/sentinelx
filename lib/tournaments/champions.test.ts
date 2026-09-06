@@ -158,6 +158,7 @@ const entry = (over: Partial<ChampionEntry>): ChampionEntry => ({
   champion: { id: 'p1', name: 'P1' },
   runnerUp: null,
   championAvatarUrl: null,
+  seasonName: null,
   ...over,
 })
 
