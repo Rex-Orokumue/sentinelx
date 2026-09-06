@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -1571,7 +1571,6 @@ export type Database = {
           metric_value: number
           player_id: string
           rank: number
-          scope_key: string | null
         }
         Insert: {
           captured_on: string
@@ -1581,7 +1580,6 @@ export type Database = {
           metric_value: number
           player_id: string
           rank: number
-          scope_key?: string | null
         }
         Update: {
           captured_on?: string
@@ -1591,7 +1589,6 @@ export type Database = {
           metric_value?: number
           player_id?: string
           rank?: number
-          scope_key?: string | null
         }
         Relationships: [
           {
@@ -2746,7 +2743,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      anonymise_account: { Args: { p_id: string }; Returns: undefined }
       expire_unconfirmed_signups: { Args: never; Returns: undefined }
       increment_listing_view: {
         Args: { p_listing_id: string }
