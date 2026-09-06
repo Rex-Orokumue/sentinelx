@@ -50,18 +50,22 @@ The existing category tabs are removed. They were a stand-in for per-game tabs
 from when only one game had data, and keeping both would give two overlapping
 ways to slice the same table.
 
-**Two existing behaviours go with them**, and both are deliberate:
+**Both existing behaviours are kept** (decision reversed on review — an earlier
+draft removed them because the mockup doesn't depict them, but "not drawn" is
+not "delete it", and the expander shows wins-per-game *numbers* that the chips
+do not):
 
-- The **wins / score metric toggle** disappears. The mockup's table has a fixed
-  column set and a fixed order (SX Score for All Games, wins within a game), so
-  a metric switch has nothing left to switch.
-- The **expandable wins-by-game row** disappears. Its content — which games a
-  player won in — becomes the always-visible Games Played column, so the click
-  to reveal it is redundant.
+- The **wins / score metric toggle** stays, as the existing client-side control.
+- The **expandable wins-by-game row** stays. Chips say *which* games a player
+  competes in; the expander says *how many wins in each*. They are complementary.
 
-`rankPlayersBy`'s `'football' | 'fighting' | 'shooter'` metrics become unused by
-this page. They stay in `lib/rankings/leaderboard.ts` (Hall of Fame's awards
-still use the category aggregates) rather than being deleted alongside the UI.
+This shapes the architecture. Game scoping is **server-side and URL-driven**
+(shareable, paginable); the metric toggle and the row expander remain
+**client-side state** inside `LeaderboardTabs`. The page selects and ranks the
+players for the active game and page, then hands that slice down — so the two
+mechanisms never fight over the same state.
+
+`rankPlayersBy`'s category metrics stay in use.
 
 ### 3. Games Played column
 
