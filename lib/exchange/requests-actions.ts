@@ -1,7 +1,9 @@
 'use server'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { buyRequestSchema } from './schema'
+import { buyRequestSchema } from './schema'
+import { assertNotPendingDeletion } from '@/lib/settings/restriction'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export type ActionState = { error?: string; success?: boolean } | undefined
 
@@ -17,6 +19,10 @@ export async function createBuyRequest(input: {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to submit a request.' }
+  // An account pending deletion must not take on new obligations, or the
+  // guards that passed at request time no longer hold at execution.
+  const restricted = await assertNotPendingDeletion(createAdminClient(), user.id)
+  if (restricted) return { error: restricted }
 
   const parsed = buyRequestSchema.safeParse(input)
   if (!parsed.success) return { error: parsed.error.issues[0].message }

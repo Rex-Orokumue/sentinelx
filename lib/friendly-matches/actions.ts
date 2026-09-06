@@ -2,7 +2,9 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { notifyInApp } from '@/lib/notifications/inbox'
-import { challengeSchema } from './schema'
+import { challengeSchema } from './schema'
+import { assertNotPendingDeletion } from '@/lib/settings/restriction'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export type FriendlyActionState = { error?: string; success?: boolean; matchId?: string } | undefined
 
@@ -23,6 +25,10 @@ export async function sendChallenge(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in.' }
+  // An account pending deletion must not take on new obligations, or the
+  // guards that passed at request time no longer hold at execution.
+  const restricted = await assertNotPendingDeletion(createAdminClient(), user.id)
+  if (restricted) return { error: restricted }
   if (user.id === parsed.data.opponentId) return { error: "You can't challenge yourself." }
 
   const stakeAmount = parsed.data.stakeAmount === '' ? null : parsed.data.stakeAmount
@@ -71,6 +77,10 @@ export async function acceptChallenge(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in.' }
+  // An account pending deletion must not take on new obligations, or the
+  // guards that passed at request time no longer hold at execution.
+  const restricted = await assertNotPendingDeletion(createAdminClient(), user.id)
+  if (restricted) return { error: restricted }
 
   const { data: fm } = await supabase
     .from('friendly_matches')

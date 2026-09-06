@@ -5,7 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { listingSchema } from './schema'
 import { validateImageCount } from './images'
 import { notifyStaff } from '@/lib/admin/staff'
-import { exchangeListingNotification } from '@/lib/admin/notification-copy'
+import { exchangeListingNotification } from '@/lib/admin/notification-copy'
+import { assertNotPendingDeletion } from '@/lib/settings/restriction'
 
 export type ActionState = { error?: string; success?: boolean } | undefined
 
@@ -25,6 +26,10 @@ export async function createListing(input: {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to create a listing.' }
+  // An account pending deletion must not take on new obligations, or the
+  // guards that passed at request time no longer hold at execution.
+  const restricted = await assertNotPendingDeletion(createAdminClient(), user.id)
+  if (restricted) return { error: restricted }
 
   const parsed = listingSchema.safeParse({
     title: input.title,

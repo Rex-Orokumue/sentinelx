@@ -2,7 +2,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { registrationDetailsSchema } from './registration-schema'
+import { registrationDetailsSchema } from './registration-schema'
+import { assertNotPendingDeletion } from '@/lib/settings/restriction'
 
 export type JoinWaitlistState = { error?: string; success?: boolean; needsUsername?: boolean } | undefined
 
@@ -27,6 +28,10 @@ export async function joinWaitlist(_prev: JoinWaitlistState, formData: FormData)
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to join the waitlist.' }
+  // An account pending deletion must not take on new obligations, or the
+  // guards that passed at request time no longer hold at execution.
+  const restricted = await assertNotPendingDeletion(createAdminClient(), user.id)
+  if (restricted) return { error: restricted }
 
   // Same gate as registerForTournament — a nameless profile (Google sign-in /
   // deferred username claim — migration 073) would land in the bracket as

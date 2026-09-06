@@ -5,7 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { walletWithdrawalSchema } from './schema'
 import { getWalletBalance, debitWallet } from './service'
 import { notifyStaff } from '@/lib/admin/staff'
-import { withdrawalNotification } from '@/lib/admin/notification-copy'
+import { withdrawalNotification } from '@/lib/admin/notification-copy'
+import { assertNotPendingDeletion } from '@/lib/settings/restriction'
 
 export type WalletWithdrawalState = { error?: string; success?: boolean } | undefined
 
@@ -21,6 +22,10 @@ export async function requestWalletWithdrawal(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to request a withdrawal.' }
+  // An account pending deletion must not take on new obligations, or the
+  // guards that passed at request time no longer hold at execution.
+  const restricted = await assertNotPendingDeletion(createAdminClient(), user.id)
+  if (restricted) return { error: restricted }
 
   const { data: kyc } = await supabase
     .from('player_kyc')

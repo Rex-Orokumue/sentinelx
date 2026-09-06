@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { initializeTransaction, buildFriendlyStakeReference } from '@/lib/paystack/server'
 import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
-import { SITE_URL } from '@/lib/seo/site'
+import { SITE_URL } from '@/lib/seo/site'
+import { assertNotPendingDeletion } from '@/lib/settings/restriction'
 
 export type PayStakeState = { error?: string } | undefined
 
@@ -18,6 +19,10 @@ export async function payStake(_prev: PayStakeState, formData: FormData): Promis
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in.' }
+  // An account pending deletion must not take on new obligations, or the
+  // guards that passed at request time no longer hold at execution.
+  const restricted = await assertNotPendingDeletion(createAdminClient(), user.id)
+  if (restricted) return { error: restricted }
 
   const { data: fm } = await supabase
     .from('friendly_matches')
