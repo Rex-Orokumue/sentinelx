@@ -91,7 +91,13 @@ export async function toggleReaction(postId: string, reaction: ReactionType): Pr
         body,
         link: `/community/${postId}`,
       })
-      void pushToPlayer(recipientId, 'post_reaction', { title, body }, { url: `/community/${postId}` })
+      void pushToPlayer(
+        recipientId,
+        'post_reaction',
+        { title, body },
+        { url: `/community/${postId}` },
+        { postId },
+      )
     }
   }
   return undefined

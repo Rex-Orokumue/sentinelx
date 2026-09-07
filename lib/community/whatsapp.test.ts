@@ -42,6 +42,7 @@ const BASE_POST: PostView = {
   myReaction: null,
   commentCount: 0,
   matchResult: null,
+  mutedByViewer: false,
 }
 
 describe('postShareUrl', () => {

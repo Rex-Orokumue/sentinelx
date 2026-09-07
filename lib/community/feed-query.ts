@@ -42,6 +42,8 @@ export interface PostView {
   myReaction: ReactionType | null
   commentCount: number
   matchResult: MatchResultDetail | null
+  // Whether the viewer has silenced push about this thread (migration 082).
+  mutedByViewer: boolean
 }
 
 type ProfileRow = {
@@ -109,6 +111,19 @@ async function hydratePosts(rows: RawPost[], viewerId: string | null): Promise<P
     commentCountByPost.set(c.post_id, (commentCountByPost.get(c.post_id) ?? 0) + 1)
   }
 
+  // Only live mutes, so a lapsed one shows as unmuted without anything having
+  // to clean it up. Request-scoped client, so RLS scopes this to the viewer.
+  const mutedPostIds = new Set<string>()
+  if (viewerId) {
+    const { data: mutes } = await supabase
+      .from('notification_mutes')
+      .select('post_id')
+      .eq('player_id', viewerId)
+      .in('post_id', postIds)
+      .gt('muted_until', new Date().toISOString())
+    for (const m of mutes ?? []) if (m.post_id) mutedPostIds.add(m.post_id)
+  }
+
   const matchIds = rows.filter((r) => r.post_type === 'match_result' && r.reference_id).map((r) => r.reference_id as string)
   const matchDetailById = new Map<string, MatchResultDetail>()
   if (matchIds.length > 0) {
@@ -166,6 +181,7 @@ async function hydratePosts(rows: RawPost[], viewerId: string | null): Promise<P
     myReaction: myReactionByPost.get(r.id) ?? null,
     commentCount: commentCountByPost.get(r.id) ?? 0,
     matchResult: r.reference_id ? (matchDetailById.get(r.reference_id) ?? null) : null,
+    mutedByViewer: mutedPostIds.has(r.id),
   }))
 }
 

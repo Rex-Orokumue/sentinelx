@@ -81,6 +81,8 @@ export async function createComment(input: { postId: string; content: string }):
         'post_comment',
         { title, body: excerpt },
         { url: `/community/${input.postId}` },
+        // So "mute this post" silences the thread whatever the type.
+        { postId: input.postId },
       )
     }
   }

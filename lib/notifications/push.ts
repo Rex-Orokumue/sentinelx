@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendFCMToPlayer, sendToTokens, type FCMNotification } from './fcm'
 import type { PushNotificationType } from './push-types'
+import { isMuted } from './mutes'
 
 // Tier 2 (FCM) entry point — mirrors notify()/notifyInApp()'s best-effort
 // contract: never throws into the caller. Checks
@@ -11,12 +12,26 @@ export async function pushToPlayer(
   type: PushNotificationType,
   notification: FCMNotification,
   data: Record<string, string>,
+  // Present for anything tied to a community post, so a muted thread stops
+  // every notification about it whatever the type.
+  opts?: { postId?: string | null },
 ): Promise<void> {
   try {
     const admin = createAdminClient()
     const { data: profile } = await admin.from('profiles').select('notification_prefs').eq('id', playerId).maybeSingle()
     const push = (profile?.notification_prefs as { push?: Record<string, boolean> } | null)?.push
     if (push?.[type] === false) return
+
+    // Temporary mutes (migration 082). Deliberately only silences the push —
+    // the in-app bell still records it, because muting means "stop
+    // interrupting me", not "hide this from me".
+    const { data: mutes } = await admin
+      .from('notification_mutes')
+      .select('notification_type, post_id, muted_until')
+      .eq('player_id', playerId)
+      .gt('muted_until', new Date().toISOString())
+    if (isMuted(mutes ?? [], { type, postId: opts?.postId }, new Date())) return
+
     await sendFCMToPlayer(playerId, notification, { ...data, type })
   } catch (err) {
     console.error('[push] pushToPlayer failed (non-blocking)', { playerId, type, err })

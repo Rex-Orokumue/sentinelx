@@ -6,6 +6,7 @@ import { DashboardShell } from '@/components/dashboard/DashboardShell'
 import { ProfileForm } from '@/components/settings/ProfileForm'
 import { NotificationPrefsForm } from '@/components/settings/NotificationPrefsForm'
 import { PushPrefsForm } from '@/components/settings/PushPrefsForm'
+import { ALWAYS_MUTED_UNTIL } from '@/lib/notifications/mutes'
 import { AchievementSharingForm } from '@/components/settings/AchievementSharingForm'
 import { AccountSection } from '@/components/settings/AccountSection'
 import type { MembershipTier } from '@/lib/membership/tiers'
@@ -37,6 +38,23 @@ export default async function DashboardSettingsPage() {
     whatsapp?: Record<string, boolean>
     push?: Record<string, boolean>
     achievement_sharing?: Record<string, boolean>
+  }
+
+  // Live type mutes only — a lapsed one shows as unmuted with nothing having
+  // to clean it up. A permanent "always" mute lives in prefs.push instead, and
+  // is surfaced here as a far-future timestamp so the row renders one way.
+  const { data: muteRows } = await supabase
+    .from('notification_mutes')
+    .select('notification_type, muted_until')
+    .eq('player_id', user.id)
+    .not('notification_type', 'is', null)
+    .gt('muted_until', new Date().toISOString())
+  const mutedTypes: Record<string, string> = {}
+  for (const m of muteRows ?? []) {
+    if (m.notification_type) mutedTypes[m.notification_type] = m.muted_until
+  }
+  for (const [key, value] of Object.entries(prefs.push ?? {})) {
+    if (value === false) mutedTypes[key] = ALWAYS_MUTED_UNTIL
   }
 
   return (
@@ -79,12 +97,13 @@ export default async function DashboardSettingsPage() {
             wager_settled: prefs.push?.wager_settled ?? true,
             referral_converted: prefs.push?.referral_converted ?? true,
             post_comment: prefs.push?.post_comment ?? true,
-            post_reaction: prefs.push?.post_reaction ?? false,
+            post_reaction: prefs.push?.post_reaction ?? true,
             bracket_released: prefs.push?.bracket_released ?? true,
             match_assigned: prefs.push?.match_assigned ?? true,
             prize_credited: prefs.push?.prize_credited ?? true,
           }}
           enabled={(fcmTokenCount ?? 0) > 0}
+          mutedTypes={mutedTypes}
         />
         <AchievementSharingForm
           prefs={{

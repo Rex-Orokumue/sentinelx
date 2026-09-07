@@ -1218,6 +1218,48 @@ export type Database = {
           },
         ]
       }
+      notification_mutes: {
+        Row: {
+          created_at: string
+          id: string
+          muted_until: string
+          notification_type: string | null
+          player_id: string
+          post_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          muted_until: string
+          notification_type?: string | null
+          player_id: string
+          post_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          muted_until?: string
+          notification_type?: string | null
+          player_id?: string
+          post_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_mutes_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_mutes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string

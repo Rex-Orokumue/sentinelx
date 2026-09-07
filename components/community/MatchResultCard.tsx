@@ -6,6 +6,7 @@ import type { MembershipTier } from '@/lib/membership/tiers'
 import type { PlayerRef, PostView } from '@/lib/community/feed-query'
 import { ReactionBar } from './ReactionBar'
 import { ShareButton } from './ShareButton'
+import { MutePostButton } from './MutePostButton'
 
 function PlayerColumn({ player, isWinner }: { player: PlayerRef | null; isWinner: boolean }) {
   const name = player?.displayName ?? player?.username ?? 'Player'
@@ -66,6 +67,9 @@ export function MatchResultCard({ post, loggedIn }: { post: PostView; loggedIn: 
           <Link href={`/community/${post.id}`} className="text-xs font-semibold text-sx-gray hover:text-sx-white">
             💬 {post.commentCount}
           </Link>
+          {/* Match results are the busiest threads on the platform and now
+              notify both players, so this is where a mute is most needed. */}
+          {loggedIn && <MutePostButton postId={post.id} muted={post.mutedByViewer} />}
           <ShareButton post={post} />
         </div>
       </div>

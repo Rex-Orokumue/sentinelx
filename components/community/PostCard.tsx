@@ -13,6 +13,7 @@ import { MatchResultCard } from './MatchResultCard'
 import { AnnouncementCard } from './AnnouncementCard'
 import { ReactionBar } from './ReactionBar'
 import { ShareButton } from './ShareButton'
+import { MutePostButton } from './MutePostButton'
 import { ImageLightbox } from './ImageLightbox'
 
 // Handles all 4 post types (spec §13). match_result and announcement get a
@@ -113,6 +114,7 @@ function ManualOrAchievementCard({ post, loggedIn }: { post: PostView; loggedIn:
           <Link href={`/community/${post.id}`} className="text-xs font-semibold text-sx-gray hover:text-sx-white">
             💬 {post.commentCount}
           </Link>
+          {loggedIn && <MutePostButton postId={post.id} muted={post.mutedByViewer} />}
           <ShareButton post={post} />
         </div>
       </div>

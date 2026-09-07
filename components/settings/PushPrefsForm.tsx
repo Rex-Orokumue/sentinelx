@@ -4,6 +4,7 @@ import { useFormState } from 'react-dom'
 import { updatePushPrefs, type PrefsState } from '@/lib/settings/notification-prefs'
 import { requestPushPermission, disablePush } from '@/components/notifications/useFCM'
 import { sendTestPush, type TestPushResult } from '@/lib/notifications/test-push'
+import { MuteTypeRow } from './MuteTypeRow'
 
 export interface PushPrefs {
   match_reminder: boolean
@@ -37,7 +38,17 @@ const LABELS: [keyof PushPrefs, string][] = [
   ['tournament_announced', 'New tournaments'],
 ]
 
-export function PushPrefsForm({ prefs, enabled }: { prefs: PushPrefs; enabled: boolean }) {
+export function PushPrefsForm({
+  prefs,
+  enabled,
+  mutedTypes = {},
+}: {
+  prefs: PushPrefs
+  enabled: boolean
+  // type -> muted_until. "Always" arrives as a far-future timestamp, so both
+  // kinds of mute render through one path.
+  mutedTypes?: Record<string, string>
+}) {
   const [state, formAction] = useFormState<PrefsState, FormData>(updatePushPrefs, undefined)
   const [pushEnabled, setPushEnabled] = useState(enabled)
   const [busy, setBusy] = useState(false)
@@ -84,6 +95,22 @@ export function PushPrefsForm({ prefs, enabled }: { prefs: PushPrefs; enabled: b
       {pushEnabled && <TestPushButton />}
       {pushEnabled && (
         <>
+          {/* Quieting something for an hour, rather than only on or off. A
+              player who cannot do that tends to switch the whole category off
+              and never turn it back on — and then the fixture assignments go
+              with it. */}
+          <div className="mt-4 border-t border-sx-border pt-3">
+            <h3 className="text-xs font-bold uppercase tracking-wide text-sx-gray">Mute for a while</h3>
+            <p className="mt-1 text-xs text-sx-gray">
+              Stops the push. These still appear in your notifications bell.
+            </p>
+            <div className="mt-2 divide-y divide-sx-border">
+              {LABELS.map(([key, label]) => (
+                <MuteTypeRow key={key} type={key} label={label} mutedUntil={mutedTypes[key] ?? null} />
+              ))}
+            </div>
+          </div>
+
           <button type="button" onClick={() => setCustomize((c) => !c)} className="mt-3 text-xs text-sx-purple-text hover:underline">
             {customize ? 'Hide' : 'Customize →'}
           </button>
