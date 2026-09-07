@@ -16,7 +16,18 @@ export async function POST(req: Request) {
   const { error } = await supabase
     .from('fcm_tokens')
     .upsert({ player_id: user.id, token, last_active: new Date().toISOString() }, { onConflict: 'token' })
-  if (error) return NextResponse.json({ error: 'Could not save token' }, { status: 500 })
+  if (error) {
+    // Was a bare 500 with no detail, which is how an intermittent failure
+    // here stayed invisible — refreshPushToken now runs on every signed-in
+    // page load, so a race between two tabs upserting the same token is a
+    // real possibility and needs to be identifiable rather than guessed at.
+    console.error('[fcm-token] upsert failed', {
+      playerId: user.id,
+      code: (error as { code?: string }).code,
+      message: error.message,
+    })
+    return NextResponse.json({ error: 'Could not save token' }, { status: 500 })
+  }
 
   // Remember which token belongs to THIS browser, so signOut() — a plain
   // server action with no access to client state — can deregister only this
