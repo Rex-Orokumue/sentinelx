@@ -70,6 +70,15 @@ npx supabase gen types typescript --project-id <project-id> > lib/supabase/types
 
 Full schema lives in `supabase/migrations/*.sql`; generated types in `lib/supabase/types.ts`.
 
+**Name new migrations with a UTC timestamp prefix, not the next sequential number** —
+`20260907143000_add_thing.sql`. Sequential numbers collide whenever two people (or two
+agent sessions) are working at once: `078` and `079` were each claimed twice on
+2026-09-06, and `080`/`081` twice again the next day. Timestamps cannot collide, and
+they match what Supabase records in `supabase_migrations.schema_migrations` — the
+remote history stores a timestamp version regardless of what the local file is called,
+so timestamped filenames keep local and remote readable as the same thing. Existing
+numbered files stay as they are; this applies to new ones.
+
 ---
 
 ## Tournament Logic — How Grouping Works

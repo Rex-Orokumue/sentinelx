@@ -1,7 +1,7 @@
--- 081_rank_snapshot_scope_key.sql
+-- 20260906161133_rank_snapshot_scope_key.sql
 -- Fixes upsert on player_rank_snapshots.
 --
--- 080 enforced "one row per player, per scope, per day" with two PARTIAL unique
+-- 20260906152919_player_rank_snapshots enforced "one row per player, per scope, per day" with two PARTIAL unique
 -- indexes (game_id IS NULL / IS NOT NULL), because Postgres treats NULLs as
 -- distinct. That constraint is correct, but a partial index cannot be inferred
 -- as an ON CONFLICT target — Postgres requires the statement to repeat the

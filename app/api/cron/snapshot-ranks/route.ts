@@ -112,7 +112,7 @@ export async function POST(req: Request) {
 
   // Both scopes share one conflict target: scope_key is a generated column that
   // collapses a NULL game_id to a sentinel uuid, so an ordinary (inferable)
-  // unique index covers global and per-game rows alike. See migration 081 —
+  // unique index covers global and per-game rows alike. See migration 20260906161133_rank_snapshot_scope_key —
   // partial indexes cannot be ON CONFLICT targets.
   const errors: string[] = []
   if (globalRows.length > 0) {

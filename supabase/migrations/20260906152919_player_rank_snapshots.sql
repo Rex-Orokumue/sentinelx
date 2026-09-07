@@ -1,4 +1,4 @@
--- 080_player_rank_snapshots.sql
+-- 20260906152919_player_rank_snapshots.sql
 -- Rank history for the leaderboard's Trend column. Rank is otherwise computed
 -- per request and discarded, so there is nothing to compare "now" against.
 -- game_id NULL = the global, all-games board.

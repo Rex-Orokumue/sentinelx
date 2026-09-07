@@ -29,7 +29,7 @@ as data plus one tested function.
 
 ## Storage
 
-Migration `080_player_rank_snapshots.sql`:
+Migration `20260906152919_player_rank_snapshots.sql`:
 
 | Column | Type | Notes |
 |---|---|---|
@@ -170,7 +170,7 @@ rows appear, then calling it again and confirming the count does not change
 
 **New**
 
-- `supabase/migrations/080_player_rank_snapshots.sql`
+- `supabase/migrations/20260906152919_player_rank_snapshots.sql`
 - `app/api/cron/snapshot-ranks/route.ts`
 - `lib/rankings/trend.ts` + `lib/rankings/trend.test.ts`
 - `lib/rankings/snapshot.ts` + `lib/rankings/snapshot.test.ts` — the pure
