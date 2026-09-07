@@ -58,17 +58,27 @@ export function PushPrefsForm({ prefs, enabled }: { prefs: PushPrefs; enabled: b
     <section className="rounded-2xl border border-sx-border bg-sx-surface p-5">
       <h2 className="text-sm font-bold uppercase tracking-wide text-white">Push Notifications</h2>
       <p className="mt-1 text-xs text-sx-gray">Receive browser notifications even when you&apos;re not on the site.</p>
-      <div className="mt-4 flex items-center justify-between border-t border-sx-border pt-4">
-        <span className="text-sm text-white">Status: {pushEnabled ? '✅ Enabled' : 'Not enabled'}</span>
+      {/* Per device, and said so plainly: enabling and disabling both act on
+          the browser you are currently using, and each device is separate.
+          Previously "Disable" removed every device at once, so turning push
+          off on a phone silently killed it on a laptop with no hint why. */}
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-sx-border pt-4">
+        <span className="text-sm text-white">
+          Status on this device: {pushEnabled ? '✅ Enabled' : 'Not enabled'}
+        </span>
         <button
           type="button"
           onClick={handleToggle}
           disabled={busy}
-          className="rounded-lg bg-sx-purple px-4 py-2 text-xs font-bold text-white hover:bg-sx-purple-light disabled:opacity-60"
+          className="shrink-0 rounded-lg bg-sx-purple px-4 py-2 text-xs font-bold text-white hover:bg-sx-purple-light disabled:opacity-60"
         >
-          {pushEnabled ? 'Disable' : 'Enable Push Notifications'}
+          {pushEnabled ? 'Disable on this device' : 'Enable Push Notifications'}
         </button>
       </div>
+      <p className="mt-2 text-xs text-sx-gray">
+        Each device is separate — enable it on your phone and your laptop to get notifications on
+        both.
+      </p>
       {pushEnabled && (
         <>
           <button type="button" onClick={() => setCustomize((c) => !c)} className="mt-3 text-xs text-sx-purple-text hover:underline">

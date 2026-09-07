@@ -50,8 +50,14 @@ export async function DELETE(req: Request) {
   if (!user) return NextResponse.json({ error: 'Not logged in' }, { status: 401 })
 
   const { token } = (await req.json().catch(() => ({}))) as { token?: string }
+  // Fall back to the device cookie when the caller sends no token. Without
+  // this, "Disable" deleted every token the player owned — so turning push off
+  // on a phone silently killed it on their laptop too, and a player could
+  // never have two devices registered at once. Each device has its own row;
+  // only this one should go.
+  const deviceToken = token ?? cookies().get(DEVICE_TOKEN_COOKIE)?.value
   const query = supabase.from('fcm_tokens').delete().eq('player_id', user.id)
-  if (token) query.eq('token', token)
+  if (deviceToken) query.eq('token', deviceToken)
   const { error } = await query
   if (error) return NextResponse.json({ error: 'Could not remove token' }, { status: 500 })
 
