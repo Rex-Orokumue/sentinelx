@@ -15,7 +15,7 @@ import { buildAchievementCells, type AchievementCell } from '@/lib/players/achie
 import { ProfileHeader } from '@/components/player/ProfileHeader'
 import {
   equippedCosmeticsBySlug,
-  AVATAR_BORDER_CLASSES,
+  AVATAR_BORDER_FRAMES,
   PROFILE_THEME_CLASSES,
   USERNAME_COLOUR_CLASSES,
 } from '@/lib/store/cosmetics'
@@ -473,7 +473,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
             friendshipStatus={friendship}
             coinBalance={coinBalance ?? undefined}
             achievements={unlockedSlugs}
-            avatarBorderClass={cosmetics.avatarBorder ? AVATAR_BORDER_CLASSES[cosmetics.avatarBorder] : undefined}
+            avatarFrameUrl={cosmetics.avatarBorder ? AVATAR_BORDER_FRAMES[cosmetics.avatarBorder] : undefined}
             profileThemeClass={cosmetics.profileTheme ? PROFILE_THEME_CLASSES[cosmetics.profileTheme] : undefined}
             usernameColourClass={cosmetics.usernameColour ? USERNAME_COLOUR_CLASSES[cosmetics.usernameColour] : undefined}
           />

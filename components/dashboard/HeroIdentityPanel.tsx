@@ -32,7 +32,7 @@ export function HeroIdentityPanel({
   sxScore,
   seasonRank,
   loginStreak,
-  avatarBorderClass,
+  avatarFrameUrl,
   profileThemeClass,
   usernameColourClass,
 }: {
@@ -43,8 +43,8 @@ export function HeroIdentityPanel({
   sxScore: number
   seasonRank: number | null
   loginStreak: number
-  /** Equipped avatar_border cosmetic — a `ring-*` utility, additive with HexAvatar's own tier border. */
-  avatarBorderClass?: string
+  /** Equipped avatar_border cosmetic — an illustrated frame drawn around the avatar. */
+  avatarFrameUrl?: string
   /** Equipped profile_theme cosmetic — REPLACES the default radial-gradient background, never appended
    *  (an inline `style` background always wins over a Tailwind `bg-*` class, so the two can't coexist —
    *  see components/player/ProfileHeader.tsx for the same rule on the public profile). */
@@ -74,7 +74,7 @@ export function HeroIdentityPanel({
           tier={tier}
           achievements={achievements}
           size="lg"
-          avatarBorderClass={avatarBorderClass}
+          frameUrl={avatarFrameUrl}
         />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">

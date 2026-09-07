@@ -18,7 +18,7 @@ import { DashboardShell } from '@/components/dashboard/DashboardShell'
 import { mapRecentMatches } from '@/lib/dashboard/recent-matches'
 import { mapOwnedItems } from '@/lib/dashboard/owned-items'
 import { getSeasonLeaderboard, getMonthlyLeaderboard } from '@/lib/seasons/data'
-import { equippedCosmeticsBySlug, AVATAR_BORDER_CLASSES, PROFILE_THEME_CLASSES, USERNAME_COLOUR_CLASSES } from '@/lib/store/cosmetics'
+import { equippedCosmeticsBySlug, AVATAR_BORDER_FRAMES, PROFILE_THEME_CLASSES, USERNAME_COLOUR_CLASSES } from '@/lib/store/cosmetics'
 import type { MembershipTier } from '@/lib/membership/tiers'
 
 export const metadata: Metadata = {
@@ -130,7 +130,7 @@ export default async function DashboardPage() {
   const ownedItemRows = ownedItemsRes.data ?? []
   const ownedItems = mapOwnedItems(ownedItemRows)
   const cosmetics = equippedCosmeticsBySlug(ownedItemRows)
-  const avatarBorderClass = cosmetics.avatarBorder ? AVATAR_BORDER_CLASSES[cosmetics.avatarBorder] : undefined
+  const avatarFrameUrl = cosmetics.avatarBorder ? AVATAR_BORDER_FRAMES[cosmetics.avatarBorder] : undefined
   const profileThemeClass = cosmetics.profileTheme ? PROFILE_THEME_CLASSES[cosmetics.profileTheme] : undefined
   const usernameColourClass = cosmetics.usernameColour ? USERNAME_COLOUR_CLASSES[cosmetics.usernameColour] : undefined
 
@@ -251,7 +251,7 @@ export default async function DashboardPage() {
         sxScore={profile?.sx_score ?? 700}
         seasonRank={seasonRank}
         loginStreak={profile?.login_streak ?? 0}
-        avatarBorderClass={avatarBorderClass}
+        avatarFrameUrl={avatarFrameUrl}
         profileThemeClass={profileThemeClass}
         usernameColourClass={usernameColourClass}
       />

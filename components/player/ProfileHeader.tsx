@@ -15,7 +15,7 @@ export function ProfileHeader({
   friendshipStatus,
   coinBalance,
   achievements,
-  avatarBorderClass,
+  avatarFrameUrl,
   profileThemeClass,
   usernameColourClass,
 }: {
@@ -26,7 +26,7 @@ export function ProfileHeader({
   /** Unlocked achievement slugs — drives the HexAvatar's decoration badges. */
   achievements?: string[]
   /** Equipped avatar_border cosmetic — a `ring-*` utility, additive with the avatar's own `border-*`. */
-  avatarBorderClass?: string
+  avatarFrameUrl?: string
   /** Equipped profile_theme cosmetic — REPLACES the default `bg-sx-surface`, never appended (Tailwind's
    *  generated CSS order isn't guaranteed to match class-string order, so the two `bg-*` utilities can't
    *  safely coexist — only one may apply). */
@@ -60,7 +60,7 @@ export function ProfileHeader({
           tier={(profile.membershipTier ?? 'recruit') as MembershipTier}
           achievements={achievements}
           size="xl"
-          avatarBorderClass={avatarBorderClass}
+          frameUrl={avatarFrameUrl}
         />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">

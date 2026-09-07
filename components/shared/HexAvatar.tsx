@@ -30,10 +30,17 @@ export interface HexAvatarProps {
   /** Unlocked achievement slugs already in scope on the parent page — decorations are derived from these. */
   achievements?: string[]
   size?: HexAvatarSize
-  /** Equipped `avatar_border` store cosmetic (a `ring-*`/`shadow-*` Tailwind class) — see lib/store/cosmetics.ts. */
-  avatarBorderClass?: string
+  /** Equipped `avatar_border` store cosmetic — an illustrated frame image from
+   *  AVATAR_BORDER_FRAMES (lib/store/cosmetics.ts), drawn around the avatar. */
+  frameUrl?: string
   className?: string
 }
+
+// Frame size relative to the avatar's width. Compared 1.45 / 1.55 / 1.65 /
+// 1.75 / 1.9 against the real hex: below ~1.5 the hexagon's corners crowd the
+// frame's inner edge, above ~1.7 the avatar looks lost inside an oversized
+// ring. 1.55 seats the hex in the frame without touching it.
+const FRAME_SCALE = 1.55
 
 export function HexAvatar({
   src,
@@ -41,7 +48,7 @@ export function HexAvatar({
   tier,
   achievements = [],
   size = 'md',
-  avatarBorderClass,
+  frameUrl,
   className,
 }: HexAvatarProps) {
   const [errored, setErrored] = useState(false)
@@ -57,9 +64,24 @@ export function HexAvatar({
 
   return (
     <div
-      className={cn('relative inline-block shrink-0', TIER_GLOW_CLASS[tier], avatarBorderClass, className)}
+      className={cn('relative inline-block shrink-0', TIER_GLOW_CLASS[tier], className)}
       style={{ width: widthPx, height: heightPx }}
     >
+      {/* Equipped store frame. Sized well beyond the hex so the circular frame
+          rings it rather than cropping it, and deliberately not clipped — these
+          frames have crowns and banners that break the circle. Purely
+          decorative, so it's hidden from assistive tech and ignores pointers. */}
+      {frameUrl && (
+        // eslint-disable-next-line @next/next/no-img-element -- static public asset, no loader needed
+        <img
+          src={frameUrl}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 select-none"
+          style={{ width: widthPx * FRAME_SCALE, height: widthPx * FRAME_SCALE }}
+        />
+      )}
+
       {/* Outer hex — the tier-coloured "border" */}
       <div
         className={cn('absolute inset-0', tier === 'legend' && 'hexavatar-legend-border')}
