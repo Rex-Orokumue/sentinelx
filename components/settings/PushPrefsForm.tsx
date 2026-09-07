@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { updatePushPrefs, type PrefsState } from '@/lib/settings/notification-prefs'
 import { requestPushPermission, disablePush } from '@/components/notifications/useFCM'
+import { sendTestPush, type TestPushResult } from '@/lib/notifications/test-push'
 
 export interface PushPrefs {
   match_reminder: boolean
@@ -79,6 +80,8 @@ export function PushPrefsForm({ prefs, enabled }: { prefs: PushPrefs; enabled: b
         Each device is separate — enable it on your phone and your laptop to get notifications on
         both.
       </p>
+
+      {pushEnabled && <TestPushButton />}
       {pushEnabled && (
         <>
           <button type="button" onClick={() => setCustomize((c) => !c)} className="mt-3 text-xs text-sx-purple-text hover:underline">
@@ -102,5 +105,51 @@ export function PushPrefsForm({ prefs, enabled }: { prefs: PushPrefs; enabled: b
         </>
       )}
     </section>
+  )
+}
+
+// Sends a push to this device on demand. Diagnosing "push doesn't arrive"
+// otherwise needs two accounts, a backgrounded tab, and a guess about which of
+// a dozen layers failed. This isolates the last two: "Sent" means every server
+// layer worked and FCM accepted it, so if nothing appears the problem is the
+// device — most often iOS Safari, where web push only works once the site is
+// installed to the Home Screen.
+function TestPushButton() {
+  const [state, setState] = useState<'idle' | 'sending' | TestPushResult>('idle')
+
+  async function handleTest() {
+    setState('sending')
+    setState(await sendTestPush())
+  }
+
+  const message =
+    state === 'idle' || state === 'sending'
+      ? null
+      : state.ok
+        ? '✅ Sent. It should appear within a few seconds — if it does not, the block is on this device, not the server.'
+        : state.reason === 'no-device-token'
+          ? '⚠ This device is not registered. Disable and enable push above, then try again.'
+          : state.reason === 'not-configured'
+            ? '⚠ Push is not configured on the server.'
+            : state.reason === 'not-logged-in'
+              ? '⚠ Please log in again.'
+              : '⚠ Could not send. Check the logs for the FCM error code.'
+
+  return (
+    <div className="mt-3 border-t border-sx-border pt-3">
+      <button
+        type="button"
+        onClick={handleTest}
+        disabled={state === 'sending'}
+        className="rounded-lg border border-sx-border px-4 py-2 text-xs font-bold text-sx-purple-text hover:border-sx-purple/50 disabled:opacity-60"
+      >
+        {state === 'sending' ? 'Sending…' : 'Send a test notification'}
+      </button>
+      {message && <p className="mt-2 text-xs leading-relaxed text-sx-gray">{message}</p>}
+      <p className="mt-2 text-xs leading-relaxed text-sx-gray">
+        On iPhone, notifications only work if you add SentinelX to your Home Screen first (Share →
+        Add to Home Screen) and open it from there. Safari itself cannot receive them.
+      </p>
+    </div>
   )
 }

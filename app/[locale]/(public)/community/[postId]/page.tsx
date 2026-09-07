@@ -1,3 +1,4 @@
+import { CommunityRealtime } from '@/components/community/CommunityRealtime'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
@@ -41,6 +42,9 @@ export default async function PostDetailPage({ params }: { params: { postId: str
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-20">
+      {/* Scoped to this post, so an unrelated reaction elsewhere does not
+          refresh a thread someone is reading. */}
+      <CommunityRealtime postId={params.postId} />
       <div className="py-6">
         <Link href="/community" className="text-sm font-semibold text-sx-gray hover:text-sx-white">
           ← Back to Community

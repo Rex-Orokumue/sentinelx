@@ -70,7 +70,23 @@ export async function sendToTokens(
     const res = await messaging.sendEachForMulticast({
       tokens: chunk.map((t) => t.token),
       data: payloadData,
-      webpush: { fcmOptions: { link: data.url } },
+      webpush: {
+        // Data-only messages default to normal urgency, which Android Doze
+        // batches and defers — a Galaxy S22 received test pushes minutes to
+        // hours late while a laptop got them instantly, and OS-level Chrome
+        // notification permission was already granted. Normal urgency is
+        // right for background sync; it is wrong for a fixture assignment or
+        // a result the player is waiting on, so every push here is high.
+        //
+        // Samsung's own battery management can still defer beyond this; a
+        // player seeing persistent delay may also need Chrome excluded from
+        // "Put app to sleep".
+        //
+        // TTL keeps a push queued for 24h rather than dropping it when the
+        // device is unreachable at that instant.
+        headers: { Urgency: 'high', TTL: '86400' },
+        fcmOptions: { link: data.url },
+      },
     })
     const staleIds: string[] = []
     // Every non-stale failure used to vanish here. A credentials error, a

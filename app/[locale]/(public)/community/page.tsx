@@ -1,3 +1,4 @@
+import { CommunityRealtime } from '@/components/community/CommunityRealtime'
 import { createClient } from '@/lib/supabase/server'
 import { fetchFeedPage } from '@/lib/community/feed-query'
 import { fetchChallengeWidget } from '@/lib/community/challenge-query'
@@ -76,6 +77,8 @@ export default async function CommunityPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-20">
+      {/* Unscoped: any post's comments or reactions are relevant on the feed. */}
+      <CommunityRealtime />
       <div className="py-6">
         <CommunityHero />
       </div>
