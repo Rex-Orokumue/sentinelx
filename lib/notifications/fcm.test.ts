@@ -78,6 +78,39 @@ describe('sendToTokens', () => {
     expect(call.notification).toBeUndefined()
     expect(call.data).toMatchObject({ title: 'Hi', body: 'There', url: '/x', type: 'result_confirmed' })
   })
+
+  // Data-only web push defaults to normal urgency, which Android Doze batches
+  // and defers — a Galaxy S22 received test pushes minutes to hours late while
+  // a laptop got them instantly. Normal urgency is the correct default for
+  // background sync; it is wrong for a notification a player is waiting on.
+  it('marks pushes high urgency so Android Doze does not defer them', async () => {
+    sendEachForMulticast.mockResolvedValueOnce({ responses: [{ success: true }] })
+    vi.resetModules()
+    const { sendToTokens } = await import('./fcm')
+    await sendToTokens([{ id: 'r1', token: 't1' }], { title: 'Hi', body: 'There' }, { url: '/x' })
+    const call = sendEachForMulticast.mock.calls[0][0]
+    expect(call.webpush.headers.Urgency).toBe('high')
+  })
+
+  // Without a TTL a push is dropped if the device is unreachable at that
+  // instant; a match assignment is still worth delivering when the phone
+  // comes back.
+  it('sets a TTL so an offline device still receives it later', async () => {
+    sendEachForMulticast.mockResolvedValueOnce({ responses: [{ success: true }] })
+    vi.resetModules()
+    const { sendToTokens } = await import('./fcm')
+    await sendToTokens([{ id: 'r1', token: 't1' }], { title: 'Hi', body: 'There' }, { url: '/x' })
+    const call = sendEachForMulticast.mock.calls[0][0]
+    expect(Number(call.webpush.headers.TTL)).toBeGreaterThan(0)
+  })
+
+  it('still passes the click-through link', async () => {
+    sendEachForMulticast.mockResolvedValueOnce({ responses: [{ success: true }] })
+    vi.resetModules()
+    const { sendToTokens } = await import('./fcm')
+    await sendToTokens([{ id: 'r1', token: 't1' }], { title: 'Hi', body: 'There' }, { url: '/match/1' })
+    expect(sendEachForMulticast.mock.calls[0][0].webpush.fcmOptions.link).toBe('/match/1')
+  })
 })
 
 // The send path reported nothing — not on success, not on failure. Only
