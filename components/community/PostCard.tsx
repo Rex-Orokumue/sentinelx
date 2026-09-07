@@ -1,4 +1,5 @@
 'use client'
+import { isBoostLive } from '@/lib/community/boost'
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -29,7 +30,9 @@ function ManualOrAchievementCard({ post, loggedIn }: { post: PostView; loggedIn:
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const isAchievement = post.postType === 'achievement'
-  const isBoosted = !!post.boostedUntil && new Date(post.boostedUntil) > new Date()
+  // Shared with the feed's ranking and canBoost, so the badge and the position
+  // can never disagree again — they did for three weeks.
+  const isBoosted = isBoostLive(post.boostedUntil, new Date())
   const name = post.author.displayName ?? post.author.username ?? 'Player'
 
   function onDelete() {

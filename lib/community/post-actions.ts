@@ -1,4 +1,5 @@
 'use server'
+import { isBoostLive, BOOST_DURATION_MS } from './boost'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -57,7 +58,7 @@ export async function deletePost(_prev: DeleteState, formData: FormData): Promis
 export type BoostState = { error?: string; success?: boolean } | undefined
 
 const BOOST_COST_COINS = 200
-const BOOST_DURATION_MS = 24 * 60 * 60 * 1000
+
 
 // Spec §6: 200 coins pins one manual post the player authored to the top of
 // the feed for 24h; only one active boost per player at a time. Goes
@@ -87,7 +88,7 @@ export async function boostPost(_prev: BoostState, formData: FormData): Promise<
   }
 
   const now = new Date()
-  if (post.boosted_until && new Date(post.boosted_until) > now) {
+  if (isBoostLive(post.boosted_until, now)) {
     return { error: 'This post is already boosted.' }
   }
   const { count: activeBoostCount } = await admin

@@ -1,3 +1,4 @@
+import { isBoostLive } from './boost'
 import { createClient } from '@/lib/supabase/server'
 import { ROUND_LABELS } from '@/lib/tournaments/bracket'
 import type { ReactionType } from './schema'
@@ -160,7 +161,7 @@ async function hydratePosts(rows: RawPost[], viewerId: string | null): Promise<P
       r.post_type === 'manual' &&
       viewerId != null &&
       viewerId === r.author_id &&
-      (!r.boosted_until || new Date(r.boosted_until) <= new Date()),
+      !isBoostLive(r.boosted_until, new Date()),
     reactionCounts: reactionCountsByPost.get(r.id) ?? { fire: 0, crown: 0, strong: 0, wow: 0 },
     myReaction: myReactionByPost.get(r.id) ?? null,
     commentCount: commentCountByPost.get(r.id) ?? 0,
@@ -184,14 +185,34 @@ export interface FeedPage {
 export async function fetchFeedPage(opts: { offset: number; limit: number; viewerId: string | null }): Promise<FeedPage> {
   const supabase = createClient()
 
-  const [{ data: pinnedRows }, { data: rows }] = await Promise.all([
+  // Live boosts are fetched separately, exactly as pinned posts are, because
+  // PostgREST cannot order by an expression. The previous single query used
+  // `.order('boosted_until', { nullsFirst: false })`, which ranked ANY
+  // non-null value above every unboosted post — so an expired boost kept its
+  // top slot forever. One post boosted on 17 August was still first three
+  // weeks later, its badge long gone.
+  const nowIso = new Date().toISOString()
+  const notLiveBoosted = `boosted_until.is.null,boosted_until.lte.${nowIso}`
+
+  const [{ data: pinnedRows }, { data: boostedRows }, { data: rows }] = await Promise.all([
     supabase.from('community_posts').select(POST_SELECT).eq('is_deleted', false).eq('is_pinned', true).order('created_at', { ascending: false }),
+    // Only on the first page: prepended to `posts`, so paging further must not
+    // show them again.
+    opts.offset === 0
+      ? supabase
+          .from('community_posts')
+          .select(POST_SELECT)
+          .eq('is_deleted', false)
+          .eq('is_pinned', false)
+          .gt('boosted_until', nowIso)
+          .order('boosted_until', { ascending: false })
+      : Promise.resolve({ data: [] as unknown[] }),
     supabase
       .from('community_posts')
       .select(POST_SELECT)
       .eq('is_deleted', false)
       .eq('is_pinned', false)
-      .order('boosted_until', { ascending: false, nullsFirst: false })
+      .or(notLiveBoosted)
       .order('created_at', { ascending: false })
       .range(opts.offset, opts.offset + opts.limit), // fetch one extra to detect "has more"
   ])
@@ -200,12 +221,13 @@ export async function fetchFeedPage(opts: { offset: number; limit: number; viewe
   const hasMore = rawRows.length > opts.limit
   const pageRows = hasMore ? rawRows.slice(0, opts.limit) : rawRows
 
-  const [pinned, posts] = await Promise.all([
+  const [pinned, boosted, posts] = await Promise.all([
     hydratePosts((pinnedRows ?? []) as unknown as RawPost[], opts.viewerId),
+    hydratePosts((boostedRows ?? []) as unknown as RawPost[], opts.viewerId),
     hydratePosts(pageRows, opts.viewerId),
   ])
 
-  return { pinned, posts, hasMore }
+  return { pinned, posts: [...boosted, ...posts], hasMore }
 }
 
 export interface CommentView {
