@@ -2,12 +2,29 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendFCMToPlayer, sendToTokens, type FCMNotification } from './fcm'
 import type { PushNotificationType } from './push-types'
 import { isMuted } from './mutes'
+import { deferNotification } from './defer'
 
 // Tier 2 (FCM) entry point — mirrors notify()/notifyInApp()'s best-effort
-// contract: never throws into the caller. Checks
-// notification_prefs.push[type] first; the key defaults to true when
-// absent, matching the seeded defaults in migration 062.
-export async function pushToPlayer(
+// contract: never throws into the caller.
+//
+// The real work goes through deferNotification, which registers it with the
+// platform so it survives the response. That is deliberately done HERE rather
+// than at each call site: nearly every caller writes `void pushToPlayer(...)`
+// because a push must not block the action that triggered it, and a bare
+// floating promise is exactly what Vercel discards when it freezes the
+// instance (see defer.ts for the production trace). Owning the handoff at the
+// entry point means no call site can get it wrong, including future ones.
+export function pushToPlayer(
+  playerId: string,
+  type: PushNotificationType,
+  notification: FCMNotification,
+  data: Record<string, string>,
+  opts?: { postId?: string | null },
+): Promise<void> {
+  return deferNotification(sendPushToPlayer(playerId, type, notification, data, opts))
+}
+
+async function sendPushToPlayer(
   playerId: string,
   type: PushNotificationType,
   notification: FCMNotification,
@@ -42,7 +59,15 @@ export async function pushToPlayer(
 // per-player prefs itself (unlike broadcastFCM in fcm.ts, which sends to
 // every token unconditionally) since a broadcast still has to respect each
 // recipient's individual opt-out.
-export async function broadcastPush(
+export function broadcastPush(
+  type: Extract<PushNotificationType, 'tournament_announced' | 'new_announcement'>,
+  notification: FCMNotification,
+  data: Record<string, string>,
+): Promise<void> {
+  return deferNotification(sendBroadcastPush(type, notification, data))
+}
+
+async function sendBroadcastPush(
   type: Extract<PushNotificationType, 'tournament_announced' | 'new_announcement'>,
   notification: FCMNotification,
   data: Record<string, string>,

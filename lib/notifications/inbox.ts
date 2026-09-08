@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { deferNotification } from './defer'
 
 export type NotificationType =
   | 'listing_approved'
@@ -8,6 +9,7 @@ export type NotificationType =
   | 'withdrawal_paid'
   | 'withdrawal_rejected'
   | 'result_confirmed'
+  | 'result_submitted'
   | 'referral_credited'
   | 'friend_request'
   | 'wallet_credited'
@@ -40,7 +42,21 @@ export type NotificationType =
 // Best-effort — NEVER throws into the caller's primary action, mirroring
 // lib/notifications/notify.ts's WhatsApp helper. A failed in-app notification
 // insert must never break the withdrawal/result/listing action it's attached to.
-export async function notifyInApp(input: {
+// Routed through deferNotification for the same reason as pushToPlayer — see
+// defer.ts. An insert is usually fast enough to beat the freeze, which is
+// precisely why this one hid the push bug for so long; "usually" is not a
+// guarantee worth keeping.
+export function notifyInApp(input: {
+  playerId: string
+  type: NotificationType
+  title: string
+  body: string
+  link?: string
+}): Promise<void> {
+  return deferNotification(insertInAppNotification(input))
+}
+
+async function insertInAppNotification(input: {
   playerId: string
   type: NotificationType
   title: string
@@ -65,7 +81,16 @@ export async function notifyInApp(input: {
 // new_announcement). Chunked at 500 rows/insert — same batch size as the
 // FCM multicast limit in fcm.ts, no deep reason they need to match, just
 // convenient symmetry.
-export async function broadcastInApp(input: {
+export function broadcastInApp(input: {
+  type: NotificationType
+  title: string
+  body: string
+  link?: string
+}): Promise<void> {
+  return deferNotification(insertBroadcastInApp(input))
+}
+
+async function insertBroadcastInApp(input: {
   type: NotificationType
   title: string
   body: string
