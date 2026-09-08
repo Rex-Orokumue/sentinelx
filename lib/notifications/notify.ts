@@ -1,13 +1,18 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { renderTemplate, type TemplateInput } from './templates'
 import { sendWhatsApp } from './termii'
+import { deferNotification } from './defer'
 
 export type NotifyInput = TemplateInput & { playerId: string; dedupeKey: string }
 
 // Best-effort: NEVER throws into the caller's primary action. Logs every attempt
 // (insert-first with status='skipped'), dedupes on the UNIQUE dedupe_key, then
 // upgrades the row to 'sent'/'failed' based on the send result.
-export async function notify(input: NotifyInput): Promise<void> {
+export function notify(input: NotifyInput): Promise<void> {
+  return deferNotification(sendWhatsAppNotification(input))
+}
+
+async function sendWhatsAppNotification(input: NotifyInput): Promise<void> {
   try {
     const { templateName, body } = renderTemplate(input)
     const admin = createAdminClient()
