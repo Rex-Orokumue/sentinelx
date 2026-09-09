@@ -91,6 +91,18 @@ describe('unlinkGoogle', () => {
     expect(unlinkIdentity).not.toHaveBeenCalled()
   })
 
+  // Both endpoints sit behind the project's Manual Linking toggle. "Try again"
+  // would be a lie for a configuration failure.
+  it('distinguishes the manual-linking toggle being off from a transient failure', async () => {
+    unlinkIdentity.mockResolvedValue({
+      error: { code: 'manual_linking_disabled', message: '404: Manual linking is disabled' },
+    })
+    const { unlinkGoogle } = await import('./identities')
+    const result = await unlinkGoogle(undefined, formData({ password: 'pw' }))
+    expect(result).toEqual({ errorCode: 'unavailable' })
+    expect(signOut).not.toHaveBeenCalled()
+  })
+
   it('reports when there is no google identity to remove', async () => {
     getUserIdentities.mockResolvedValue({ data: { identities: [EMAIL] }, error: null })
     const { unlinkGoogle } = await import('./identities')

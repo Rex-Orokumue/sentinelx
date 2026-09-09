@@ -100,8 +100,10 @@ callback carries an `intent=link` marker, failures go back to
 `/dashboard/settings?linked=error` instead.
 
 **Requires "Manual Linking" enabled in the Supabase dashboard**
-(Authentication → Sign In / Providers). `linkIdentity` returns
-"Manual linking is disabled" otherwise. Unlink is unaffected.
+(Authentication → Sign In / Providers). GoTrue gates BOTH endpoints behind this
+one toggle: with it off, `linkIdentity` and `unlinkIdentity` alike return
+`404 manual_linking_disabled`. An earlier draft of this spec claimed unlink was
+unaffected — it is not, confirmed against auth logs on 2026-09-09.
 
 ### UI
 
@@ -141,4 +143,6 @@ cosmetic gain on 4 rows.
 
 ## Rollout
 
-Code is inert until Manual Linking is enabled; unlink works immediately.
+Both halves are inert until Manual Linking is enabled — see the note above.
+`manual_linking_disabled` maps to its own message rather than the generic
+"try again", which is untrue for a configuration failure.

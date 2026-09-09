@@ -108,6 +108,7 @@
       "wrong_password": "That password isn't right.",
       "not_linked": "Google isn't linked to this account.",
       "last_identity": "That's the only way into your account — set up email and password sign-in first.",
+      "unavailable": "Unlinking isn't available right now. Please contact support.",
       "failed": "Could not unlink Google. Please try again."
     }
   },

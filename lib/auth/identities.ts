@@ -11,6 +11,7 @@ export type UnlinkErrorCode =
   | 'wrong_password'
   | 'not_linked'
   | 'last_identity'
+  | 'unavailable'
   | 'failed'
 
 export type UnlinkState = { errorCode?: UnlinkErrorCode; unlinked?: boolean } | undefined
@@ -51,10 +52,12 @@ export async function unlinkGoogle(_prev: UnlinkState, formData: FormData): Prom
 
   const { error } = await supabase.auth.unlinkIdentity(google)
   if (error) {
-    console.error('[unlinkGoogle] unlinkIdentity failed', {
-      code: (error as { code?: string }).code,
-      message: error.message,
-    })
+    const code = (error as { code?: string }).code
+    console.error('[unlinkGoogle] unlinkIdentity failed', { code, message: error.message })
+    // Both link and unlink sit behind the project's Manual Linking toggle. With
+    // it off GoTrue answers 404 manual_linking_disabled, and no amount of
+    // retrying will change that — so don't tell anyone to try again.
+    if (code === 'manual_linking_disabled') return { errorCode: 'unavailable' }
     return { errorCode: 'failed' }
   }
 
