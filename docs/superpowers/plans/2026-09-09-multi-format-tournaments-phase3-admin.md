@@ -109,6 +109,31 @@ describe('tournamentSchema — competition format', () => {
     const r = tournamentSchema.safeParse({ ...valid, competitionFormat: 'battle_royale' })
     expect(r.success).toBe(false)
   })
+
+  it('parses a points race that omits the head-to-head-only fields entirely', () => {
+    // LOAD-BEARING. The form HIDES `format` and `manualKnockoutPairing` on a
+    // points race, so they are never submitted and the schema's defaults fill
+    // them. That coupling is invisible from either side: tighten `format` to
+    // required and every points-race submit breaks with no other warning.
+    //
+    // The structural fix is a discriminated union on competitionFormat, so
+    // `format` exists only in the head_to_head branch. Until then this test is
+    // what turns that silent breakage into a red one.
+    const { format, manualKnockoutPairing, ...withoutH2HFields } = {
+      ...valid,
+      format: 'group_knockout',
+      manualKnockoutPairing: 'false',
+    } as Record<string, unknown>
+    void format
+    void manualKnockoutPairing
+
+    const r = tournamentSchema.safeParse({
+      ...withoutH2HFields,
+      competitionFormat: 'points_race',
+      entryUnit: 'solo',
+    })
+    expect(r.success).toBe(true)
+  })
 })
 ```
 
