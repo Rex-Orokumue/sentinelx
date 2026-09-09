@@ -29,5 +29,15 @@ export const resetPasswordSchema = z.object({
   password: passwordSchema,
 })
 
+// The password here is the CURRENT one, re-entered to prove the session really
+// belongs to the account holder — so it is only checked for presence. Applying
+// passwordSchema's 8-character minimum would reject anyone whose password
+// predates that rule.
+export const changeEmailSchema = z.object({
+  email: z.string().trim().email('Enter a valid email'),
+  password: z.string().min(1, 'Enter your current password'),
+})
+
 export type LoginInput = z.infer<typeof loginSchema>
 export type SignupInput = z.infer<typeof signupSchema>
+export type ChangeEmailInput = z.infer<typeof changeEmailSchema>

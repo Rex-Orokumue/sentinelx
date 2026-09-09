@@ -58,6 +58,31 @@
     "blockerFriendly": "{count} friendly never finish — play am or decline am",
     "restricted": "Dem don schedule your account for deletion. Cancel di deletion for Settings before you fit do dis."
   },
+  "emailChange": {
+    "title": "Change email",
+    "open": "Change Email →",
+    "newLabel": "New email address",
+    "passwordLabel": "Your current password",
+    "passwordHint": "Your password na wetin confam say na you — without am, anybody wey meet your account login fit carry am go him own inbox.",
+    "submit": "Send confirmation link",
+    "cancel": "Cancel",
+    "sent": "We don send confirmation link go {email}. Your address go remain di same until you open dat link.",
+    "sentSpam": "Check your spam folder if e no enter.",
+    "pending": "E dey wait: {email}",
+    "pendingHint": "We dey wait make you confam from dat inbox.",
+    "changed": "Your email address don update.",
+    "errors": {
+      "invalid_email": "Put email address wey correct.",
+      "password_required": "Put your current password.",
+      "not_logged_in": "Your session don expire. Abeg login again.",
+      "google_only": "Na Google you dey take login, so no password dey to confam. Use “Change Password” for up to set one, then you fit change your email.",
+      "same_email": "Na dat one already be your email address.",
+      "wrong_password": "Dat password no correct.",
+      "email_banned": "We no fit use dat email address.",
+      "email_in_use": "Person don dey use dat email address.",
+      "failed": "We no fit start di email change. Abeg try again."
+    }
+  },
   "home": {
     "upcomingHeading": "Wetin dey come",
     "topPlayersHeading": "Top Players",

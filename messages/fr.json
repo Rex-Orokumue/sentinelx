@@ -58,6 +58,31 @@
     "blockerFriendly": "{count} match amical non terminé — jouez-le ou refusez-le",
     "restricted": "Votre compte est programmé pour suppression. Annulez la suppression dans les Paramètres pour faire cela."
   },
+  "emailChange": {
+    "title": "Changer d'e-mail",
+    "open": "Changer d'e-mail →",
+    "newLabel": "Nouvelle adresse e-mail",
+    "passwordLabel": "Mot de passe actuel",
+    "passwordHint": "Votre mot de passe confirme que c'est bien vous — sans lui, toute personne trouvant votre compte connecté pourrait le transférer vers sa propre boîte mail.",
+    "submit": "Envoyer le lien de confirmation",
+    "cancel": "Annuler",
+    "sent": "Lien de confirmation envoyé à {email}. Votre adresse ne change pas tant que vous n'avez pas ouvert ce lien.",
+    "sentSpam": "Vérifiez vos spams si le message n'arrive pas.",
+    "pending": "En attente : {email}",
+    "pendingHint": "Nous attendons votre confirmation depuis cette boîte mail.",
+    "changed": "Votre adresse e-mail a été mise à jour.",
+    "errors": {
+      "invalid_email": "Saisissez une adresse e-mail valide.",
+      "password_required": "Saisissez votre mot de passe actuel.",
+      "not_logged_in": "Votre session a expiré. Veuillez vous reconnecter.",
+      "google_only": "Votre compte se connecte avec Google : il n'y a donc aucun mot de passe à confirmer. Utilisez « Changer le mot de passe » ci-dessus pour en définir un, puis vous pourrez changer votre e-mail.",
+      "same_email": "C'est déjà votre adresse e-mail.",
+      "wrong_password": "Ce mot de passe n'est pas correct.",
+      "email_banned": "Nous ne pouvons pas utiliser cette adresse e-mail.",
+      "email_in_use": "Cette adresse e-mail est déjà utilisée.",
+      "failed": "Impossible de lancer le changement d'e-mail. Veuillez réessayer."
+    }
+  },
   "home": {
     "upcomingHeading": "À venir",
     "topPlayersHeading": "Meilleurs joueurs",
