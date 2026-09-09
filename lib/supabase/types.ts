@@ -2079,6 +2079,96 @@ export type Database = {
         }
         Relationships: []
       }
+      squad_members: {
+        Row: {
+          id: string
+          joined_at: string
+          player_id: string
+          registration_id: string | null
+          role: string
+          squad_id: string
+          tournament_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          player_id: string
+          registration_id?: string | null
+          role?: string
+          squad_id: string
+          tournament_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          player_id?: string
+          registration_id?: string | null
+          role?: string
+          squad_id?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "squad_members_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "squad_members_squad_fk"
+            columns: ["squad_id", "tournament_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
+            referencedColumns: ["id", "tournament_id"]
+          },
+        ]
+      }
+      squads: {
+        Row: {
+          captain_id: string
+          created_at: string
+          id: string
+          invite_code: string
+          name: string
+          status: string
+          tournament_id: string
+        }
+        Insert: {
+          captain_id: string
+          created_at?: string
+          id?: string
+          invite_code: string
+          name: string
+          status?: string
+          tournament_id: string
+        }
+        Update: {
+          captain_id?: string
+          created_at?: string
+          id?: string
+          invite_code?: string
+          name?: string
+          status?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "squads_captain_id_fkey"
+            columns: ["captain_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "squads_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_items: {
         Row: {
           active: boolean
@@ -2336,11 +2426,67 @@ export type Database = {
           },
         ]
       }
+      tournament_entrants: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          kind: string
+          player_id: string | null
+          squad_id: string | null
+          status: string
+          tournament_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          kind: string
+          player_id?: string | null
+          squad_id?: string | null
+          status?: string
+          tournament_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          kind?: string
+          player_id?: string | null
+          squad_id?: string | null
+          status?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_entrants_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_entrants_squad_id_fkey"
+            columns: ["squad_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_entrants_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_registrations: {
         Row: {
           coin_discount_naira: number
           coins_used: number
           disqualification_note: string | null
+          entrant_id: string | null
           disqualified_at: string | null
           fee_waived: boolean
           id: string
@@ -2360,6 +2506,7 @@ export type Database = {
           coin_discount_naira?: number
           coins_used?: number
           disqualification_note?: string | null
+          entrant_id?: string | null
           disqualified_at?: string | null
           fee_waived?: boolean
           id?: string
@@ -2379,6 +2526,7 @@ export type Database = {
           coin_discount_naira?: number
           coins_used?: number
           disqualification_note?: string | null
+          entrant_id?: string | null
           disqualified_at?: string | null
           fee_waived?: boolean
           id?: string
