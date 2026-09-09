@@ -5,14 +5,17 @@ import { useFormState } from 'react-dom'
 import { useTranslations } from 'next-intl'
 import { unlinkGoogle, type UnlinkState } from '@/lib/auth/identities'
 import { createClient } from '@/lib/supabase/client'
+import { willGoogleRelink } from '@/lib/auth/relink'
 
 export type SignInMethod = { provider: string; email: string | null }
 
 export function SignInMethodsSection({
   methods,
+  accountEmail,
   linkResult,
 }: {
   methods: SignInMethod[]
+  accountEmail: string | null
   // 'google' after a successful link, 'error' when the callback bounced one
   // back — usually because that Google account is already on another account.
   linkResult: 'google' | 'error' | null
@@ -41,7 +44,10 @@ export function SignInMethodsSection({
             </p>
           </div>
           {google ? (
-            <UnlinkGoogle isOnlyMethod={isOnlyMethod} />
+            <UnlinkGoogle
+              isOnlyMethod={isOnlyMethod}
+              willRelink={willGoogleRelink({ accountEmail, googleEmail: google.email })}
+            />
           ) : (
             <LinkGoogleButton label={t('link')} />
           )}
@@ -80,7 +86,13 @@ function LinkGoogleButton({ label }: { label: string }) {
   )
 }
 
-function UnlinkGoogle({ isOnlyMethod }: { isOnlyMethod: boolean }) {
+function UnlinkGoogle({
+  isOnlyMethod,
+  willRelink,
+}: {
+  isOnlyMethod: boolean
+  willRelink: boolean
+}) {
   const t = useTranslations('signInMethods')
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -113,6 +125,14 @@ function UnlinkGoogle({ isOnlyMethod }: { isOnlyMethod: boolean }) {
   return (
     <form action={formAction} className="w-full space-y-2 rounded-xl border border-sx-border bg-slate-950/40 p-3">
       <p className="text-xs leading-relaxed text-sx-gray">{t('unlinkExplain')}</p>
+      {/* Unlinking on its own does not hold while the two addresses match —
+          GoTrue re-attaches the identity on the next Google sign-in. Saying so
+          here is the difference between a real protection and a false one. */}
+      {willRelink && (
+        <p className="rounded-lg border border-amber-900/50 bg-amber-950/20 px-3 py-2 text-xs leading-relaxed text-amber-200">
+          {t('relinkWarning')}
+        </p>
+      )}
       <label className="block text-xs text-sx-gray" htmlFor="unlink-password">
         {t('passwordLabel')}
       </label>

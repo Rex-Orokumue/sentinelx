@@ -122,7 +122,31 @@ Mobile-first at 375px: rows stack, buttons full-width below `sm`.
 When Google is the only identity, the unlink control is not offered and a line
 explains that it is the only way into the account.
 
-### Known limitation
+### Unlink does not hold on its own
+
+GoTrue links an OAuth identity to an existing account automatically whenever the
+provider returns a **verified** email matching that account's confirmed address.
+So an unlink only sticks while the two addresses differ. Observed on 2026-09-09:
+the Google identity was deleted at 14:06 and recreated at 14:23 by a single
+Google sign-in, same subject ID, because the account had been changed back to
+the Google address.
+
+| account email vs Google email | Google sign-in yields |
+|---|---|
+| same | the same account — link silently restored |
+| different | a new, empty account; the original stays shut |
+
+Unlink and change-email therefore close the door only **together**. `willGoogleRelink()`
+in `lib/auth/relink.ts` detects the matching case and the unlink form says so
+outright, because an unlink that quietly undoes itself is worse than none — it
+is a protection someone would rely on.
+
+Blocking the re-link in `/auth/oauth/callback` was considered and rejected: it
+fights GoTrue's automatic linking and introduces a way for a legitimate user to
+lock themselves out of Google sign-in, in exchange for a guarantee that a
+changed email already provides.
+
+## Known limitation
 
 Unlink requires two identities. The 4 accounts holding a password hash but no
 `email` identity have only a Google identity, so Supabase will refuse to unlink
