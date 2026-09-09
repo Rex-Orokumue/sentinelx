@@ -11,6 +11,7 @@ import { ALWAYS_MUTED_UNTIL } from '@/lib/notifications/mutes'
 import { AchievementSharingForm } from '@/components/settings/AchievementSharingForm'
 import { AccountSection } from '@/components/settings/AccountSection'
 import { hasPasswordIdentity } from '@/lib/auth/reauth'
+import { SignInMethodsSection } from '@/components/settings/SignInMethodsSection'
 import type { MembershipTier } from '@/lib/membership/tiers'
 
 export const metadata: Metadata = { title: 'Settings · SentinelX Esports', robots: { index: false, follow: false } }
@@ -18,13 +19,21 @@ export const metadata: Metadata = { title: 'Settings · SentinelX Esports', robo
 export default async function DashboardSettingsPage({
   searchParams,
 }: {
-  searchParams: { email?: string }
+  searchParams: { email?: string; linked?: string }
 }) {
   const supabase = createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/dashboard/settings')
+
+  // auth.identities is the whole story for sign-in methods — no table of ours
+  // mirrors it, so read it straight from Supabase.
+  const { data: identityData } = await supabase.auth.getUserIdentities()
+  const signInMethods = (identityData?.identities ?? []).map((identity) => ({
+    provider: identity.provider,
+    email: (identity.identity_data?.email as string | undefined) ?? null,
+  }))
 
   const [{ data: row }, { data: kyc }, { count: fcmTokenCount }] = await Promise.all([
     supabase
@@ -132,9 +141,18 @@ export default async function DashboardSettingsPage({
           // user.email stays on the old one until then.
           pendingEmail={user.new_email ?? null}
           hasPassword={hasPasswordIdentity(user)}
+          hasGoogle={signInMethods.some((m) => m.provider === 'google')}
           // Set by resolveCallbackRedirect when /auth/confirm verifies an
           // email_change link.
           emailJustChanged={searchParams.email === 'changed'}
+        />
+        <SignInMethodsSection
+          methods={signInMethods}
+          linkResult={
+            searchParams.linked === 'google' || searchParams.linked === 'error'
+              ? searchParams.linked
+              : null
+          }
         />
       </div>
     </DashboardShell>

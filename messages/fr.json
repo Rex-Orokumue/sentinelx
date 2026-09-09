@@ -71,6 +71,7 @@
     "pending": "En attente : {email}",
     "pendingHint": "Nous attendons votre confirmation depuis cette boîte mail.",
     "googleHint": "Connecté avec Google ? Si vous n'avez jamais défini de mot de passe, utilisez d'abord « Changer le mot de passe » ci-dessus — le lien est envoyé à votre boîte mail actuelle.",
+    "googleSurvives": "La connexion Google continuera de fonctionner après ce changement — elle est liée à votre compte Google, pas à votre e-mail. Supprimez-la sous « Méthodes de connexion » ci-dessous.",
     "changed": "Votre adresse e-mail a été mise à jour.",
     "errors": {
       "invalid_email": "Saisissez une adresse e-mail valide.",
@@ -82,6 +83,32 @@
       "email_banned": "Nous ne pouvons pas utiliser cette adresse e-mail.",
       "email_in_use": "Cette adresse e-mail est déjà utilisée.",
       "failed": "Impossible de lancer le changement d'e-mail. Veuillez réessayer."
+    }
+  },
+  "signInMethods": {
+    "title": "Méthodes de connexion",
+    "intro": "La connexion Google est liée à votre compte Google, pas à votre adresse e-mail — changer d'e-mail ne la supprime pas.",
+    "google": "Google",
+    "emailPassword": "E-mail et mot de passe",
+    "linked": "Liée",
+    "notLinked": "Non liée",
+    "notSet": "Non configurée",
+    "link": "Lier Google",
+    "linkedOk": "La connexion Google est désormais liée à votre compte.",
+    "linkFailed": "Impossible de lier ce compte Google — il est peut-être déjà rattaché à un autre compte SentinelX.",
+    "unlink": "Délier",
+    "unlinkConfirm": "Délier Google",
+    "unlinkExplain": "Cela supprime la connexion Google de votre compte et vous déconnecte partout ailleurs. Vous vous connecterez désormais avec votre e-mail et votre mot de passe.",
+    "onlyMethod": "C'est le seul accès à votre compte, il ne peut donc pas être supprimé.",
+    "passwordLabel": "Mot de passe actuel",
+    "cancel": "Annuler",
+    "errors": {
+      "password_required": "Saisissez votre mot de passe actuel.",
+      "not_logged_in": "Votre session a expiré. Veuillez vous reconnecter.",
+      "wrong_password": "Ce mot de passe n'est pas correct.",
+      "not_linked": "Google n'est pas lié à ce compte.",
+      "last_identity": "C'est le seul accès à votre compte — configurez d'abord la connexion par e-mail et mot de passe.",
+      "failed": "Impossible de délier Google. Veuillez réessayer."
     }
   },
   "home": {

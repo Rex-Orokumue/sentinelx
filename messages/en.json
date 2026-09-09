@@ -71,6 +71,7 @@
     "pending": "Pending: {email}",
     "pendingHint": "Waiting for you to confirm from that inbox.",
     "googleHint": "Signed in with Google? If you've never set a password, use Change Password above first — the link goes to your current inbox.",
+    "googleSurvives": "Google sign-in will keep working after this change — it's tied to your Google account, not your email. Remove it under Sign-in methods below.",
     "changed": "Your email address has been updated.",
     "errors": {
       "invalid_email": "Enter a valid email address.",
@@ -82,6 +83,32 @@
       "email_banned": "We could not use that email address.",
       "email_in_use": "That email address is already in use.",
       "failed": "Could not start the email change. Please try again."
+    }
+  },
+  "signInMethods": {
+    "title": "Sign-in methods",
+    "intro": "Google sign-in is tied to your Google account, not to your email address — changing your email does not remove it.",
+    "google": "Google",
+    "emailPassword": "Email & password",
+    "linked": "Linked",
+    "notLinked": "Not linked",
+    "notSet": "Not set up",
+    "link": "Link Google",
+    "linkedOk": "Google sign-in is now linked to your account.",
+    "linkFailed": "Could not link that Google account — it may already be attached to another SentinelX account.",
+    "unlink": "Unlink",
+    "unlinkConfirm": "Unlink Google",
+    "unlinkExplain": "This removes Google sign-in from your account and signs you out everywhere else. You'll sign in with your email and password from now on.",
+    "onlyMethod": "This is the only way into your account, so it can't be removed.",
+    "passwordLabel": "Current password",
+    "cancel": "Cancel",
+    "errors": {
+      "password_required": "Enter your current password.",
+      "not_logged_in": "Your session has expired. Please log in again.",
+      "wrong_password": "That password isn't right.",
+      "not_linked": "Google isn't linked to this account.",
+      "last_identity": "That's the only way into your account — set up email and password sign-in first.",
+      "failed": "Could not unlink Google. Please try again."
     }
   },
   "home": {
