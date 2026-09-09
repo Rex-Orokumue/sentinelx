@@ -648,28 +648,34 @@ export type Database = {
           active: boolean
           category: string
           created_at: string
+          default_points_config: Json | null
           icon_url: string | null
           id: string
           name: string
           slug: string
+          supported_formats: string[]
         }
         Insert: {
           active?: boolean
           category?: string
           created_at?: string
+          default_points_config?: Json | null
           icon_url?: string | null
           id?: string
           name: string
           slug: string
+          supported_formats?: string[]
         }
         Update: {
           active?: boolean
           category?: string
           created_at?: string
+          default_points_config?: Json | null
           icon_url?: string | null
           id?: string
           name?: string
           slug?: string
+          supported_formats?: string[]
         }
         Relationships: []
       }
@@ -2416,7 +2422,9 @@ export type Database = {
         Row: {
           banner_url: string | null
           card_image_url: string | null
+          competition_format: string
           created_at: string
+          entry_unit: string
           data_support_text: string | null
           data_support_whatsapp: string | null
           description: string | null
@@ -2437,6 +2445,7 @@ export type Database = {
           rules: string | null
           season_id: string | null
           slug: string
+          squad_size: number | null
           status: string
           third_place_prize_credited: boolean
           title: string
@@ -2448,7 +2457,9 @@ export type Database = {
         Insert: {
           banner_url?: string | null
           card_image_url?: string | null
+          competition_format?: string
           created_at?: string
+          entry_unit?: string
           data_support_text?: string | null
           data_support_whatsapp?: string | null
           description?: string | null
@@ -2469,6 +2480,7 @@ export type Database = {
           rules?: string | null
           season_id?: string | null
           slug: string
+          squad_size?: number | null
           status?: string
           third_place_prize_credited?: boolean
           title: string
@@ -2480,7 +2492,9 @@ export type Database = {
         Update: {
           banner_url?: string | null
           card_image_url?: string | null
+          competition_format?: string
           created_at?: string
+          entry_unit?: string
           data_support_text?: string | null
           data_support_whatsapp?: string | null
           description?: string | null
@@ -2501,6 +2515,7 @@ export type Database = {
           rules?: string | null
           season_id?: string | null
           slug?: string
+          squad_size?: number | null
           status?: string
           third_place_prize_credited?: boolean
           title?: string
