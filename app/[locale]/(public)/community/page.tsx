@@ -7,7 +7,9 @@ import { fetchCommunityStats } from '@/lib/community/stats-query'
 import { fetchTopCommunityMembers } from '@/lib/community/top-members-query'
 import { fetchUpcomingCommunityEvents } from '@/lib/community/upcoming-events-query'
 import { fetchCommunityGallery } from '@/lib/community/gallery-query'
+import { fetchStatusRings } from '@/lib/community/status-query'
 import { NewPostLauncher } from '@/components/community/NewPostLauncher'
+import { StatusTray, type TrayViewer } from '@/components/community/StatusTray'
 import type { ViewerProfile as ComposerViewer } from '@/components/community/PostComposer'
 import { FeedList } from '@/components/community/FeedList'
 import { ChallengeWidget } from '@/components/community/ChallengeWidget'
@@ -64,6 +66,7 @@ export default async function CommunityPage() {
     topMembers,
     upcomingEvents,
     gallery,
+    statusRings,
   ] = await Promise.all([
     fetchFeedPage({ offset: 0, limit: PAGE_SIZE, viewerId }),
     fetchChallengeWidget(viewerId),
@@ -73,7 +76,17 @@ export default async function CommunityPage() {
     fetchTopCommunityMembers(5),
     fetchUpcomingCommunityEvents(3),
     fetchCommunityGallery(0, 8),
+    fetchStatusRings(viewerId),
   ])
+
+  const trayViewer: TrayViewer | null = viewerId
+    ? {
+        id: viewerId,
+        name: viewerProfile?.displayName ?? viewerProfile?.username ?? 'You',
+        username: viewerProfile?.username ?? null,
+        avatarUrl: viewerProfile?.avatarUrl ?? null,
+      }
+    : null
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-20">
@@ -82,6 +95,8 @@ export default async function CommunityPage() {
       <div className="py-6">
         <CommunityHero />
       </div>
+
+      <StatusTray rings={statusRings} viewer={trayViewer} />
 
       <div className="mb-6">
         <CommunityStatsBar stats={stats} />
