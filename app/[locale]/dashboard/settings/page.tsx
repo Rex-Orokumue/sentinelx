@@ -148,6 +148,7 @@ export default async function DashboardSettingsPage({
         />
         <SignInMethodsSection
           methods={signInMethods}
+          accountEmail={user.email ?? null}
           linkResult={
             searchParams.linked === 'google' || searchParams.linked === 'error'
               ? searchParams.linked
