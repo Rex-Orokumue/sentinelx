@@ -69,6 +69,24 @@ export async function adminDeletePost(_prev: AdminActionState, formData: FormDat
   return undefined
 }
 
+// Staff takedown of any status. Hard delete (statuses are ephemeral and have
+// no is_deleted column); cascades status_views. Service-role client mirrors
+// adminDeletePost — RLS's player_statuses_staff_delete also permits it, but the
+// admin client keeps the pattern uniform with the other admin-actions.
+export async function adminDeleteStatus(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  await requireStaff()
+  const id = String(formData.get('id') ?? '')
+  if (!id) return { error: 'Missing status.' }
+
+  const admin = createAdminClient()
+  const { error } = await admin.from('player_statuses').delete().eq('id', id)
+  if (error) return { error: 'Could not delete this status.' }
+
+  revalidatePath('/community')
+  revalidatePath('/admin/community')
+  return undefined
+}
+
 export async function nominateBestPlay(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
   await requireStaff()
   const postId = String(formData.get('postId') ?? '')

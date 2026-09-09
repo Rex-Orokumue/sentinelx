@@ -8,7 +8,9 @@ import { fetchCommunityStats } from '@/lib/community/stats-query'
 import { fetchTopCommunityMembers } from '@/lib/community/top-members-query'
 import { fetchUpcomingCommunityEvents } from '@/lib/community/upcoming-events-query'
 import { fetchCommunityGallery } from '@/lib/community/gallery-query'
+import { fetchStatusRings } from '@/lib/community/status-query'
 import { NewPostLauncher } from '@/components/community/NewPostLauncher'
+import { StatusTray, type TrayViewer } from '@/components/community/StatusTray'
 import type { ViewerProfile as ComposerViewer } from '@/components/community/PostComposer'
 import { FeedList } from '@/components/community/FeedList'
 import { ChallengeWidget } from '@/components/community/ChallengeWidget'
@@ -65,6 +67,7 @@ export default async function CommunityPage() {
     topMembers,
     upcomingEvents,
     gallery,
+    statusRings,
   ] = await Promise.all([
     fetchFeedPage({ offset: 0, limit: PAGE_SIZE, viewerId }),
     fetchChallengeWidget(viewerId),
@@ -74,31 +77,41 @@ export default async function CommunityPage() {
     fetchTopCommunityMembers(5),
     fetchUpcomingCommunityEvents(3),
     fetchCommunityGallery(0, 8),
+    fetchStatusRings(viewerId),
   ])
+
+  const trayViewer: TrayViewer | null = viewerId
+    ? {
+        id: viewerId,
+        name: viewerProfile?.displayName ?? viewerProfile?.username ?? 'You',
+        username: viewerProfile?.username ?? null,
+        avatarUrl: viewerProfile?.avatarUrl ?? null,
+      }
+    : null
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-20">
       {/* Unscoped: any post's comments or reactions are relevant on the feed. */}
       <CommunityRealtime />
-      <div className="py-6">
-        <CommunityHero />
-      </div>
 
-      <div className="mb-6">
-        <CommunityStatsBar stats={stats} />
-      </div>
-
-      <div className="mb-6">
-        <QuickActionTiles />
-      </div>
+      {viewerId ? (
+        // Members get a feed, not a landing page — a slim header, then straight
+        // into the tray + composer.
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-5">
+          <h1 className="font-display text-2xl font-black uppercase text-white">Community</h1>
+          <p className="text-sm text-sx-gray">The heartbeat of SentinelX — results, achievements &amp; banter.</p>
+        </div>
+      ) : (
+        <div className="py-6">
+          <CommunityHero />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         <div id="feed" className="min-w-0">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-xl font-black text-white">Community Feed</h2>
-            <div id="new-post-launcher">
-              <NewPostLauncher viewer={viewerProfile} />
-            </div>
+          <StatusTray rings={statusRings} viewer={trayViewer} />
+          <div id="new-post-launcher" className="mb-4">
+            <NewPostLauncher viewer={viewerProfile} />
           </div>
           {bestPlay && (
             <BestPlayBanner
@@ -112,11 +125,22 @@ export default async function CommunityPage() {
           </div>
           <FeedList pinned={pinned} initialPosts={posts} initialHasMore={hasMore} loggedIn={!!viewerId} />
         </div>
+        {/* ChallengeWidget is `lg:sticky` — it must be the LAST widget here, or a
+            later static sibling (Upcoming Tournaments) renders behind it once it
+            pins, because positioned elements paint above static ones. */}
         <div className="hidden space-y-4 lg:block">
           <TopMembersWidget members={topMembers} />
-          {challengeWidget && <ChallengeWidget weekLabel={challengeWidget.weekLabel} challenges={challengeWidget.challenges} />}
           <UpcomingEventsWidget events={upcomingEvents} />
+          {challengeWidget && <ChallengeWidget weekLabel={challengeWidget.weekLabel} challenges={challengeWidget.challenges} />}
         </div>
+      </div>
+
+      {/* Discovery, not feed content — below the posts on every breakpoint. */}
+      <div className="mt-8">
+        <CommunityStatsBar stats={stats} />
+      </div>
+      <div className="mt-6">
+        <QuickActionTiles />
       </div>
 
       <div className="mt-6">

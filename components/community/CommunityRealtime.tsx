@@ -52,6 +52,19 @@ export function CommunityRealtime({ postId }: { postId?: string }) {
       )
     }
 
+    // Statuses only matter on the feed (the tray). A new or removed status
+    // re-renders the tray; status_views is deliberately not subscribed —
+    // it fires per segment watched and the tray's seen-state is optimistic.
+    if (!postId) {
+      for (const event of ['INSERT', 'DELETE'] as const) {
+        channel.on(
+          'postgres_changes',
+          { event, schema: 'public', table: 'player_statuses' },
+          scheduleRefresh,
+        )
+      }
+    }
+
     channel.subscribe()
 
     return () => {

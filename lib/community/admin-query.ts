@@ -30,6 +30,55 @@ export async function fetchAdminPosts(limit = 50): Promise<AdminPostRow[]> {
   }))
 }
 
+export interface AdminStatusRow {
+  id: string
+  caption: string | null
+  imageUrl: string | null
+  createdAt: string
+  expiresAt: string
+  authorUsername: string | null
+  viewCount: number
+}
+
+// Live statuses only (expires_at > now()), newest first. The view count needs
+// the status_views_staff_read policy (20260909082245 migration).
+export async function fetchAdminStatuses(limit = 60): Promise<AdminStatusRow[]> {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('player_statuses')
+    .select('id, caption, image_url, created_at, expires_at, author:profiles!player_statuses_player_id_fkey(username)')
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  const rows = ((data ?? []) as unknown as {
+    id: string
+    caption: string | null
+    image_url: string | null
+    created_at: string
+    expires_at: string
+    author: { username: string | null } | { username: string | null }[] | null
+  }[])
+  if (rows.length === 0) return []
+
+  const { data: views } = await supabase
+    .from('status_views')
+    .select('status_id')
+    .in('status_id', rows.map((r) => r.id))
+  const countById = new Map<string, number>()
+  for (const v of views ?? []) countById.set(v.status_id, (countById.get(v.status_id) ?? 0) + 1)
+
+  return rows.map((r) => ({
+    id: r.id,
+    caption: r.caption,
+    imageUrl: r.image_url,
+    createdAt: r.created_at,
+    expiresAt: r.expires_at,
+    authorUsername: (Array.isArray(r.author) ? r.author[0]?.username : r.author?.username) ?? null,
+    viewCount: countById.get(r.id) ?? 0,
+  }))
+}
+
 export interface AdminNominationRow {
   nominationId: string
   postId: string
