@@ -108,6 +108,7 @@
       "wrong_password": "Ce mot de passe n'est pas correct.",
       "not_linked": "Google n'est pas lié à ce compte.",
       "last_identity": "C'est le seul accès à votre compte — configurez d'abord la connexion par e-mail et mot de passe.",
+      "unavailable": "La dissociation n'est pas disponible pour le moment. Veuillez contacter l'assistance.",
       "failed": "Impossible de délier Google. Veuillez réessayer."
     }
   },
