@@ -70,6 +70,7 @@
     "sentSpam": "Check your spam folder if it doesn't arrive.",
     "pending": "Pending: {email}",
     "pendingHint": "Waiting for you to confirm from that inbox.",
+    "googleHint": "Signed in with Google? If you've never set a password, use Change Password above first — the link goes to your current inbox.",
     "changed": "Your email address has been updated.",
     "errors": {
       "invalid_email": "Enter a valid email address.",

@@ -70,6 +70,7 @@
     "sentSpam": "Vérifiez vos spams si le message n'arrive pas.",
     "pending": "En attente : {email}",
     "pendingHint": "Nous attendons votre confirmation depuis cette boîte mail.",
+    "googleHint": "Connecté avec Google ? Si vous n'avez jamais défini de mot de passe, utilisez d'abord « Changer le mot de passe » ci-dessus — le lien est envoyé à votre boîte mail actuelle.",
     "changed": "Votre adresse e-mail a été mise à jour.",
     "errors": {
       "invalid_email": "Saisissez une adresse e-mail valide.",
