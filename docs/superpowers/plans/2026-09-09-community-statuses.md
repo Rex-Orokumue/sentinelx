@@ -12,6 +12,24 @@
 - `docs/superpowers/specs/2026-09-07-statuses-design.md` (this piece)
 - `docs/superpowers/specs/2026-09-07-community-system-overview.md` (cross-cutting rules)
 
+## Execution progress (2026-09-09)
+
+| Task | State | Commit |
+|---|---|---|
+| 1 · Schema + staff policy + types | ✅ done | `fea4d02` |
+| 2 · Validation schema (TDD) | ✅ done | `3ed8b17` |
+| 3 · Query + server actions | ✅ done | `b111711` |
+| 4 · StatusRing + StatusTray | ✅ done | `c924c9d` |
+| 5 · StatusComposer | ✅ done | `52c10f8` |
+| 6 · StatusViewer | ✅ done | `ed567c7` |
+| 7 · Page wiring + realtime | ✅ done | `c013af0` |
+| 8 · Admin moderation | ✅ done | `2d5831b` |
+| 9 · E2E verification | ⏳ user-run | preview `sentinelx-git-feat-community-statuses-rex-7e1d.vercel.app` |
+
+**Verified:** `tsc --noEmit` clean · `next lint` clean · `vitest run lib/community/` 69/69 · Vercel preview build **READY, 0 errors** (`dpl_86NMWLqB3H3KK2jAXe32xd7fvueA`).
+
+**Task 1 deviation from plan:** the base migration `20260907120000_player_statuses.sql` **was already applied to production** (recorded remotely as version `20260907165549` — a local/remote filename skew, tables + all 5 original policies present and correct). The plan assumed it was unapplied; only the new `player_statuses_staff_delete` + `status_views_staff_read` policies needed applying, done via MCP `apply_migration` (`20260909082245_player_statuses_staff_delete.sql`).
+
 ## Global Constraints
 
 - **Mobile-first.** Design at 375px, scale up. The tray and viewer are primarily a phone experience.
