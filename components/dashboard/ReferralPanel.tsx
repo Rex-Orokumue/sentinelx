@@ -9,6 +9,7 @@ export interface ReferredPlayer {
   name: string
   avatarUrl: string | null
   tier: MembershipTier
+  frameUrl?: string
   status: 'pending' | 'converted' | 'invalid'
   date: string
   coinsAwarded: number | null
@@ -111,7 +112,7 @@ export function ReferralPanel({
           <div className="space-y-2">
             {referredPlayers.map((r) => (
               <div key={r.id} className="flex items-center gap-3 rounded-2xl border border-sx-border bg-sx-surface p-3">
-                <HexAvatar src={r.avatarUrl} username={r.name} tier={r.tier} size="xs" />
+                <HexAvatar src={r.avatarUrl} username={r.name} tier={r.tier} size="xs" frameUrl={r.frameUrl} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-white">{r.name}</p>
                   <p className="text-[11px] text-sx-gray">

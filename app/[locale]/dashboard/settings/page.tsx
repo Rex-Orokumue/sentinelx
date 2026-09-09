@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { frameUrlFor } from '@/lib/store/cosmetics'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -23,7 +24,9 @@ export default async function DashboardSettingsPage() {
   const [{ data: row }, { data: kyc }, { count: fcmTokenCount }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('display_name, username, avatar_url, membership_tier, whatsapp_number, country, bio, kyc_verified, username_changed_at, notification_prefs, deletion_requested_at')
+      .select(
+        'display_name, username, avatar_url, membership_tier, whatsapp_number, country, bio, kyc_verified, username_changed_at, notification_prefs, deletion_requested_at, equipped_avatar_border',
+      )
       .eq('id', user.id)
       .maybeSingle(),
     createAdminClient().from('player_kyc').select('kyc_status').eq('player_id', user.id).maybeSingle(),
@@ -69,6 +72,7 @@ export default async function DashboardSettingsPage() {
             usernameChangedAt: row?.username_changed_at ?? null,
             avatarUrl: row?.avatar_url ?? null,
             membershipTier: (row?.membership_tier ?? 'recruit') as MembershipTier,
+            frameUrl: frameUrlFor(row?.equipped_avatar_border),
             whatsapp: row?.whatsapp_number ?? null,
             country: row?.country ?? null,
             bio: row?.bio ?? null,

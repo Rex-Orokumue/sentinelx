@@ -123,7 +123,12 @@ export default async function LocaleLayout({
             <SiteFooter />
           </div>
 
-          <GuideLauncher isLoggedIn={navSession.isLoggedIn} username={navSession.username} avatarUrl={navSession.avatarUrl} />
+          <GuideLauncher
+            isLoggedIn={navSession.isLoggedIn}
+            username={navSession.username}
+            avatarUrl={navSession.avatarUrl}
+            frameUrl={navSession.frameUrl}
+          />
 
           <Analytics />
           <JsonLd data={buildOrganizationJsonLd()} />

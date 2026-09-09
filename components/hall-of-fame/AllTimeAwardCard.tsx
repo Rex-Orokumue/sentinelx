@@ -12,6 +12,7 @@ export function AllTimeAwardCard({
   metricLabel,
   metricValue,
   awardName,
+  frameUrl,
 }: {
   label: string
   icon: string
@@ -22,6 +23,7 @@ export function AllTimeAwardCard({
   metricLabel: string
   metricValue: string | number
   awardName: string
+  frameUrl?: string
 }) {
   return (
     <div
@@ -32,7 +34,7 @@ export function AllTimeAwardCard({
         {icon} {label}
       </p>
       <div className="mt-4 flex justify-center">
-        <HexAvatar src={avatarUrl} username={name} tier={(membershipTier ?? 'recruit') as MembershipTier} size="xl" />
+        <HexAvatar src={avatarUrl} username={name} tier={(membershipTier ?? 'recruit') as MembershipTier} size="xl" frameUrl={frameUrl} />
       </div>
       <p className="mt-3 font-display text-xl font-black text-white">{name}</p>
       <TierBadge tier={sentinelTier} />

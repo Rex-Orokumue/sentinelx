@@ -23,6 +23,16 @@ export const AVATAR_BORDER_FRAMES: Record<string, string> = {
   avatar_border_shadow_flame: '/coin-items/shadow-flame.webp',
 }
 
+// Slug -> frame artwork, for the denormalised profiles.equipped_avatar_border
+// column (migration 20260908074500). Every avatar surface calls this, so it
+// takes the loose shape a Supabase row actually has — null, undefined, or a
+// slug the map has never heard of (an item added to the store before its
+// artwork ships) — and answers `undefined` for all of them rather than making
+// two dozen call sites each write their own guard.
+export function frameUrlFor(slug: string | null | undefined): string | undefined {
+  return slug ? AVATAR_BORDER_FRAMES[slug] : undefined
+}
+
 export const PROFILE_THEME_CLASSES: Record<string, string> = {
   theme_dark_void: 'bg-black',
   theme_neon_grid:

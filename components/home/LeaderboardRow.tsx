@@ -1,6 +1,7 @@
 'use client'
 
 import { HexAvatar } from '@/components/shared/HexAvatar'
+import { frameUrlFor } from '@/lib/store/cosmetics'
 import { TierBadge } from '@/components/player/TierBadge'
 import { useCountUp } from '@/lib/home/useCountUp'
 import type { MembershipTier } from '@/lib/membership/tiers'
@@ -18,6 +19,7 @@ export interface LeaderboardPlayer {
   // PlayerStatsInput.membershipTier and AllTimeAwardCard's prop; cast to
   // MembershipTier at the HexAvatar call site below, not in this interface.
   membership_tier: string | null
+  equipped_avatar_border?: string | null
 }
 
 // Rank 1/2/3/rest colors, matching the mockup's r-gold/r-silver/r-bronze/r-dim.
@@ -40,6 +42,7 @@ export function LeaderboardRow({ player, rank }: { player: LeaderboardPlayer; ra
         username={name}
         tier={(player.membership_tier ?? 'recruit') as MembershipTier}
         size="sm"
+        frameUrl={frameUrlFor(player.equipped_avatar_border)}
       />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-white">{name}</p>

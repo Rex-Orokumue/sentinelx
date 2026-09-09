@@ -15,6 +15,7 @@ export interface ViewerProfile {
   username: string | null
   displayName: string | null
   membershipTier: string
+  frameUrl?: string
 }
 
 // Bottom sheet on mobile, modal on desktop (spec §6). Image is only uploaded
@@ -113,7 +114,7 @@ export function PostComposer({ viewer, onClose }: { viewer: ViewerProfile; onClo
           </div>
 
           <div className="mt-4 flex items-start gap-2.5">
-            <HexAvatar src={viewer.avatarUrl} username={name} tier={viewer.membershipTier as MembershipTier} size="sm" />
+            <HexAvatar src={viewer.avatarUrl} username={name} tier={viewer.membershipTier as MembershipTier} size="sm" frameUrl={viewer.frameUrl} />
             <div className="min-w-0 flex-1">
               <textarea
                 value={content}

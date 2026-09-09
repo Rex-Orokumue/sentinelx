@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { frameUrlFor } from '@/lib/store/cosmetics'
 import type { MembershipTier } from '@/lib/membership/tiers'
 
 export interface TopMemberView {
@@ -9,6 +10,7 @@ export interface TopMemberView {
   avatarUrl: string | null
   membershipTier: MembershipTier
   xp: number
+  frameUrl: string | undefined
 }
 
 // 🥇🥈🥉 for the podium, plain rank number after — spec §4.5.
@@ -26,7 +28,7 @@ export async function fetchTopCommunityMembers(limit = 5): Promise<TopMemberView
   const supabase = createClient()
   const { data } = await supabase
     .from('profiles')
-    .select('id, username, display_name, avatar_url, membership_tier, xp')
+    .select('id, username, display_name, avatar_url, membership_tier, xp, equipped_avatar_border')
     .order('xp', { ascending: false })
     .limit(limit)
 
@@ -38,5 +40,6 @@ export async function fetchTopCommunityMembers(limit = 5): Promise<TopMemberView
     avatarUrl: row.avatar_url,
     membershipTier: (row.membership_tier ?? 'recruit') as MembershipTier,
     xp: row.xp,
+    frameUrl: frameUrlFor(row.equipped_avatar_border),
   }))
 }

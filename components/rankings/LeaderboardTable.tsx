@@ -96,6 +96,7 @@ export function LeaderboardTable({
                         username={name}
                         tier={(pl.membershipTier ?? 'recruit') as MembershipTier}
                         size="xs"
+                        frameUrl={pl.frameUrl}
                       />
                       <div className="min-w-0">
                         <p className="truncate font-semibold leading-tight text-white">
@@ -185,6 +186,7 @@ export function LeaderboardTable({
                     username={pinnedViewer.displayName ?? pinnedViewer.username ?? 'You'}
                     tier={(pinnedViewer.membershipTier ?? 'recruit') as MembershipTier}
                     size="xs"
+                    frameUrl={pinnedViewer.frameUrl}
                   />
                   <div className="min-w-0">
                     <p className="truncate font-semibold leading-tight text-white">

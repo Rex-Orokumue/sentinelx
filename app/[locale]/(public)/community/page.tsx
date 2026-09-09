@@ -1,4 +1,5 @@
 import { CommunityRealtime } from '@/components/community/CommunityRealtime'
+import { frameUrlFor } from '@/lib/store/cosmetics'
 import { createClient } from '@/lib/supabase/server'
 import { fetchFeedPage } from '@/lib/community/feed-query'
 import { fetchChallengeWidget } from '@/lib/community/challenge-query'
@@ -136,9 +137,15 @@ async function fetchComposerViewer(viewerId: string | null): Promise<ComposerVie
   const supabase = createClient()
   const { data } = await supabase
     .from('profiles')
-    .select('avatar_url, username, display_name, membership_tier')
+    .select('avatar_url, username, display_name, membership_tier, equipped_avatar_border')
     .eq('id', viewerId)
     .maybeSingle()
   if (!data) return null
-  return { avatarUrl: data.avatar_url, username: data.username, displayName: data.display_name, membershipTier: data.membership_tier }
+  return {
+    avatarUrl: data.avatar_url,
+    username: data.username,
+    displayName: data.display_name,
+    membershipTier: data.membership_tier,
+    frameUrl: frameUrlFor(data.equipped_avatar_border),
+  }
 }

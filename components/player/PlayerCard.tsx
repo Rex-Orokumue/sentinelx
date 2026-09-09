@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { frameUrlFor } from '@/lib/store/cosmetics'
 import { HexAvatar } from '@/components/shared/HexAvatar'
 import { TierBadge } from '@/components/player/TierBadge'
 import type { MembershipTier } from '@/lib/membership/tiers'
@@ -10,6 +11,7 @@ export interface PlayerCardData {
   sx_score: number
   sentinel_tier: string | null
   membership_tier: string
+  equipped_avatar_border: string | null
 }
 
 export function PlayerCard({ player }: { player: PlayerCardData }) {
@@ -23,6 +25,7 @@ export function PlayerCard({ player }: { player: PlayerCardData }) {
         username={player.display_name ?? player.username}
         tier={(player.membership_tier ?? 'recruit') as MembershipTier}
         size="xs"
+        frameUrl={frameUrlFor(player.equipped_avatar_border)}
       />
       <div className="min-w-0 flex-1">
         <p className="truncate font-bold text-white">{player.display_name ?? player.username}</p>

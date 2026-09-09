@@ -13,6 +13,7 @@ export function MastersChampionCard({
   slug,
   prizePool,
   runnerUpName,
+  frameUrl,
 }: {
   title: string
   avatarUrl: string | null
@@ -22,6 +23,7 @@ export function MastersChampionCard({
   slug: string
   prizePool: number
   runnerUpName: string | null
+  frameUrl?: string
 }) {
   return (
     <div
@@ -31,7 +33,7 @@ export function MastersChampionCard({
       <p className="text-xs font-bold uppercase tracking-widest text-amber-400">👑 Masters Champion</p>
       <p className="text-xs text-sx-gray">{title}</p>
       <div className="my-3 flex justify-center border-t border-amber-500/20 pt-3">
-        <HexAvatar src={avatarUrl} username={name} tier={(membershipTier ?? 'recruit') as MembershipTier} size="lg" />
+        <HexAvatar src={avatarUrl} username={name} tier={(membershipTier ?? 'recruit') as MembershipTier} size="lg" frameUrl={frameUrl} />
       </div>
       <p className="font-display text-lg font-black text-white">{name}</p>
       <TierBadge tier={sentinelTier} />

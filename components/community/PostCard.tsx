@@ -62,7 +62,7 @@ function ManualOrAchievementCard({ post, loggedIn }: { post: PostView; loggedIn:
       {isBoosted && <p className="mb-2 text-xs font-black uppercase tracking-widest text-amber-400">🚀 Boosted</p>}
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <HexAvatar src={post.author.avatarUrl} username={name} tier={post.author.membershipTier as MembershipTier} size="xs" />
+          <HexAvatar src={post.author.avatarUrl} username={name} tier={post.author.membershipTier as MembershipTier} size="xs" frameUrl={post.author.frameUrl} />
           <div className="min-w-0">
             <p className="truncate text-sm font-bold text-sx-white">
               {post.author.username ? (

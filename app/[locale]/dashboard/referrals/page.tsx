@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { frameUrlFor } from '@/lib/store/cosmetics'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -9,8 +10,8 @@ import { REFERRAL_MILESTONES } from '@/lib/referrals/constants'
 export const metadata: Metadata = { title: 'Referrals · SentinelX Esports', robots: { index: false, follow: false } }
 
 type ReferredRef =
-  | { username: string | null; display_name: string | null; avatar_url: string | null; membership_tier: string | null }
-  | { username: string | null; display_name: string | null; avatar_url: string | null; membership_tier: string | null }[]
+  | { username: string | null; display_name: string | null; avatar_url: string | null; membership_tier: string | null; equipped_avatar_border: string | null }
+  | { username: string | null; display_name: string | null; avatar_url: string | null; membership_tier: string | null; equipped_avatar_border: string | null }[]
   | null
 function firstRef(r: ReferredRef) {
   return Array.isArray(r) ? (r[0] ?? null) : r
@@ -29,7 +30,7 @@ export default async function DashboardReferralsPage() {
     admin
       .from('referrals')
       .select(
-        'id, status, created_at, converted_at, coins_awarded, referred:profiles!referrals_referred_id_fkey(username, display_name, avatar_url, membership_tier)',
+        'id, status, created_at, converted_at, coins_awarded, referred:profiles!referrals_referred_id_fkey(username, display_name, avatar_url, membership_tier, equipped_avatar_border)',
       )
       .eq('referrer_id', user.id)
       .order('created_at', { ascending: false }),
@@ -68,6 +69,7 @@ export default async function DashboardReferralsPage() {
       name: p?.display_name ?? p?.username ?? 'Player',
       avatarUrl: p?.avatar_url ?? null,
       tier: (p?.membership_tier ?? 'recruit') as ReferredPlayer['tier'],
+      frameUrl: frameUrlFor(p?.equipped_avatar_border),
       status: r.status as 'pending' | 'converted' | 'invalid',
       date: r.converted_at ?? r.created_at,
       coinsAwarded: r.coins_awarded,

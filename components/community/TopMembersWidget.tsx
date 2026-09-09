@@ -27,7 +27,7 @@ export function TopMembersWidget({ members }: { members: TopMemberView[] }) {
           return (
             <div key={m.id} className="flex items-center gap-2.5">
               <span className="w-5 shrink-0 text-center text-sm font-bold text-sx-gray">{rankIcon(m.rank)}</span>
-              <HexAvatar src={m.avatarUrl} username={name} tier={m.membershipTier} size="xs" />
+              <HexAvatar src={m.avatarUrl} username={name} tier={m.membershipTier} size="xs" frameUrl={m.frameUrl} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold text-white">{name}</p>
                 <p className="text-[11px] text-sx-gray">{TIER_LABEL[m.membershipTier]}</p>

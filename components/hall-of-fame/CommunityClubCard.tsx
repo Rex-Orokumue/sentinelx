@@ -13,6 +13,7 @@ export function CommunityClubCard({
   title,
   date,
   runnerUpName,
+  frameUrl,
 }: {
   avatarUrl: string | null
   name: string
@@ -22,11 +23,12 @@ export function CommunityClubCard({
   title: string
   date: string | null
   runnerUpName: string | null
+  frameUrl?: string
 }) {
   return (
     <div className="rounded-xl border border-sx-border bg-sx-surface p-4 text-center">
       <div className="flex justify-center">
-        <HexAvatar src={avatarUrl} username={name} tier={(membershipTier ?? 'recruit') as MembershipTier} size="md" />
+        <HexAvatar src={avatarUrl} username={name} tier={(membershipTier ?? 'recruit') as MembershipTier} size="md" frameUrl={frameUrl} />
       </div>
       <p className="mt-2 font-bold text-white">{name}</p>
       <TierBadge tier={sentinelTier} />

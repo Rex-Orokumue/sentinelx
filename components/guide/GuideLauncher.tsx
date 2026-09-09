@@ -13,10 +13,12 @@ export function GuideLauncher({
   isLoggedIn,
   username,
   avatarUrl,
+  frameUrl,
 }: {
   isLoggedIn: boolean
   username: string | null
   avatarUrl: string | null
+  frameUrl?: string
 }) {
   const [open, setOpen] = useState(false)
   // Defaults to "seen" so the pulse never flashes for one frame before the
@@ -66,7 +68,13 @@ export function GuideLauncher({
           />
         </div>
       </button>
-      {open && <GuidePanel isLoggedIn={isLoggedIn} username={username} avatarUrl={avatarUrl} onClose={() => setOpen(false)} />}
+      {open && <GuidePanel
+          isLoggedIn={isLoggedIn}
+          username={username}
+          avatarUrl={avatarUrl}
+          frameUrl={frameUrl}
+          onClose={() => setOpen(false)}
+        />}
     </>
   )
 }

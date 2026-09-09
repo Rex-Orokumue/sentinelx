@@ -34,6 +34,10 @@ export interface PlayerStatsInput {
   sxScore: number
   sentinelTier: string | null
   membershipTier: string
+  /** Equipped store frame artwork, already resolved from the slug. Optional:
+   *  Hall of Fame and seasons build this same shape from queries that don't
+   *  always carry cosmetics, and a plain avatar is the right fallback. */
+  frameUrl?: string
   // Drives the verified tick beside a name — the same signal the exchange uses
   // for a verified seller. Required, not optional: an optional field would let a
   // future call site silently render every player unverified.

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { frameUrlFor } from '@/lib/store/cosmetics'
 import { getStaffContext } from '@/lib/admin/auth'
 
 export interface NotificationItem {
@@ -19,6 +20,7 @@ export interface NavSession {
   username: string | null
   displayName: string | null
   avatarUrl: string | null
+  frameUrl: string | undefined
   unreadNotificationCount: number
   recentNotifications: NotificationItem[]
   walletBalance: number
@@ -34,6 +36,7 @@ const LOGGED_OUT: NavSession = {
   username: null,
   displayName: null,
   avatarUrl: null,
+  frameUrl: undefined,
   unreadNotificationCount: 0,
   recentNotifications: [],
   walletBalance: 0,
@@ -50,7 +53,7 @@ export async function getNavSession(): Promise<NavSession> {
 
   const [{ data: profile }, staff, { count: unreadCount }, { data: notifRows }, { data: walletRow }, { data: coinsRow }] =
     await Promise.all([
-      supabase.from('profiles').select('username, display_name, avatar_url, deletion_requested_at').eq('id', user.id).maybeSingle(),
+      supabase.from('profiles').select('username, display_name, avatar_url, deletion_requested_at, equipped_avatar_border').eq('id', user.id).maybeSingle(),
       getStaffContext(),
       supabase
         .from('player_notifications')
@@ -85,6 +88,7 @@ export async function getNavSession(): Promise<NavSession> {
     username: profile?.username ?? null,
     displayName: profile?.display_name ?? null,
     avatarUrl: profile?.avatar_url ?? null,
+    frameUrl: frameUrlFor(profile?.equipped_avatar_border),
     unreadNotificationCount: unreadCount ?? 0,
     recentNotifications,
     // .maybeSingle() + `?? 0` covers both "no row yet" (new player) and a

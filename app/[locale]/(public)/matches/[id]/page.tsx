@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { frameUrlFor } from '@/lib/store/cosmetics'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -30,6 +31,7 @@ type ProfileRef = {
   display_name: string | null
   avatar_url: string | null
   membership_tier: string | null
+  equipped_avatar_border: string | null
 } | null
 
 function nameOf(p: ProfileRef): string {
@@ -53,8 +55,8 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 const MATCH_SELECT =
   'id, round, status, score_a, score_b, scheduled_at, is_full_day, youtube_stream_url, replay_url, player_a_id, player_b_id, ' +
   'tournaments(title, slug, card_image_url, games(name, icon_url, slug, category)), ' +
-  'player_a:profiles!matches_player_a_id_fkey(username, display_name, avatar_url, membership_tier), ' +
-  'player_b:profiles!matches_player_b_id_fkey(username, display_name, avatar_url, membership_tier)'
+  'player_a:profiles!matches_player_a_id_fkey(username, display_name, avatar_url, membership_tier, equipped_avatar_border), ' +
+  'player_b:profiles!matches_player_b_id_fkey(username, display_name, avatar_url, membership_tier, equipped_avatar_border)'
 
 type MatchRow = {
   id: string
@@ -284,6 +286,7 @@ export default async function MatchCentrePage({
               username={nameOf(m.player_a)}
               tier={(m.player_a?.membership_tier ?? 'recruit') as MembershipTier}
               size="md"
+              frameUrl={frameUrlFor(m.player_a?.equipped_avatar_border)}
             />
             <p className="text-lg font-bold text-white">{nameOf(m.player_a)}</p>
           </div>
@@ -296,6 +299,7 @@ export default async function MatchCentrePage({
               username={opponentName(m)}
               tier={(m.player_b?.membership_tier ?? 'recruit') as MembershipTier}
               size="md"
+              frameUrl={frameUrlFor(m.player_b?.equipped_avatar_border)}
             />
             <p className="text-lg font-bold text-white">{opponentName(m)}</p>
           </div>
@@ -328,6 +332,8 @@ export default async function MatchCentrePage({
           playerBAvatar={m.player_b?.avatar_url ?? null}
           playerATier={(m.player_a?.membership_tier ?? 'recruit') as MembershipTier}
           playerBTier={(m.player_b?.membership_tier ?? 'recruit') as MembershipTier}
+          playerAFrameUrl={frameUrlFor(m.player_a?.equipped_avatar_border)}
+          playerBFrameUrl={frameUrlFor(m.player_b?.equipped_avatar_border)}
           pools={wagerPools}
           myWager={myWager}
           coinBalance={wagerCoinBalance}

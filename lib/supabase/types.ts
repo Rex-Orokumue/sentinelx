@@ -1781,6 +1781,7 @@ export type Database = {
           deleted_at: string | null
           deletion_requested_at: string | null
           display_name: string | null
+          equipped_avatar_border: string | null
           goals_conceded: number
           goals_scored: number
           id: string
@@ -1813,6 +1814,7 @@ export type Database = {
           deleted_at?: string | null
           deletion_requested_at?: string | null
           display_name?: string | null
+          equipped_avatar_border?: string | null
           goals_conceded?: number
           goals_scored?: number
           id: string
@@ -1845,6 +1847,7 @@ export type Database = {
           deleted_at?: string | null
           deletion_requested_at?: string | null
           display_name?: string | null
+          equipped_avatar_border?: string | null
           goals_conceded?: number
           goals_scored?: number
           id?: string
