@@ -79,6 +79,14 @@ export default async function EditTournamentPage({ params }: { params: { id: str
           → Stages
         </Link>
       )}
+      {t.competition_format === 'points_race' && (
+        <Link
+          href={`/admin/tournaments/${t.id}/lobbies`}
+          className="mb-4 ml-4 inline-block text-sm text-violet-400 hover:text-violet-300"
+        >
+          → Lobbies
+        </Link>
+      )}
       <TournamentForm
         action={updateTournament}
         games={(games ?? []).map((g) => ({

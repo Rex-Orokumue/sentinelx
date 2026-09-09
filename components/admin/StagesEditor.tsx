@@ -7,6 +7,7 @@ import {
   type StageFormState,
 } from '@/lib/tournaments/stage-admin-actions'
 import type { StagePlanIssue } from '@/lib/tournaments/stage-plan'
+import { openStage, type LobbyState } from '@/lib/tournaments/lobby-admin-actions'
 
 export interface StageRow {
   id: string
@@ -91,6 +92,8 @@ function StageCard({ stage }: { stage: StageRow }) {
         </span>
       </div>
 
+      {stage.status === 'pending' && <OpenStageForm stageId={stage.id} />}
+
       <form action={formAction} className="space-y-3">
         <input type="hidden" name="stageId" value={stage.id} />
         <StageFields
@@ -117,6 +120,33 @@ function StageCard({ stage }: { stage: StageRow }) {
         </form>
       )}
     </div>
+  )
+}
+
+function OpenStageForm({ stageId }: { stageId: string }) {
+  const [state, formAction] = useFormState<LobbyState, FormData>(openStage, undefined)
+  return (
+    <form action={formAction} className="mb-3 border-b border-slate-800 pb-3">
+      <input type="hidden" name="stageId" value={stageId} />
+      <p className="mb-2 text-xs text-slate-400">
+        Opening this stage draws round 1&apos;s lobbies from the entrants who qualified for it.
+      </p>
+      {state?.error && <p className="mb-2 text-xs text-red-400">{state.error}</p>}
+      <OpenStageButton />
+    </form>
+  )
+}
+
+function OpenStageButton() {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="rounded-lg border border-violet-500/40 bg-violet-500/10 px-4 py-2 text-sm font-semibold text-violet-300 hover:bg-violet-500/20 disabled:opacity-60"
+    >
+      {pending ? 'Opening…' : 'Open stage & draw round 1'}
+    </button>
   )
 }
 
