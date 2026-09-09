@@ -66,6 +66,9 @@ function toRow(d: TournamentInput) {
     invitation_only: d.tournamentType === 'masters' || d.tournamentType === 'champions_cup',
     format: d.format,
     manual_knockout_pairing: d.manualKnockoutPairing,
+    competition_format: d.competitionFormat,
+    entry_unit: d.entryUnit,
+    squad_size: d.squadSize === '' ? null : d.squadSize,
     prize_second: d.prizeSecond === '' ? null : d.prizeSecond,
     prize_third: d.prizeThird === '' ? null : d.prizeThird,
   }

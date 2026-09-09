@@ -21,7 +21,7 @@ export default async function EditTournamentPage({ params }: { params: { id: str
   const supabase = createClient()
   const [{ data: t }, { data: games }, { data: seasons }] = await Promise.all([
     supabase.from('tournaments').select('*').eq('id', params.id).maybeSingle(),
-    supabase.from('games').select('id, name').eq('active', true).order('name'),
+    supabase.from('games').select('id, name, supported_formats').eq('active', true).order('name'),
     supabase.from('seasons').select('id, name').order('start_date', { ascending: false }),
   ])
   if (!t) notFound()
@@ -50,6 +50,9 @@ export default async function EditTournamentPage({ params }: { params: { id: str
     manualKnockoutPairing: t.manual_knockout_pairing,
     prizeSecond: moneyStr(t.prize_second),
     prizeThird: moneyStr(t.prize_third),
+    competitionFormat: t.competition_format ?? 'head_to_head',
+    entryUnit: t.entry_unit ?? 'solo',
+    squadSize: t.squad_size == null ? '' : String(t.squad_size),
   }
 
   return (
@@ -68,9 +71,21 @@ export default async function EditTournamentPage({ params }: { params: { id: str
           → Manage invitations
         </Link>
       )}
+      {t.competition_format === 'points_race' && (
+        <Link
+          href={`/admin/tournaments/${t.id}/stages`}
+          className="mb-4 inline-block text-sm text-violet-400 hover:text-violet-300"
+        >
+          → Stages
+        </Link>
+      )}
       <TournamentForm
         action={updateTournament}
-        games={games ?? []}
+        games={(games ?? []).map((g) => ({
+          id: g.id,
+          name: g.name,
+          supportedFormats: g.supported_formats ?? [],
+        }))}
         seasons={seasons ?? []}
         initial={initial}
         slugLocked={t.status !== 'draft'}

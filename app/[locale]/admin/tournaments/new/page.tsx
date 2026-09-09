@@ -30,13 +30,16 @@ const EMPTY: TournamentFormValues = {
   manualKnockoutPairing: false,
   prizeSecond: '',
   prizeThird: '',
+  competitionFormat: 'head_to_head',
+  entryUnit: 'solo',
+  squadSize: '',
 }
 
 export default async function NewTournamentPage() {
   await requireStaff()
   const supabase = createClient()
   const [{ data: games }, { data: seasons }] = await Promise.all([
-    supabase.from('games').select('id, name').eq('active', true).order('name'),
+    supabase.from('games').select('id, name, supported_formats').eq('active', true).order('name'),
     supabase.from('seasons').select('id, name').order('start_date', { ascending: false }),
   ])
 
@@ -53,7 +56,11 @@ export default async function NewTournamentPage() {
       ) : (
         <TournamentForm
           action={createTournament}
-          games={games ?? []}
+          games={(games ?? []).map((g) => ({
+          id: g.id,
+          name: g.name,
+          supportedFormats: g.supported_formats ?? [],
+        }))}
           seasons={seasons ?? []}
           initial={EMPTY}
           slugLocked={false}

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import { type TournamentFormState } from '@/lib/tournaments/admin-actions'
 import { TournamentCardImageField } from './TournamentCardImageField'
+import { formatsForGame, FORMAT_LABEL, type CompetitionFormat } from '@/lib/tournaments/formats'
 
 export interface TournamentFormValues {
   id?: string
@@ -28,6 +29,9 @@ export interface TournamentFormValues {
   manualKnockoutPairing: boolean
   prizeSecond: string
   prizeThird: string
+  competitionFormat: string
+  entryUnit: string
+  squadSize: string
 }
 
 type Action = (prev: TournamentFormState, fd: FormData) => Promise<TournamentFormState>
@@ -41,7 +45,7 @@ export function TournamentForm({
   submitLabel,
 }: {
   action: Action
-  games: { id: string; name: string }[]
+  games: { id: string; name: string; supportedFormats: string[] }[]
   seasons: { id: string; name: string }[]
   initial: TournamentFormValues
   slugLocked: boolean
@@ -49,6 +53,14 @@ export function TournamentForm({
 }) {
   const [state, formAction] = useFormState<TournamentFormState, FormData>(action, undefined)
   const [tournamentType, setTournamentType] = useState(initial.tournamentType || 'open')
+  const [gameId, setGameId] = useState(initial.gameId)
+  const [competitionFormat, setCompetitionFormat] = useState(initial.competitionFormat || 'head_to_head')
+  const [entryUnit, setEntryUnit] = useState(initial.entryUnit || 'solo')
+
+  // Only the formats the chosen game declares. Falls back to head-to-head
+  // when no game is picked yet, so the control is never empty.
+  const availableFormats = formatsForGame(games.find((g) => g.id === gameId)?.supportedFormats)
+  const isPointsRace = competitionFormat === 'points_race'
   const isInvitationOnly = tournamentType === 'masters' || tournamentType === 'champions_cup'
   return (
     <form action={formAction} className="space-y-4">
@@ -82,7 +94,18 @@ export function TournamentForm({
         <select
           id="gameId"
           name="gameId"
-          defaultValue={initial.gameId}
+          value={gameId}
+          onChange={(e) => {
+            const next = e.target.value
+            setGameId(next)
+            // A game that cannot run the selected format must not leave the
+            // form in a state the database will reject on submit.
+            const allowed = formatsForGame(games.find((g) => g.id === next)?.supportedFormats)
+            if (!allowed.includes(competitionFormat as CompetitionFormat)) {
+              setCompetitionFormat('head_to_head')
+              setEntryUnit('solo')
+            }
+          }}
           required
           className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
         >
@@ -96,6 +119,69 @@ export function TournamentForm({
           ))}
         </select>
       </div>
+
+      {availableFormats.length > 1 && (
+        <div className="space-y-1.5">
+          <label htmlFor="competitionFormat" className="text-sm font-medium text-slate-300">
+            Competition format
+          </label>
+          <select
+            id="competitionFormat"
+            name="competitionFormat"
+            value={competitionFormat}
+            onChange={(e) => {
+              setCompetitionFormat(e.target.value)
+              // Squads exist only for points races.
+              if (e.target.value !== 'points_race') setEntryUnit('solo')
+            }}
+            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
+          >
+            {availableFormats.map((f) => (
+              <option key={f} value={f}>
+                {FORMAT_LABEL[f]}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+      {/* Always submitted, even when the picker is hidden for a single-format
+          game, so the action always receives a value. */}
+      {availableFormats.length <= 1 && (
+        <input type="hidden" name="competitionFormat" value={competitionFormat} />
+      )}
+
+      {isPointsRace && (
+        <>
+          <div className="space-y-1.5">
+            <label htmlFor="entryUnit" className="text-sm font-medium text-slate-300">
+              Entry unit
+            </label>
+            <select
+              id="entryUnit"
+              name="entryUnit"
+              value={entryUnit}
+              onChange={(e) => setEntryUnit(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
+            >
+              <option value="solo">Solo — each player enters alone</option>
+              <option value="squad">Squad — players enter as a team</option>
+            </select>
+          </div>
+          {entryUnit === 'squad' && (
+            <Field
+              label="Players per squad (2–6)"
+              name="squadSize"
+              type="number"
+              defaultValue={initial.squadSize}
+            />
+          )}
+          <p className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-xs text-violet-300">
+            Points race: entrants play in lobbies scored on placement and kills. Set up its stages
+            from the tournament&apos;s Stages page after saving.
+          </p>
+        </>
+      )}
+      {!isPointsRace && <input type="hidden" name="entryUnit" value="solo" />}
 
       <div className="space-y-1.5">
         <label htmlFor="tournamentType" className="text-sm font-medium text-slate-300">
@@ -139,37 +225,45 @@ export function TournamentForm({
         </div>
       )}
 
-      <div className="space-y-1.5">
-        <label htmlFor="format" className="text-sm font-medium text-slate-300">
-          Format
-        </label>
-        <select
-          id="format"
-          name="format"
-          defaultValue={initial.format || 'group_knockout'}
-          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
-        >
-          <option value="group_knockout">Groups + Knockout</option>
-          <option value="round_robin">Round Robin (table only, no bracket)</option>
-        </select>
-      </div>
+      {/* Head-to-head only. Groups, brackets and knockout pairing are
+          meaningless for a points race, which runs lobbies instead. Hidden
+          rather than disabled so they submit nothing and the schema's defaults
+          apply — see the regression test in admin-schema.test.ts. */}
+      {!isPointsRace && (
+        <>
+          <div className="space-y-1.5">
+            <label htmlFor="format" className="text-sm font-medium text-slate-300">
+              Format
+            </label>
+            <select
+              id="format"
+              name="format"
+              defaultValue={initial.format || 'group_knockout'}
+              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
+            >
+              <option value="group_knockout">Groups + Knockout</option>
+              <option value="round_robin">Round Robin (table only, no bracket)</option>
+            </select>
+          </div>
 
-      <label className="flex items-start gap-2 text-sm text-slate-300">
-        <input
-          type="checkbox"
-          name="manualKnockoutPairing"
-          value="true"
-          defaultChecked={initial.manualKnockoutPairing}
-          className="mt-0.5 accent-violet-600"
-        />
-        <span>
-          Arrange knockout pairings manually
-          <span className="mt-0.5 block text-xs text-slate-500">
-            Completed rounds won&apos;t auto-generate the next round — you&apos;ll arrange each
-            round&apos;s fixtures on the bracket page before players are notified.
-          </span>
-        </span>
-      </label>
+          <label className="flex items-start gap-2 text-sm text-slate-300">
+            <input
+              type="checkbox"
+              name="manualKnockoutPairing"
+              value="true"
+              defaultChecked={initial.manualKnockoutPairing}
+              className="mt-0.5 accent-violet-600"
+            />
+            <span>
+              Arrange knockout pairings manually
+              <span className="mt-0.5 block text-xs text-slate-500">
+                Completed rounds won&apos;t auto-generate the next round — you&apos;ll arrange each
+                round&apos;s fixtures on the bracket page before players are notified.
+              </span>
+            </span>
+          </label>
+        </>
+      )}
 
       {isInvitationOnly && (
         <p className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-xs text-violet-300">
