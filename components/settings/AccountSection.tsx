@@ -125,14 +125,17 @@ function ChangeEmailPanel({
         </div>
       )}
 
-      {open && !hasPassword && (
-        <p className="rounded-lg border border-sx-border bg-slate-950/60 px-3 py-2 text-xs leading-relaxed text-sx-gray">
-          {t('errors.google_only')}
-        </p>
-      )}
-
-      {open && hasPassword && (
+      {open && (
         <form action={formAction} className="space-y-2 rounded-xl border border-sx-border bg-slate-950/40 p-3">
+          {/* A hint, not a gate. Setting a password through the reset flow
+              leaves no 'email' identity behind, so accounts that DO have a
+              password can land here looking like they don't — the server
+              decides, by trying the password first. */}
+          {!hasPassword && (
+            <p className="rounded-lg border border-sx-border bg-slate-950/60 px-3 py-2 text-xs leading-relaxed text-sx-gray">
+              {t('googleHint')}
+            </p>
+          )}
           <label className="block text-xs text-sx-gray" htmlFor="new-email">
             {t('newLabel')}
           </label>

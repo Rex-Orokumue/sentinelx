@@ -202,16 +202,21 @@ export async function changeEmail(
   } = await supabase.auth.getUser()
   if (!user?.email) return { errorCode: 'not_logged_in' }
 
-  // No password to re-enter. The way out is the existing password-reset flow,
-  // whose link lands in the CURRENT inbox — so setting a password proves
-  // ownership of the old address, which is the guarantee we would otherwise
-  // have lost by not mailing it.
-  if (!hasPasswordIdentity(user)) return { errorCode: 'google_only' }
-
   if (email === user.email.toLowerCase()) return { errorCode: 'same_email' }
 
+  // Try the password BEFORE concluding there isn't one. Setting a password
+  // through the reset flow does not create an 'email' row in auth.identities,
+  // so a Google user who has already done that still looks identity-less —
+  // 4 live accounts are in exactly that state. Checking identities first would
+  // send them off to set a password they have, with no way forward.
+  //
+  // Only once the password fails does the identity tell us which failure it
+  // was: a wrong password, or no password to get right in the first place.
+  // The way out for the latter is the existing password-reset flow, whose link
+  // lands in the CURRENT inbox — so setting a password proves ownership of the
+  // old address, the guarantee we gave up by not mailing it.
   if (!(await verifyPassword(user.email, parsed.data.password))) {
-    return { errorCode: 'wrong_password' }
+    return { errorCode: hasPasswordIdentity(user) ? 'wrong_password' : 'google_only' }
   }
 
   // Ban evasion, same blocklist signup enforces: without this, an account could
