@@ -1123,6 +1123,103 @@ export type Database = {
           },
         ]
       }
+      lobby_entrants: {
+        Row: {
+          entrant_id: string
+          id: string
+          lobby_id: string
+        }
+        Insert: {
+          entrant_id: string
+          id?: string
+          lobby_id: string
+        }
+        Update: {
+          entrant_id?: string
+          id?: string
+          lobby_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lobby_entrants_entrant_id_fkey"
+            columns: ["entrant_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_entrants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lobby_entrants_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lobby_results: {
+        Row: {
+          created_at: string
+          entrant_id: string
+          id: string
+          kill_points: number
+          kills: number
+          lobby_id: string
+          placement: number
+          placement_points: number
+          screenshot_url: string | null
+          status: string
+          submitted_by: string | null
+          total_points: number
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          entrant_id: string
+          id?: string
+          kill_points?: number
+          kills?: number
+          lobby_id: string
+          placement: number
+          placement_points?: number
+          screenshot_url?: string | null
+          status?: string
+          submitted_by?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          entrant_id?: string
+          id?: string
+          kill_points?: number
+          kills?: number
+          lobby_id?: string
+          placement?: number
+          placement_points?: number
+          screenshot_url?: string | null
+          status?: string
+          submitted_by?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lobby_results_entrant_id_fkey"
+            columns: ["entrant_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_entrants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lobby_results_lobby_id_fkey"
+            columns: ["lobby_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_lobbies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matches: {
         Row: {
           admin_note: string | null
@@ -2481,6 +2578,53 @@ export type Database = {
           },
         ]
       }
+      tournament_lobbies: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          room_id: string | null
+          room_password: string | null
+          round_no: number
+          scheduled_at: string | null
+          stage_id: string
+          status: string
+          youtube_stream_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          room_id?: string | null
+          room_password?: string | null
+          round_no: number
+          scheduled_at?: string | null
+          stage_id: string
+          status?: string
+          youtube_stream_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          room_id?: string | null
+          room_password?: string | null
+          round_no?: number
+          scheduled_at?: string | null
+          stage_id?: string
+          status?: string
+          youtube_stream_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_lobbies_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tournament_registrations: {
         Row: {
           coin_discount_naira: number
@@ -2559,6 +2703,53 @@ export type Database = {
           },
           {
             foreignKeyName: "tournament_registrations_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_stages: {
+        Row: {
+          advance_count: number
+          created_at: string
+          id: string
+          lobby_size: number
+          name: string
+          points_config: Json
+          rounds_count: number
+          seq: number
+          status: string
+          tournament_id: string
+        }
+        Insert: {
+          advance_count: number
+          created_at?: string
+          id?: string
+          lobby_size: number
+          name: string
+          points_config: Json
+          rounds_count: number
+          seq: number
+          status?: string
+          tournament_id: string
+        }
+        Update: {
+          advance_count?: number
+          created_at?: string
+          id?: string
+          lobby_size?: number
+          name?: string
+          points_config?: Json
+          rounds_count?: number
+          seq?: number
+          status?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_stages_tournament_id_fkey"
             columns: ["tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
