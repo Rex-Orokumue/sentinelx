@@ -4,11 +4,23 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyStaff } from '@/lib/admin/staff'
 import { resultNotification } from '@/lib/admin/notification-copy'
+import { requireStaff } from '@/lib/admin/auth'
 import { lobbyResultSchema } from './lobby-result-schema'
+import { frozenResultRows, stageIsComplete, type ConfirmRowInput } from './lobby-confirm'
+import { validateLobbyResults } from './lobby-validation'
+import { parsePointsConfig, DEFAULT_POINTS_CONFIG } from './points-config'
 
 export type LobbyResultState = { error?: string; success?: boolean } | undefined
 
 type Admin = ReturnType<typeof createAdminClient>
+
+interface StageForConfirm {
+  id: string
+  tournament_id: string
+  rounds_count: number
+  points_config: unknown
+  tournaments: { games: { slug: string } | { slug: string }[] | null } | { games: { slug: string } | { slug: string }[] | null }[] | null
+}
 
 interface CallerEntrant {
   entrantId: string
@@ -193,5 +205,106 @@ export async function disputeLobbyResult(
 
   revalidatePath(`/lobbies/${lobbyId}`)
   revalidatePath(`/admin/tournaments/${caller.tournamentId}/lobbies`)
+  return { success: true }
+}
+
+// ── Admin confirmation ──────────────────────────────────────────────────────
+
+export async function confirmLobby(
+  _prev: LobbyResultState,
+  formData: FormData,
+): Promise<LobbyResultState> {
+  const staff = await requireStaff()
+  const lobbyId = String(formData.get('lobbyId') ?? '')
+  if (!lobbyId) return { error: 'Missing lobby.' }
+
+  const admin = createAdminClient()
+  const { data: lobbyRaw } = await admin
+    .from('tournament_lobbies')
+    .select(
+      'id, status, stage_id, ' +
+        'tournament_stages!inner(id, tournament_id, rounds_count, points_config, ' +
+        'tournaments(games(slug)))',
+    )
+    .eq('id', lobbyId)
+    .maybeSingle()
+  if (!lobbyRaw) return { error: 'Lobby not found.' }
+
+  const lobby = lobbyRaw as unknown as {
+    id: string
+    status: string
+    stage_id: string
+    tournament_stages: StageForConfirm | StageForConfirm[]
+  }
+  const stage = Array.isArray(lobby.tournament_stages) ? lobby.tournament_stages[0] : lobby.tournament_stages
+  if (!stage) return { error: 'Stage not found.' }
+  if (lobby.status === 'confirmed') return { error: 'This lobby is already confirmed.' }
+
+  const { data: seats } = await admin
+    .from('lobby_entrants')
+    .select('entrant_id')
+    .eq('lobby_id', lobbyId)
+  const entrantIds = (seats ?? []).map((s) => s.entrant_id as string)
+  if (entrantIds.length === 0) return { error: 'This lobby has no entrants.' }
+
+  // Read the grid the admin actually submitted. A blank row is refused rather
+  // than scored as zero — zero is a real claim (dying first with no kills), so
+  // silently writing it would invent a result nobody reported.
+  const rows: ConfirmRowInput[] = []
+  for (const entrantId of entrantIds) {
+    const placementRaw = String(formData.get(`placement_${entrantId}`) ?? '').trim()
+    const killsRaw = String(formData.get(`kills_${entrantId}`) ?? '').trim()
+    if (placementRaw === '' || killsRaw === '') {
+      return {
+        error:
+          'Every entrant needs a placement and a kill count before this lobby can be confirmed. For someone who never played, record their last placement and 0 kills.',
+      }
+    }
+    const parsed = lobbyResultSchema.safeParse({ placement: placementRaw, kills: killsRaw })
+    if (!parsed.success) return { error: parsed.error.issues[0].message }
+    rows.push({ entrantId, placement: parsed.data.placement, kills: parsed.data.kills })
+  }
+
+  // The same flags the admin saw before pressing confirm are the ones enforced.
+  const flags = validateLobbyResults({
+    entrantIds,
+    rows: rows.map((r) => ({ entrantId: r.entrantId, placement: r.placement, kills: r.kills })),
+  })
+  const blocking = flags.filter((f) => f.code !== 'missing_submission')
+  if (blocking.length > 0) return { error: blocking[0].message }
+
+  const gameRef = Array.isArray(stage.tournaments) ? stage.tournaments[0] : stage.tournaments
+  const game = Array.isArray(gameRef?.games) ? gameRef?.games[0] : gameRef?.games
+  const config =
+    parsePointsConfig(stage.points_config) ?? DEFAULT_POINTS_CONFIG[game?.slug ?? ''] ?? null
+  if (!config) return { error: 'This stage has no usable points table. Fix it on the Stages page first.' }
+
+  const verified = { verified_by: staff.userId, verified_at: new Date().toISOString() }
+  const { error } = await admin.from('lobby_results').upsert(
+    frozenResultRows(config, lobbyId, rows).map((r) => ({ ...r, ...verified })),
+    { onConflict: 'lobby_id,entrant_id' },
+  )
+  if (error) return { error: 'Could not confirm the lobby. Please try again.' }
+
+  await admin.from('tournament_lobbies').update({ status: 'confirmed' }).eq('id', lobbyId)
+
+  // A stage finishes only when every round has been drawn AND every lobby
+  // confirmed — see stageIsComplete.
+  const { data: allLobbies } = await admin
+    .from('tournament_lobbies')
+    .select('round_no, status')
+    .eq('stage_id', stage.id)
+  const lobbyStates = ((allLobbies ?? []) as { round_no: number; status: string }[]).map((l) => ({
+    roundNo: l.round_no,
+    status: l.status,
+  }))
+  if (stageIsComplete(stage.rounds_count, lobbyStates)) {
+    await admin.from('tournament_stages').update({ status: 'complete' }).eq('id', stage.id)
+  }
+
+  revalidatePath(`/admin/tournaments/${stage.tournament_id}/lobbies`)
+  revalidatePath(`/admin/tournaments/${stage.tournament_id}/lobbies/${lobbyId}`)
+  revalidatePath(`/admin/tournaments/${stage.tournament_id}/stages`)
+  revalidatePath(`/lobbies/${lobbyId}`)
   return { success: true }
 }
