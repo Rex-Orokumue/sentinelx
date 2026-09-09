@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { frameUrlFor } from '@/lib/store/cosmetics'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -9,21 +10,37 @@ import { PushPrefsForm } from '@/components/settings/PushPrefsForm'
 import { ALWAYS_MUTED_UNTIL } from '@/lib/notifications/mutes'
 import { AchievementSharingForm } from '@/components/settings/AchievementSharingForm'
 import { AccountSection } from '@/components/settings/AccountSection'
+import { hasPasswordIdentity } from '@/lib/auth/reauth'
+import { SignInMethodsSection } from '@/components/settings/SignInMethodsSection'
 import type { MembershipTier } from '@/lib/membership/tiers'
 
 export const metadata: Metadata = { title: 'Settings · SentinelX Esports', robots: { index: false, follow: false } }
 
-export default async function DashboardSettingsPage() {
+export default async function DashboardSettingsPage({
+  searchParams,
+}: {
+  searchParams: { email?: string; linked?: string }
+}) {
   const supabase = createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/dashboard/settings')
 
+  // auth.identities is the whole story for sign-in methods — no table of ours
+  // mirrors it, so read it straight from Supabase.
+  const { data: identityData } = await supabase.auth.getUserIdentities()
+  const signInMethods = (identityData?.identities ?? []).map((identity) => ({
+    provider: identity.provider,
+    email: (identity.identity_data?.email as string | undefined) ?? null,
+  }))
+
   const [{ data: row }, { data: kyc }, { count: fcmTokenCount }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('display_name, username, avatar_url, membership_tier, whatsapp_number, country, bio, kyc_verified, username_changed_at, notification_prefs, deletion_requested_at')
+      .select(
+        'display_name, username, avatar_url, membership_tier, whatsapp_number, country, bio, kyc_verified, username_changed_at, notification_prefs, deletion_requested_at, equipped_avatar_border',
+      )
       .eq('id', user.id)
       .maybeSingle(),
     createAdminClient().from('player_kyc').select('kyc_status').eq('player_id', user.id).maybeSingle(),
@@ -69,6 +86,7 @@ export default async function DashboardSettingsPage() {
             usernameChangedAt: row?.username_changed_at ?? null,
             avatarUrl: row?.avatar_url ?? null,
             membershipTier: (row?.membership_tier ?? 'recruit') as MembershipTier,
+            frameUrl: frameUrlFor(row?.equipped_avatar_border),
             whatsapp: row?.whatsapp_number ?? null,
             country: row?.country ?? null,
             bio: row?.bio ?? null,
@@ -119,6 +137,23 @@ export default async function DashboardSettingsPage() {
           kycVerified={kyc?.kyc_status === 'verified' || !!row?.kyc_verified}
           username={row?.username ?? null}
           deletionRequestedAt={row?.deletion_requested_at ?? null}
+          // Supabase parks a requested address here until its link is opened;
+          // user.email stays on the old one until then.
+          pendingEmail={user.new_email ?? null}
+          hasPassword={hasPasswordIdentity(user)}
+          hasGoogle={signInMethods.some((m) => m.provider === 'google')}
+          // Set by resolveCallbackRedirect when /auth/confirm verifies an
+          // email_change link.
+          emailJustChanged={searchParams.email === 'changed'}
+        />
+        <SignInMethodsSection
+          methods={signInMethods}
+          accountEmail={user.email ?? null}
+          linkResult={
+            searchParams.linked === 'google' || searchParams.linked === 'error'
+              ? searchParams.linked
+              : null
+          }
         />
       </div>
     </DashboardShell>

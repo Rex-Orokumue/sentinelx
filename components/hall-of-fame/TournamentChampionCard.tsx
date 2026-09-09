@@ -11,9 +11,11 @@ import type { ChampionEntry } from '@/lib/tournaments/champions'
 export function TournamentChampionCard({
   entry,
   membershipTier,
+  frameUrl,
 }: {
   entry: ChampionEntry
   membershipTier: string | null
+  frameUrl?: string
 }) {
   return (
     <div className="rounded-xl border border-sx-border bg-sx-surface p-4 text-center">
@@ -23,6 +25,7 @@ export function TournamentChampionCard({
           username={entry.champion.name}
           tier={(membershipTier ?? 'recruit') as MembershipTier}
           size="md"
+          frameUrl={frameUrl}
         />
       </div>
 

@@ -60,6 +60,7 @@ export function AccountMenu({ session }: { session: NavSession }) {
           displayName={session.displayName}
           username={session.username}
           size={26}
+          frameUrl={session.frameUrl}
         />
         <span className="truncate text-sm font-semibold text-white/90">{name}</span>
         <ChevronDown

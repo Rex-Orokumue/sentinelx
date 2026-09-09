@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { frameUrlFor } from '@/lib/store/cosmetics'
 import { RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
 import {
   pickMVP,
@@ -83,7 +84,7 @@ export default async function HallOfFamePage({
     supabase
       .from('profiles')
       .select(
-        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sx_score, sentinel_tier, membership_tier, kyc_verified',
+        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sx_score, sentinel_tier, membership_tier, kyc_verified, equipped_avatar_border',
       )
       .gte('total_matches', RANKING_MIN_MATCHES),
     supabase
@@ -161,6 +162,7 @@ export default async function HallOfFamePage({
     sxScore: p.sx_score,
     sentinelTier: p.sentinel_tier,
     membershipTier: p.membership_tier,
+    frameUrl: frameUrlFor(p.equipped_avatar_border),
   }))
 
   function awardOptionsFor(category: string): AwardOption[] {
@@ -282,12 +284,17 @@ export default async function HallOfFamePage({
   const { data: championProfileRows } = championIds.length
     ? await supabase
         .from('profiles')
-        .select('id, avatar_url, membership_tier, sentinel_tier')
+        .select('id, avatar_url, membership_tier, sentinel_tier, equipped_avatar_border')
         .in('id', championIds)
     : { data: [] as unknown[] }
   const championProfileById = new Map<
     string,
-    { avatar_url: string | null; membership_tier: string | null; sentinel_tier: string | null }
+    {
+      avatar_url: string | null
+      membership_tier: string | null
+      sentinel_tier: string | null
+      equipped_avatar_border: string | null
+    }
   >()
   for (const raw of (championProfileRows as unknown[] | null) ?? []) {
     const r = raw as {
@@ -295,6 +302,7 @@ export default async function HallOfFamePage({
       avatar_url: string | null
       membership_tier: string | null
       sentinel_tier: string | null
+      equipped_avatar_border: string | null
     }
     championProfileById.set(r.id, r)
   }
@@ -335,6 +343,7 @@ export default async function HallOfFamePage({
                     avatarUrl={mvp.avatarUrl}
                     name={mvp.displayName ?? mvp.username ?? 'Anonymous'}
                     membershipTier={mvp.membershipTier}
+                    frameUrl={mvp.frameUrl}
                     sentinelTier={mvp.sentinelTier}
                     metricLabel="SX Score"
                     metricValue={mvp.sxScore}
@@ -391,6 +400,7 @@ export default async function HallOfFamePage({
               name={cupEntry.champion.name}
               achievements={cupChampionSlugs}
               sentinelTier={championProfileById.get(cupEntry.champion.id)?.sentinel_tier ?? null}
+              frameUrl={frameUrlFor(championProfileById.get(cupEntry.champion.id)?.equipped_avatar_border)}
               slug={cupEntry.slug}
               date={cupEntry.date}
               prizePool={cupEntry.prizePool ?? 0}
@@ -414,6 +424,7 @@ export default async function HallOfFamePage({
                   avatarUrl={r.championAvatarUrl}
                   name={r.champion.name}
                   membershipTier={championProfileById.get(r.champion.id)?.membership_tier ?? null}
+                  frameUrl={frameUrlFor(championProfileById.get(r.champion.id)?.equipped_avatar_border)}
                   sentinelTier={championProfileById.get(r.champion.id)?.sentinel_tier ?? null}
                   slug={r.slug}
                   prizePool={r.prizePool ?? 0}
@@ -438,6 +449,7 @@ export default async function HallOfFamePage({
                   avatarUrl={r.championAvatarUrl}
                   name={r.champion.name}
                   membershipTier={championProfileById.get(r.champion.id)?.membership_tier ?? null}
+                  frameUrl={frameUrlFor(championProfileById.get(r.champion.id)?.equipped_avatar_border)}
                   sentinelTier={championProfileById.get(r.champion.id)?.sentinel_tier ?? null}
                   slug={r.slug}
                   title={r.title}
@@ -465,6 +477,7 @@ export default async function HallOfFamePage({
                   key={entry.tournamentId}
                   entry={entry}
                   membershipTier={championProfileById.get(entry.champion.id)?.membership_tier ?? null}
+                  frameUrl={frameUrlFor(championProfileById.get(entry.champion.id)?.equipped_avatar_border)}
                 />
               ))}
             </div>

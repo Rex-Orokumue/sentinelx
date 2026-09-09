@@ -13,6 +13,7 @@ export interface SettingsProfile {
   usernameChangedAt: string | null
   avatarUrl: string | null
   membershipTier: MembershipTier
+  frameUrl?: string
   whatsapp: string | null
   country: string | null
   bio: string | null
@@ -64,7 +65,7 @@ export function ProfileForm({ profile }: { profile: SettingsProfile }) {
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="avatarUrl" value={avatarUrl ?? ''} />
         <div className="flex items-center gap-4">
-          <HexAvatar src={avatarUrl} username={profile.displayName ?? profile.username} tier={profile.membershipTier} size="lg" />
+          <HexAvatar src={avatarUrl} username={profile.displayName ?? profile.username} tier={profile.membershipTier} size="lg" frameUrl={profile.frameUrl} />
           <label className="cursor-pointer text-sm font-semibold text-sx-purple-text hover:text-sx-purple-light">
             {uploading ? 'Uploading…' : 'Upload new photo'}
             <input type="file" accept="image/*" onChange={onAvatarFile} className="hidden" disabled={uploading} />

@@ -17,7 +17,7 @@ export function CommentList({ postId, comments }: { postId: string; comments: Co
         const name = c.author.displayName ?? c.author.username ?? 'Player'
         return (
           <div key={c.id} className="group flex items-start gap-2.5">
-            <HexAvatar src={c.author.avatarUrl} username={name} tier={c.author.membershipTier as MembershipTier} size="xs" />
+            <HexAvatar src={c.author.avatarUrl} username={name} tier={c.author.membershipTier as MembershipTier} size="xs" frameUrl={c.author.frameUrl} />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold text-sx-white">
                 {c.author.username ? (

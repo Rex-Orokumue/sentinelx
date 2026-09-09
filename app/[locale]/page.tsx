@@ -65,7 +65,9 @@ export default async function HomePage() {
       .limit(4),
     supabase
       .from('profiles')
-      .select('id, username, display_name, avatar_url, wins, total_matches, sx_score, sentinel_tier, membership_tier')
+      .select(
+        'id, username, display_name, avatar_url, wins, total_matches, sx_score, sentinel_tier, membership_tier, equipped_avatar_border',
+      )
       .order('wins', { ascending: false })
       .gt('total_matches', 0)
       .limit(5),

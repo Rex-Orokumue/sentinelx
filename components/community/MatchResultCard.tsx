@@ -12,7 +12,7 @@ function PlayerColumn({ player, isWinner }: { player: PlayerRef | null; isWinner
   const name = player?.displayName ?? player?.username ?? 'Player'
   const content = (
     <div className="flex flex-col items-center gap-1.5 text-center">
-      <HexAvatar src={player?.avatarUrl ?? null} username={name} tier={(player?.membershipTier ?? 'recruit') as MembershipTier} size="sm" />
+      <HexAvatar src={player?.avatarUrl ?? null} username={name} tier={(player?.membershipTier ?? 'recruit') as MembershipTier} size="sm" frameUrl={player?.frameUrl} />
       <p className={`max-w-[6rem] truncate text-xs font-bold ${isWinner ? 'text-sx-white' : 'text-sx-gray'}`}>{name}</p>
       <TierBadge tier={player?.sentinelTier ?? null} />
     </div>

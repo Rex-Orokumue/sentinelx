@@ -12,8 +12,22 @@ const from = vi.fn((table: string) => {
   if (table === 'fcm_tokens') return { delete: tokenDelete }
   return {}
 })
+const getUser = vi.fn()
+const updateUser = vi.fn()
 vi.mock('@/lib/supabase/server', () => ({
-  createClient: () => ({ from, auth: { signUp, signInWithPassword, resend } }),
+  createClient: () => ({
+    from,
+    auth: { signUp, signInWithPassword, resend, getUser, updateUser },
+  }),
+}))
+
+// changeEmail() re-checks the password through reauth's throwaway client, not
+// the request-scoped one above — mocked separately so a test can say "wrong
+// password" without standing up a second Supabase double.
+const verifyPassword = vi.fn()
+vi.mock('./reauth', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./reauth')>()),
+  verifyPassword,
 }))
 
 // signup() consults retired_usernames and banned_identifiers through the
@@ -50,6 +64,14 @@ beforeEach(() => {
   resend.mockResolvedValue({ error: null })
   adminMaybeSingle.mockReset()
   adminMaybeSingle.mockResolvedValue({ data: null })
+  getUser.mockReset()
+  getUser.mockResolvedValue({
+    data: { user: { id: 'u1', email: 'old@x.com', identities: [{ provider: 'email' }] } },
+  })
+  updateUser.mockReset()
+  updateUser.mockResolvedValue({ error: null })
+  verifyPassword.mockReset()
+  verifyPassword.mockResolvedValue(true)
 })
 
 describe('signup blocks deleted-account identifiers', () => {
@@ -222,5 +244,137 @@ describe('signOut only deregisters the device it runs on', () => {
     const { signOut } = await import('./actions')
     await signOut().catch(() => {})
     expect(cookieDelete).toHaveBeenCalled()
+  })
+})
+
+describe('changeEmail', () => {
+  const good = { email: 'new@x.com', password: 'password123' }
+
+  // The action returns codes, not prose — the settings form translates them,
+  // the way requestAccountDeletion's blockers are translated. Asserting codes
+  // also keeps these tests from breaking every time the wording is tweaked.
+  it('sends the confirmation link to the new address', async () => {
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData(good))
+    expect(updateUser).toHaveBeenCalledWith({ email: 'new@x.com' })
+    expect(result).toEqual({ sentTo: 'new@x.com' })
+  })
+
+  it('refuses when the current password is wrong', async () => {
+    verifyPassword.mockResolvedValue(false)
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData(good))
+    expect(result).toEqual({ errorCode: 'wrong_password' })
+    expect(updateUser).not.toHaveBeenCalled()
+  })
+
+  it('checks the password against the address on file, not the new one', async () => {
+    const { changeEmail } = await import('./actions')
+    await changeEmail(undefined, formData(good))
+    expect(verifyPassword).toHaveBeenCalledWith('old@x.com', 'password123')
+  })
+
+  // Same blocklist signup enforces — otherwise changing your email is a way
+  // back onto an address banned for cheating.
+  it('rejects an address whose hash is in banned_identifiers', async () => {
+    adminMaybeSingle.mockResolvedValueOnce({ data: { hash: 'x' } })
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData(good))
+    expect(result).toEqual({ errorCode: 'email_banned' })
+    expect(updateUser).not.toHaveBeenCalled()
+  })
+
+  it('sends a Google-only account with no password to set one first', async () => {
+    getUser.mockResolvedValue({
+      data: { user: { id: 'u1', email: 'old@x.com', identities: [{ provider: 'google' }] } },
+    })
+    verifyPassword.mockResolvedValue(false)
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData(good))
+    expect(result).toEqual({ errorCode: 'google_only' })
+    expect(updateUser).not.toHaveBeenCalled()
+  })
+
+  // Setting a password through the reset flow leaves no 'email' identity, so a
+  // Google account that has one still looks identity-less. 4 live accounts are
+  // in this state; the password has to be tried before we tell anyone they
+  // haven't got one.
+  it('lets a Google account that has set a password change its email', async () => {
+    getUser.mockResolvedValue({
+      data: { user: { id: 'u1', email: 'old@x.com', identities: [{ provider: 'google' }] } },
+    })
+    verifyPassword.mockResolvedValue(true)
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData(good))
+    expect(result).toEqual({ sentTo: 'new@x.com' })
+    expect(updateUser).toHaveBeenCalledWith({ email: 'new@x.com' })
+  })
+
+  it('still says wrong password when the account does have one', async () => {
+    verifyPassword.mockResolvedValue(false)
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData(good))
+    expect(result).toEqual({ errorCode: 'wrong_password' })
+  })
+
+  it('rejects the address the account already has, whatever its case', async () => {
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData({ ...good, email: 'OLD@x.com' }))
+    expect(result).toEqual({ errorCode: 'same_email' })
+    expect(updateUser).not.toHaveBeenCalled()
+  })
+
+  it('reports an address that belongs to someone else', async () => {
+    updateUser.mockResolvedValue({ error: { code: 'email_exists', message: 'x' } })
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData(good))
+    expect(result).toEqual({ errorCode: 'email_in_use' })
+  })
+
+  // Older Supabase builds report the duplicate in prose rather than a code.
+  it('reports a duplicate reported only in the message', async () => {
+    updateUser.mockResolvedValue({
+      error: { message: 'A user with this email address has already been registered' },
+    })
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData(good))
+    expect(result).toEqual({ errorCode: 'email_in_use' })
+  })
+
+  // They asked for a link moments ago; "you are being rate limited" reads as a
+  // failure for something that already succeeded. Matches resendConfirmation.
+  it('treats a send rate limit as sent', async () => {
+    updateUser.mockResolvedValue({ error: { code: 'over_email_send_rate_limit', message: 'x' } })
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData(good))
+    expect(result).toEqual({ sentTo: 'new@x.com' })
+  })
+
+  it('falls back to a generic failure on an unexpected error', async () => {
+    updateUser.mockResolvedValue({ error: { code: 'unexpected_failure', message: 'boom' } })
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData(good))
+    expect(result).toEqual({ errorCode: 'failed' })
+  })
+
+  it('rejects a malformed address before any lookup', async () => {
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData({ email: 'nope', password: 'password123' }))
+    expect(result).toEqual({ errorCode: 'invalid_email' })
+    expect(verifyPassword).not.toHaveBeenCalled()
+  })
+
+  it('asks for the password when it was left blank', async () => {
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData({ email: 'new@x.com', password: '' }))
+    expect(result).toEqual({ errorCode: 'password_required' })
+    expect(verifyPassword).not.toHaveBeenCalled()
+  })
+
+  it('refuses when nobody is signed in', async () => {
+    getUser.mockResolvedValue({ data: { user: null } })
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData(good))
+    expect(result).toEqual({ errorCode: 'not_logged_in' })
   })
 })

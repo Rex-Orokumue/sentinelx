@@ -10,10 +10,12 @@ import {
   signupSchema,
   requestResetSchema,
   resetPasswordSchema,
+  changeEmailSchema,
 } from './schema'
 import { mapSignupError } from './errors'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isIdentifierBanned, isUsernameRetired } from './signup-blocks'
+import { verifyPassword, hasPasswordIdentity } from './reauth'
 import { DEVICE_TOKEN_COOKIE } from '@/lib/notifications/device-cookie'
 
 // `needsConfirmation` is set by login() when the account exists but the email
@@ -150,6 +152,100 @@ export async function requestReset(_prev: ActionState, formData: FormData): Prom
   await supabase.auth.resetPasswordForEmail(parsed.data.email)
   // Neutral response regardless of whether the account exists.
   return { success: "If an account exists for that email, we've sent a reset link." }
+}
+
+// Codes rather than prose: the settings form translates them, the same way
+// requestAccountDeletion's blockers are translated. Wording lives in
+// messages/*.json under `emailChange`.
+export type ChangeEmailErrorCode =
+  | 'invalid_email'
+  | 'password_required'
+  | 'not_logged_in'
+  | 'google_only'
+  | 'same_email'
+  | 'wrong_password'
+  | 'email_banned'
+  | 'email_in_use'
+  | 'failed'
+
+export type ChangeEmailState = { errorCode?: ChangeEmailErrorCode; sentTo?: string } | undefined
+
+// Starts an email change. Supabase's "Secure email change" is OFF for this
+// project, so exactly one link goes to the NEW address and the old inbox is
+// never involved — deliberate, because the usual reason to change an address is
+// that the old one is unreachable. The current password is what replaces the
+// old inbox as proof of ownership, which is why it is required here and not on
+// any other settings action.
+//
+// Nothing changes until the link is clicked: until then Supabase holds the
+// address in user.new_email and auth.users.email is untouched.
+//
+// The link format (token_hash + type=email_change + next) is controlled by the
+// Supabase "Change Email Address" template, which routes to /auth/confirm.
+export async function changeEmail(
+  _prev: ChangeEmailState,
+  formData: FormData,
+): Promise<ChangeEmailState> {
+  const parsed = changeEmailSchema.safeParse({
+    email: formData.get('email'),
+    password: formData.get('password'),
+  })
+  if (!parsed.success) {
+    const field = parsed.error.issues[0].path[0]
+    return { errorCode: field === 'password' ? 'password_required' : 'invalid_email' }
+  }
+
+  const email = parsed.data.email.toLowerCase()
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user?.email) return { errorCode: 'not_logged_in' }
+
+  if (email === user.email.toLowerCase()) return { errorCode: 'same_email' }
+
+  // Try the password BEFORE concluding there isn't one. Setting a password
+  // through the reset flow does not create an 'email' row in auth.identities,
+  // so a Google user who has already done that still looks identity-less —
+  // 4 live accounts are in exactly that state. Checking identities first would
+  // send them off to set a password they have, with no way forward.
+  //
+  // Only once the password fails does the identity tell us which failure it
+  // was: a wrong password, or no password to get right in the first place.
+  // The way out for the latter is the existing password-reset flow, whose link
+  // lands in the CURRENT inbox — so setting a password proves ownership of the
+  // old address, the guarantee we gave up by not mailing it.
+  if (!(await verifyPassword(user.email, parsed.data.password))) {
+    return { errorCode: hasPasswordIdentity(user) ? 'wrong_password' : 'google_only' }
+  }
+
+  // Ban evasion, same blocklist signup enforces: without this, an account could
+  // simply walk onto an address that was banned for cheating.
+  if (await isIdentifierBanned(createAdminClient(), email)) {
+    return { errorCode: 'email_banned' }
+  }
+
+  const { error } = await supabase.auth.updateUser({ email })
+  if (error) {
+    const code = (error as { code?: string }).code
+    // They asked seconds ago and a link is already in flight — reporting a
+    // failure for something that just succeeded only causes a support message.
+    if (code === 'over_email_send_rate_limit') return { sentTo: email }
+    if (code === 'email_exists' || /already been registered/i.test(error.message)) {
+      return { errorCode: 'email_in_use' }
+    }
+    console.error('[changeEmail] updateUser failed', {
+      code,
+      status: (error as { status?: number }).status,
+      message: error.message,
+    })
+    return { errorCode: 'failed' }
+  }
+
+  // Repaints the settings page so the pending-address row appears without a
+  // manual reload.
+  revalidatePath('/dashboard/settings')
+  return { sentTo: email }
 }
 
 export async function resetPassword(_prev: ActionState, formData: FormData): Promise<ActionState> {

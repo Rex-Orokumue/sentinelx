@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { frameUrlFor } from '@/lib/store/cosmetics'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -51,7 +52,7 @@ export default async function DashboardPage() {
     supabase
       .from('profiles')
       .select(
-        'username, display_name, avatar_url, wins, goals_scored, xp, membership_tier, login_streak, sx_score, total_matches',
+        'username, display_name, avatar_url, wins, goals_scored, xp, membership_tier, login_streak, sx_score, total_matches, equipped_avatar_border',
       )
       .eq('id', user.id)
       .maybeSingle(),
@@ -69,8 +70,8 @@ export default async function DashboardPage() {
       .select(
         'id, status, round, scheduled_at, is_full_day, ' +
           'tournament:tournaments(title), ' +
-          'opponent_a:profiles!matches_player_a_id_fkey(id, display_name, username, avatar_url, membership_tier), ' +
-          'opponent_b:profiles!matches_player_b_id_fkey(id, display_name, username, avatar_url, membership_tier)',
+          'opponent_a:profiles!matches_player_a_id_fkey(id, display_name, username, avatar_url, membership_tier, equipped_avatar_border), ' +
+          'opponent_b:profiles!matches_player_b_id_fkey(id, display_name, username, avatar_url, membership_tier, equipped_avatar_border)',
       )
       .or(`player_a_id.eq.${user.id},player_b_id.eq.${user.id}`)
       .in('status', ['scheduled', 'live'])
@@ -180,7 +181,7 @@ export default async function DashboardPage() {
 
   // ── Next match ───────────────────────────────────────────────────────────
   type NextMatchOpponentRef = {
-    id: string; display_name: string | null; username: string | null; avatar_url: string | null; membership_tier: string | null
+    id: string; display_name: string | null; username: string | null; avatar_url: string | null; membership_tier: string | null; equipped_avatar_border: string | null
   }
   type NextMatchRow = {
     id: string; status: string; round: string; scheduled_at: string | null; is_full_day: boolean
@@ -205,9 +206,11 @@ export default async function DashboardPage() {
           myAvatarUrl: profile?.avatar_url ?? null,
           myDisplayName: displayName,
           myTier: (profile?.membership_tier ?? 'recruit') as MembershipTier,
+          myFrameUrl: avatarFrameUrl,
           opponentAvatarUrl: opponent?.avatar_url ?? null,
           opponentDisplayName: opponent?.display_name ?? opponent?.username ?? 'Opponent',
           opponentTier: (opponent?.membership_tier ?? 'recruit') as MembershipTier,
+          opponentFrameUrl: frameUrlFor(opponent?.equipped_avatar_border),
           submitted: submittedMatchIds.has(nextMatchRow.id),
         }
       })()

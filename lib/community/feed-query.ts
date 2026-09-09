@@ -1,4 +1,5 @@
 import { isBoostLive } from './boost'
+import { frameUrlFor } from '@/lib/store/cosmetics'
 import { createClient } from '@/lib/supabase/server'
 import { ROUND_LABELS } from '@/lib/tournaments/bracket'
 import type { ReactionType } from './schema'
@@ -13,6 +14,8 @@ export interface PlayerRef {
   avatarUrl: string | null
   membershipTier: string
   sentinelTier: string | null
+  /** Equipped store frame artwork, already resolved from the slug. */
+  frameUrl: string | undefined
 }
 
 export interface MatchResultDetail {
@@ -53,6 +56,7 @@ type ProfileRow = {
   avatar_url: string | null
   membership_tier: string
   sentinel_tier: string | null
+  equipped_avatar_border: string | null
 }
 type ProfileRef = ProfileRow | ProfileRow[] | null
 function firstProfile(p: ProfileRef): ProfileRow | null {
@@ -66,10 +70,12 @@ function toPlayerRef(p: ProfileRow | null): PlayerRef {
     avatarUrl: p?.avatar_url ?? null,
     membershipTier: p?.membership_tier ?? 'recruit',
     sentinelTier: p?.sentinel_tier ?? null,
+    frameUrl: frameUrlFor(p?.equipped_avatar_border),
   }
 }
 
-const PROFILE_FIELDS = 'id, username, display_name, avatar_url, membership_tier, sentinel_tier'
+const PROFILE_FIELDS =
+  'id, username, display_name, avatar_url, membership_tier, sentinel_tier, equipped_avatar_border'
 
 type RawPost = {
   id: string

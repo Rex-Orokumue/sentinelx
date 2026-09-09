@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { frameUrlFor } from '@/lib/store/cosmetics'
 import Link from 'next/link'
 import { requireStaff } from '@/lib/admin/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -17,7 +18,9 @@ export default async function AdminPlayersPage({
   const admin = createAdminClient()
   const { data: players } = await admin
     .from('profiles')
-    .select('id, username, display_name, avatar_url, sx_score, membership_tier, total_matches')
+    .select(
+      'id, username, display_name, avatar_url, sx_score, membership_tier, total_matches, equipped_avatar_border',
+    )
     .order('username')
 
   const q = searchParams.q ?? ''
@@ -57,6 +60,7 @@ export default async function AdminPlayersPage({
                     username={p.display_name ?? p.username ?? '?'}
                     tier={(p.membership_tier ?? 'recruit') as MembershipTier}
                     size="xs"
+                    frameUrl={frameUrlFor(p.equipped_avatar_border)}
                   />
                   {p.display_name ?? p.username}
                 </td>

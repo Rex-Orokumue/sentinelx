@@ -15,7 +15,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
   })
 }
 
-const PLAYER_COLS = 'username, display_name, avatar_url, sx_score, sentinel_tier, membership_tier'
+const PLAYER_COLS =
+  'username, display_name, avatar_url, sx_score, sentinel_tier, membership_tier, equipped_avatar_border'
 
 export default async function PlayersPage({ searchParams }: { searchParams: { q?: string } }) {
   const q = (searchParams.q ?? '').trim()

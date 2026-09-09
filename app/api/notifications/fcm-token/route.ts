@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { DEVICE_TOKEN_COOKIE, DEVICE_TOKEN_MAX_AGE } from '@/lib/notifications/device-cookie'
 
 export async function POST(req: Request) {
@@ -13,7 +14,29 @@ export async function POST(req: Request) {
   const { token } = (await req.json()) as { token?: string }
   if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 })
 
-  const { error } = await supabase
+  // Service-role client for THIS write only — the RLS-scoped one above still
+  // proves who is calling.
+  //
+  // FCM issues one registration token per browser install, so a device carries
+  // its token across whoever signs in on it. When a second account signs in on
+  // a phone that already registered, this upsert conflicts onto a row owned by
+  // the first account, and fcm_tokens_owner's USING clause (player_id =
+  // auth.uid(), evaluated against the EXISTING row) rejects it:
+  //   42501 new row violates row-level security policy (USING expression)
+  // The request 500s and that player can never enable push on that device —
+  // permanently, because refreshPushToken() retries on every page load and
+  // fails identically each time. Seen in production for a player whose older
+  // account had registered the same phone.
+  //
+  // Reassigning the row is the correct outcome: one physical device has one
+  // current owner, and the previous owner is no longer reachable at it.
+  //
+  // Safe despite bypassing RLS: player_id comes from the verified session, never
+  // from the request body, so a caller can still only ever claim a token FOR
+  // THEMSELVES. Claiming someone else's token requires knowing that token, which
+  // is unguessable and unreadable by other players under the SELECT policy.
+  const admin = createAdminClient()
+  const { error } = await admin
     .from('fcm_tokens')
     .upsert({ player_id: user.id, token, last_active: new Date().toISOString() }, { onConflict: 'token' })
   if (error) {

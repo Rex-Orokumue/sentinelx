@@ -43,11 +43,13 @@ export function GuidePanel({
   isLoggedIn,
   username,
   avatarUrl,
+  frameUrl,
   onClose,
 }: {
   isLoggedIn: boolean
   username: string | null
   avatarUrl: string | null
+  frameUrl?: string
   onClose: () => void
 }) {
   const router = useRouter()
@@ -155,7 +157,7 @@ export function GuidePanel({
           ) : (
             <div className="space-y-4">
               <div className="flex items-center gap-2.5">
-                <Avatar avatarUrl={avatarUrl} displayName={null} username={username} size={32} />
+                <Avatar avatarUrl={avatarUrl} displayName={null} username={username} size={32} frameUrl={frameUrl} />
                 <p className="text-sm font-bold text-white">Hey {username ?? 'Gamer'}! 👋</p>
               </div>
 

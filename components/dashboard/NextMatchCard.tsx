@@ -18,9 +18,11 @@ export interface NextMatchData {
   myAvatarUrl: string | null
   myDisplayName: string
   myTier: MembershipTier
+  myFrameUrl?: string
   opponentAvatarUrl: string | null
   opponentDisplayName: string
   opponentTier: MembershipTier
+  opponentFrameUrl?: string
   submitted: boolean
 }
 
@@ -75,12 +77,12 @@ export function NextMatchCard({
 
       <div className="flex items-center justify-center gap-4 py-5">
         <div className="flex flex-col items-center gap-1.5">
-          <HexAvatar src={match.myAvatarUrl} username={match.myDisplayName} tier={match.myTier} size="sm" />
+          <HexAvatar src={match.myAvatarUrl} username={match.myDisplayName} tier={match.myTier} size="sm" frameUrl={match.myFrameUrl} />
           <p className="text-xs font-bold text-white">YOU</p>
         </div>
         <span className="text-sm font-bold uppercase text-sx-gray">vs</span>
         <div className="flex flex-col items-center gap-1.5">
-          <HexAvatar src={match.opponentAvatarUrl} username={match.opponentDisplayName} tier={match.opponentTier} size="sm" />
+          <HexAvatar src={match.opponentAvatarUrl} username={match.opponentDisplayName} tier={match.opponentTier} size="sm" frameUrl={match.opponentFrameUrl} />
           <p className="max-w-[7rem] truncate text-xs font-bold text-white">{match.opponentDisplayName}</p>
         </div>
       </div>

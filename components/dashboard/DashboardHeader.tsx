@@ -4,18 +4,20 @@ export function DashboardHeader({
   name,
   username,
   avatarUrl,
+  frameUrl,
   wins,
   losses,
 }: {
   name: string
   username: string | null
   avatarUrl: string | null
+  frameUrl?: string
   wins: number
   losses: number
 }) {
   return (
     <div className="flex items-center gap-4 py-8">
-      <Avatar avatarUrl={avatarUrl} displayName={name} username={username} size={56} className="text-xl" />
+      <Avatar avatarUrl={avatarUrl} displayName={name} username={username} size={56} className="text-xl" frameUrl={frameUrl} />
       <div className="min-w-0">
         <h1 className="truncate text-2xl font-black text-white">{name}</h1>
         <p className="mt-1 text-sm text-slate-400">

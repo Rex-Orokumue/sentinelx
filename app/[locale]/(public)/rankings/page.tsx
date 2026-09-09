@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { frameUrlFor } from '@/lib/store/cosmetics'
 import { Trophy } from 'lucide-react'
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder'
 import { createClient } from '@/lib/supabase/server'
@@ -63,7 +64,7 @@ export default async function RankingsPage({
     supabase
       .from('profiles')
       .select(
-        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sx_score, sentinel_tier, membership_tier, kyc_verified, deleted_at',
+        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sx_score, sentinel_tier, membership_tier, kyc_verified, deleted_at, equipped_avatar_border',
       )
       .gte('total_matches', RANKING_MIN_MATCHES)
       .order('wins', { ascending: false })
@@ -147,6 +148,7 @@ export default async function RankingsPage({
       sentinelTier: p.sentinel_tier,
       membershipTier: p.membership_tier,
       kycVerified: p.kyc_verified,
+      frameUrl: frameUrlFor(p.equipped_avatar_border),
     }),
   )
 

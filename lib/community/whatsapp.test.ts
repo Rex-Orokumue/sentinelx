@@ -35,6 +35,7 @@ const BASE_POST: PostView = {
     avatarUrl: null,
     membershipTier: 'guardian',
     sentinelTier: 'trusted',
+    frameUrl: undefined,
   },
   canDelete: false,
   canBoost: false,

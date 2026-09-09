@@ -30,6 +30,8 @@ export function WagerWidget({
   playerBAvatar,
   playerATier,
   playerBTier,
+  playerAFrameUrl,
+  playerBFrameUrl,
   pools,
   myWager,
   coinBalance,
@@ -45,6 +47,8 @@ export function WagerWidget({
   playerBAvatar: string | null
   playerATier: MembershipTier
   playerBTier: MembershipTier
+  playerAFrameUrl?: string
+  playerBFrameUrl?: string
   pools: WagerPools
   myWager: { pickPlayerId: string; stakeCoins: number } | null
   coinBalance: number
@@ -66,12 +70,12 @@ export function WagerWidget({
 
       <div className="mb-4 grid grid-cols-2 gap-3 text-center text-xs text-slate-400">
         <div className="flex flex-col items-center gap-1">
-          <HexAvatar src={playerAAvatar} username={playerAName} tier={playerATier} size="sm" />
+          <HexAvatar src={playerAAvatar} username={playerAName} tier={playerATier} size="sm" frameUrl={playerAFrameUrl} />
           <span className="font-semibold text-white">{playerAName}</span>
           <span>{pools.playerA.toLocaleString()} coins ({pctA}% backing)</span>
         </div>
         <div className="flex flex-col items-center gap-1">
-          <HexAvatar src={playerBAvatar} username={playerBName} tier={playerBTier} size="sm" />
+          <HexAvatar src={playerBAvatar} username={playerBName} tier={playerBTier} size="sm" frameUrl={playerBFrameUrl} />
           <span className="font-semibold text-white">{playerBName}</span>
           <span>{pools.playerB.toLocaleString()} coins ({pctB}% backing)</span>
         </div>

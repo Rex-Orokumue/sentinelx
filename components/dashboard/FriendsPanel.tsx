@@ -13,6 +13,7 @@ export interface FriendRequestRow {
   requesterName: string
   requesterUsername: string | null
   requesterAvatarUrl: string | null
+  requesterFrameUrl?: string
 }
 
 export interface FriendRow {
@@ -20,6 +21,7 @@ export interface FriendRow {
   friendName: string
   friendUsername: string | null
   friendAvatarUrl: string | null
+  friendFrameUrl?: string
 }
 
 export function FriendsPanel({
@@ -59,14 +61,16 @@ function ProfileLink({
   username,
   avatarUrl,
   name,
+  frameUrl,
 }: {
   username: string | null
   avatarUrl: string | null
   name: string
+  frameUrl?: string
 }) {
   const label = (
     <>
-      <Avatar avatarUrl={avatarUrl} displayName={name} username={username} size={32} />
+      <Avatar avatarUrl={avatarUrl} displayName={name} username={username} size={32} frameUrl={frameUrl} />
       <p className="min-w-0 truncate text-sm font-semibold text-white">
         {name} {username ? `(@${username})` : ''}
       </p>
@@ -87,7 +91,12 @@ function IncomingRequestRow({ req }: { req: FriendRequestRow }) {
   const [declineState, declineAction] = useFormState<FriendActionState, FormData>(removeFriend, undefined)
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
-      <ProfileLink username={req.requesterUsername} avatarUrl={req.requesterAvatarUrl} name={req.requesterName} />
+      <ProfileLink
+        username={req.requesterUsername}
+        avatarUrl={req.requesterAvatarUrl}
+        name={req.requesterName}
+        frameUrl={req.requesterFrameUrl}
+      />
       <div className="flex shrink-0 gap-2">
         <form action={action}>
           <input type="hidden" name="id" value={req.id} />
@@ -113,7 +122,12 @@ function FriendRow({ friend }: { friend: FriendRow }) {
   const [state, action] = useFormState<FriendActionState, FormData>(removeFriend, undefined)
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">
-      <ProfileLink username={friend.friendUsername} avatarUrl={friend.friendAvatarUrl} name={friend.friendName} />
+      <ProfileLink
+        username={friend.friendUsername}
+        avatarUrl={friend.friendAvatarUrl}
+        name={friend.friendName}
+        frameUrl={friend.friendFrameUrl}
+      />
       <form action={action}>
         <input type="hidden" name="id" value={friend.id} />
         <button type="submit" className="shrink-0 text-xs font-semibold text-red-400 hover:text-red-300">
