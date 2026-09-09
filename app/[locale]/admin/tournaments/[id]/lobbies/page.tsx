@@ -91,7 +91,7 @@ export default async function LobbiesPage({ params }: { params: { id: string } }
           bracket page instead.
         </p>
       ) : (
-        <LobbyList stages={stages} />
+        <LobbyList tournamentId={params.id} stages={stages} />
       )}
     </section>
   )
