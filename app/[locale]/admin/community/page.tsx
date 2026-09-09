@@ -1,15 +1,20 @@
 import type { Metadata } from 'next'
 import { requireStaff } from '@/lib/admin/auth'
-import { fetchAdminPosts, fetchAdminNominations } from '@/lib/community/admin-query'
+import { fetchAdminPosts, fetchAdminNominations, fetchAdminStatuses } from '@/lib/community/admin-query'
 import { AdminAnnouncementForm } from '@/components/admin/AdminAnnouncementForm'
 import { AdminPostList } from '@/components/admin/AdminPostList'
+import { AdminStatusList } from '@/components/admin/AdminStatusList'
 import { AdminBestPlayPanel } from '@/components/admin/AdminBestPlayPanel'
 
 export const metadata: Metadata = { title: 'Community · Admin · SentinelX' }
 
 export default async function AdminCommunityPage() {
   await requireStaff()
-  const [posts, nominations] = await Promise.all([fetchAdminPosts(), fetchAdminNominations()])
+  const [posts, nominations, statuses] = await Promise.all([
+    fetchAdminPosts(),
+    fetchAdminNominations(),
+    fetchAdminStatuses(),
+  ])
 
   return (
     <div className="space-y-6">
@@ -27,6 +32,11 @@ export default async function AdminCommunityPage() {
         ) : (
           <AdminPostList posts={posts} />
         )}
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-base font-bold text-white">Statuses — live</h2>
+        <AdminStatusList statuses={statuses} />
       </section>
     </div>
   )
