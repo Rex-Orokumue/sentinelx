@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { StatusRing as StatusRingData } from '@/lib/community/statuses'
 import { StatusRing } from './StatusRing'
 import { StatusComposer } from './StatusComposer'
@@ -29,15 +29,15 @@ export function StatusTray({ rings, viewer }: { rings: StatusRingData[]; viewer:
     [rings, seenThisSession],
   )
 
-  if (rings.length === 0 && !viewer) return null
-
-  function markSeen(ids: string[]) {
+  const markSeen = useCallback((ids: string[]) => {
     setSeenThisSession((prev) => {
       const next = new Set(prev)
       ids.forEach((id) => next.add(id))
       return next
     })
-  }
+  }, [])
+
+  if (rings.length === 0 && !viewer) return null
 
   return (
     <div className="mb-6">
