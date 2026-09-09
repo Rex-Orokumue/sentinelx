@@ -3,8 +3,8 @@ import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireStaff } from '@/lib/admin/auth'
 import { assignLobbies } from './lobby-assignment'
-import { sortPointsStandings, type PointsStandingRow, type StageResultInput } from './points-standings'
 import { seedOrderForRound, stageIntake } from './stage-entry'
+import { stageStanding } from './stage-standing'
 
 export type LobbyState = { error?: string; success?: boolean } | undefined
 
@@ -38,68 +38,6 @@ async function activeEntrantIds(admin: Admin, tournamentId: string): Promise<str
     .eq('status', 'active')
     .order('created_at')
   return (data ?? []).map((r) => r.id as string)
-}
-
-// A stage's running standings, built only from CONFIRMED results. A pending
-// submission is one player's unverified claim and must not move anyone up the
-// table, let alone decide who advances.
-// NOT exported: every export from a 'use server' module becomes a
-// client-callable action, and this one takes a Supabase client, which is not
-// serializable. Phase 4b will lift it into a plain module when the results
-// flow needs it too.
-async function stageStanding(admin: Admin, stage: StageRow): Promise<PointsStandingRow[]> {
-  const { data: lobbies } = await admin
-    .from('tournament_lobbies')
-    .select('id, round_no')
-    .eq('stage_id', stage.id)
-  const lobbyRows = (lobbies ?? []) as { id: string; round_no: number }[]
-  if (lobbyRows.length === 0) return []
-
-  const lobbyIds = lobbyRows.map((l) => l.id)
-  const roundByLobby = new Map(lobbyRows.map((l) => [l.id, l.round_no]))
-
-  const [{ data: entrantRows }, { data: resultRows }] = await Promise.all([
-    admin
-      .from('lobby_entrants')
-      .select('entrant_id, tournament_entrants(id, display_name)')
-      .in('lobby_id', lobbyIds),
-    admin
-      .from('lobby_results')
-      .select('lobby_id, entrant_id, placement, kills, placement_points, kill_points')
-      .in('lobby_id', lobbyIds)
-      .eq('status', 'confirmed'),
-  ])
-
-  // One row per entrant even though they appear once per round they played in.
-  const entrants = new Map<string, { id: string; displayName: string }>()
-  for (const raw of (entrantRows ?? []) as unknown[]) {
-    const r = raw as { entrant_id: string; tournament_entrants: { id: string; display_name: string } | { id: string; display_name: string }[] | null }
-    const ref = Array.isArray(r.tournament_entrants) ? r.tournament_entrants[0] : r.tournament_entrants
-    if (!entrants.has(r.entrant_id)) {
-      entrants.set(r.entrant_id, { id: r.entrant_id, displayName: ref?.display_name ?? 'Entrant' })
-    }
-  }
-
-  const results: StageResultInput[] = ((resultRows ?? []) as unknown[]).map((raw) => {
-    const r = raw as {
-      lobby_id: string
-      entrant_id: string
-      placement: number
-      kills: number
-      placement_points: number
-      kill_points: number
-    }
-    return {
-      entrantId: r.entrant_id,
-      roundNo: roundByLobby.get(r.lobby_id) ?? 1,
-      placement: r.placement,
-      kills: r.kills,
-      placementPoints: r.placement_points,
-      killPoints: r.kill_points,
-    }
-  })
-
-  return sortPointsStandings(Array.from(entrants.values()), results, stage.advance_count)
 }
 
 // Shared by openStage (round 1) and generateNextRound (round N+1): draw the
