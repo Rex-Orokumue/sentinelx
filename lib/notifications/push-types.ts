@@ -5,6 +5,7 @@
 export type PushNotificationType =
   | 'match_reminder'
   | 'result_confirmed'
+  | 'result_submitted'
   | 'achievement_unlocked'
   | 'challenge_completed'
   | 'new_announcement'

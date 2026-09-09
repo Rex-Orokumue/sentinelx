@@ -5,6 +5,9 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { submitResultSchema } from './schema'
 import { notifyStaff } from '@/lib/admin/staff'
 import { resultNotification } from '@/lib/admin/notification-copy'
+import { notifyInApp } from '@/lib/notifications/inbox'
+import { pushToPlayer } from '@/lib/notifications/push'
+import { opponentSubmissionNotice } from './submission-notice'
 
 export type SubmitResultState = { error?: string; success?: boolean } | undefined
 
@@ -78,7 +81,11 @@ export async function submitMatchResult(
   )
   if (error) return { error: 'Could not submit your result. Please try again.' }
 
-  if (!priorSubmissionCount) {
+  // Notify on EVERY submission, not only the first one on the match.
+  // The old `if (!priorSubmissionCount)` gate meant the second player's
+  // submission — the one that reveals whether the two players even agree —
+  // and every correction after it went out silently.
+  {
     const admin = createAdminClient()
     type NameRef = { display_name: string | null; username: string | null } | { display_name: string | null; username: string | null }[] | null
     type ReviewMatchRow = { player_a: NameRef; player_b: NameRef; tournament: { title: string } | { title: string }[] | null }
@@ -95,17 +102,63 @@ export async function submitMatchResult(
     if (md) {
       const nameOf = (x: NameRef) => {
         const r = Array.isArray(x) ? x[0] ?? null : x
-        return r?.display_name ?? r?.username ?? 'Player'
+        return r?.display_name ?? r?.username ?? null
       }
       const tRef = Array.isArray(md.tournament) ? md.tournament[0] : md.tournament
-      const notification = resultNotification({
-        type: 'result_needs_review',
-        tournamentTitle: tRef?.title ?? 'Tournament',
-        playerAName: nameOf(md.player_a as NameRef),
-        playerBName: nameOf(md.player_b as NameRef),
-        createdAt: new Date().toISOString(),
+      const tournamentTitle = tRef?.title ?? 'Tournament'
+      const playerAName = nameOf(md.player_a as NameRef)
+      const playerBName = nameOf(md.player_b as NameRef)
+
+      // Staff still only get pinged once per match, so a correction spree
+      // can't bury the review queue — the queue itself already shows the
+      // latest submission.
+      if (!priorSubmissionCount) {
+        const notification = resultNotification({
+          type: 'result_needs_review',
+          tournamentTitle,
+          playerAName: playerAName ?? 'Player',
+          playerBName: playerBName ?? 'Player',
+          createdAt: new Date().toISOString(),
+        })
+        await notifyStaff(admin, 'result_needs_review', {
+          title: notification.title,
+          body: notification.body,
+          link: notification.link,
+        })
+      }
+
+      // The opponent, however, is told every time: they are the only person
+      // who knows first-hand whether the score is right, and a dispute is
+      // cheap before an admin confirms and expensive afterwards.
+      const notice = opponentSubmissionNotice({
+        matchId,
+        submitterId: user.id,
+        playerAId: match.player_a_id,
+        playerBId: match.player_b_id,
+        playerAName,
+        playerBName,
+        tournamentTitle,
+        scoreA: parsed.data.scoreA,
+        scoreB: parsed.data.scoreB,
+        isResubmission: Boolean(existing),
       })
-      void notifyStaff(admin, 'result_needs_review', { title: notification.title, body: notification.body, link: notification.link })
+      if (notice) {
+        await Promise.all([
+          notifyInApp({
+            playerId: notice.recipientId,
+            type: 'result_submitted',
+            title: notice.title,
+            body: notice.body,
+            link: notice.link,
+          }),
+          pushToPlayer(
+            notice.recipientId,
+            'result_submitted',
+            { title: notice.title, body: notice.body },
+            { url: notice.link },
+          ),
+        ])
+      }
     }
   }
 
