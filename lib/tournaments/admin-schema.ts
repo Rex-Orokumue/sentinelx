@@ -34,6 +34,11 @@ export const tournamentSchema = z
     tournamentType: z.enum(['open', 'community_club', 'masters', 'champions_cup']),
     seasonId: z.union([z.literal(''), z.string().uuid()]),
     format: z.enum(['group_knockout', 'round_robin']).default('group_knockout'),
+    // Distinct from `format` above, which is the head-to-head SHAPE
+    // (group_knockout / round_robin). This is which engine runs at all.
+    competitionFormat: z.enum(['head_to_head', 'points_race']).default('head_to_head'),
+    entryUnit: z.enum(['solo', 'squad']).default('solo'),
+    squadSize: z.union([z.literal(''), z.coerce.number().int().min(2).max(6)]).default(''),
     manualKnockoutPairing: z
       .union([z.literal('true'), z.literal('false'), z.literal(''), z.boolean()])
       .transform((v) => v === true || v === 'true')
@@ -44,6 +49,16 @@ export const tournamentSchema = z
   .refine((d) => d.tournamentType === 'open' || d.seasonId !== '', {
     message: 'Choose a season for this tournament type.',
     path: ['seasonId'],
+  })
+  .refine((d) => d.entryUnit === 'solo' || d.squadSize !== '', {
+    message: 'Enter how many players are in a squad.',
+    path: ['squadSize'],
+  })
+  // Mirrors tournaments_squads_are_points_race. Caught here so the admin gets
+  // a sentence instead of a Postgres constraint name.
+  .refine((d) => d.competitionFormat === 'points_race' || d.entryUnit === 'solo', {
+    message: 'Squads are only available for points-race tournaments.',
+    path: ['entryUnit'],
   })
 
 export type TournamentInput = z.infer<typeof tournamentSchema>

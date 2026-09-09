@@ -114,3 +114,92 @@ describe('tournamentSchema', () => {
     }
   })
 })
+
+describe('tournamentSchema — competition format', () => {
+  it('defaults to a solo head-to-head tournament when the fields are absent', () => {
+    // Every tournament that existed before multi-format work is exactly this,
+    // and the form must keep producing it without sending the new fields.
+    const r = tournamentSchema.safeParse(valid)
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect(r.data.competitionFormat).toBe('head_to_head')
+      expect(r.data.entryUnit).toBe('solo')
+      expect(r.data.squadSize).toBe('')
+    }
+  })
+
+  it('accepts a solo points race', () => {
+    const r = tournamentSchema.safeParse({ ...valid, competitionFormat: 'points_race', entryUnit: 'solo' })
+    expect(r.success).toBe(true)
+  })
+
+  it('accepts a squad points race with a squad size', () => {
+    const r = tournamentSchema.safeParse({
+      ...valid,
+      competitionFormat: 'points_race',
+      entryUnit: 'squad',
+      squadSize: '4',
+    })
+    expect(r.success).toBe(true)
+    if (r.success) expect(r.data.squadSize).toBe(4)
+  })
+
+  it('requires a squad size when the entry unit is squad', () => {
+    const r = tournamentSchema.safeParse({
+      ...valid,
+      competitionFormat: 'points_race',
+      entryUnit: 'squad',
+      squadSize: '',
+    })
+    expect(r.success).toBe(false)
+    if (!r.success) expect(r.error.issues[0].path).toContain('squadSize')
+  })
+
+  it('rejects squads on a head-to-head tournament', () => {
+    // Mirrors the DB CHECK. Squads are a points-race concept until roadmap
+    // #21b; letting the form accept it would fail at insert time with a raw
+    // Postgres error instead of a readable message.
+    const r = tournamentSchema.safeParse({
+      ...valid,
+      competitionFormat: 'head_to_head',
+      entryUnit: 'squad',
+      squadSize: '4',
+    })
+    expect(r.success).toBe(false)
+  })
+
+  it('rejects a squad size outside 2-6', () => {
+    for (const squadSize of ['1', '7']) {
+      const r = tournamentSchema.safeParse({
+        ...valid,
+        competitionFormat: 'points_race',
+        entryUnit: 'squad',
+        squadSize,
+      })
+      expect(r.success, squadSize).toBe(false)
+    }
+  })
+
+  it('rejects an unknown format', () => {
+    const r = tournamentSchema.safeParse({ ...valid, competitionFormat: 'battle_royale' })
+    expect(r.success).toBe(false)
+  })
+
+  it('parses a points race that omits the head-to-head-only fields entirely', () => {
+    // LOAD-BEARING. The form HIDES `format` and `manualKnockoutPairing` on a
+    // points race, so they are never submitted and the schema's defaults fill
+    // them. That coupling is invisible from either side: tighten `format` to
+    // required and every points-race submit breaks with no other warning.
+    //
+    // The structural fix is a discriminated union on competitionFormat, so
+    // `format` exists only in the head_to_head branch. Until then this test is
+    // what turns that silent breakage into a red one.
+    const r = tournamentSchema.safeParse({
+      ...valid,
+      competitionFormat: 'points_race',
+      entryUnit: 'solo',
+    })
+    expect(r.success).toBe(true)
+    if (r.success) expect(r.data.format).toBe('group_knockout')
+  })
+})
