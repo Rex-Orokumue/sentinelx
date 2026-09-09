@@ -124,10 +124,13 @@ export default async function CommunityPage() {
           </div>
           <FeedList pinned={pinned} initialPosts={posts} initialHasMore={hasMore} loggedIn={!!viewerId} />
         </div>
+        {/* ChallengeWidget is `lg:sticky` — it must be the LAST widget here, or a
+            later static sibling (Upcoming Tournaments) renders behind it once it
+            pins, because positioned elements paint above static ones. */}
         <div className="hidden space-y-4 lg:block">
           <TopMembersWidget members={topMembers} />
-          {challengeWidget && <ChallengeWidget weekLabel={challengeWidget.weekLabel} challenges={challengeWidget.challenges} />}
           <UpcomingEventsWidget events={upcomingEvents} />
+          {challengeWidget && <ChallengeWidget weekLabel={challengeWidget.weekLabel} challenges={challengeWidget.challenges} />}
         </div>
       </div>
 
