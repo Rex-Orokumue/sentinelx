@@ -30,6 +30,109 @@
     "escrow": "Comment fonctionne l’escrow",
     "trust": "Chaque transaction est protégée par l’escrow Zolarux."
   },
+  "auth": {
+    "meta": {
+      "login": "Connexion · SentinelX Esports",
+      "signup": "Inscription · SentinelX Esports",
+      "forgotPassword": "Mot de passe oublié · SentinelX Esports",
+      "resetPassword": "Nouveau mot de passe · SentinelX Esports",
+      "username": "Choisissez votre pseudo · SentinelX Esports",
+      "phone": "Vérifiez votre téléphone · SentinelX Esports"
+    },
+    "common": {
+      "email": "E-mail",
+      "password": "Mot de passe",
+      "username": "Pseudo",
+      "or": "OU",
+      "backToLogin": "Retour à la connexion",
+      "showPassword": "Afficher le mot de passe",
+      "hidePassword": "Masquer le mot de passe",
+      "atLeast8": "Au moins 8 caractères.",
+      "continueWithGoogle": "Continuer avec Google",
+      "back": "Retour"
+    },
+    "login": {
+      "title": "Bon retour",
+      "subtitle": "Connectez-vous à votre compte SentinelX Esports.",
+      "submit": "Se connecter",
+      "submitting": "Connexion…",
+      "resend": "Renvoyer l'e-mail de confirmation",
+      "resending": "Envoi…",
+      "resendHint": "Vous n'avez rien reçu ? Vérifiez vos spams — ou utilisez la connexion Google ci-dessous, qui évite la confirmation par e-mail.",
+      "forgot": "Mot de passe oublié ?",
+      "createAccount": "Créer un compte"
+    },
+    "signup": {
+      "step1Title": "Rejoignez SentinelX Esports",
+      "step1Subtitle": "La voie la plus rapide — aucune confirmation par e-mail :",
+      "continueWithEmail": "Continuer avec un e-mail",
+      "haveAccount": "Vous avez déjà un compte ?",
+      "logIn": "Se connecter",
+      "step2Title": "Créez votre compte",
+      "submit": "Créer un compte",
+      "submitting": "Création du compte…",
+      "checkEmailTitle": "Consultez vos e-mails",
+      "checkEmailBody": "Nous avons envoyé un lien de confirmation à {email}. Cliquez dessus pour activer votre compte, puis connectez-vous et choisissez votre pseudo.",
+      "nothingYet": "Toujours rien après quelques minutes ? Vérifiez vos spams, puis :",
+      "resend": "Renvoyer",
+      "resending": "Envoi…",
+      "googleTipBefore": "Les e-mails sont parfois retardés. S'inscrire avec Google évite complètement la confirmation — ",
+      "startOver": "recommencez",
+      "googleTipAfter": " et utilisez le bouton Google.",
+      "orSignUpWithEmail": "OU S'INSCRIRE PAR E-MAIL",
+      "signingUpAs": "Inscription en tant que {username}."
+    },
+    "forgot": {
+      "title": "Réinitialisez votre mot de passe",
+      "subtitle": "Saisissez votre e-mail et nous vous enverrons un lien de réinitialisation.",
+      "submit": "Envoyer le lien",
+      "submitting": "Envoi…"
+    },
+    "reset": {
+      "title": "Définir un nouveau mot de passe",
+      "subtitle": "Choisissez un nouveau mot de passe pour votre compte.",
+      "newPassword": "Nouveau mot de passe",
+      "submit": "Définir le mot de passe",
+      "submitting": "Mise à jour…"
+    },
+    "usernameStep": {
+      "title": "Choisissez votre pseudo",
+      "subtitle": "C'est votre nom public sur SentinelX Esports.",
+      "submit": "Continuer",
+      "submitting": "Enregistrement…"
+    },
+    "phoneStep": {
+      "title": "Vérifiez votre téléphone",
+      "subtitle": "Nous enverrons un code à 6 chiffres sur WhatsApp afin de pouvoir vous joindre au sujet des matchs et des résultats."
+    },
+    "availability": {
+      "taken": "Ce pseudo est déjà pris.",
+      "invalid": "3 à 20 caractères : lettres, chiffres, tirets bas.",
+      "unknown": "Vérification impossible pour l'instant — vous pouvez continuer."
+    },
+    "notices": {
+      "check_email": "Consultez vos e-mails pour trouver le lien de confirmation.",
+      "resend_sent": "Si cette adresse doit encore être confirmée, un nouveau lien est en route. Vérifiez vos spams — et la connexion Google évite entièrement l'e-mail.",
+      "reset_sent": "Si un compte existe pour cette adresse, nous avons envoyé un lien de réinitialisation."
+    },
+    "errors": {
+      "invalid_email": "Saisissez une adresse e-mail valide.",
+      "password_required": "Le mot de passe est requis.",
+      "password_too_short": "Le mot de passe doit contenir au moins 8 caractères.",
+      "username_too_short": "Le pseudo doit contenir au moins 3 caractères.",
+      "username_too_long": "Le pseudo ne doit pas dépasser 20 caractères.",
+      "username_charset": "Uniquement des lettres, chiffres et tirets bas.",
+      "invalid_credentials": "E-mail ou mot de passe incorrect.",
+      "email_not_confirmed": "Votre e-mail n'est pas encore confirmé — cherchez le lien dans votre boîte de réception (et vos spams).",
+      "blocked_details": "Nous n'avons pas pu créer de compte avec ces informations.",
+      "username_taken": "Ce pseudo est déjà pris — essayez-en un autre.",
+      "username_taken_go_back": "Ce pseudo est déjà pris — revenez en arrière et choisissez-en un autre.",
+      "signup_failed": "Un problème est survenu lors de la création de votre compte. Veuillez réessayer.",
+      "username_save_failed": "Impossible d'enregistrer votre pseudo. Veuillez réessayer.",
+      "link_expired": "Votre lien de réinitialisation a expiré. Veuillez en demander un nouveau.",
+      "reset_failed": "Impossible de mettre à jour votre mot de passe. Veuillez réessayer."
+    }
+  },
   "accountDeletion": {
     "title": "Supprimer le compte",
     "scheduledFor": "Votre compte sera définitivement supprimé le {date}.",

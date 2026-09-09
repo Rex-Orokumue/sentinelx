@@ -1,8 +1,10 @@
 'use client'
+import { useTranslations } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 
 export function GoogleSignInButton({ next }: { next: string }) {
+  const t = useTranslations('auth.common')
   async function handleClick() {
     const supabase = createClient()
     await supabase.auth.signInWithOAuth({
@@ -15,7 +17,7 @@ export function GoogleSignInButton({ next }: { next: string }) {
 
   return (
     <Button type="button" variant="outline" className="w-full" onClick={handleClick}>
-      Continue with Google
+      {t('continueWithGoogle')}
     </Button>
   )
 }

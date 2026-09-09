@@ -404,6 +404,9 @@ function DeleteAccountPanel({ username }: { username: string | null }) {
 }
 
 function ChangePasswordButton({ email }: { email: string }) {
+  // requestReset now returns codes rather than prose (lib/auth/actions.ts), so
+  // its messages come from the shared `auth` catalog.
+  const tAuth = useTranslations('auth')
   // requestReset's ActionState.success is the message string itself (not a
   // boolean) — render it directly rather than a hardcoded string.
   const [state, formAction] = useFormState<ActionState, FormData>(requestReset, undefined)
@@ -416,8 +419,12 @@ function ChangePasswordButton({ email }: { email: string }) {
           Change Password →
         </button>
       </div>
-      {state?.error && <p className="text-xs text-red-400">{state.error}</p>}
-      {state?.success && <p className="text-xs text-emerald-400">{state.success}</p>}
+      {state?.errorCode && (
+        <p className="text-xs text-red-400">{tAuth(`errors.${state.errorCode}`)}</p>
+      )}
+      {state?.noticeCode && (
+        <p className="text-xs text-emerald-400">{tAuth(`notices.${state.noticeCode}`)}</p>
+      )}
     </form>
   )
 }

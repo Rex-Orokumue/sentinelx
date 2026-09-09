@@ -30,6 +30,109 @@
     "escrow": "How escrow works",
     "trust": "Every trade is protected by Zolarux escrow."
   },
+  "auth": {
+    "meta": {
+      "login": "Log in · SentinelX Esports",
+      "signup": "Sign up · SentinelX Esports",
+      "forgotPassword": "Forgot password · SentinelX Esports",
+      "resetPassword": "Set new password · SentinelX Esports",
+      "username": "Choose your username · SentinelX Esports",
+      "phone": "Verify your phone · SentinelX Esports"
+    },
+    "common": {
+      "email": "Email",
+      "password": "Password",
+      "username": "Username",
+      "or": "OR",
+      "backToLogin": "Back to log in",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "atLeast8": "At least 8 characters.",
+      "continueWithGoogle": "Continue with Google",
+      "back": "Back"
+    },
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Log in to your SentinelX Esports account.",
+      "submit": "Log in",
+      "submitting": "Signing in…",
+      "resend": "Resend confirmation email",
+      "resending": "Sending…",
+      "resendHint": "Didn't get the first one? Check spam — or use Google sign-in below, which skips email confirmation.",
+      "forgot": "Forgot password?",
+      "createAccount": "Create account"
+    },
+    "signup": {
+      "step1Title": "Join SentinelX Esports",
+      "step1Subtitle": "Fastest way in — no email confirmation needed:",
+      "continueWithEmail": "Continue with email",
+      "haveAccount": "Already have an account?",
+      "logIn": "Log in",
+      "step2Title": "Create your account",
+      "submit": "Create account",
+      "submitting": "Creating account…",
+      "checkEmailTitle": "Check your email",
+      "checkEmailBody": "We sent a confirmation link to {email}. Click it to activate your account, then log in and pick your handle.",
+      "nothingYet": "Nothing after a few minutes? Check your spam folder, then:",
+      "resend": "Resend it",
+      "resending": "Sending…",
+      "googleTipBefore": "Email links sometimes get held up. Signing up with Google skips confirmation entirely — ",
+      "startOver": "start over",
+      "googleTipAfter": " and use the Google button.",
+      "orSignUpWithEmail": "OR SIGN UP WITH EMAIL",
+      "signingUpAs": "Signing up as {username}."
+    },
+    "forgot": {
+      "title": "Reset your password",
+      "subtitle": "Enter your email and we'll send a reset link.",
+      "submit": "Send reset link",
+      "submitting": "Sending…"
+    },
+    "reset": {
+      "title": "Set a new password",
+      "subtitle": "Choose a new password for your account.",
+      "newPassword": "New password",
+      "submit": "Set new password",
+      "submitting": "Updating…"
+    },
+    "usernameStep": {
+      "title": "Choose your handle",
+      "subtitle": "This is your public username on SentinelX Esports.",
+      "submit": "Continue",
+      "submitting": "Saving…"
+    },
+    "phoneStep": {
+      "title": "Verify your phone",
+      "subtitle": "We'll send a 6-digit code on WhatsApp so we can reach you about fixtures and results."
+    },
+    "availability": {
+      "taken": "That username is taken.",
+      "invalid": "3–20 characters: letters, numbers, underscores.",
+      "unknown": "Couldn't verify right now — you can still continue."
+    },
+    "notices": {
+      "check_email": "Check your email for a confirmation link.",
+      "resend_sent": "If that address still needs confirming, a fresh link is on its way. Check your spam folder — and Google sign-in skips email entirely.",
+      "reset_sent": "If an account exists for that email, we've sent a reset link."
+    },
+    "errors": {
+      "invalid_email": "Enter a valid email address.",
+      "password_required": "Password is required.",
+      "password_too_short": "Password must be at least 8 characters.",
+      "username_too_short": "Username must be at least 3 characters.",
+      "username_too_long": "Username must be at most 20 characters.",
+      "username_charset": "Only letters, numbers, and underscores.",
+      "invalid_credentials": "Invalid email or password.",
+      "email_not_confirmed": "Your email isn't confirmed yet — check your inbox (and spam) for the link.",
+      "blocked_details": "We could not create an account with those details.",
+      "username_taken": "That username is taken — try another.",
+      "username_taken_go_back": "That username is taken — go back and pick another.",
+      "signup_failed": "Something went wrong creating your account. Please try again.",
+      "username_save_failed": "Could not save your username. Please try again.",
+      "link_expired": "Your reset link has expired. Please request a new one.",
+      "reset_failed": "Could not update your password. Please try again."
+    }
+  },
   "accountDeletion": {
     "title": "Delete account",
     "scheduledFor": "Your account will be permanently deleted on {date}.",

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import Link from 'next/link'
 import { Check, X, Loader2, Eye, EyeOff, AlertTriangle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { signup, resendConfirmation, type ActionState } from '@/lib/auth/actions'
 import { useUsernameAvailability } from '@/hooks/useUsernameAvailability'
 import { Button } from '@/components/ui/button'
@@ -21,15 +22,17 @@ function Dots({ step }: { step: 1 | 2 | 3 }) {
 }
 
 function SubmitButton() {
+  const t = useTranslations('auth.signup')
   const { pending } = useFormStatus()
   return (
     <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? 'Creating account…' : 'Create account'}
+      {pending ? t('submitting') : t('submit')}
     </Button>
   )
 }
 
 function ResendButton() {
+  const t = useTranslations('auth.signup')
   const { pending } = useFormStatus()
   return (
     <button
@@ -37,12 +40,13 @@ function ResendButton() {
       disabled={pending}
       className="font-semibold text-violet-400 hover:text-violet-300 disabled:opacity-60"
     >
-      {pending ? 'Sending…' : "Resend it"}
+      {pending ? t('resending') : t('resend')}
     </button>
   )
 }
 
 export function SignupWizard({ refCode }: { refCode: string | null }) {
+  const t = useTranslations('auth')
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -52,36 +56,39 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
   const availability = useUsernameAvailability(username)
 
   useEffect(() => {
-    if (state?.success === 'check-email') setStep(3)
+    if (state?.noticeCode === 'check_email') setStep(3)
   }, [state])
 
   if (step === 3) {
     return (
       <div className="text-center">
         <Dots step={3} />
-        <h1 className="mb-2 text-xl font-bold">Check your email</h1>
+        <h1 className="mb-2 text-xl font-bold">{t('signup.checkEmailTitle')}</h1>
         <p className="text-sm text-slate-400">
-          We sent a confirmation link to <span className="font-semibold text-white">{email}</span>. Click it to
-          activate your account, then log in and pick your handle.
+          {t.rich('signup.checkEmailBody', {
+            email: () => <span className="font-semibold text-white">{email}</span>,
+          })}
         </p>
         <div className="mt-5 rounded-lg border border-slate-800 bg-slate-900/60 p-3 text-sm text-slate-300">
-          {resendState?.success ? (
-            <p className="text-emerald-400">{resendState.success}</p>
+          {resendState?.noticeCode ? (
+            <p className="text-emerald-400">{t(`notices.${resendState.noticeCode}`)}</p>
           ) : (
             <>
-              <p className="mb-2">Nothing after a few minutes? Check your spam folder, then:</p>
+              <p className="mb-2">{t('signup.nothingYet')}</p>
               <form action={resendAction}>
                 <input type="hidden" name="email" value={email} />
                 <ResendButton />
               </form>
-              {resendState?.error && <p className="mt-1 text-red-400">{resendState.error}</p>}
+              {resendState?.errorCode && <p className="mt-1 text-red-400">{t(`errors.${resendState.errorCode}`)}</p>}
             </>
           )}
         </div>
         <p className="mt-4 text-xs text-slate-500">
-          Email links sometimes get held up. Signing up with Google skips confirmation entirely —{' '}
-          <Link href="/signup" className="text-violet-400 hover:text-violet-300">start over</Link> and use the
-          Google button.
+          {t('signup.googleTipBefore')}
+          <Link href="/signup" className="text-violet-400 hover:text-violet-300">
+            {t('signup.startOver')}
+          </Link>
+          {t('signup.googleTipAfter')}
         </p>
       </div>
     )
@@ -96,16 +103,16 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
 
       {/* Step 1 — username only */}
       <div className={step === 1 ? 'block' : 'hidden'}>
-        <h1 className="mb-1 text-xl font-bold">Join SentinelX Esports</h1>
-        <p className="mb-4 text-sm text-slate-400">Fastest way in — no email confirmation needed:</p>
+        <h1 className="mb-1 text-xl font-bold">{t('signup.step1Title')}</h1>
+        <p className="mb-4 text-sm text-slate-400">{t('signup.step1Subtitle')}</p>
         <GoogleSignInButton next="/dashboard" />
         <div className="my-4 flex items-center gap-3">
           <div className="h-px flex-1 bg-slate-800" />
-          <span className="text-xs text-slate-500">OR SIGN UP WITH EMAIL</span>
+          <span className="text-xs text-slate-500">{t('signup.orSignUpWithEmail')}</span>
           <div className="h-px flex-1 bg-slate-800" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="username-input">Username</Label>
+          <Label htmlFor="username-input">{t('common.username')}</Label>
           <div className="relative">
             <Input
               id="username-input"
@@ -123,12 +130,12 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
               {availability === 'unknown' && <AlertTriangle className="h-4 w-4 text-amber-500" />}
             </span>
           </div>
-          {availability === 'taken' && <p className="text-sm text-red-400">That username is taken.</p>}
+          {availability === 'taken' && <p className="text-sm text-red-400">{t('availability.taken')}</p>}
           {availability === 'invalid' && (
-            <p className="text-sm text-red-400">3–20 characters: letters, numbers, underscores.</p>
+            <p className="text-sm text-red-400">{t('availability.invalid')}</p>
           )}
           {availability === 'unknown' && (
-            <p className="text-sm text-amber-400">Couldn&apos;t verify right now — you can still continue.</p>
+            <p className="text-sm text-amber-400">{t('availability.unknown')}</p>
           )}
         </div>
         <Button
@@ -138,23 +145,27 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
           disabled={availability !== 'available' && availability !== 'unknown'}
           onClick={() => setStep(2)}
         >
-          Continue with email
+          {t('signup.continueWithEmail')}
         </Button>
         <p className="mt-4 text-center text-sm text-slate-400">
-          Already have an account?{' '}
-          <Link href="/login" className="text-violet-400 hover:text-violet-300">Log in</Link>
+          {t('signup.haveAccount')}{' '}
+          <Link href="/login" className="text-violet-400 hover:text-violet-300">
+            {t('signup.logIn')}
+          </Link>
         </p>
       </div>
 
       {/* Step 2 — email + password */}
       <div className={step === 2 ? 'block' : 'hidden'}>
-        <h1 className="mb-1 text-xl font-bold">Create your account</h1>
+        <h1 className="mb-1 text-xl font-bold">{t('signup.step2Title')}</h1>
         <p className="mb-6 text-sm text-slate-400">
-          Signing up as <span className="font-semibold text-white">{username}</span>.
+          {t.rich('signup.signingUpAs', {
+            username: () => <span className="font-semibold text-white">{username}</span>,
+          })}
         </p>
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t('common.email')}</Label>
             <Input
               id="email"
               name="email"
@@ -166,7 +177,7 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t('common.password')}</Label>
             <div className="relative">
               <Input
                 id="password"
@@ -180,17 +191,19 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
                 type="button"
                 onClick={() => setShowPw((s) => !s)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                aria-label={showPw ? 'Hide password' : 'Show password'}
+                aria-label={showPw ? t('common.hidePassword') : t('common.showPassword')}
               >
                 {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            <p className="text-xs text-slate-500">At least 8 characters.</p>
+            <p className="text-xs text-slate-500">{t('common.atLeast8')}</p>
           </div>
         </div>
-        {state?.error && <p className="mt-3 text-sm text-red-400">{state.error}</p>}
+        {state?.errorCode && <p className="mt-3 text-sm text-red-400">{t(`errors.${state.errorCode}`)}</p>}
         <div className="mt-4 flex gap-2">
-          <Button type="button" variant="outline" onClick={() => setStep(1)}>Back</Button>
+          <Button type="button" variant="outline" onClick={() => setStep(1)}>
+            {t('common.back')}
+          </Button>
           <div className="flex-1"><SubmitButton /></div>
         </div>
       </div>

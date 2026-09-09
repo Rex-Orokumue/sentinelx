@@ -24,10 +24,11 @@ describe('isUsernameTakenError', () => {
 })
 
 describe('mapSignupError', () => {
-  it('returns the username-taken message for a 23505', () => {
-    expect(mapSignupError({ code: '23505' })).toMatch(/taken/i)
+  // Codes, not prose — the signup form translates them under auth.errors.
+  it('returns the username-taken code for a 23505', () => {
+    expect(mapSignupError({ code: '23505' })).toBe('username_taken_go_back')
   })
-  it('falls back to a generic message otherwise', () => {
-    expect(mapSignupError({ message: 'network down' })).toMatch(/something went wrong/i)
+  it('falls back to a generic code otherwise', () => {
+    expect(mapSignupError({ message: 'network down' })).toBe('signup_failed')
   })
 })
