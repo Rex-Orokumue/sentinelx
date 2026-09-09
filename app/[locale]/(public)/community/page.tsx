@@ -92,27 +92,25 @@ export default async function CommunityPage() {
     <div className="mx-auto max-w-6xl px-4 pb-20">
       {/* Unscoped: any post's comments or reactions are relevant on the feed. */}
       <CommunityRealtime />
-      <div className="py-6">
-        <CommunityHero />
-      </div>
 
-      <StatusTray rings={statusRings} viewer={trayViewer} />
-
-      <div className="mb-6">
-        <CommunityStatsBar stats={stats} />
-      </div>
-
-      <div className="mb-6">
-        <QuickActionTiles />
-      </div>
+      {viewerId ? (
+        // Members get a feed, not a landing page — a slim header, then straight
+        // into the tray + composer.
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-5">
+          <h1 className="font-display text-2xl font-black uppercase text-white">Community</h1>
+          <p className="text-sm text-sx-gray">The heartbeat of SentinelX — results, achievements &amp; banter.</p>
+        </div>
+      ) : (
+        <div className="py-6">
+          <CommunityHero />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         <div id="feed" className="min-w-0">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-xl font-black text-white">Community Feed</h2>
-            <div id="new-post-launcher">
-              <NewPostLauncher viewer={viewerProfile} />
-            </div>
+          <StatusTray rings={statusRings} viewer={trayViewer} />
+          <div id="new-post-launcher" className="mb-4">
+            <NewPostLauncher viewer={viewerProfile} />
           </div>
           {bestPlay && (
             <BestPlayBanner
@@ -131,6 +129,14 @@ export default async function CommunityPage() {
           {challengeWidget && <ChallengeWidget weekLabel={challengeWidget.weekLabel} challenges={challengeWidget.challenges} />}
           <UpcomingEventsWidget events={upcomingEvents} />
         </div>
+      </div>
+
+      {/* Discovery, not feed content — below the posts on every breakpoint. */}
+      <div className="mt-8">
+        <CommunityStatsBar stats={stats} />
+      </div>
+      <div className="mt-6">
+        <QuickActionTiles />
       </div>
 
       <div className="mt-6">
