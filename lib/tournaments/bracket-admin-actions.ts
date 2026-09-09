@@ -5,6 +5,7 @@ import { requireStaff } from '@/lib/admin/auth'
 import { resolveGroupCount, snakeDistribute, roundRobinPairs, knockoutRound1 } from './draw'
 import { nextRoundScheduledAt } from './round-schedule'
 import { seededPaidPlayers } from './seeded-players'
+import { soloEntrantRows } from './entrants'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 import { notifyInApp } from '@/lib/notifications/inbox'
 import { pushToPlayer } from '@/lib/notifications/push'
@@ -22,6 +23,39 @@ async function clearBracket(admin: Admin, tournamentId: string): Promise<void> {
   if (matchesErr) throw new Error(`Failed to clear existing matches: ${matchesErr.message}`)
   const { error: groupsErr } = await admin.from('groups').delete().eq('tournament_id', tournamentId)
   if (groupsErr) throw new Error(`Failed to clear existing groups: ${groupsErr.message}`)
+}
+
+// Points-race equivalent of generate(): no bracket, no groups — just the
+// entrants that will be drawn into lobbies when a stage opens.
+//
+// Replaces rather than appends, so re-closing after a reopen produces exactly
+// the paid field rather than accumulating stale entrants. Safe because a
+// tournament can only be reopened before any stage has run.
+async function createSoloEntrants(admin: Admin, tournamentId: string, seeded: string[]): Promise<void> {
+  const { data: profiles } = await admin
+    .from('profiles')
+    .select('id, display_name, username')
+    .in('id', seeded)
+  const nameById = new Map(
+    (profiles ?? []).map((p) => [p.id as string, (p.display_name ?? p.username ?? '') as string]),
+  )
+
+  const { error: delErr } = await admin
+    .from('tournament_entrants')
+    .delete()
+    .eq('tournament_id', tournamentId)
+  if (delErr) throw new Error(`Failed to clear existing entrants: ${delErr.message}`)
+
+  const rows = soloEntrantRows(
+    tournamentId,
+    // seededPaidPlayers order is preserved, so entrant creation order matches
+    // seeding order.
+    seeded.map((id) => ({ playerId: id, displayName: nameById.get(id) ?? '' })),
+  )
+  if (rows.length === 0) return
+
+  const { error } = await admin.from('tournament_entrants').insert(rows)
+  if (error) throw new Error(`Failed to create entrants: ${error.message}`)
 }
 
 async function generate(
@@ -148,12 +182,35 @@ export async function closeRegistration(
   if (!id) return { error: 'Missing tournament.' }
 
   const admin = createAdminClient()
-  const { data: t } = await admin.from('tournaments').select('status, format').eq('id', id).maybeSingle()
+  const { data: t } = await admin
+    .from('tournaments')
+    .select('status, format, competition_format, entry_unit')
+    .eq('id', id)
+    .maybeSingle()
   if (!t) return { error: 'Tournament not found.' }
   if (t.status !== 'registration_open') return { error: 'Registration is not open.' }
 
   const seeded = await seededPaidPlayers(admin, id)
   if (seeded.length < 2) return { error: 'Need at least 2 paid players to close registration.' }
+
+  if (t.competition_format === 'points_race') {
+    // Squad entrants need the squad lifecycle (phase 5). Refusing here keeps a
+    // half-built path from being reachable by accident.
+    if (t.entry_unit !== 'solo') {
+      return { error: 'Squad tournaments cannot be closed yet — squad registration is not built.' }
+    }
+    await admin.from('tournaments').update({ status: 'registration_closed' }).eq('id', id)
+    try {
+      await createSoloEntrants(admin, id, seeded)
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : 'Failed to create entrants.' }
+    }
+    revalidateAdmin(id)
+    return { success: true }
+  }
+
+  // Head-to-head only: a knockout bracket is power-of-two bounded, which a BR
+  // field of 96 across four lobbies is not.
   if (seeded.length > 64) return { error: 'At most 64 players are supported.' }
 
   const g = resolveGroupCount(parseGroupsField(formData), seeded.length)
@@ -212,9 +269,16 @@ export async function generateBracket(
   if (!id) return { error: 'Missing tournament.' }
 
   const admin = createAdminClient()
-  const { data: t } = await admin.from('tournaments').select('status, format').eq('id', id).maybeSingle()
+  const { data: t } = await admin
+    .from('tournaments')
+    .select('status, format, competition_format')
+    .eq('id', id)
+    .maybeSingle()
   if (!t) return { error: 'Tournament not found.' }
   if (t.status !== 'registration_closed') return { error: 'The bracket is locked.' }
+  if (t.competition_format === 'points_race') {
+    return { error: 'This is a points-race tournament — open its stages instead of generating a bracket.' }
+  }
 
   const seeded = await seededPaidPlayers(admin, id)
   if (seeded.length < 2) return { error: 'Need at least 2 paid players.' }
