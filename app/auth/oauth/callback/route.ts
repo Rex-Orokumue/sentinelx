@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { resolveCallbackRedirect } from '@/lib/auth/redirect'
+import { resolveCallbackRedirect, resolveOAuthFailureRedirect } from '@/lib/auth/redirect'
 
 // OAuth (Google, etc.) callback — DIFFERENT from app/auth/confirm/route.ts.
 // Google's redirect carries a PKCE `code` param that a server route CAN
@@ -13,6 +13,9 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next')
+  // Set by the settings page when attaching Google to an existing account, so a
+  // failure can go back there instead of to the login screen.
+  const intent = searchParams.get('intent')
 
   if (code) {
     const supabase = createClient()
@@ -21,5 +24,5 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}${resolveCallbackRedirect({ type: null, next })}`)
     }
   }
-  return NextResponse.redirect(`${origin}/login?error=auth`)
+  return NextResponse.redirect(`${origin}${resolveOAuthFailureRedirect({ intent })}`)
 }

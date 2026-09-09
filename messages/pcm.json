@@ -71,6 +71,7 @@
     "pending": "E dey wait: {email}",
     "pendingHint": "We dey wait make you confam from dat inbox.",
     "googleHint": "Na Google you take login? If you never set password before, use “Change Password” for up first — di link go enter your current inbox.",
+    "googleSurvives": "Google sign-in go still dey work after dis change — e tie to your Google account, no be your email. Remove am for Sign-in methods below.",
     "changed": "Your email address don update.",
     "errors": {
       "invalid_email": "Put email address wey correct.",
@@ -82,6 +83,32 @@
       "email_banned": "We no fit use dat email address.",
       "email_in_use": "Person don dey use dat email address.",
       "failed": "We no fit start di email change. Abeg try again."
+    }
+  },
+  "signInMethods": {
+    "title": "Sign-in methods",
+    "intro": "Google sign-in dey tied to your Google account, no be to your email address — if you change your email, e no go remove am.",
+    "google": "Google",
+    "emailPassword": "Email and password",
+    "linked": "E don link",
+    "notLinked": "E never link",
+    "notSet": "You never set am up",
+    "link": "Link Google",
+    "linkedOk": "Google sign-in don link to your account now.",
+    "linkFailed": "We no fit link dat Google account — e fit be say e dey another SentinelX account already.",
+    "unlink": "Unlink",
+    "unlinkConfirm": "Unlink Google",
+    "unlinkExplain": "Dis one go remove Google sign-in from your account and log you out everywhere else. Na your email and password you go dey take enter from now.",
+    "onlyMethod": "Na only dis one dey enter your account, so we no fit remove am.",
+    "passwordLabel": "Your current password",
+    "cancel": "Cancel",
+    "errors": {
+      "password_required": "Put your current password.",
+      "not_logged_in": "Your session don expire. Abeg login again.",
+      "wrong_password": "Dat password no correct.",
+      "not_linked": "Google no dey linked to dis account.",
+      "last_identity": "Na only dat one dey enter your account — set up email and password sign-in first.",
+      "failed": "We no fit unlink Google. Abeg try again."
     }
   },
   "home": {

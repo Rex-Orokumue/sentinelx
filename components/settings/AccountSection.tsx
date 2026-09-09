@@ -23,6 +23,7 @@ export function AccountSection({
   deletionRequestedAt,
   pendingEmail,
   hasPassword,
+  hasGoogle,
   emailJustChanged,
 }: {
   email: string
@@ -33,6 +34,7 @@ export function AccountSection({
   // address here and leaves the account on the old one until the link is opened.
   pendingEmail: string | null
   hasPassword: boolean
+  hasGoogle: boolean
   emailJustChanged: boolean
 }) {
   return (
@@ -49,6 +51,7 @@ export function AccountSection({
         <ChangeEmailPanel
           pendingEmail={pendingEmail}
           hasPassword={hasPassword}
+          hasGoogle={hasGoogle}
           justChanged={emailJustChanged}
         />
       </div>
@@ -82,10 +85,12 @@ export function AccountSection({
 function ChangeEmailPanel({
   pendingEmail,
   hasPassword,
+  hasGoogle,
   justChanged,
 }: {
   pendingEmail: string | null
   hasPassword: boolean
+  hasGoogle: boolean
   justChanged: boolean
 }) {
   const t = useTranslations('emailChange')
@@ -160,6 +165,11 @@ function ChangeEmailPanel({
             className="w-full rounded-lg border border-sx-border bg-slate-950 px-3 py-2 text-sm text-white"
           />
           <p className="text-xs leading-relaxed text-sx-gray">{t('passwordHint')}</p>
+          {/* Said here, not only in Sign-in methods: this is the moment someone
+              assumes the old address has lost its access. It hasn't. */}
+          {hasGoogle && (
+            <p className="text-xs leading-relaxed text-amber-200/80">{t('googleSurvives')}</p>
+          )}
 
           {state?.errorCode && <p className="text-xs text-red-400">{t(`errors.${state.errorCode}`)}</p>}
           {state?.sentTo && (

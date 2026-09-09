@@ -15,3 +15,15 @@ export function resolveCallbackRedirect(params: {
   if (next && next.startsWith('/') && !next.startsWith('//')) return next
   return '/dashboard'
 }
+
+// Where the OAuth callback sends someone when the code exchange fails.
+//
+// A failed sign-in belongs on /login. A failed *link* does not: that person is
+// already signed in and merely tried to attach Google from their settings, so
+// bouncing them to a login page with an auth error reads as "you have been
+// signed out". The usual cause is mundane — the Google account is already
+// attached to a different SentinelX user.
+export function resolveOAuthFailureRedirect(params: { intent: string | null }): string {
+  if (params.intent === 'link') return '/dashboard/settings?linked=error'
+  return '/login?error=auth'
+}
