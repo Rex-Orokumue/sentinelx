@@ -1652,6 +1652,41 @@ export type Database = {
           },
         ]
       }
+      player_statuses: {
+        Row: {
+          caption: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          image_url: string | null
+          player_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          image_url?: string | null
+          player_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          image_url?: string | null
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_statuses_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_store_items: {
         Row: {
           equipped: boolean
@@ -1781,6 +1816,7 @@ export type Database = {
           deleted_at: string | null
           deletion_requested_at: string | null
           display_name: string | null
+          equipped_avatar_border: string | null
           goals_conceded: number
           goals_scored: number
           id: string
@@ -1813,6 +1849,7 @@ export type Database = {
           deleted_at?: string | null
           deletion_requested_at?: string | null
           display_name?: string | null
+          equipped_avatar_border?: string | null
           goals_conceded?: number
           goals_scored?: number
           id: string
@@ -1845,6 +1882,7 @@ export type Database = {
           deleted_at?: string | null
           deletion_requested_at?: string | null
           display_name?: string | null
+          equipped_avatar_border?: string | null
           goals_conceded?: number
           goals_scored?: number
           id?: string
@@ -2069,6 +2107,42 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      status_views: {
+        Row: {
+          id: string
+          status_id: string
+          viewed_at: string
+          viewer_id: string
+        }
+        Insert: {
+          id?: string
+          status_id: string
+          viewed_at?: string
+          viewer_id: string
+        }
+        Update: {
+          id?: string
+          status_id?: string
+          viewed_at?: string
+          viewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "status_views_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "player_statuses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "status_views_viewer_id_fkey"
+            columns: ["viewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       store_items: {
         Row: {
@@ -2801,6 +2875,10 @@ export type Database = {
         Returns: undefined
       }
       player_rank: { Args: { uname: string }; Returns: number }
+      sync_equipped_avatar_border: {
+        Args: { target: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
