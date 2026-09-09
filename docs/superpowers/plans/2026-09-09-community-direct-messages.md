@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Private 1:1 text messaging between players — thread list, conversation view, realtime delivery, unread counts, and the non-negotiable safety trio: block, report, and a new-conversation rate limit.
+**Goal:** Private 1:1 messaging between players — text and images — with a thread list, a conversation view, realtime delivery, unread counts, and the safety controls the spec requires: block, report, and an admin "mute messaging" lever with a mass-contact signal in the report queue.
 
-**Architecture:** Four new tables (`dm_threads`, `dm_messages`, `dm_blocks`, `dm_reports`) with a normalised thread pair and RLS that scopes reads to the two participants and refuses an insert when either side has blocked the other. Pure logic (pair ordering, unread counting, block predicate, rate-limit predicate, body validation) is unit-tested; the query/action/UI layers follow this codebase's manual-verification norm. New messages write a `player_notifications` row (type `direct_message`) so the **existing header bell** carries the unread badge with zero header changes; the `/messages` list computes its own per-thread unread pips from `dm_messages.read_at`. Realtime reuses the `ALTER PUBLICATION supabase_realtime` + client-`channel` pattern already used by the notification bell and `CommunityRealtime`.
+**Architecture:** Five new tables (`dm_threads`, `dm_messages`, `dm_blocks`, `dm_reports`, `dm_muted_players`) with a normalised thread pair. RLS scopes reads to the two participants (plus staff), and a `dm_can_message()` SECURITY DEFINER function refuses an insert when either party has blocked the other or when the sender is admin-muted — enforced in the `dm_messages` INSERT policy, not just the UI. Images go to a **private** `dm-images` bucket (`public: false`); the DB stores the storage path and `fetchThread` mints a fresh 1-hour signed URL per image server-side — the same pattern as `match-evidence`. Pure logic (pair ordering, unread counting, block predicate, recent-contacts count, body validation) is unit-tested; query/action/UI layers follow this codebase's manual-verification norm. New messages write a `player_notifications` row (type `direct_message`) so the **existing header bell** carries the unread badge with zero header changes; the `/messages` list computes its own per-thread unread pips from `dm_messages.read_at`. Realtime reuses the `ALTER PUBLICATION supabase_realtime` + client-`channel` pattern already used by the notification bell and `CommunityRealtime`.
 
-**Tech Stack:** Next.js 14 App Router, TypeScript, Supabase (Postgres + Auth + Realtime), Tailwind, `zod`, `vitest`, `lucide-react`, `next-intl`.
+**Tech Stack:** Next.js 14 App Router, TypeScript, Supabase (Postgres + Auth + Storage + Realtime), Tailwind, `zod`, `vitest`, `lucide-react`, `next-intl`.
 
 **Spec:**
 - `docs/superpowers/specs/2026-09-07-direct-messages-design.md` (this piece)
@@ -15,15 +15,15 @@
 ## Global Constraints
 
 - **Mobile-first.** Design at 375px. `/messages` and `/messages/[threadId]` are a phone experience first.
-- **RLS on every table.** All four DM tables get RLS. The block check lives **in the `dm_messages` INSERT policy**, not only in the UI (spec: "Enforced in the RLS policy... so it holds regardless of client").
-- **Messages are immutable.** No UPDATE policy except `read_at`. No edit/delete-message UI for players. (Staff can delete a message via the admin client when resolving a report.)
+- **RLS on every table.** All five DM tables get RLS. The block check **and the admin-mute check** live in the `dm_messages` INSERT policy via `dm_can_message()`, not only in the UI (spec: "Enforced in the RLS policy... so it holds regardless of client").
+- **Messages are immutable.** No UPDATE policy except `read_at`. No edit/delete-message UI for players. Staff can delete a message via the admin client when resolving a report.
 - **Thread pair is normalised.** `dm_threads.player_a` is always the lexicographically smaller uuid (`player_a < player_b` as text), unique index on `(player_a, player_b)`. A→B and B→A must resolve to one thread.
-- **Body cap 2000 chars**, trimmed, non-empty (DB CHECK + friendly zod message).
-- **Rate limit — not cuttable.** A cap on *new conversations started per rolling 24h*, enforced in the `sendMessage` action (app-level state guard, matching the `friendly_matches` convention of app guards over fine-grained RLS). Cap = `NEW_THREAD_DAILY_CAP = 15`.
-- **Block & report — not cuttable.** Block from a thread and from a profile; blocked = no new messages either way + thread hidden from both trays. Report a message or a player with a reason → lands in `/admin/messages`. Staff can read a reported thread — **disclosed in the privacy policy as part of this piece, not a follow-up.**
-- **Image attachments — CUT for v1.** `dm_messages.image_url` column ships (nullable) and the CHECK is "body or image" for forward-compat, but there is **no upload UI and no `dm-images` bucket** in v1. Text-only.
-- **No push.** New messages notify in-app only (the bell). FCM push for social events is explicitly a later follow-up (overview spec).
-- **Account deletion** must delete a leaving player's DM rows — added to the `anonymise_account()` function (profiles are anonymised in place, never row-deleted, so `ON DELETE CASCADE` never fires for deletion; the explicit DELETEs are the mechanism, mirroring how `friends` is handled there).
+- **Body cap 2000 chars**, trimmed. A message needs a body **or** an image (DB CHECK + friendly zod message).
+- **No preemptive rate limit** (decision 2026-09-09 — a loose cap protects nobody, a tight one blocks real users). Instead: an admin **"mute messaging"** toggle per account (`dm_muted_players`, moderator-usable — it is not a ban), reachable from the report row and the player admin page; a muted account cannot send new DMs. The report row also shows **"messaged N new people in the last 24h"** so a mass-contact pattern is obvious.
+- **Block & report — required.** Block from a thread **and** from a player's profile; blocked = no new messages either way + thread hidden from both trays. Report a conversation (optionally a specific message) with a reason → lands in `/admin/messages`. Staff can read a reported thread — **disclosed in the privacy policy as part of this piece.**
+- **Images.** Private `dm-images` bucket, `public: false`. Sender uploads (client-side, resized) to `{senderId}/{uuid}.jpg`; the DB `image_url` column stores that **path**, not a URL. Reads go through `admin.storage.from('dm-images').createSignedUrl(path, 3600)` server-side in `fetchThread` / the admin transcript — exactly like `match-evidence` (`app/[locale]/(public)/matches/[id]/page.tsx:147`). Client-side resize via `resizeImageToMaxWidth` from `@/lib/media/resize-image` (max width 1280).
+- **No push.** New messages notify in-app only (the bell). FCM push for social events is a later follow-up (overview spec).
+- **Account deletion** deletes a leaving player's DM rows — added to `anonymise_account()` (profiles are anonymised in place, never row-deleted, so `ON DELETE CASCADE` never fires for deletion; explicit DELETEs are the mechanism, mirroring how `friends` is handled there).
 - **Migrations are timestamp-named:** `YYYYMMDDHHMMSS_name.sql` (UTC).
 - **Supabase project id for type generation / MCP:** `itxubrkbropttfdackmi`.
 - **This is a git worktree** at `.claude/worktrees/community-dms` on branch `worktree-community-dms`, based on `origin/main`. Concurrent sessions are active in other worktrees. Do **not** run `npm run build` (their `next dev` may be running) — verify with `npx tsc --noEmit` + `npx next lint`, and on the Vercel preview after push.
@@ -37,27 +37,27 @@
 
 | Path | Responsibility |
 |---|---|
-| `supabase/migrations/<ts>_direct_messages.sql` | 4 tables + RLS + block-aware insert policy + notification type + realtime publication + `anonymise_account` extension |
+| `supabase/migrations/<ts>_direct_messages.sql` | 5 tables + `dm-images` bucket + all RLS + `dm_can_message()` + notification type + realtime publication + `anonymise_account` extension |
 | `lib/messages/thread-key.ts` | `orderedPair(a,b)` — the one place pair normalisation lives |
 | `lib/messages/thread-key.test.ts` | unit tests |
-| `lib/messages/predicates.ts` | `unreadCount`, `isBlockedBetween`, `newThreadAllowed` — pure |
+| `lib/messages/predicates.ts` | `unreadCount`, `isBlockedBetween`, `countNewContactsSince` — pure |
 | `lib/messages/predicates.test.ts` | unit tests |
 | `lib/messages/schema.ts` | `messageBodySchema`, `reportReasonSchema` (zod) |
 | `lib/messages/schema.test.ts` | unit tests |
-| `lib/messages/query.ts` | server-only reads: `fetchThreadList`, `fetchThread`, `resolveThreadId` |
-| `lib/messages/actions.ts` | `'use server'`: `sendMessage`, `markThreadRead`, `blockUser`, `unblockUser`, `reportConversation` |
+| `lib/messages/query.ts` | server-only reads: `fetchThreadList`, `fetchThread`, `resolveThreadId`, `fetchProfileMessagingState` |
+| `lib/messages/actions.ts` | `'use server'`: `sendMessage`, `startConversation`, `markThreadRead`, `blockUser`, `unblockUser`, `reportConversation` |
 | `app/[locale]/messages/page.tsx` | thread list (server component) |
 | `app/[locale]/messages/[threadId]/page.tsx` | one conversation (server component) |
 | `components/messages/ThreadListItem.tsx` | one row in the list |
 | `components/messages/MessagesRealtime.tsx` | `'use client'` — refreshes the list on any `dm_messages` change |
-| `components/messages/Conversation.tsx` | `'use client'` — message list + realtime append + composer + overflow menu |
-| `components/messages/MessageComposer.tsx` | `'use client'` — textarea + send |
+| `components/messages/Conversation.tsx` | `'use client'` — message list + realtime append + composer |
+| `components/messages/MessageComposer.tsx` | `'use client'` — textarea + image picker + send |
 | `components/messages/ThreadMenu.tsx` | `'use client'` — block / report overflow menu + report dialog |
-| `components/player/MessageButton.tsx` | `'use client'` — "Message" button for the profile header |
+| `components/player/ProfilePlayerActions.tsx` | `'use client'` — Message + Block/Unblock on a player's profile |
 | `lib/messages/admin-query.ts` | `fetchDmReports` |
-| `lib/messages/admin-actions.ts` | `'use server'`: `resolveDmReport` (+ optional message delete) |
+| `lib/messages/admin-actions.ts` | `'use server'`: `resolveDmReport`, `setMessagingMuted` |
 | `app/[locale]/admin/messages/page.tsx` | staff report queue |
-| `components/admin/DmReportRow.tsx` | `'use client'` — one report, expandable to the thread transcript |
+| `components/admin/DmReportRow.tsx` | `'use client'` — one report, transcript, resolve + mute controls |
 
 **Modified files:**
 
@@ -66,7 +66,8 @@
 | `lib/supabase/types.ts` | regenerated after the migration |
 | `lib/supabase/middleware.ts` | add `/messages` to `PROTECTED` |
 | `lib/notifications/inbox.ts` | add `'direct_message'` to `NotificationType` |
-| `components/player/ProfileHeader.tsx` | render `<MessageButton>` beside the friend/challenge actions |
+| `components/player/ProfileHeader.tsx` | swap the inline `FriendStatusAction + ChallengeButton` block for `<ProfilePlayerActions>` (keeps both, adds Message + Block) |
+| `app/[locale]/(public)/players/[username]/page.tsx` | fetch the viewer↔profile messaging state, pass to `ProfileHeader` |
 | `lib/admin/nav.ts` | add `{ label: 'Messages', href: '/admin/messages', adminOnly: false }` |
 | `messages/en.json`, `messages/fr.json`, `messages/pcm.json` | privacy-policy DM disclosure keys |
 | `app/[locale]/(public)/privacy/page.tsx` | wire the new privacy keys into §2 and §4 |
@@ -75,7 +76,7 @@
 
 ---
 
-## Task 1: Schema — tables, RLS, notification type, realtime, deletion
+## Task 1: Schema — tables, RLS, image bucket, notification type, realtime, deletion
 
 **Files:**
 - Create: `supabase/migrations/<ts>_direct_messages.sql`
@@ -84,21 +85,22 @@
 - Modify: `lib/notifications/inbox.ts`
 
 **Interfaces:**
-- Produces: tables `dm_threads`, `dm_messages`, `dm_blocks`, `dm_reports` in production; `Database['public']['Tables']` entries for all four in `lib/supabase/types.ts`; `player_notifications.type` accepts `'direct_message'`; `dm_messages` on the realtime publication; `anonymise_account()` deletes DM rows; `/messages` redirects unauthenticated users to `/login`.
+- Produces: tables `dm_threads`, `dm_messages`, `dm_blocks`, `dm_reports`, `dm_muted_players` in production; `Database['public']['Tables']` entries for all five in `lib/supabase/types.ts`; private bucket `dm-images` with storage RLS; `player_notifications.type` accepts `'direct_message'`; `dm_messages` on the realtime publication; `anonymise_account()` deletes DM rows; `/messages` redirects unauthenticated users to `/login`.
 
 - [ ] **Step 1: Write the migration**
 
-Create `supabase/migrations/<ts>_direct_messages.sql` (real current UTC timestamp, e.g. `20260909210000`):
+Create `supabase/migrations/<ts>_direct_messages.sql` (real current UTC timestamp, e.g. `20260909213000`):
 
 ```sql
--- Private 1:1 player messaging. `070_chat_system` is the support chatbot — this
--- is unrelated and new.
+-- Private 1:1 player messaging, text + images. `070_chat_system` is the support
+-- chatbot — unrelated and new.
 --
 -- Thread identity is the *pair*, stored normalised (player_a < player_b as text)
--- with a unique index, so A->B and B->A are one thread. Blocking is enforced in
--- the dm_messages INSERT policy, not just the UI. Messages are immutable except
--- read_at. Most players here are minors — block/report are part of this schema,
--- not a later addition.
+-- with a unique index, so A->B and B->A are one thread. Blocking AND an admin
+-- "mute messaging" flag are enforced in the dm_messages INSERT policy via
+-- dm_can_message(), not just the UI. Messages are immutable except read_at.
+-- Images live in a private bucket; the DB stores the storage path, reads go
+-- through server-side signed URLs (same as match-evidence).
 
 -- ---------------------------------------------------------------
 -- Threads
@@ -115,17 +117,28 @@ CREATE TABLE public.dm_threads (
 );
 CREATE INDEX dm_threads_player_a_idx ON public.dm_threads (player_a, last_message_at DESC);
 CREATE INDEX dm_threads_player_b_idx ON public.dm_threads (player_b, last_message_at DESC);
--- Rate limit reads this: new threads started by one player in the last 24h.
+-- Powers the admin "messaged N new people in 24h" signal.
 CREATE INDEX dm_threads_created_by_idx ON public.dm_threads (created_by, created_at DESC);
 
 ALTER TABLE public.dm_threads ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "dm_threads_participant_read" ON public.dm_threads
   FOR SELECT USING (auth.uid() IN (player_a, player_b) OR public.is_staff());
+-- Threads are created only via the server action (service-role) — no client
+-- write policy. Blocking hides a thread in the query layer, not by deleting it.
 
--- Threads are created only via the sendMessage server action (service-role),
--- so no client INSERT/UPDATE/DELETE policy. Blocking hides a thread in the
--- query layer, not by deleting it.
+-- ---------------------------------------------------------------
+-- Admin "mute messaging" — staff-only. Not a ban; a moderator may set it.
+-- ---------------------------------------------------------------
+CREATE TABLE public.dm_muted_players (
+  player_id uuid        PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+  muted_at  timestamptz NOT NULL DEFAULT now(),
+  muted_by  uuid        REFERENCES public.profiles(id) ON DELETE SET NULL
+);
+ALTER TABLE public.dm_muted_players ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "dm_muted_players_staff_read" ON public.dm_muted_players
+  FOR SELECT USING (public.is_staff());
+-- Writes are service-role only (setMessagingMuted action).
 
 -- ---------------------------------------------------------------
 -- Messages
@@ -135,7 +148,7 @@ CREATE TABLE public.dm_messages (
   thread_id  uuid        NOT NULL REFERENCES public.dm_threads(id) ON DELETE CASCADE,
   sender_id  uuid        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   body       text,
-  image_url  text,
+  image_url  text,   -- storage path in the dm-images bucket, not a URL
   created_at timestamptz NOT NULL DEFAULT now(),
   read_at    timestamptz,
   CONSTRAINT dm_messages_has_content
@@ -144,13 +157,12 @@ CREATE TABLE public.dm_messages (
     CHECK (body IS NULL OR char_length(body) <= 2000)
 );
 CREATE INDEX dm_messages_thread_idx ON public.dm_messages (thread_id, created_at);
--- Unread lookups: "messages in my threads not sent by me and not yet read".
 CREATE INDEX dm_messages_unread_idx ON public.dm_messages (thread_id, read_at) WHERE read_at IS NULL;
 
 ALTER TABLE public.dm_messages ENABLE ROW LEVEL SECURITY;
 
--- A helper keeps the two message policies readable. STABLE + SECURITY DEFINER so
--- it can see dm_threads/dm_blocks regardless of the caller's own RLS.
+-- STABLE + SECURITY DEFINER so it can see dm_threads / dm_blocks /
+-- dm_muted_players regardless of the caller's own RLS.
 CREATE OR REPLACE FUNCTION public.dm_can_message(p_thread uuid, p_sender uuid)
 RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
@@ -159,6 +171,7 @@ AS $$
     SELECT 1 FROM public.dm_threads t
     WHERE t.id = p_thread
       AND p_sender IN (t.player_a, t.player_b)
+      AND NOT EXISTS (SELECT 1 FROM public.dm_muted_players m WHERE m.player_id = p_sender)
       AND NOT EXISTS (
         SELECT 1 FROM public.dm_blocks b
         WHERE (b.blocker_id = t.player_a AND b.blocked_id = t.player_b)
@@ -175,15 +188,12 @@ CREATE POLICY "dm_messages_participant_read" ON public.dm_messages
     )
   );
 
--- Insert: you are the sender, you're a participant, and nobody has blocked
--- anybody in this pair. The server action also checks this (for a friendly
--- error) but the policy is the real guard.
 CREATE POLICY "dm_messages_sender_insert" ON public.dm_messages
   FOR INSERT WITH CHECK (
     sender_id = auth.uid() AND public.dm_can_message(thread_id, auth.uid())
   );
 
--- The only permitted update is the recipient marking a message read.
+-- Only permitted update: the recipient marking a message read.
 CREATE POLICY "dm_messages_recipient_mark_read" ON public.dm_messages
   FOR UPDATE USING (
     sender_id <> auth.uid()
@@ -202,16 +212,13 @@ CREATE TABLE public.dm_blocks (
   blocker_id uuid        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   blocked_id uuid        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT dm_blocks_not_self  CHECK (blocker_id <> blocked_id),
+  CONSTRAINT dm_blocks_not_self   CHECK (blocker_id <> blocked_id),
   CONSTRAINT dm_blocks_pair_unique UNIQUE (blocker_id, blocked_id)
 );
 CREATE INDEX dm_blocks_blocker_idx ON public.dm_blocks (blocker_id);
 CREATE INDEX dm_blocks_blocked_idx ON public.dm_blocks (blocked_id);
 
 ALTER TABLE public.dm_blocks ENABLE ROW LEVEL SECURITY;
-
--- You see a block row if you are either party (so the UI can show "you blocked
--- them" vs "you can't message them"). You may only create/remove your own.
 CREATE POLICY "dm_blocks_involved_read" ON public.dm_blocks
   FOR SELECT USING (auth.uid() IN (blocker_id, blocked_id) OR public.is_staff());
 CREATE POLICY "dm_blocks_own_insert" ON public.dm_blocks
@@ -236,13 +243,34 @@ CREATE TABLE public.dm_reports (
 CREATE INDEX dm_reports_open_idx ON public.dm_reports (created_at DESC) WHERE resolved_at IS NULL;
 
 ALTER TABLE public.dm_reports ENABLE ROW LEVEL SECURITY;
-
 CREATE POLICY "dm_reports_reporter_or_staff_read" ON public.dm_reports
   FOR SELECT USING (reporter_id = auth.uid() OR public.is_staff());
 CREATE POLICY "dm_reports_own_insert" ON public.dm_reports
   FOR INSERT WITH CHECK (reporter_id = auth.uid());
 CREATE POLICY "dm_reports_staff_update" ON public.dm_reports
   FOR UPDATE USING (public.is_staff()) WITH CHECK (public.is_staff());
+
+-- ---------------------------------------------------------------
+-- Private image bucket — mirrors match-evidence (004_match_evidence_storage.sql)
+-- ---------------------------------------------------------------
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('dm-images', 'dm-images', false)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "dm_images_insert_own"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'dm-images'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- Owner or staff (reads normally go through server-side signed URLs).
+CREATE POLICY "dm_images_select_own_or_staff"
+  ON storage.objects FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'dm-images'
+    AND ((storage.foldername(name))[1] = auth.uid()::text OR public.is_staff())
+  );
 
 -- ---------------------------------------------------------------
 -- Notification type + realtime
@@ -260,13 +288,10 @@ ALTER TABLE public.player_notifications ADD CONSTRAINT player_notifications_type
     'result_needs_review','result_disputed','result_no_submission','direct_message'
   ]::text[]));
 
--- RLS enforced on top of the publication — a subscriber only receives rows for
--- threads they participate in (dm_messages_participant_read).
 ALTER PUBLICATION supabase_realtime ADD TABLE public.dm_messages;
 
 -- ---------------------------------------------------------------
--- Account deletion — a private conversation ends when one side leaves,
--- same reasoning the function already applies to `friends`.
+-- Account deletion — a private conversation ends when one side leaves.
 -- ---------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.anonymise_account(p_id uuid)
 RETURNS void
@@ -315,11 +340,12 @@ BEGIN
     WHERE requester_id = p_id OR recipient_id = p_id;
 
   -- Private messaging: drop the leaver's threads (cascades dm_messages),
-  -- their blocks, and reports they filed or that name them.
+  -- their blocks, any mute row, and reports they filed or that name them.
   DELETE FROM public.dm_threads
     WHERE player_a = p_id OR player_b = p_id;
   DELETE FROM public.dm_blocks
     WHERE blocker_id = p_id OR blocked_id = p_id;
+  DELETE FROM public.dm_muted_players WHERE player_id = p_id;
   DELETE FROM public.dm_reports
     WHERE reporter_id = p_id OR reported_id = p_id;
 END;
@@ -328,7 +354,7 @@ $$;
 REVOKE ALL ON FUNCTION public.anonymise_account(uuid) FROM public, anon, authenticated;
 ```
 
-> **If the DB's `anonymise_account` body has drifted from `079_anonymise_account.sql`** (another migration may have extended it since — check with `SELECT prosrc FROM pg_proc WHERE proname = 'anonymise_account';` in Step 3), keep every line it currently has and only add the three `dm_*` DELETEs before the final `END;`.
+> **If the DB's `anonymise_account` body has drifted from `079_anonymise_account.sql`** (check with `SELECT prosrc FROM pg_proc WHERE proname='anonymise_account';` in Step 3), keep every line it currently has and only add the four `dm_*` DELETEs before the final `END;`.
 
 - [ ] **Step 2: Apply to production**
 
@@ -340,49 +366,38 @@ Run via MCP `execute_sql`:
 
 ```sql
 SELECT to_regclass('public.dm_threads'), to_regclass('public.dm_messages'),
-       to_regclass('public.dm_blocks'), to_regclass('public.dm_reports');
+       to_regclass('public.dm_blocks'), to_regclass('public.dm_reports'),
+       to_regclass('public.dm_muted_players');
+SELECT id, public FROM storage.buckets WHERE id = 'dm-images';
 SELECT tablename FROM pg_publication_tables
   WHERE pubname='supabase_realtime' AND tablename='dm_messages';
 SELECT prosrc LIKE '%dm_threads%' AS deletion_patched
   FROM pg_proc WHERE proname='anonymise_account';
-SELECT 'direct_message' = ANY (
-  regexp_split_to_array(
-    (SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname='player_notifications_type_check'),
-    '\W+')) AS notif_type_ok;
+SELECT pg_get_constraintdef(oid) LIKE '%direct_message%' AS notif_type_ok
+  FROM pg_constraint WHERE conname='player_notifications_type_check';
 ```
 
-Expected: 4 non-null regclasses, one `dm_messages` publication row, `deletion_patched = t`, `notif_type_ok = t`.
+Expected: 5 non-null regclasses, `dm-images` bucket with `public = f`, one publication row, `deletion_patched = t`, `notif_type_ok = t`.
 
 - [ ] **Step 4: Regenerate types**
 
 MCP `generate_typescript_types` (project `itxubrkbropttfdackmi`) → write the `.types` payload to `lib/supabase/types.ts`. Confirm:
 
 ```bash
-grep -c "dm_threads:\|dm_messages:\|dm_blocks:\|dm_reports:" lib/supabase/types.ts   # expect >= 4
+grep -c "dm_threads:\|dm_messages:\|dm_blocks:\|dm_reports:\|dm_muted_players:" lib/supabase/types.ts   # expect >= 5
 ```
 
 - [ ] **Step 5: Guard `/messages` in middleware**
 
-In `lib/supabase/middleware.ts`, change:
-
-```ts
-const PROTECTED = ['/dashboard', '/admin']
-```
-
-to:
-
-```ts
-const PROTECTED = ['/dashboard', '/admin', '/messages']
-```
+In `lib/supabase/middleware.ts`, change `const PROTECTED = ['/dashboard', '/admin']` to `const PROTECTED = ['/dashboard', '/admin', '/messages']`.
 
 - [ ] **Step 6: Add the notification type**
 
-In `lib/notifications/inbox.ts`, add `| 'direct_message'` to the `NotificationType` union (alphabetical-ish, next to `'post_reaction'` is fine).
+In `lib/notifications/inbox.ts`, add `| 'direct_message'` to the `NotificationType` union (near `'post_reaction'` is fine).
 
 - [ ] **Step 7: Typecheck**
 
-Run: `npx tsc --noEmit`
-Expected: passes (nothing consumes the new tables yet).
+Run: `npx tsc --noEmit` → passes (nothing consumes the new tables yet).
 
 - [ ] **Step 8: Commit**
 
@@ -390,9 +405,9 @@ Expected: passes (nothing consumes the new tables yet).
 git add supabase/migrations/ lib/supabase/types.ts lib/supabase/middleware.ts lib/notifications/inbox.ts
 git commit -m "feat(messages): schema for private 1:1 messaging
 
-Four tables (threads/messages/blocks/reports), block enforced in the
-dm_messages INSERT policy, dm_messages on realtime, anonymise_account extended
-to drop a leaver's conversations, /messages guarded in middleware.
+Five tables (threads/messages/blocks/reports/muted), block + admin-mute enforced
+in the dm_messages INSERT policy via dm_can_message(), private dm-images bucket,
+dm_messages on realtime, anonymise_account extended, /messages guarded.
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
@@ -407,10 +422,10 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 - Test: `lib/messages/thread-key.test.ts`
 
 **Interfaces:**
-- Produces: `orderedPair(x: string, y: string): { playerA: string; playerB: string }` — sorts the two uuids as strings so `(A,B)` and `(B,A)` give the same result. Throws `Error('a player cannot message themselves')` if `x === y`.
-- Consumed by: `lib/messages/query.ts` (`resolveThreadId`), `lib/messages/actions.ts` (`sendMessage`).
+- Produces: `orderedPair(x: string, y: string): { playerA: string; playerB: string }` — sorts the two uuids as strings. Throws `Error('a player cannot message themselves')` if `x === y`.
+- Consumed by: `lib/messages/query.ts` (`resolveThreadId`), `lib/messages/actions.ts`.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Failing test**
 
 ```ts
 import { describe, it, expect } from 'vitest'
@@ -420,39 +435,30 @@ describe('orderedPair', () => {
   it('puts the lexicographically smaller uuid first', () => {
     expect(orderedPair('bbb', 'aaa')).toEqual({ playerA: 'aaa', playerB: 'bbb' })
   })
-
   it('is order-independent', () => {
     expect(orderedPair('aaa', 'bbb')).toEqual(orderedPair('bbb', 'aaa'))
   })
-
   it('rejects a self-pair', () => {
     expect(() => orderedPair('aaa', 'aaa')).toThrow(/cannot message themselves/i)
   })
 })
 ```
 
-- [ ] **Step 2: Run — verify fail**
-
-Run: `npx vitest run lib/messages/thread-key.test.ts`
-Expected: FAIL — `Cannot find module './thread-key'`.
+- [ ] **Step 2: Run — verify fail** — `npx vitest run lib/messages/thread-key.test.ts` → FAIL (module not found).
 
 - [ ] **Step 3: Implement**
 
 ```ts
 // The one place the normalised thread pair is computed. dm_threads has a
-// CHECK (player_a < player_b) and a UNIQUE (player_a, player_b), so A->B and
-// B->A must map to the same row — that only holds if every caller orders the
-// pair the same way.
+// CHECK (player_a < player_b) and UNIQUE (player_a, player_b), so A->B and B->A
+// only map to the same row if every caller orders the pair identically.
 export function orderedPair(x: string, y: string): { playerA: string; playerB: string } {
   if (x === y) throw new Error('a player cannot message themselves')
   return x < y ? { playerA: x, playerB: y } : { playerA: y, playerB: x }
 }
 ```
 
-- [ ] **Step 4: Run — verify pass**
-
-Run: `npx vitest run lib/messages/thread-key.test.ts`
-Expected: PASS (3).
+- [ ] **Step 4: Run — verify pass** — PASS (3).
 
 - [ ] **Step 5: Commit**
 
@@ -466,7 +472,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 
 ---
 
-## Task 3: Pure — unread / block / rate-limit predicates (TDD)
+## Task 3: Pure — unread / block / recent-contacts predicates (TDD)
 
 **Files:**
 - Create: `lib/messages/predicates.ts`
@@ -475,18 +481,17 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 **Interfaces:**
 - Produces:
   - `type UnreadInput = { senderId: string; readAt: string | null }`
-  - `unreadCount(messages: UnreadInput[], viewerId: string): number` — messages not sent by the viewer and with `readAt === null`.
+  - `unreadCount(messages: UnreadInput[], viewerId: string): number` — messages not sent by the viewer with `readAt === null`.
   - `type BlockRow = { blockerId: string; blockedId: string }`
   - `isBlockedBetween(blocks: BlockRow[], x: string, y: string): boolean` — true if any row blocks x→y or y→x.
-  - `NEW_THREAD_DAILY_CAP = 15`
-  - `newThreadAllowed(startedInLast24h: number): boolean` — `startedInLast24h < NEW_THREAD_DAILY_CAP`.
-- Consumed by: `lib/messages/query.ts`, `lib/messages/actions.ts`, `components/messages/*`.
+  - `countNewContactsSince(createdAts: string[], sinceIso: string): number` — how many of the given thread `created_at` timestamps are `>= sinceIso`. (Feeds the admin "N new people in 24h" signal — the caller passes the `created_at`s of threads this player started.)
+- Consumed by: `lib/messages/query.ts`, `lib/messages/admin-query.ts`, `components/messages/*`.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Failing test**
 
 ```ts
 import { describe, it, expect } from 'vitest'
-import { unreadCount, isBlockedBetween, newThreadAllowed, NEW_THREAD_DAILY_CAP } from './predicates'
+import { unreadCount, isBlockedBetween, countNewContactsSince } from './predicates'
 
 describe('unreadCount', () => {
   const rows = [
@@ -510,25 +515,27 @@ describe('isBlockedBetween', () => {
   it('is true when y blocked x (symmetric in effect)', () => {
     expect(isBlockedBetween([{ blockerId: 'y', blockedId: 'x' }], 'x', 'y')).toBe(true)
   })
-  it('is false when an unrelated block exists', () => {
+  it('is false for an unrelated block', () => {
     expect(isBlockedBetween([{ blockerId: 'x', blockedId: 'z' }], 'x', 'y')).toBe(false)
   })
 })
 
-describe('newThreadAllowed', () => {
-  it('allows below the cap', () => {
-    expect(newThreadAllowed(NEW_THREAD_DAILY_CAP - 1)).toBe(true)
+describe('countNewContactsSince', () => {
+  it('counts timestamps at or after the cutoff', () => {
+    expect(
+      countNewContactsSince(
+        ['2026-09-09T10:00:00Z', '2026-09-08T10:00:00Z', '2026-09-09T12:00:00Z'],
+        '2026-09-09T00:00:00Z',
+      ),
+    ).toBe(2)
   })
-  it('blocks at the cap', () => {
-    expect(newThreadAllowed(NEW_THREAD_DAILY_CAP)).toBe(false)
+  it('is zero for none', () => {
+    expect(countNewContactsSince([], '2026-09-09T00:00:00Z')).toBe(0)
   })
 })
 ```
 
-- [ ] **Step 2: Run — verify fail**
-
-Run: `npx vitest run lib/messages/predicates.test.ts`
-Expected: FAIL — module not found.
+- [ ] **Step 2: Run — verify fail** → FAIL (module not found).
 
 - [ ] **Step 3: Implement**
 
@@ -542,8 +549,8 @@ export function unreadCount(messages: UnreadInput[], viewerId: string): number {
 
 export type BlockRow = { blockerId: string; blockedId: string }
 
-// Blocking is symmetric in effect: if EITHER party blocked the other, neither
-// can send. The DB's dm_can_message() enforces the same; this is the client twin.
+// Symmetric in effect: if EITHER party blocked the other, neither can send.
+// The DB's dm_can_message() enforces the same; this is the client twin.
 export function isBlockedBetween(blocks: BlockRow[], x: string, y: string): boolean {
   return blocks.some(
     (b) =>
@@ -552,25 +559,20 @@ export function isBlockedBetween(blocks: BlockRow[], x: string, y: string): bool
   )
 }
 
-// Cheapest effective anti-spam (spec): a cap on how many *new* conversations a
-// player can start per rolling 24h. Existing threads are never limited.
-export const NEW_THREAD_DAILY_CAP = 15
-
-export function newThreadAllowed(startedInLast24h: number): boolean {
-  return startedInLast24h < NEW_THREAD_DAILY_CAP
+// Admin signal: of the threads this player started, how many since the cutoff.
+// A high number next to a report is a mass-contact pattern.
+export function countNewContactsSince(createdAts: string[], sinceIso: string): number {
+  return createdAts.filter((t) => t >= sinceIso).length
 }
 ```
 
-- [ ] **Step 4: Run — verify pass**
-
-Run: `npx vitest run lib/messages/predicates.test.ts`
-Expected: PASS (7).
+- [ ] **Step 4: Run — verify pass** → PASS (7).
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add lib/messages/predicates.ts lib/messages/predicates.test.ts
-git commit -m "feat(messages): unread / block / rate-limit predicates
+git commit -m "feat(messages): unread / block / recent-contacts predicates
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
@@ -590,7 +592,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
   - `reportReasonSchema: z.ZodType<string>` — trims, min 1 (`'Add a reason so staff can act on it'`), max 1000 (`'Keep it under 1000 characters'`).
 - Consumed by: `lib/messages/actions.ts`, `components/messages/MessageComposer.tsx`, `components/messages/ThreadMenu.tsx`.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Failing test**
 
 ```ts
 import { describe, it, expect } from 'vitest'
@@ -623,9 +625,7 @@ describe('reportReasonSchema', () => {
 })
 ```
 
-- [ ] **Step 2: Run — verify fail**
-
-Run: `npx vitest run lib/messages/schema.test.ts` → FAIL (module not found).
+- [ ] **Step 2: Run — verify fail** → FAIL.
 
 - [ ] **Step 3: Implement**
 
@@ -647,9 +647,7 @@ export const reportReasonSchema = z
   .max(1000, 'Keep it under 1000 characters')
 ```
 
-- [ ] **Step 4: Run — verify pass**
-
-Run: `npx vitest run lib/messages/schema.test.ts` → PASS (6).
+- [ ] **Step 4: Run — verify pass** → PASS (6).
 
 - [ ] **Step 5: Commit**
 
@@ -669,25 +667,41 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 - Create: `lib/messages/query.ts`
 
 **Interfaces:**
-- Consumes: `orderedPair` (Task 2), `unreadCount`, `isBlockedBetween` (Task 3), `createClient` from `@/lib/supabase/server`.
+- Consumes: `orderedPair` (Task 2), `unreadCount`, `isBlockedBetween`, `type BlockRow` (Task 3); `createClient` from `@/lib/supabase/server`; `createAdminClient` from `@/lib/supabase/admin`.
 - Produces:
-  - `type ThreadSummary = { threadId: string; otherId: string; otherName: string; otherUsername: string | null; otherAvatarUrl: string | null; lastMessage: string | null; lastMessageAt: string; unread: number }`
-  - `fetchThreadList(viewerId: string): Promise<ThreadSummary[]>` — the viewer's threads, most-recent first, **excluding threads where the pair is blocked in either direction**, newest message preview + per-thread unread.
-  - `type ThreadDetail = { threadId: string; other: { id: string; name: string; username: string | null; avatarUrl: string | null }; messages: { id: string; senderId: string; body: string | null; createdAt: string; readAt: string | null }[]; blockedByMe: boolean; blockedByThem: boolean }`
-  - `fetchThread(threadId: string, viewerId: string): Promise<ThreadDetail | null>` — `null` if the viewer is not a participant (RLS returns nothing) or the thread does not exist.
-  - `resolveThreadId(viewerId: string, otherId: string): Promise<string | null>` — the existing thread id for this pair, or `null` if none exists yet (does **not** create — creation happens in `sendMessage`).
-- Consumed by: the two pages (Task 7, 8) and `MessageButton` (Task 9).
+  - `type ThreadSummary = { threadId: string; otherId: string; otherName: string; otherUsername: string | null; otherAvatarUrl: string | null; lastMessage: string | null; lastWasImage: boolean; lastMessageAt: string; unread: number }`
+  - `fetchThreadList(viewerId: string): Promise<ThreadSummary[]>` — the viewer's threads, most-recent first, **excluding threads blocked in either direction**, with the newest message preview (or `lastWasImage`) + per-thread unread.
+  - `type ConversationMessage = { id: string; senderId: string; body: string | null; imageUrl: string | null; createdAt: string; readAt: string | null }` — `imageUrl` here is a **signed URL** (or `null`), not the stored path.
+  - `type ThreadDetail = { threadId: string; other: { id: string; name: string; username: string | null; avatarUrl: string | null }; messages: ConversationMessage[]; blockedByMe: boolean; blockedByThem: boolean }`
+  - `fetchThread(threadId: string, viewerId: string): Promise<ThreadDetail | null>` — `null` if the viewer is not a participant.
+  - `resolveThreadId(viewerId: string, otherId: string): Promise<string | null>` — existing thread id for the pair, or `null` (does not create).
+  - `type ProfileMessagingState = { blockedByMe: boolean; blockedByThem: boolean }`
+  - `fetchProfileMessagingState(viewerId: string, profileId: string): Promise<ProfileMessagingState>` — for the profile page's Block/Unblock button.
+- Consumed by: Tasks 7, 8, 9.
 
 - [ ] **Step 1: Write `query.ts`**
 
 ```ts
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { orderedPair } from './thread-key'
 import { unreadCount, isBlockedBetween, type BlockRow } from './predicates'
 
 const PROFILE = 'id, username, display_name, avatar_url'
-
 type ProfileRow = { id: string; username: string | null; display_name: string | null; avatar_url: string | null }
+
+async function signImages(paths: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>()
+  if (paths.length === 0) return out
+  const admin = createAdminClient()
+  await Promise.all(
+    paths.map(async (p) => {
+      const { data } = await admin.storage.from('dm-images').createSignedUrl(p, 3600)
+      if (data?.signedUrl) out.set(p, data.signedUrl)
+    }),
+  )
+  return out
+}
 
 export type ThreadSummary = {
   threadId: string
@@ -696,13 +710,13 @@ export type ThreadSummary = {
   otherUsername: string | null
   otherAvatarUrl: string | null
   lastMessage: string | null
+  lastWasImage: boolean
   lastMessageAt: string
   unread: number
 }
 
 export async function fetchThreadList(viewerId: string): Promise<ThreadSummary[]> {
   const supabase = createClient()
-
   const { data: threads } = await supabase
     .from('dm_threads')
     .select('id, player_a, player_b, last_message_at')
@@ -717,7 +731,7 @@ export async function fetchThreadList(viewerId: string): Promise<ThreadSummary[]
     supabase.from('profiles').select(PROFILE).in('id', otherIds),
     supabase
       .from('dm_messages')
-      .select('thread_id, sender_id, body, created_at, read_at')
+      .select('thread_id, sender_id, body, image_url, created_at, read_at')
       .in('thread_id', threadIds)
       .order('created_at', { ascending: true }),
     supabase
@@ -728,18 +742,18 @@ export async function fetchThreadList(viewerId: string): Promise<ThreadSummary[]
 
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p as ProfileRow]))
   const blockRows: BlockRow[] = (blocks ?? []).map((b) => ({ blockerId: b.blocker_id, blockedId: b.blocked_id }))
-  const msgsByThread = new Map<string, { sender_id: string; body: string | null; created_at: string; read_at: string | null }[]>()
+  const byThread = new Map<string, { sender_id: string; body: string | null; image_url: string | null; read_at: string | null }[]>()
   for (const m of msgs ?? []) {
-    const list = msgsByThread.get(m.thread_id) ?? []
+    const list = byThread.get(m.thread_id) ?? []
     list.push(m)
-    msgsByThread.set(m.thread_id, list)
+    byThread.set(m.thread_id, list)
   }
 
   const out: ThreadSummary[] = []
   for (const t of threads) {
     const otherId = t.player_a === viewerId ? t.player_b : t.player_a
-    if (isBlockedBetween(blockRows, viewerId, otherId)) continue // hidden from both trays
-    const list = msgsByThread.get(t.id) ?? []
+    if (isBlockedBetween(blockRows, viewerId, otherId)) continue
+    const list = byThread.get(t.id) ?? []
     const last = list[list.length - 1]
     const other = profileById.get(otherId)
     out.push({
@@ -749,28 +763,33 @@ export async function fetchThreadList(viewerId: string): Promise<ThreadSummary[]
       otherUsername: other?.username ?? null,
       otherAvatarUrl: other?.avatar_url ?? null,
       lastMessage: last?.body ?? null,
+      lastWasImage: !!last && last.body == null && last.image_url != null,
       lastMessageAt: t.last_message_at,
-      unread: unreadCount(
-        list.map((m) => ({ senderId: m.sender_id, readAt: m.read_at })),
-        viewerId,
-      ),
+      unread: unreadCount(list.map((m) => ({ senderId: m.sender_id, readAt: m.read_at })), viewerId),
     })
   }
   return out
 }
 
+export type ConversationMessage = {
+  id: string
+  senderId: string
+  body: string | null
+  imageUrl: string | null
+  createdAt: string
+  readAt: string | null
+}
+
 export type ThreadDetail = {
   threadId: string
   other: { id: string; name: string; username: string | null; avatarUrl: string | null }
-  messages: { id: string; senderId: string; body: string | null; createdAt: string; readAt: string | null }[]
+  messages: ConversationMessage[]
   blockedByMe: boolean
   blockedByThem: boolean
 }
 
 export async function fetchThread(threadId: string, viewerId: string): Promise<ThreadDetail | null> {
   const supabase = createClient()
-
-  // RLS returns the row only to a participant; a non-participant gets null.
   const { data: thread } = await supabase
     .from('dm_threads')
     .select('id, player_a, player_b')
@@ -785,7 +804,7 @@ export async function fetchThread(threadId: string, viewerId: string): Promise<T
     supabase.from('profiles').select(PROFILE).eq('id', otherId).maybeSingle(),
     supabase
       .from('dm_messages')
-      .select('id, sender_id, body, created_at, read_at')
+      .select('id, sender_id, body, image_url, created_at, read_at')
       .eq('thread_id', threadId)
       .order('created_at', { ascending: true }),
     supabase
@@ -794,6 +813,8 @@ export async function fetchThread(threadId: string, viewerId: string): Promise<T
       .or(`blocker_id.eq.${viewerId},blocked_id.eq.${viewerId}`),
   ])
 
+  const rows = messages ?? []
+  const signed = await signImages(rows.filter((m) => m.image_url).map((m) => m.image_url as string))
   const blockRows = (blocks ?? []) as { blocker_id: string; blocked_id: string }[]
 
   return {
@@ -804,10 +825,11 @@ export async function fetchThread(threadId: string, viewerId: string): Promise<T
       username: other?.username ?? null,
       avatarUrl: other?.avatar_url ?? null,
     },
-    messages: (messages ?? []).map((m) => ({
+    messages: rows.map((m) => ({
       id: m.id,
       senderId: m.sender_id,
       body: m.body,
+      imageUrl: m.image_url ? (signed.get(m.image_url) ?? null) : null,
       createdAt: m.created_at,
       readAt: m.read_at,
     })),
@@ -827,18 +849,35 @@ export async function resolveThreadId(viewerId: string, otherId: string): Promis
     .maybeSingle()
   return data?.id ?? null
 }
+
+export type ProfileMessagingState = { blockedByMe: boolean; blockedByThem: boolean }
+
+export async function fetchProfileMessagingState(
+  viewerId: string,
+  profileId: string,
+): Promise<ProfileMessagingState> {
+  const supabase = createClient()
+  const { data } = await supabase
+    .from('dm_blocks')
+    .select('blocker_id, blocked_id')
+    .or(
+      `and(blocker_id.eq.${viewerId},blocked_id.eq.${profileId}),and(blocker_id.eq.${profileId},blocked_id.eq.${viewerId})`,
+    )
+  const rows = data ?? []
+  return {
+    blockedByMe: rows.some((b) => b.blocker_id === viewerId),
+    blockedByThem: rows.some((b) => b.blocker_id === profileId),
+  }
+}
 ```
 
-- [ ] **Step 2: Typecheck + lint**
-
-Run: `npx tsc --noEmit && npx next lint --file lib/messages/query.ts`
-Expected: passes. (If `dm_*` are `never`-typed, Task 1 Step 4 was not completed.)
+- [ ] **Step 2: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file lib/messages/query.ts` → passes. (If `dm_*` are `never`-typed, Task 1 Step 4 was not completed.)
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add lib/messages/query.ts
-git commit -m "feat(messages): thread list + conversation + pair-resolve queries
+git commit -m "feat(messages): thread list + conversation + block-state queries
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
@@ -852,14 +891,14 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 - Create: `lib/messages/actions.ts`
 
 **Interfaces:**
-- Consumes: `orderedPair` (Task 2), `newThreadAllowed`, `NEW_THREAD_DAILY_CAP` (Task 3), `messageBodySchema`, `reportReasonSchema` (Task 4), `createClient` from `@/lib/supabase/server`, `createAdminClient` from `@/lib/supabase/admin`, `notifyInApp` from `@/lib/notifications/inbox`.
+- Consumes: `orderedPair` (Task 2), `messageBodySchema`, `reportReasonSchema` (Task 4), `createClient` from `@/lib/supabase/server`, `createAdminClient` from `@/lib/supabase/admin`, `notifyInApp` from `@/lib/notifications/inbox`.
 - Produces (`'use server'`):
-  - `sendMessage(input: { threadId?: string; recipientId?: string; body: string }): Promise<{ threadId?: string; error?: string }>` — resolves-or-creates the thread (creating counts against the daily cap), validates the body, inserts the message, bumps `last_message_at`, notifies the recipient. Rejects when the pair is blocked either way.
-  - `markThreadRead(threadId: string): Promise<void>` — best-effort; sets `read_at = now()` on the viewer's unread inbound messages and marks matching `direct_message` notifications read.
-  - `blockUser(otherId: string): Promise<{ error?: string }>`
-  - `unblockUser(otherId: string): Promise<{ error?: string }>`
+  - `sendMessage(input: { threadId?: string; recipientId?: string; body?: string; imageUrl?: string }): Promise<{ threadId?: string; error?: string }>` — resolves-or-creates the thread, validates (body **or** image required; body if present must pass `messageBodySchema`), inserts, bumps `last_message_at`, notifies the recipient. Rejects when the pair is blocked or the sender is muted (RLS also rejects; this is the friendly path).
+  - `startConversation(otherId: string): Promise<{ threadId?: string; error?: string }>` — resolve-or-create only; used by the profile "Message" button.
+  - `markThreadRead(threadId: string): Promise<void>` — best-effort; `read_at = now()` on the viewer's unread inbound messages + marks matching `direct_message` notifications read.
+  - `blockUser(otherId: string): Promise<{ error?: string }>` / `unblockUser(otherId: string): Promise<{ error?: string }>`
   - `reportConversation(input: { threadId: string; messageId?: string; reason: string }): Promise<{ error?: string }>`
-- Consumed by: `MessageComposer`, `Conversation`, `ThreadMenu`, `MessageButton`, both pages.
+- Consumed by: `MessageComposer`, `Conversation`, `ThreadMenu`, `ProfilePlayerActions`, both pages.
 
 - [ ] **Step 1: Write `actions.ts`**
 
@@ -869,7 +908,6 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { orderedPair } from './thread-key'
-import { newThreadAllowed } from './predicates'
 import { messageBodySchema, reportReasonSchema } from './schema'
 import { notifyInApp } from '@/lib/notifications/inbox'
 
@@ -881,9 +919,9 @@ async function authed() {
   return { supabase, userId: user?.id ?? null }
 }
 
-// Returns an existing thread id, or creates one (which counts against the
-// daily new-conversation cap). Uses the service-role client for the insert —
-// dm_threads has no client INSERT policy.
+// Existing thread id, or a new one. Service-role — dm_threads has no client
+// INSERT policy. No rate limit (decision 2026-09-09); abuse is handled by the
+// admin mute + the report-queue signal.
 async function resolveOrCreateThread(
   viewerId: string,
   otherId: string,
@@ -899,18 +937,6 @@ async function resolveOrCreateThread(
     .maybeSingle()
   if (existing) return { threadId: existing.id }
 
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const { count } = await admin
-    .from('dm_threads')
-    .select('id', { count: 'exact', head: true })
-    .eq('created_by', viewerId)
-    .gt('created_at', since)
-  if (!newThreadAllowed(count ?? 0)) {
-    return { error: "You've started a lot of new conversations today. Try again tomorrow." }
-  }
-
-  // Two clients racing the same new pair: the UNIQUE (player_a, player_b) makes
-  // the loser's insert 23505 — re-read instead of failing.
   const { data: created, error } = await admin
     .from('dm_threads')
     .insert({ player_a: playerA, player_b: playerB, created_by: viewerId })
@@ -929,19 +955,33 @@ async function resolveOrCreateThread(
   return { threadId: created.id }
 }
 
+export async function startConversation(otherId: string): Promise<{ threadId?: string; error?: string }> {
+  const { userId } = await authed()
+  if (!userId) return { error: 'Please log in.' }
+  if (!otherId || otherId === userId) return { error: 'Pick someone to message.' }
+  const res = await resolveOrCreateThread(userId, otherId)
+  return 'error' in res ? res : { threadId: res.threadId }
+}
+
 export async function sendMessage(input: {
   threadId?: string
   recipientId?: string
-  body: string
+  body?: string
+  imageUrl?: string
 }): Promise<{ threadId?: string; error?: string }> {
   const { supabase, userId } = await authed()
   if (!userId) return { error: 'Please log in.' }
 
-  const parsed = messageBodySchema.safeParse(input.body)
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
-  const body = parsed.data
+  const rawBody = (input.body ?? '').trim()
+  const imageUrl = input.imageUrl?.trim() || null
+  if (!rawBody && !imageUrl) return { error: 'Type a message or add a photo.' }
+  let body: string | null = null
+  if (rawBody) {
+    const parsed = messageBodySchema.safeParse(rawBody)
+    if (!parsed.success) return { error: parsed.error.issues[0].message }
+    body = parsed.data
+  }
 
-  // Establish the thread + the other participant.
   let threadId = input.threadId
   let otherId: string
   const admin = createAdminClient()
@@ -952,9 +992,7 @@ export async function sendMessage(input: {
       .select('player_a, player_b')
       .eq('id', threadId)
       .maybeSingle()
-    if (!t || (t.player_a !== userId && t.player_b !== userId)) {
-      return { error: 'Conversation not found.' }
-    }
+    if (!t || (t.player_a !== userId && t.player_b !== userId)) return { error: 'Conversation not found.' }
     otherId = t.player_a === userId ? t.player_b : t.player_a
   } else {
     if (!input.recipientId || input.recipientId === userId) return { error: 'Pick someone to message.' }
@@ -964,21 +1002,27 @@ export async function sendMessage(input: {
     threadId = resolved.threadId
   }
 
-  // Block check (the RLS insert would also reject, but this is the friendly path).
-  const { data: blockRows } = await admin
-    .from('dm_blocks')
-    .select('blocker_id, blocked_id')
-    .or(
-      `and(blocker_id.eq.${userId},blocked_id.eq.${otherId}),and(blocker_id.eq.${otherId},blocked_id.eq.${userId})`,
-    )
+  // Friendly pre-checks (RLS dm_can_message() is the real guard).
+  const [{ data: blockRows }, { data: muted }] = await Promise.all([
+    admin
+      .from('dm_blocks')
+      .select('blocker_id')
+      .or(
+        `and(blocker_id.eq.${userId},blocked_id.eq.${otherId}),and(blocker_id.eq.${otherId},blocked_id.eq.${userId})`,
+      ),
+    admin.from('dm_muted_players').select('player_id').eq('player_id', userId).maybeSingle(),
+  ])
+  if (muted) return { error: 'Your messaging is currently restricted. Contact support if you think this is a mistake.' }
   if (blockRows && blockRows.length > 0) {
     const iBlocked = blockRows.some((b) => b.blocker_id === userId)
     return { error: iBlocked ? 'Unblock this player to message them.' : 'You can no longer message this player.' }
   }
 
-  // Insert via the *session* client so the RLS sender-insert policy applies
-  // (defence in depth) — dm_can_message() re-checks the block server-side.
-  const { error: insErr } = await supabase.from('dm_messages').insert({ thread_id: threadId, sender_id: userId, body })
+  // Insert via the SESSION client so the RLS sender-insert policy applies (defence
+  // in depth) — dm_can_message() re-checks block + mute server-side.
+  const { error: insErr } = await supabase
+    .from('dm_messages')
+    .insert({ thread_id: threadId, sender_id: userId, body, image_url: imageUrl })
   if (insErr) {
     console.error('[sendMessage] insert failed', { userId, threadId, code: insErr.code, message: insErr.message })
     return { error: 'Could not send your message. Please try again.' }
@@ -988,7 +1032,7 @@ export async function sendMessage(input: {
 
   const { data: me } = await admin.from('profiles').select('display_name, username').eq('id', userId).maybeSingle()
   const fromName = me?.display_name ?? me?.username ?? 'Someone'
-  const preview = body.length > 80 ? `${body.slice(0, 80)}…` : body
+  const preview = body ? (body.length > 80 ? `${body.slice(0, 80)}…` : body) : '📷 Photo'
   void notifyInApp({
     playerId: otherId,
     type: 'direct_message',
@@ -1012,7 +1056,6 @@ export async function markThreadRead(threadId: string): Promise<void> {
       .eq('thread_id', threadId)
       .neq('sender_id', userId)
       .is('read_at', null)
-    // Clear the bell entries for this thread.
     const admin = createAdminClient()
     await admin
       .from('player_notifications')
@@ -1079,16 +1122,13 @@ export async function reportConversation(input: {
 }
 ```
 
-- [ ] **Step 2: Typecheck + lint**
-
-Run: `npx tsc --noEmit && npx next lint --file lib/messages/actions.ts`
-Expected: passes.
+- [ ] **Step 2: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file lib/messages/actions.ts` → passes.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add lib/messages/actions.ts
-git commit -m "feat(messages): send / read / block / report server actions
+git commit -m "feat(messages): send / start / read / block / report server actions
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
@@ -1105,8 +1145,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 
 **Interfaces:**
 - Consumes: `fetchThreadList`, `type ThreadSummary` (Task 5); `Avatar` from `@/components/shared/Avatar`; `formatRelativeTime` from `@/lib/format`; `createClient` from `@/lib/supabase/client`.
-- Produces: the `/messages` route — list of `ThreadListItem` rows, each linking to `/messages/[threadId]`; empty state pointing at `/players`; a `<MessagesRealtime>` client island that `router.refresh()`es on any `dm_messages` change.
-- Consumed by: nothing (leaf route).
+- Produces: the `/messages` route — `ThreadListItem` rows linking to `/messages/[threadId]`; empty state pointing at `/players`; a `<MessagesRealtime>` island that `router.refresh()`es on any `dm_messages` change.
 
 - [ ] **Step 1: `MessagesRealtime.tsx`**
 
@@ -1116,10 +1155,10 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-// The list is fully server-hydrated (previews, unread counts, other-party
-// profiles), so re-running the server component is correct-by-construction —
-// same choice as CommunityRealtime. RLS scopes the subscription to this
-// viewer's threads; a 400ms debounce keeps a burst cheap.
+// The list is fully server-hydrated (previews, unread, other-party profiles),
+// so re-running the server component is correct-by-construction — same as
+// CommunityRealtime. RLS scopes the subscription; a 400ms debounce keeps a
+// burst cheap.
 export function MessagesRealtime() {
   const router = useRouter()
   useEffect(() => {
@@ -1150,6 +1189,7 @@ import { formatRelativeTime } from '@/lib/format'
 import type { ThreadSummary } from '@/lib/messages/query'
 
 export function ThreadListItem({ thread }: { thread: ThreadSummary }) {
+  const preview = thread.lastMessage ?? (thread.lastWasImage ? '📷 Photo' : 'No messages yet')
   return (
     <Link
       href={`/messages/${thread.threadId}`}
@@ -1161,9 +1201,7 @@ export function ThreadListItem({ thread }: { thread: ThreadSummary }) {
           <p className="truncate text-sm font-bold text-white">{thread.otherName}</p>
           <span className="ml-auto shrink-0 text-[11px] text-sx-gray">{formatRelativeTime(thread.lastMessageAt)}</span>
         </div>
-        <p className={`truncate text-xs ${thread.unread > 0 ? 'font-semibold text-white' : 'text-sx-gray'}`}>
-          {thread.lastMessage ?? 'No messages yet'}
-        </p>
+        <p className={`truncate text-xs ${thread.unread > 0 ? 'font-semibold text-white' : 'text-sx-gray'}`}>{preview}</p>
       </div>
       {thread.unread > 0 && (
         <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-sx-purple px-1.5 text-[11px] font-bold text-white">
@@ -1220,10 +1258,7 @@ export default async function MessagesPage() {
 }
 ```
 
-- [ ] **Step 4: Typecheck + lint**
-
-Run: `npx tsc --noEmit && npx next lint --file "app/[locale]/messages/page.tsx" --file components/messages/ThreadListItem.tsx --file components/messages/MessagesRealtime.tsx`
-Expected: passes.
+- [ ] **Step 4: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file "app/[locale]/messages/page.tsx" --file components/messages/ThreadListItem.tsx --file components/messages/MessagesRealtime.tsx` → passes.
 
 - [ ] **Step 5: Commit**
 
@@ -1237,7 +1272,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 
 ---
 
-## Task 8: `/messages/[threadId]` conversation page
+## Task 8: `/messages/[threadId]` conversation page (text + images)
 
 **Files:**
 - Create: `app/[locale]/messages/[threadId]/page.tsx`
@@ -1246,9 +1281,8 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 - Create: `components/messages/ThreadMenu.tsx`
 
 **Interfaces:**
-- Consumes: `fetchThread`, `type ThreadDetail` (Task 5); `sendMessage`, `markThreadRead`, `blockUser`, `unblockUser`, `reportConversation` (Task 6); `messageBodySchema`, `reportReasonSchema` (Task 4); `Avatar`; `formatRelativeTime`; `createClient` from `@/lib/supabase/client`.
-- Produces: the `/messages/[threadId]` route — a header (other player's avatar/name linking to their profile, overflow menu), a scrolling message list that appends in realtime, and a composer. `notFound()` when `fetchThread` returns `null`.
-- Consumed by: nothing (leaf route).
+- Consumes: `fetchThread`, `type ThreadDetail`, `type ConversationMessage` (Task 5); `sendMessage`, `markThreadRead`, `blockUser`, `unblockUser`, `reportConversation` (Task 6); `messageBodySchema`, `reportReasonSchema` (Task 4); `Avatar`; `formatRelativeTime`; `createClient` from `@/lib/supabase/client`; `resizeImageToMaxWidth` from `@/lib/media/resize-image`.
+- Produces: the `/messages/[threadId]` route — header (avatar/name → profile, overflow menu), a scrolling message list that appends in realtime (text bubbles + image bubbles), a composer with a text field and an image button. `notFound()` when `fetchThread` returns `null`.
 
 - [ ] **Step 1: `MessageComposer.tsx`**
 
@@ -1256,16 +1290,20 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 'use client'
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { SendHorizonal } from 'lucide-react'
+import { SendHorizonal, ImagePlus, X } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { resizeImageToMaxWidth } from '@/lib/media/resize-image'
 import { sendMessage } from '@/lib/messages/actions'
 import { messageBodySchema } from '@/lib/messages/schema'
 
 export function MessageComposer({ threadId, disabled, disabledReason }: { threadId: string; disabled?: boolean; disabledReason?: string }) {
   const router = useRouter()
   const [body, setBody] = useState('')
+  const [file, setFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, start] = useTransition()
-  const ref = useRef<HTMLTextAreaElement>(null)
+  const textRef = useRef<HTMLTextAreaElement>(null)
 
   if (disabled) {
     return (
@@ -1275,32 +1313,92 @@ export function MessageComposer({ threadId, disabled, disabledReason }: { thread
     )
   }
 
-  const ok = messageBodySchema.safeParse(body).success && !pending
+  function pickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    e.target.value = ''
+    if (!f) return
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setFile(f)
+    setPreviewUrl(URL.createObjectURL(f))
+  }
+  function clearImage() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    setFile(null)
+    setPreviewUrl(null)
+  }
+
+  const hasText = messageBodySchema.safeParse(body).success
+  const ok = (hasText || file != null) && !pending
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!ok) return
     setError(null)
     const text = body
+    const img = file
     setBody('')
+    clearImage()
+
     start(async () => {
-      const res = await sendMessage({ threadId, body: text })
+      let imageUrl: string | undefined
+      if (img) {
+        const supabase = createClient()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        if (!user) {
+          setError('Please log in.')
+          return
+        }
+        try {
+          const resized = await resizeImageToMaxWidth(img, 1280)
+          const path = `${user.id}/${crypto.randomUUID()}.jpg`
+          const { error: upErr } = await supabase.storage
+            .from('dm-images')
+            .upload(path, resized, { upsert: false, contentType: 'image/jpeg' })
+          if (upErr) throw upErr
+          imageUrl = path // store the PATH, not a URL
+        } catch {
+          setError('That image failed to upload. Please try again.')
+          setBody(text)
+          return
+        }
+      }
+      const res = await sendMessage({ threadId, body: text || undefined, imageUrl })
       if (res.error) {
         setError(res.error)
         setBody(text)
         return
       }
       router.refresh()
-      ref.current?.focus()
+      textRef.current?.focus()
     })
   }
 
   return (
     <form onSubmit={submit} className="border-t border-sx-border bg-sx-surface px-3 py-2">
       {error && <p className="mb-1 text-xs text-red-400">{error}</p>}
+      {previewUrl && (
+        <div className="relative mb-2 inline-block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={previewUrl} alt="" className="max-h-32 rounded-lg border border-sx-border object-cover" />
+          <button
+            type="button"
+            onClick={clearImage}
+            aria-label="Remove image"
+            className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
       <div className="flex items-end gap-2">
+        <label className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-sx-gray hover:text-white">
+          <ImagePlus className="h-5 w-5" />
+          <input type="file" accept="image/*" onChange={pickFile} className="hidden" />
+        </label>
         <textarea
-          ref={ref}
+          ref={textRef}
           value={body}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => {
@@ -1432,7 +1530,7 @@ export function ThreadMenu({ threadId, otherId, otherName, blockedByMe }: { thre
               onChange={(e) => setReason(e.target.value)}
               rows={4}
               maxLength={1000}
-              placeholder="What happened? Staff will see this conversation."
+              placeholder="What happened? Staff will be able to read this conversation."
               className="w-full resize-none rounded-lg border border-sx-border bg-sx-bg px-3 py-2 text-sm text-white placeholder:text-sx-gray focus:border-sx-purple focus:outline-none"
               autoFocus
             />
@@ -1459,18 +1557,16 @@ import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { markThreadRead } from '@/lib/messages/actions'
 import { formatRelativeTime } from '@/lib/format'
-import type { ThreadDetail } from '@/lib/messages/query'
+import type { ThreadDetail, ConversationMessage } from '@/lib/messages/query'
 import { MessageComposer } from './MessageComposer'
 
-type Msg = ThreadDetail['messages'][number]
-
 export function Conversation({ detail, viewerId }: { detail: ThreadDetail; viewerId: string }) {
-  const [messages, setMessages] = useState<Msg[]>(detail.messages)
+  const [messages, setMessages] = useState<ConversationMessage[]>(detail.messages)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Realtime append — RLS scopes the stream to this thread's participants; the
-  // filter is a second guard. De-dupe on id so our own optimistic refresh and
-  // the echo don't double-render.
+  // Realtime append. RLS scopes the stream; the filter is a second guard. The
+  // payload has the storage PATH in image_url, not a signed URL — a message
+  // with an image triggers a router.refresh() so the server re-signs it.
   useEffect(() => {
     const supabase = createClient()
     const channel = supabase
@@ -1479,11 +1575,17 @@ export function Conversation({ detail, viewerId }: { detail: ThreadDetail; viewe
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'dm_messages', filter: `thread_id=eq.${detail.threadId}` },
         (payload) => {
-          const r = payload.new as { id: string; sender_id: string; body: string | null; created_at: string; read_at: string | null }
+          const r = payload.new as { id: string; sender_id: string; body: string | null; image_url: string | null; created_at: string; read_at: string | null }
+          if (r.image_url) {
+            // needs a signed URL from the server
+            void markThreadRead(detail.threadId)
+            window.dispatchEvent(new Event('dm:refresh'))
+            return
+          }
           setMessages((prev) =>
             prev.some((m) => m.id === r.id)
               ? prev
-              : [...prev, { id: r.id, senderId: r.sender_id, body: r.body, createdAt: r.created_at, readAt: r.read_at }],
+              : [...prev, { id: r.id, senderId: r.sender_id, body: r.body, imageUrl: null, createdAt: r.created_at, readAt: r.read_at }],
           )
           if (r.sender_id !== viewerId) void markThreadRead(detail.threadId)
         },
@@ -1494,12 +1596,22 @@ export function Conversation({ detail, viewerId }: { detail: ThreadDetail; viewe
     }
   }, [detail.threadId, viewerId])
 
-  // Keep local state in sync when the server component re-renders (our own send).
+  // `dm:refresh` (an image arrived) → re-fetch via the router.
+  useEffect(() => {
+    function onRefresh() {
+      // next/navigation router.refresh() isn't available here without the hook;
+      // use a full soft refresh via location as a last resort is wrong. Instead
+      // import useRouter at top and call router.refresh(). (Executor: add
+      // `const router = useRouter()` and call it here.)
+    }
+    window.addEventListener('dm:refresh', onRefresh)
+    return () => window.removeEventListener('dm:refresh', onRefresh)
+  }, [])
+
   useEffect(() => {
     setMessages(detail.messages)
   }, [detail.messages])
 
-  // Mark read on open + whenever new inbound arrives.
   useEffect(() => {
     void markThreadRead(detail.threadId)
   }, [detail.threadId, messages.length])
@@ -1523,13 +1635,13 @@ export function Conversation({ detail, viewerId }: { detail: ThreadDetail; viewe
           const mine = m.senderId === viewerId
           return (
             <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-              <div
-                className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
-                  mine ? 'bg-sx-purple text-white' : 'bg-sx-surface text-white'
-                }`}
-              >
-                <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                <p className={`mt-0.5 text-[10px] ${mine ? 'text-white/60' : 'text-sx-gray'}`}>
+              <div className={`max-w-[80%] overflow-hidden rounded-2xl text-sm ${mine ? 'bg-sx-purple text-white' : 'bg-sx-surface text-white'}`}>
+                {m.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={m.imageUrl} alt="" className="max-h-72 w-full object-cover" />
+                )}
+                {m.body && <p className="whitespace-pre-wrap break-words px-3 py-2">{m.body}</p>}
+                <p className={`px-3 pb-1.5 text-[10px] ${mine ? 'text-white/60' : 'text-sx-gray'} ${m.body ? '' : 'pt-1.5'}`}>
                   {formatRelativeTime(m.createdAt)}
                 </p>
               </div>
@@ -1543,6 +1655,8 @@ export function Conversation({ detail, viewerId }: { detail: ThreadDetail; viewe
   )
 }
 ```
+
+> **Executor cleanup for `Conversation.tsx`:** the `dm:refresh` dance above is a placeholder for "an image message arrived and needs server re-signing." Replace it properly: add `import { useRouter } from 'next/navigation'`, `const router = useRouter()`, and in the realtime handler, when `r.image_url` is truthy, just call `router.refresh()` (drop the `window.dispatchEvent` / event-listener block entirely). Text messages still append optimistically from the payload; only image messages fall back to a refresh. Keep the de-dupe-on-`id` guard so the refresh + any echo don't double-render.
 
 - [ ] **Step 4: `page.tsx`**
 
@@ -1570,15 +1684,12 @@ export default async function ThreadPage({ params }: { params: { threadId: strin
   if (!detail) notFound()
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-var(--site-header-h,64px))] max-w-2xl flex-col px-0 sm:px-4">
+    <div className="mx-auto flex h-[calc(100dvh-64px)] max-w-2xl flex-col px-0 sm:px-4">
       <header className="flex items-center gap-2 border-b border-sx-border px-3 py-2">
         <Link href="/messages" aria-label="Back to messages" className="flex h-9 w-9 items-center justify-center rounded-lg text-white/70 hover:bg-white/5">
           <ArrowLeft className="h-5 w-5" />
         </Link>
-        <Link
-          href={detail.other.username ? `/players/${detail.other.username}` : '#'}
-          className="flex min-w-0 items-center gap-2"
-        >
+        <Link href={detail.other.username ? `/players/${detail.other.username}` : '#'} className="flex min-w-0 items-center gap-2">
           <Avatar avatarUrl={detail.other.avatarUrl} displayName={detail.other.name} username={detail.other.username} size={32} />
           <span className="truncate text-sm font-bold text-white">{detail.other.name}</span>
         </Link>
@@ -1592,18 +1703,15 @@ export default async function ThreadPage({ params }: { params: { threadId: strin
 }
 ```
 
-> `--site-header-h` may not be a real CSS var in this codebase. Check `components/shared/SiteHeader.tsx` / the root layout for the actual header height (it renders a fixed/sticky header). If there's no variable, hardcode the measured height (e.g. `h-[calc(100dvh-64px)]`) and note it. The goal: the composer sits at the bottom of the viewport, the message list scrolls between header and composer.
+> **`h-[calc(100dvh-64px)]`** assumes a 64px site header. Check `components/shared/SiteHeader.tsx` / the root layout for the real height and adjust the `64px`. Goal: composer pinned to the bottom of the viewport, transcript scrolls between header and composer, no page-level scroll.
 
-- [ ] **Step 5: Typecheck + lint**
-
-Run: `npx tsc --noEmit && npx next lint --file "app/[locale]/messages/[threadId]/page.tsx" --file components/messages/Conversation.tsx --file components/messages/MessageComposer.tsx --file components/messages/ThreadMenu.tsx`
-Expected: passes.
+- [ ] **Step 5: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file "app/[locale]/messages/[threadId]/page.tsx" --file components/messages/Conversation.tsx --file components/messages/MessageComposer.tsx --file components/messages/ThreadMenu.tsx` → passes.
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add "app/[locale]/messages/[threadId]" components/messages/Conversation.tsx components/messages/MessageComposer.tsx components/messages/ThreadMenu.tsx
-git commit -m "feat(messages): conversation view with realtime, block + report
+git commit -m "feat(messages): conversation view — text, images, realtime, block, report
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
@@ -1611,101 +1719,158 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 
 ---
 
-## Task 9: "Message" button on the profile
+## Task 9: Profile — Message + Block/Unblock
 
 **Files:**
-- Create: `components/player/MessageButton.tsx`
+- Create: `components/player/ProfilePlayerActions.tsx`
 - Modify: `components/player/ProfileHeader.tsx`
+- Modify: `app/[locale]/(public)/players/[username]/page.tsx`
 
 **Interfaces:**
-- Consumes: `resolveThreadId` (Task 5) — no; the button is a client component, so it calls a tiny server action. Add `startConversation(otherId: string): Promise<{ threadId?: string; error?: string }>` to `lib/messages/actions.ts` in this task (it wraps `resolveOrCreateThread` — exported via a thin `'use server'` fn). Then the button navigates to `/messages/[threadId]`.
-- Produces: `<MessageButton recipientId={string} />` — a button that, on click, calls `startConversation` and `router.push`es to the thread. Shown by `ProfileHeader` for a logged-in non-owner viewer, beside `FriendStatusAction` / `ChallengeButton`.
+- Consumes: `startConversation`, `blockUser`, `unblockUser` (Task 6); `fetchProfileMessagingState`, `type ProfileMessagingState` (Task 5); the existing `AddFriendButton` / `ChallengeButton` / `FriendStatusAction` behaviour in `ProfileHeader`.
+- Produces: `<ProfilePlayerActions>` — a client component rendering, for a logged-in non-owner viewer: the existing friend action + `<ChallengeButton>` + a **Message** button (→ `startConversation` → `/messages/[id]`) + a **Block / Unblock** button. `ProfileHeader` gains a `messagingState?: ProfileMessagingState` prop and delegates the action row to this component; the profile page fetches that state.
 
-- [ ] **Step 1: Add `startConversation` to `lib/messages/actions.ts`**
-
-```ts
-// Append to lib/messages/actions.ts
-export async function startConversation(otherId: string): Promise<{ threadId?: string; error?: string }> {
-  const { userId } = await authed()
-  if (!userId) return { error: 'Please log in.' }
-  if (otherId === userId) return { error: 'That is you.' }
-  const resolved = await resolveOrCreateThread(userId, otherId)
-  if ('error' in resolved) return resolved
-  return { threadId: resolved.threadId }
-}
-```
-
-- [ ] **Step 2: `MessageButton.tsx`**
+- [ ] **Step 1: `ProfilePlayerActions.tsx`**
 
 ```tsx
 'use client'
-import { useTransition, useState } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { MessageCircle } from 'lucide-react'
-import { startConversation } from '@/lib/messages/actions'
+import { MessageCircle, Ban } from 'lucide-react'
+import { startConversation, blockUser, unblockUser } from '@/lib/messages/actions'
+import { AddFriendButton } from '@/components/player/AddFriendButton'
+import { ChallengeButton } from '@/components/player/ChallengeButton'
+import type { FriendshipStatus } from '@/lib/friends/list'
 
-export function MessageButton({ recipientId }: { recipientId: string }) {
+export function ProfilePlayerActions({
+  profileId,
+  friendshipStatus,
+  blockedByMe,
+}: {
+  profileId: string
+  friendshipStatus: FriendshipStatus
+  blockedByMe: boolean
+}) {
   const router = useRouter()
   const [pending, start] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [blocked, setBlocked] = useState(blockedByMe)
+
+  function openConversation() {
+    start(async () => {
+      setError(null)
+      const res = await startConversation(profileId)
+      if (res.error || !res.threadId) {
+        setError(res.error ?? 'Could not open the conversation.')
+        return
+      }
+      router.push(`/messages/${res.threadId}`)
+    })
+  }
+
+  function toggleBlock() {
+    start(async () => {
+      setError(null)
+      const res = blocked ? await unblockUser(profileId) : await blockUser(profileId)
+      if (res.error) {
+        setError(res.error)
+        return
+      }
+      setBlocked((b) => !b)
+      router.refresh()
+    })
+  }
 
   return (
-    <span className="inline-flex flex-col">
-      <button
-        type="button"
-        disabled={pending}
-        onClick={() =>
-          start(async () => {
-            setError(null)
-            const res = await startConversation(recipientId)
-            if (res.error || !res.threadId) {
-              setError(res.error ?? 'Could not open the conversation.')
-              return
-            }
-            router.push(`/messages/${res.threadId}`)
-          })
-        }
-        className="inline-flex items-center gap-1.5 rounded-lg border border-sx-border px-3 py-1.5 text-xs font-bold text-white hover:border-sx-purple/50 disabled:opacity-50"
-      >
-        <MessageCircle className="h-3.5 w-3.5" />
-        {pending ? 'Opening…' : 'Message'}
-      </button>
-      {error && <span className="mt-1 text-[11px] text-red-400">{error}</span>}
-    </span>
+    <div className="mt-4 flex flex-col items-center gap-2 sm:items-start">
+      <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
+        <FriendStatusInline status={friendshipStatus} profileId={profileId} />
+        <ChallengeButton opponentId={profileId} />
+        {!blocked && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={openConversation}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-sx-border px-3 py-1.5 text-xs font-bold text-white hover:border-sx-purple/50 disabled:opacity-50"
+          >
+            <MessageCircle className="h-3.5 w-3.5" /> {pending ? 'Opening…' : 'Message'}
+          </button>
+        )}
+        <button
+          type="button"
+          disabled={pending}
+          onClick={toggleBlock}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-sx-border px-3 py-1.5 text-xs font-bold text-sx-gray hover:border-red-500/50 hover:text-red-400 disabled:opacity-50"
+        >
+          <Ban className="h-3.5 w-3.5" /> {blocked ? 'Unblock' : 'Block'}
+        </button>
+      </div>
+      {error && <span className="text-[11px] text-red-400">{error}</span>}
+    </div>
   )
+}
+
+// The existing FriendStatusAction lives inside ProfileHeader as a private
+// function. Duplicate its small body here (it only renders text or AddFriendButton)
+// so ProfilePlayerActions is self-contained.
+function FriendStatusInline({ status, profileId }: { status: FriendshipStatus; profileId: string }) {
+  if (status === 'friends') return <span className="text-sm font-semibold text-sx-green">✓ Friends</span>
+  if (status === 'pending_sent') return <span className="text-sm text-sx-gray">Friend request sent</span>
+  if (status === 'pending_received')
+    return <span className="text-sm text-sx-gray">They sent you a friend request — check your dashboard</span>
+  return <AddFriendButton recipientId={profileId} />
 }
 ```
 
-- [ ] **Step 3: Wire into `ProfileHeader.tsx`**
+> Check `components/player/ProfileHeader.tsx` for the exact `FriendStatusAction` body and copy it verbatim into `FriendStatusInline` (the plan shows it from an earlier read — verify the strings/classes still match).
 
-Add the import:
+- [ ] **Step 2: Wire into `ProfileHeader.tsx`**
 
-```tsx
-import { MessageButton } from '@/components/player/MessageButton'
-```
-
-In the `{viewerId && !isOwner && (...)}` block, add `<MessageButton recipientId={profile.id} />` after `<ChallengeButton opponentId={profile.id} />`:
+Add `messagingState?: { blockedByMe: boolean; blockedByThem: boolean }` to the props. Replace the existing:
 
 ```tsx
 {viewerId && !isOwner && (
   <div className="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start">
     <FriendStatusAction status={friendshipStatus} profileId={profile.id} />
     <ChallengeButton opponentId={profile.id} />
-    <MessageButton recipientId={profile.id} />
   </div>
 )}
 ```
 
-- [ ] **Step 4: Typecheck + lint**
+with:
 
-Run: `npx tsc --noEmit && npx next lint --file components/player/MessageButton.tsx --file components/player/ProfileHeader.tsx --file lib/messages/actions.ts`
-Expected: passes.
+```tsx
+{viewerId && !isOwner && (
+  <ProfilePlayerActions
+    profileId={profile.id}
+    friendshipStatus={friendshipStatus}
+    blockedByMe={messagingState?.blockedByMe ?? false}
+  />
+)}
+```
+
+Add `import { ProfilePlayerActions } from '@/components/player/ProfilePlayerActions'`. Leave the private `FriendStatusAction` / `ChallengeButton` imports in place only if still used elsewhere in the file; otherwise remove the now-dead `FriendStatusAction` and its `ChallengeButton` import (lint will flag unused).
+
+- [ ] **Step 3: Fetch the state in the profile page**
+
+In `app/[locale]/(public)/players/[username]/page.tsx`, after resolving `user` and `profile`, add:
+
+```tsx
+import { fetchProfileMessagingState } from '@/lib/messages/query'
+// ...
+const messagingState =
+  user && user.id !== profile.id ? await fetchProfileMessagingState(user.id, profile.id) : undefined
+```
+
+and pass `messagingState={messagingState}` into `<ProfileHeader .../>`.
+
+- [ ] **Step 4: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file components/player/ProfilePlayerActions.tsx --file components/player/ProfileHeader.tsx --file "app/[locale]/(public)/players/[username]/page.tsx"` → passes.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add components/player/MessageButton.tsx components/player/ProfileHeader.tsx lib/messages/actions.ts
-git commit -m "feat(messages): Message button on player profiles
+git add components/player/ProfilePlayerActions.tsx components/player/ProfileHeader.tsx "app/[locale]/(public)/players/[username]/page.tsx"
+git commit -m "feat(messages): Message + Block on player profiles
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
@@ -1713,7 +1878,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 
 ---
 
-## Task 10: Admin — `/admin/messages` report queue
+## Task 10: Admin — `/admin/messages` report queue + mute
 
 **Files:**
 - Create: `lib/messages/admin-query.ts`
@@ -1723,18 +1888,31 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 - Modify: `lib/admin/nav.ts`
 
 **Interfaces:**
-- Consumes: `requireStaff` from `@/lib/admin/auth`; `createClient` from `@/lib/supabase/server`; `createAdminClient` from `@/lib/supabase/admin`; `formatDateTime` from `@/lib/format`.
+- Consumes: `requireStaff` from `@/lib/admin/auth` (returns `StaffContext` with `userId: string`); `countNewContactsSince` (Task 3); `createClient` from `@/lib/supabase/server`; `createAdminClient` from `@/lib/supabase/admin`; `formatDateTime` from `@/lib/format`.
 - Produces:
-  - `type DmReportView = { id: string; reason: string; createdAt: string; resolvedAt: string | null; reporterName: string | null; reportedName: string | null; reportedId: string; threadId: string; transcript: { id: string; senderName: string; body: string | null; createdAt: string; flagged: boolean }[] }`
-  - `fetchDmReports(): Promise<DmReportView[]>` — open reports first, then recently resolved; each with the full thread transcript (staff can read it — `dm_messages_participant_read` allows `is_staff()`).
-  - `resolveDmReport(_prev, formData): Promise<AdminActionState>` — `id` from the form; sets `resolved_at`/`resolved_by`. Optional `deleteMessageId` in the form → hard-deletes that `dm_messages` row via the admin client.
-  - `DmReportRow` — client component, expandable to show the transcript, with "Resolve" and (per flagged message) "Delete message".
+  - `type DmTranscriptMessage = { id: string; senderName: string; body: string | null; imageUrl: string | null; createdAt: string; flagged: boolean }` — `imageUrl` is a signed URL or `null`.
+  - `type DmReportView = { id: string; reason: string; createdAt: string; resolvedAt: string | null; reporterName: string | null; reportedName: string | null; reportedId: string; reportedMuted: boolean; reportedNewContacts24h: number; threadId: string; flaggedMessageId: string | null; transcript: DmTranscriptMessage[] }`
+  - `fetchDmReports(limit?: number): Promise<DmReportView[]>` — open reports first, then recently resolved; each with the full transcript (staff read allowed), the reported player's current mute state, and their 24h new-contact count.
+  - `resolveDmReport(_prev, formData): Promise<AdminActionState>` — `id` from the form; sets `resolved_at`/`resolved_by`; optional `deleteMessageId` → hard-deletes that `dm_messages` row.
+  - `setMessagingMuted(_prev, formData): Promise<AdminActionState>` — `playerId` + `muted` (`'true'`/`'false'`); upserts / deletes a `dm_muted_players` row (service-role).
+  - `DmReportRow` — client component: transcript toggle, "Resolve" (+ optional delete-flagged), "Mute messaging" / "Unmute".
 - Consumed by: `app/[locale]/admin/messages/page.tsx`.
 
 - [ ] **Step 1: `admin-query.ts`**
 
 ```ts
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { countNewContactsSince } from './predicates'
+
+export type DmTranscriptMessage = {
+  id: string
+  senderName: string
+  body: string | null
+  imageUrl: string | null
+  createdAt: string
+  flagged: boolean
+}
 
 export type DmReportView = {
   id: string
@@ -1744,10 +1922,14 @@ export type DmReportView = {
   reporterName: string | null
   reportedName: string | null
   reportedId: string
+  reportedMuted: boolean
+  reportedNewContacts24h: number
   threadId: string
   flaggedMessageId: string | null
-  transcript: { id: string; senderName: string; body: string | null; createdAt: string; flagged: boolean }[]
+  transcript: DmTranscriptMessage[]
 }
+
+type MsgRow = { id: string; thread_id: string; sender_id: string; body: string | null; image_url: string | null; created_at: string }
 
 export async function fetchDmReports(limit = 40): Promise<DmReportView[]> {
   const supabase = createClient()
@@ -1760,26 +1942,47 @@ export async function fetchDmReports(limit = 40): Promise<DmReportView[]> {
   if (!reports || reports.length === 0) return []
 
   const threadIds = [...new Set(reports.map((r) => r.thread_id))]
+  const reportedIds = [...new Set(reports.map((r) => r.reported_id))]
   const personIds = [...new Set(reports.flatMap((r) => [r.reporter_id, r.reported_id]))]
 
-  const [{ data: profiles }, { data: msgs }] = await Promise.all([
+  const [{ data: profiles }, { data: msgs }, { data: mutes }, { data: startedThreads }] = await Promise.all([
     supabase.from('profiles').select('id, username, display_name').in('id', personIds),
     supabase
       .from('dm_messages')
-      .select('id, thread_id, sender_id, body, created_at')
+      .select('id, thread_id, sender_id, body, image_url, created_at')
       .in('thread_id', threadIds)
       .order('created_at', { ascending: true }),
+    supabase.from('dm_muted_players').select('player_id').in('player_id', reportedIds),
+    supabase.from('dm_threads').select('created_by, created_at').in('created_by', reportedIds),
   ])
-  const nameById = new Map(
-    (profiles ?? []).map((p) => [p.id, p.display_name ?? p.username ?? 'Player'] as const),
-  )
-  const msgsByThread = new Map<string, typeof msgs>()
-  for (const m of msgs ?? []) {
-    const list = msgsByThread.get(m.thread_id) ?? []
-    // @ts-expect-error building the map incrementally
-    list.push(m)
-    msgsByThread.set(m.thread_id, list as typeof msgs)
+
+  const nameById = new Map((profiles ?? []).map((p) => [p.id, p.display_name ?? p.username ?? 'Player'] as const))
+  const mutedSet = new Set((mutes ?? []).map((m) => m.player_id))
+  const startedByPlayer = new Map<string, string[]>()
+  for (const t of startedThreads ?? []) {
+    const list = startedByPlayer.get(t.created_by) ?? []
+    list.push(t.created_at)
+    startedByPlayer.set(t.created_by, list)
   }
+  const msgsByThread = new Map<string, MsgRow[]>()
+  for (const m of (msgs ?? []) as MsgRow[]) {
+    const list = msgsByThread.get(m.thread_id) ?? []
+    list.push(m)
+    msgsByThread.set(m.thread_id, list)
+  }
+
+  // Sign every image path once.
+  const admin = createAdminClient()
+  const allPaths = [...new Set(((msgs ?? []) as MsgRow[]).filter((m) => m.image_url).map((m) => m.image_url as string))]
+  const signed = new Map<string, string>()
+  await Promise.all(
+    allPaths.map(async (p) => {
+      const { data } = await admin.storage.from('dm-images').createSignedUrl(p, 3600)
+      if (data?.signedUrl) signed.set(p, data.signedUrl)
+    }),
+  )
+
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
   return reports.map((r) => ({
     id: r.id,
@@ -1789,20 +1992,21 @@ export async function fetchDmReports(limit = 40): Promise<DmReportView[]> {
     reporterName: nameById.get(r.reporter_id) ?? null,
     reportedName: nameById.get(r.reported_id) ?? null,
     reportedId: r.reported_id,
+    reportedMuted: mutedSet.has(r.reported_id),
+    reportedNewContacts24h: countNewContactsSince(startedByPlayer.get(r.reported_id) ?? [], dayAgo),
     threadId: r.thread_id,
     flaggedMessageId: r.message_id,
     transcript: (msgsByThread.get(r.thread_id) ?? []).map((m) => ({
       id: m.id,
       senderName: nameById.get(m.sender_id) ?? 'Player',
       body: m.body,
+      imageUrl: m.image_url ? (signed.get(m.image_url) ?? null) : null,
       createdAt: m.created_at,
       flagged: m.id === r.message_id,
     })),
   }))
 }
 ```
-
-> The `@ts-expect-error` above is ugly — replace it with a properly-typed local `Row` type for the message rows (`{ id: string; thread_id: string; sender_id: string; body: string | null; created_at: string }`) and a `Map<string, Row[]>`, matching how `admin-query.ts` (community) does its grouping. Written loose here only to keep the plan short; the executor writes it clean.
 
 - [ ] **Step 2: `admin-actions.ts`**
 
@@ -1834,9 +2038,27 @@ export async function resolveDmReport(_prev: AdminActionState, formData: FormDat
   revalidatePath('/admin/messages')
   return undefined
 }
-```
 
-> `requireStaff()` returns `StaffContext` with `userId: string` (confirmed in `lib/admin/auth.ts`) — `resolved_by: ctx.userId` is correct.
+export async function setMessagingMuted(_prev: AdminActionState, formData: FormData): Promise<AdminActionState> {
+  const ctx = await requireStaff()
+  const playerId = String(formData.get('playerId') ?? '')
+  const muted = String(formData.get('muted') ?? '') === 'true'
+  if (!playerId) return { error: 'Missing player.' }
+
+  const admin = createAdminClient()
+  if (muted) {
+    const { error } = await admin
+      .from('dm_muted_players')
+      .upsert({ player_id: playerId, muted_by: ctx.userId }, { onConflict: 'player_id', ignoreDuplicates: true })
+    if (error) return { error: 'Could not mute this player.' }
+  } else {
+    const { error } = await admin.from('dm_muted_players').delete().eq('player_id', playerId)
+    if (error) return { error: 'Could not unmute this player.' }
+  }
+  revalidatePath('/admin/messages')
+  return undefined
+}
+```
 
 - [ ] **Step 3: `DmReportRow.tsx`**
 
@@ -1845,11 +2067,12 @@ export async function resolveDmReport(_prev: AdminActionState, formData: FormDat
 import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { formatDateTime } from '@/lib/format'
-import { resolveDmReport, type AdminActionState } from '@/lib/messages/admin-actions'
+import { resolveDmReport, setMessagingMuted, type AdminActionState } from '@/lib/messages/admin-actions'
 import type { DmReportView } from '@/lib/messages/admin-query'
 
 export function DmReportRow({ report }: { report: DmReportView }) {
-  const [state, action] = useFormState<AdminActionState, FormData>(resolveDmReport, undefined)
+  const [resolveState, resolveAction] = useFormState<AdminActionState, FormData>(resolveDmReport, undefined)
+  const [muteState, muteAction] = useFormState<AdminActionState, FormData>(setMessagingMuted, undefined)
   const [open, setOpen] = useState(!report.resolvedAt)
 
   return (
@@ -1861,6 +2084,14 @@ export function DmReportRow({ report }: { report: DmReportView }) {
             {report.resolvedAt && <span className="ml-2 text-green-500">· resolved</span>}
           </p>
           <p className="mt-1 text-sm text-slate-200">{report.reason}</p>
+          <p className="mt-1 text-[11px] text-slate-500">
+            {report.reportedName ?? 'This player'} messaged{' '}
+            <span className={report.reportedNewContacts24h >= 8 ? 'font-bold text-amber-400' : 'text-slate-300'}>
+              {report.reportedNewContacts24h}
+            </span>{' '}
+            new {report.reportedNewContacts24h === 1 ? 'person' : 'people'} in the last 24h
+            {report.reportedMuted && <span className="ml-2 rounded bg-amber-900/50 px-1.5 py-0.5 font-bold text-amber-300">muted</span>}
+          </p>
         </div>
         <button type="button" onClick={() => setOpen((o) => !o)} className="shrink-0 text-xs font-semibold text-violet-400">
           {open ? 'Hide' : 'View'} thread
@@ -1872,27 +2103,41 @@ export function DmReportRow({ report }: { report: DmReportView }) {
           {report.transcript.map((m) => (
             <div key={m.id} className={`text-xs ${m.flagged ? 'rounded bg-red-950/50 px-1.5 py-1' : ''}`}>
               <span className="font-bold text-slate-300">{m.senderName}: </span>
-              <span className="text-slate-200">{m.body}</span>
+              {m.body && <span className="text-slate-200">{m.body}</span>}
+              {m.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={m.imageUrl} alt="" className="mt-1 max-h-40 rounded border border-slate-800" />
+              )}
               <span className="ml-2 text-[10px] text-slate-600">{formatDateTime(m.createdAt)}</span>
             </div>
           ))}
         </div>
       )}
 
-      {!report.resolvedAt && (
-        <form action={action} className="mt-2 flex items-center gap-2">
-          <input type="hidden" name="id" value={report.id} />
-          {report.flaggedMessageId && (
-            <label className="flex items-center gap-1 text-[11px] text-slate-400">
-              <input type="checkbox" name="deleteMessageId" value={report.flaggedMessageId} /> delete the flagged message
-            </label>
-          )}
-          <button type="submit" className="ml-auto rounded-lg bg-green-600/80 px-3 py-1 text-xs font-bold text-white hover:bg-green-600">
-            Resolve
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <form action={muteAction}>
+          <input type="hidden" name="playerId" value={report.reportedId} />
+          <input type="hidden" name="muted" value={(!report.reportedMuted).toString()} />
+          <button type="submit" className="rounded-lg border border-amber-700/60 px-3 py-1 text-xs font-bold text-amber-400 hover:bg-amber-950/40">
+            {report.reportedMuted ? 'Unmute messaging' : 'Mute messaging'}
           </button>
         </form>
-      )}
-      {state?.error && <p className="mt-1 text-[11px] text-red-400">{state.error}</p>}
+        {!report.resolvedAt && (
+          <form action={resolveAction} className="ml-auto flex items-center gap-2">
+            <input type="hidden" name="id" value={report.id} />
+            {report.flaggedMessageId && (
+              <label className="flex items-center gap-1 text-[11px] text-slate-400">
+                <input type="checkbox" name="deleteMessageId" value={report.flaggedMessageId} /> delete flagged message
+              </label>
+            )}
+            <button type="submit" className="rounded-lg bg-green-600/80 px-3 py-1 text-xs font-bold text-white hover:bg-green-600">
+              Resolve
+            </button>
+          </form>
+        )}
+      </div>
+      {resolveState?.error && <p className="mt-1 text-[11px] text-red-400">{resolveState.error}</p>}
+      {muteState?.error && <p className="mt-1 text-[11px] text-red-400">{muteState.error}</p>}
     </div>
   )
 }
@@ -1929,24 +2174,19 @@ export default async function AdminMessagesPage() {
 }
 ```
 
-- [ ] **Step 5: Nav entry**
-
-In `lib/admin/nav.ts`, add to `ADMIN_NAV` after the `Community` / `Challenges` entries:
+- [ ] **Step 5: Nav entry** — in `lib/admin/nav.ts`, add after `Challenges`:
 
 ```ts
   { label: 'Messages', href: '/admin/messages', adminOnly: false },
 ```
 
-- [ ] **Step 6: Typecheck + lint**
-
-Run: `npx tsc --noEmit && npx next lint --file lib/messages/admin-query.ts --file lib/messages/admin-actions.ts --file components/admin/DmReportRow.tsx --file "app/[locale]/admin/messages/page.tsx" --file lib/admin/nav.ts`
-Expected: passes.
+- [ ] **Step 6: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file lib/messages/admin-query.ts --file lib/messages/admin-actions.ts --file components/admin/DmReportRow.tsx --file "app/[locale]/admin/messages/page.tsx" --file lib/admin/nav.ts` → passes.
 
 - [ ] **Step 7: Commit**
 
 ```bash
 git add lib/messages/admin-query.ts lib/messages/admin-actions.ts components/admin/DmReportRow.tsx "app/[locale]/admin/messages/page.tsx" lib/admin/nav.ts
-git commit -m "feat(messages): admin report queue for reported conversations
+git commit -m "feat(messages): admin report queue with transcript, mute + mass-contact signal
 
 Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
@@ -1960,45 +2200,35 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 - Modify: `messages/en.json`, `messages/fr.json`, `messages/pcm.json`
 - Modify: `app/[locale]/(public)/privacy/page.tsx`
 
-**Interfaces:**
-- Produces: two new `privacy.*` i18n keys wired into the rendered policy — DM data collection (§2) and staff-can-read-reported-threads (§4).
+**Context:** `PrivacyPage` builds `sections=[...]` from `t('sN...')` keys. §2 ("What Data We Collect") has an `s2Play` / `s2PlayList` sub-block (a single string of `<li>…</li>` rendered via `t.rich('s2PlayList', listItemTag)`). §4 ("Who We Share Your Data With", `id: 'who-we-share-with'`) ends its fragment with `<p>{t('s4P2')}</p><p>{t('s4P3')}</p>`.
 
-**Context:** `PrivacyPage` builds a `sections=[...]` array from `t('sN...')` keys. §2 is "What Data We Collect" with `s2Play` / `s2PlayList` sub-blocks. §4 is "Who We Share Your Data With" with `s4List`. The cleanest edit: add one bullet to `s2PlayList` (private messages you send other players) and one paragraph key `s4Dm` rendered inside §4.
+- [ ] **Step 1: `messages/en.json`** — under `"privacy"`:
+  - Add key: `"s4Dm": "When you report a private conversation, our moderators can read that conversation in order to review your report and act on it. We do not read private messages otherwise."`
+  - Append one `<li>` to `s2PlayList`: `<li>Private messages and photos you send other players to coordinate matches, and any reports you file</li>`
 
-- [ ] **Step 1: Add keys to `messages/en.json`**
+- [ ] **Step 2: `messages/fr.json`** — same keys:
+  - `"s4Dm": "Lorsque vous signalez une conversation privée, nos modérateurs peuvent la lire afin d'examiner votre signalement et d'y donner suite. Nous ne lisons pas les messages privés autrement."`
+  - `s2PlayList` extra `<li>`: `<li>Les messages privés et photos que vous envoyez à d'autres joueurs pour organiser des matchs, et les signalements que vous déposez</li>`
 
-Under `"privacy"`, add:
+- [ ] **Step 3: `messages/pcm.json`** — same keys:
+  - `"s4Dm": "If you report a private chat, our moderators fit read that chat so dem go fit check your report and do something about am. We no dey read private messages otherwise."`
+  - `s2PlayList` extra `<li>`: `<li>Private messages and photos wey you send other players to arrange matches, and any report wey you file</li>`
 
-```json
-"s4Dm": "When you report a private conversation, our moderators can read that conversation in order to review your report and act on it. We do not read private messages otherwise.",
-```
-
-And append one `<li>` to the existing `s2PlayList` value (it is a single string of `<li>…</li>` items rendered via `t.rich('s2PlayList', listItemTag)`):
-`<li>Private messages you send other players to coordinate matches, and any reports you file</li>`
-
-- [ ] **Step 2: Mirror into `messages/fr.json` and `messages/pcm.json`**
-
-Same keys. Translations:
-
-- **fr.json** `s4Dm`: `"Lorsque vous signalez une conversation privée, nos modérateurs peuvent la lire afin d'examiner votre signalement et d'y donner suite. Nous ne lisons pas les messages privés autrement."`  · `s2PlayList` extra `<li>`: `<li>Les messages privés que vous envoyez à d'autres joueurs pour organiser des matchs, et les signalements que vous déposez</li>`
-- **pcm.json** `s4Dm`: `"If you report a private chat, our moderators fit read that chat so dem go fit check your report and do something about am. We no dey read private messages otherwise."` · `s2PlayList` extra `<li>`: `<li>Private messages wey you send other players to arrange matches, and any report wey you file</li>`
-
-- [ ] **Step 3: Render `s4Dm` in the privacy page**
-
-In `app/[locale]/(public)/privacy/page.tsx`, the §4 section is `{ id: 'who-we-share-with', title: t('s4Heading'), body: (<>…</>) }` — its fragment ends with `<p>{t('s4P2')}</p><p>{t('s4P3')}</p>`. Add one line right after `s4P3`:
+- [ ] **Step 4: Render `s4Dm`** — in `app/[locale]/(public)/privacy/page.tsx`, in the §4 section fragment, add right after `<p>{t('s4P3')}</p>`:
 
 ```tsx
-<p>{t('s4P3')}</p>
 <p>{t('s4Dm')}</p>
 ```
 
-- [ ] **Step 4: Typecheck + lint + intl sanity**
+- [ ] **Step 5: Typecheck + lint + intl sanity**
 
-Run: `npx tsc --noEmit && npx next lint --file "app/[locale]/(public)/privacy/page.tsx"`
-Run: `node -e "['en','fr','pcm'].forEach(l=>{const m=require('./messages/'+l+'.json'); if(!m.privacy.s4Dm) throw new Error(l+' missing s4Dm')}); console.log('keys ok')"`
+```bash
+npx tsc --noEmit && npx next lint --file "app/[locale]/(public)/privacy/page.tsx"
+node -e "['en','fr','pcm'].forEach(l=>{const m=require('./messages/'+l+'.json'); if(!m.privacy.s4Dm) throw new Error(l+' missing s4Dm'); if(!m.privacy.s2PlayList.includes('Private messages')) throw new Error(l+' s2PlayList not updated')}); console.log('keys ok')"
+```
 Expected: both pass.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add messages/ "app/[locale]/(public)/privacy/page.tsx"
@@ -2012,7 +2242,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 
 ## Task 12: End-to-end verification
 
-**Files:** none — manual run on the Vercel preview (do not `npm run build` locally per Global Constraints).
+**Files:** none — manual run on the Vercel preview (do not `npm run build` locally).
 
 - [ ] **Step 1: Push + full unit sweep**
 
@@ -2020,48 +2250,29 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 git push -u origin worktree-community-dms
 npx vitest run lib/messages/
 ```
-Expected: `thread-key` (3) + `predicates` (7) + `schema` (6) green. Wait for the Vercel preview to build READY.
+Expected: `thread-key` (3) + `predicates` (7) + `schema` (6) green. Wait for the Vercel preview READY.
 
-- [ ] **Step 2: Start a conversation**
-- Account A → Account B's profile (`/players/<b>`) → "Message" → lands on `/messages/<id>`, empty ("Say hello").
-- Send "hey, fixture at 8?" → appears as A's bubble, composer clears.
+- [ ] **Step 2: Start a conversation + send text** — Account A → B's profile → "Message" → `/messages/<id>` → send "fixture at 8?" → A's bubble.
 
-- [ ] **Step 3: Realtime + unread**
-- Account B (other browser) on `/messages` → the thread shows with unread badge `1` and the preview.
-- B opens it → A's message shows; badge clears; the header **bell** badge (which had ticked up from the `direct_message` notification) clears for that thread.
-- B replies while A has the thread open → A sees it append with no reload.
+- [ ] **Step 3: Send an image** — A picks a photo → preview → send → image bubble renders (signed URL). Reload → still renders (fresh sign).
 
-- [ ] **Step 4: Block**
-- B → overflow menu → "Block A" → thread disappears from B's `/messages`; composer in the open thread shows the disabled notice.
-- A tries to send → "You can no longer message this player."
-- B → (reopen thread via profile? it's hidden) — unblock from A's profile menu path or re-open `/messages/<id>` directly → "Unblock" → messaging works again.
+- [ ] **Step 4: Realtime + unread** — B on `/messages` sees the thread + unread badge + preview ("📷 Photo" for the image-only one). B opens it → text appends live if A sends while open; image message triggers a refresh and shows. Badge clears; header bell entry for the thread clears.
 
-- [ ] **Step 5: Report**
-- A → overflow → Report → type a reason → "Send report" → confirmation shown.
-- Staff account → `/admin/messages` → the report is listed, "View thread" shows the transcript, the flagged message (if any) is highlighted → "Resolve" (optionally tick delete) → row greys out.
+- [ ] **Step 5: Block from thread** — B → overflow → Block A → thread gone from B's `/messages`; composer disabled. A tries to send → "You can no longer message this player." B → reopen `/messages/<id>` → Unblock → works again.
 
-- [ ] **Step 6: Rate limit**
-- With `NEW_THREAD_DAILY_CAP = 15`: in the Supabase SQL editor, `INSERT` 15 `dm_threads` rows with `created_by = '<A>'` and `created_at = now()`. Then A → a new player's profile → "Message" → "You've started a lot of new conversations today."
-- Delete those rows afterward.
+- [ ] **Step 6: Block from profile** — A → B's profile → "Block" → the "Message" button disappears, button flips to "Unblock". Unblock → "Message" returns.
 
-- [ ] **Step 7: Account deletion**
-- Create a throwaway account C, message A. Delete C via `/dashboard/settings` → "Delete now".
-- Confirm in SQL: `SELECT count(*) FROM dm_threads WHERE player_a='<C>' OR player_b='<C>'` → 0; A's `/messages` no longer shows the C thread.
+- [ ] **Step 7: Report + admin** — A → overflow → Report → reason → send. Staff → `/admin/messages` → report listed with "messaged N new people in 24h", "View thread" shows the transcript (images inline), flagged message highlighted → "Mute messaging" → the reported account can no longer send (verify as that account: "Your messaging is currently restricted") → "Unmute" restores → "Resolve" (optionally delete flagged) greys the row.
 
-- [ ] **Step 8: Privacy page**
-- `/privacy` → §2 lists private messages; §4 has the moderator-review paragraph. Repeat on `/fr/privacy` and `/pcm/privacy`.
+- [ ] **Step 8: Account deletion** — throwaway C messages A, then C deletes via `/dashboard/settings` → "Delete now". SQL: `SELECT count(*) FROM dm_threads WHERE player_a='<C>' OR player_b='<C>'` → 0; A's `/messages` no longer shows C.
 
-- [ ] **Step 9: Mobile (375px, signed in)**
-- `/messages` list scrolls, rows don't overflow. `/messages/<id>`: header + scrolling transcript + composer pinned to the bottom, Enter sends, Shift+Enter newlines. No horizontal body scroll. Overflow menu and report sheet fit.
+- [ ] **Step 9: Privacy** — `/privacy`, `/fr/privacy`, `/pcm/privacy` → §2 lists private messages + photos; §4 has the moderator-review paragraph.
 
-- [ ] **Step 10: Tick this plan, update the spec + memory**
-- Tick every box.
-- `docs/superpowers/specs/2026-09-07-direct-messages-design.md` — add `**Status:** shipped <date>` under the title.
-- Update `docs/superpowers/specs/2026-09-07-community-system-overview.md`'s piece table if it tracks status.
+- [ ] **Step 10: Mobile (375px, signed in)** — `/messages` rows don't overflow; `/messages/<id>` header + scrolling transcript + composer pinned bottom, Enter sends / Shift+Enter newline, image preview fits, overflow menu + report sheet fit. No horizontal body scroll.
 
-- [ ] **Step 11: Merge to main**
+- [ ] **Step 11: Tick this plan; update the spec + memory** — tick every box; add `**Status:** shipped <date>` to `docs/superpowers/specs/2026-09-07-direct-messages-design.md`; note in `docs/superpowers/specs/2026-09-07-community-system-overview.md` if it tracks piece status; update memory `project_community_statuses` (rename mentally to "community rebuild" — DMs now shipped, follows + media feed remain).
 
-Per memory `feedback_always_push`: once verified, merge to `main` and push — skip the finishing menu. Merge `origin/main` in first (resolve `lib/supabase/types.ts` by regenerating from the live schema), re-run `npx vitest run` + `npx tsc --noEmit`, push the branch, confirm the Vercel preview is green, then fast-forward `main`.
+- [ ] **Step 12: Merge to main** — per memory `feedback_always_push`: merge `origin/main` in first (resolve `lib/supabase/types.ts` by regenerating from the live schema), re-run `npx vitest run` + `npx tsc --noEmit`, push the branch, confirm the Vercel preview is green, then fast-forward `main`.
 
 ---
 
@@ -2071,33 +2282,34 @@ Per memory `feedback_always_push`: once verified, merge to `main` and push — s
 
 | Spec requirement | Task |
 |---|---|
-| `dm_threads` normalised pair + unique index | 1 (schema), 2 (`orderedPair`) |
+| `dm_threads` normalised pair + unique index | 1, 2 |
 | `dm_messages` body/image check, 2000 cap | 1, 4 |
 | `dm_blocks` unique per pair | 1 |
 | `dm_reports` → admin | 1, 10 |
-| RLS: thread + messages readable only by participants | 1 (`dm_threads_participant_read`, `dm_messages_participant_read`) |
-| Insert requires participant **and** not blocked either way (in RLS) | 1 (`dm_can_message` + `dm_messages_sender_insert`) |
-| Blocking symmetric in effect | 1 (`dm_can_message`), 3 (`isBlockedBetween`), 6 |
+| RLS: thread + messages readable only by participants (+ staff) | 1 |
+| Insert requires participant **and** not blocked either way, **in RLS** | 1 (`dm_can_message` + `dm_messages_sender_insert`) |
+| Blocking symmetric in effect | 1, 3, 6 |
 | Messages immutable except `read_at` | 1 (only `dm_messages_recipient_mark_read`) |
-| Account deletion cascades messages | 1 (`anonymise_account` extension), 12 Step 7 |
-| Block from thread **and** from profile | 8 (`ThreadMenu`); profile block — **see gap below** |
-| Report a message or a player, with reason, landing in admin | 8, 10 |
-| Admin can read a reported thread | 1 (`is_staff()` in read policies), 10 |
-| Rate limiting (new-contact cap) | 3 (`newThreadAllowed`), 6 (`resolveOrCreateThread`), 12 Step 6 |
+| Account deletion cascades messages | 1 (`anonymise_account`), 12 Step 8 |
+| Block from thread **and** from profile | 8 (`ThreadMenu`), 9 (`ProfilePlayerActions`) |
+| Report a message or a player, with reason, → admin | 8, 10 |
+| Admin can read a reported thread | 1 (`is_staff()` reads), 10 |
+| Rate limiting / anti-spam | **Replaced** (decision 2026-09-09) by admin mute (`dm_muted_players`, Tasks 1/6/10) + the "N new contacts / 24h" report signal (Tasks 3/10). Documented in Global Constraints and here. |
 | Privacy policy edit is part of this piece | 11 |
 | Realtime `dm_messages` published, RLS on top | 1, 7, 8 |
 | Unread = `read_at IS NULL AND sender_id <> me` | 3 (`unreadCount`) |
 | `/messages` list: avatar, name, preview, timestamp, unread badge | 7 |
 | `/messages/[threadId]`: message list, composer, block/report overflow | 8 |
-| Header: unread total on the existing cluster, not a new control | 1 + 6 (DMs write `player_notifications` → existing bell badge; **no header file touched**) |
+| Header: unread total on the existing cluster, not a new control | 1 + 6 (DMs write `player_notifications` → existing bell; **no header file touched**) |
 | Profile: "Message" button | 9 |
+| Images (spec's cuttable corner — **kept in** per 2026-09-09 decision) | 1 (bucket + RLS), 5 (signed URLs), 8 (upload + render), 10 (transcript) |
 | Out: groups, voice, typing, richer receipts, search, reactions | not built |
-| Cuttable corner (images) — cut | Global Constraints; `image_url` column kept, no UI |
 
-**Known gap:** the spec wants **Block also reachable from a player's profile**, not just from inside a thread. This plan puts block/unblock only in `ThreadMenu` (Task 8). Options for the executor: (a) accept it — "Message" then block from the thread is one extra tap; (b) add a small block control to `ProfileHeader` in Task 9 (reuses `blockUser`/`unblockUser` — needs the profile page to fetch "did I block them" state, a small `fetchThread`-adjacent query). **Recommend (b)** — it's cheap and the spec is explicit that minors need blocking to be easy to reach. If taking (b), Task 9 also fetches block state on the profile server component and passes it to a `<ProfilePlayerActions>` that shows Message + Block/Unblock.
+**Placeholder scan:** one deliberate placeholder — the `dm:refresh` event dance in `Conversation.tsx` (Task 8 Step 3) — is flagged immediately below the code with the exact clean replacement (`useRouter().refresh()` on image-message events). Everything else is literal. No TBD/TODO.
 
-**Placeholder scan:** two spots flagged inline for the executor to write clean rather than as-shown (`admin-query.ts` grouping `@ts-expect-error`; the `--site-header-h` CSS var in Task 8). Both are noted with the concrete fix. No TBD/TODO left.
+**Type consistency:** `orderedPair` → `{playerA, playerB}` used in Tasks 5/6. `ThreadSummary` / `ThreadDetail` / `ConversationMessage` / `ProfileMessagingState` defined in Task 5, consumed in 7/8/9. `ConversationMessage.imageUrl` is a **signed URL** in the query layer output (not the stored path) — the realtime payload in Task 8 carries the raw path, hence the refresh-to-re-sign. `AdminActionState` defined locally in `admin-actions.ts` (Task 10), matching the community `admin-actions.ts` pattern. `countNewContactsSince` from Task 3 used in Task 10. `startConversation` in `lib/messages/actions.ts` (Task 6), consumed by Task 9.
 
-**Type consistency:** `orderedPair` returns `{playerA, playerB}` — used consistently in Tasks 5, 6. `ThreadSummary` / `ThreadDetail` defined in Task 5, consumed in 7/8. `AdminActionState` re-defined locally in `admin-actions.ts` (Task 10) matching the community `admin-actions.ts` pattern — not imported. `startConversation` added in Task 9 but lives in `lib/messages/actions.ts` from Task 6 (the file exists; Task 9 appends one export). `NEW_THREAD_DAILY_CAP` from Task 3 used in Task 6.
-
-**Deviation from spec:** none in substance. Images cut per the spec's own "cuttable corner". Header badge achieved via the notification table rather than a bespoke DM counter — satisfies "badge on an existing control, not a new one" more literally than adding a DM-specific count to `NavSession`.
+**Deviations from spec, all deliberate & user-approved (2026-09-09):**
+1. **No preemptive rate limit** — replaced with admin mute + report-queue signal. The spec called rate-limiting "not cuttable"; the user's call is that a loose cap is security theatre and a tight one blocks real users, and a fast reactive lever is better for this small, hand-moderated community.
+2. **Images kept in** (spec's "cuttable corner") — private bucket + signed URLs.
+3. **Header badge via `player_notifications`** rather than a bespoke DM count — satisfies "badge on an existing control, not a new one" more literally.
