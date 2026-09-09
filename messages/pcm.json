@@ -70,6 +70,7 @@
     "sentSpam": "Check your spam folder if e no enter.",
     "pending": "E dey wait: {email}",
     "pendingHint": "We dey wait make you confam from dat inbox.",
+    "googleHint": "Na Google you take login? If you never set password before, use “Change Password” for up first — di link go enter your current inbox.",
     "changed": "Your email address don update.",
     "errors": {
       "invalid_email": "Put email address wey correct.",

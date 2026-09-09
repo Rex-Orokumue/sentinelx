@@ -284,15 +284,37 @@ describe('changeEmail', () => {
     expect(updateUser).not.toHaveBeenCalled()
   })
 
-  it('sends a Google-only account to set a password first', async () => {
+  it('sends a Google-only account with no password to set one first', async () => {
     getUser.mockResolvedValue({
       data: { user: { id: 'u1', email: 'old@x.com', identities: [{ provider: 'google' }] } },
     })
+    verifyPassword.mockResolvedValue(false)
     const { changeEmail } = await import('./actions')
     const result = await changeEmail(undefined, formData(good))
     expect(result).toEqual({ errorCode: 'google_only' })
-    expect(verifyPassword).not.toHaveBeenCalled()
     expect(updateUser).not.toHaveBeenCalled()
+  })
+
+  // Setting a password through the reset flow leaves no 'email' identity, so a
+  // Google account that has one still looks identity-less. 4 live accounts are
+  // in this state; the password has to be tried before we tell anyone they
+  // haven't got one.
+  it('lets a Google account that has set a password change its email', async () => {
+    getUser.mockResolvedValue({
+      data: { user: { id: 'u1', email: 'old@x.com', identities: [{ provider: 'google' }] } },
+    })
+    verifyPassword.mockResolvedValue(true)
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData(good))
+    expect(result).toEqual({ sentTo: 'new@x.com' })
+    expect(updateUser).toHaveBeenCalledWith({ email: 'new@x.com' })
+  })
+
+  it('still says wrong password when the account does have one', async () => {
+    verifyPassword.mockResolvedValue(false)
+    const { changeEmail } = await import('./actions')
+    const result = await changeEmail(undefined, formData(good))
+    expect(result).toEqual({ errorCode: 'wrong_password' })
   })
 
   it('rejects the address the account already has, whatever its case', async () => {
