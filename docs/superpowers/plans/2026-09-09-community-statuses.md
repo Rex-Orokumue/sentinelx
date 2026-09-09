@@ -24,9 +24,15 @@
 | 6 · StatusViewer | ✅ done | `ed567c7` |
 | 7 · Page wiring + realtime | ✅ done | `c013af0` |
 | 8 · Admin moderation | ✅ done | `2d5831b` |
-| 9 · E2E verification | ⏳ user-run | preview `sentinelx-git-feat-community-statuses-rex-7e1d.vercel.app` |
+| 9 · E2E verification | ✅ done | user-run on the Vercel preview; fixes below |
 
-**Verified:** `tsc --noEmit` clean · `next lint` clean · `vitest run lib/community/` 69/69 · Vercel preview build **READY, 0 errors** (`dpl_86NMWLqB3H3KK2jAXe32xd7fvueA`).
+**Post-verification fixes (from the user's E2E pass):**
+- `9104152` — desktop viewer was unusable (flex-1 media div with no `min-h-0` let the image inflate the column past the viewport, hiding the footer); rebuilt as a bounded phone-shaped card. Seen-by sheet opened before its fetch resolved and never refreshed → loading state, clears on open, closes on advance, polls every 4s.
+- `043662b` — feed top decluttered: hero only for logged-out visitors, inline composer box replaces the hidden `+ New Post` button, stats/quick-action tiles moved below the feed.
+- `afca239` — `ChallengeWidget` (`lg:sticky`) moved to last in the sidebar so "Upcoming Tournaments" no longer renders behind it.
+- `97d7882` — merged `origin/main` (28 commits: multi-format tournaments, sign-in methods, avatar frames, change-email); `lib/supabase/types.ts` regenerated from the live schema.
+
+**Verified:** `tsc --noEmit` clean · `next lint` clean · full `vitest run` green · Vercel preview builds **READY, 0 errors**.
 
 **Task 1 deviation from plan:** the base migration `20260907120000_player_statuses.sql` **was already applied to production** (recorded remotely as version `20260907165549` — a local/remote filename skew, tables + all 5 original policies present and correct). The plan assumed it was unapplied; only the new `player_statuses_staff_delete` + `status_views_staff_read` policies needed applying, done via MCP `apply_migration` (`20260909082245_player_statuses_staff_delete.sql`).
 

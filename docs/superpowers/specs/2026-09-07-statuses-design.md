@@ -1,7 +1,7 @@
 # Statuses (24-Hour Stories) — Design
 
 **Date:** 2026-09-07 · **Piece 1 of 4** — see `2026-09-07-community-system-overview.md`
-**Status:** schema and ring logic already built and committed; UI remains.
+**Status:** shipped 2026-09-09 — see `docs/superpowers/plans/2026-09-09-community-statuses.md`.
 
 ## What it is
 
