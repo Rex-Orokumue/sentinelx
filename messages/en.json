@@ -58,6 +58,31 @@
     "blockerFriendly": "{count} unfinished friendly — play or decline it",
     "restricted": "Your account is scheduled for deletion. Cancel the deletion in Settings to do this."
   },
+  "emailChange": {
+    "title": "Change email",
+    "open": "Change Email →",
+    "newLabel": "New email address",
+    "passwordLabel": "Current password",
+    "passwordHint": "Your password confirms it's really you — without it, anyone who found your account signed in could move it to their own inbox.",
+    "submit": "Send confirmation link",
+    "cancel": "Cancel",
+    "sent": "Confirmation link sent to {email}. Your address stays the same until you open that link.",
+    "sentSpam": "Check your spam folder if it doesn't arrive.",
+    "pending": "Pending: {email}",
+    "pendingHint": "Waiting for you to confirm from that inbox.",
+    "changed": "Your email address has been updated.",
+    "errors": {
+      "invalid_email": "Enter a valid email address.",
+      "password_required": "Enter your current password.",
+      "not_logged_in": "Your session has expired. Please log in again.",
+      "google_only": "Your account signs in with Google, so there's no password to confirm. Use Change Password above to set one, then you can change your email.",
+      "same_email": "That's already your email address.",
+      "wrong_password": "That password isn't right.",
+      "email_banned": "We could not use that email address.",
+      "email_in_use": "That email address is already in use.",
+      "failed": "Could not start the email change. Please try again."
+    }
+  },
   "home": {
     "upcomingHeading": "Upcoming",
     "topPlayersHeading": "Top Players",
