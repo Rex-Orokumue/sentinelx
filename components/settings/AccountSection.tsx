@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useFormState } from 'react-dom'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { requestReset, type ActionState } from '@/lib/auth/actions'
+import { requestReset, changeEmail, type ActionState, type ChangeEmailState } from '@/lib/auth/actions'
 import {
   requestAccountDeletion,
   cancelAccountDeletion,
@@ -21,11 +21,19 @@ export function AccountSection({
   kycVerified,
   username,
   deletionRequestedAt,
+  pendingEmail,
+  hasPassword,
+  emailJustChanged,
 }: {
   email: string
   kycVerified: boolean
   username: string | null
   deletionRequestedAt: string | null
+  // Set while an email change is awaiting confirmation. Supabase keeps the new
+  // address here and leaves the account on the old one until the link is opened.
+  pendingEmail: string | null
+  hasPassword: boolean
+  emailJustChanged: boolean
 }) {
   return (
     <section className="rounded-2xl border border-sx-border bg-sx-surface p-5">
@@ -36,6 +44,13 @@ export function AccountSection({
           <span className="text-white">{email}</span>
         </div>
         <ChangePasswordButton email={email} />
+        {/* Below Change Password on purpose — the Google-only message tells
+            people to use that button, and "above" should be true. */}
+        <ChangeEmailPanel
+          pendingEmail={pendingEmail}
+          hasPassword={hasPassword}
+          justChanged={emailJustChanged}
+        />
       </div>
 
       <div className="mt-5 border-t border-sx-border pt-3">
@@ -61,6 +76,114 @@ export function AccountSection({
         )}
       </div>
     </section>
+  )
+}
+
+function ChangeEmailPanel({
+  pendingEmail,
+  hasPassword,
+  justChanged,
+}: {
+  pendingEmail: string | null
+  hasPassword: boolean
+  justChanged: boolean
+}) {
+  const t = useTranslations('emailChange')
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+
+  const [state, formAction] = useFormState<ChangeEmailState, FormData>(async (prev, fd) => {
+    const result = await changeEmail(prev, fd)
+    // Brings the pending-address row down from the server without a reload.
+    if (result?.sentTo) router.refresh()
+    return result
+  }, undefined)
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sx-gray">{t('title')}</span>
+        {!open && (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="shrink-0 text-xs font-semibold text-sx-purple-text hover:text-sx-purple-light"
+          >
+            {t('open')}
+          </button>
+        )}
+      </div>
+
+      {justChanged && !pendingEmail && (
+        <p className="text-xs text-emerald-400">{t('changed')}</p>
+      )}
+
+      {pendingEmail && (
+        <div className="rounded-lg border border-amber-900/50 bg-amber-950/20 px-3 py-2">
+          <p className="text-xs font-semibold text-amber-300">{t('pending', { email: pendingEmail })}</p>
+          <p className="mt-0.5 text-xs text-amber-100/80">{t('pendingHint')}</p>
+        </div>
+      )}
+
+      {open && !hasPassword && (
+        <p className="rounded-lg border border-sx-border bg-slate-950/60 px-3 py-2 text-xs leading-relaxed text-sx-gray">
+          {t('errors.google_only')}
+        </p>
+      )}
+
+      {open && hasPassword && (
+        <form action={formAction} className="space-y-2 rounded-xl border border-sx-border bg-slate-950/40 p-3">
+          <label className="block text-xs text-sx-gray" htmlFor="new-email">
+            {t('newLabel')}
+          </label>
+          <input
+            id="new-email"
+            type="email"
+            name="email"
+            autoComplete="email"
+            required
+            className="w-full rounded-lg border border-sx-border bg-slate-950 px-3 py-2 text-sm text-white"
+          />
+
+          <label className="block pt-1 text-xs text-sx-gray" htmlFor="current-password">
+            {t('passwordLabel')}
+          </label>
+          <input
+            id="current-password"
+            type="password"
+            name="password"
+            autoComplete="current-password"
+            required
+            className="w-full rounded-lg border border-sx-border bg-slate-950 px-3 py-2 text-sm text-white"
+          />
+          <p className="text-xs leading-relaxed text-sx-gray">{t('passwordHint')}</p>
+
+          {state?.errorCode && <p className="text-xs text-red-400">{t(`errors.${state.errorCode}`)}</p>}
+          {state?.sentTo && (
+            <div className="space-y-0.5">
+              <p className="text-xs text-emerald-400">{t('sent', { email: state.sentTo })}</p>
+              <p className="text-xs text-sx-gray">{t('sentSpam')}</p>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2 pt-1 sm:flex-row">
+            <button
+              type="submit"
+              className="rounded-lg bg-sx-purple px-4 py-2 text-sm font-bold text-white hover:bg-sx-purple-light"
+            >
+              {t('submit')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="rounded-lg border border-sx-border px-4 py-2 text-sm text-sx-gray"
+            >
+              {t('cancel')}
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
   )
 }
 

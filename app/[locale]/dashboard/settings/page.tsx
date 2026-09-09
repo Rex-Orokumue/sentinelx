@@ -10,11 +10,16 @@ import { PushPrefsForm } from '@/components/settings/PushPrefsForm'
 import { ALWAYS_MUTED_UNTIL } from '@/lib/notifications/mutes'
 import { AchievementSharingForm } from '@/components/settings/AchievementSharingForm'
 import { AccountSection } from '@/components/settings/AccountSection'
+import { hasPasswordIdentity } from '@/lib/auth/reauth'
 import type { MembershipTier } from '@/lib/membership/tiers'
 
 export const metadata: Metadata = { title: 'Settings · SentinelX Esports', robots: { index: false, follow: false } }
 
-export default async function DashboardSettingsPage() {
+export default async function DashboardSettingsPage({
+  searchParams,
+}: {
+  searchParams: { email?: string }
+}) {
   const supabase = createClient()
   const {
     data: { user },
@@ -123,6 +128,13 @@ export default async function DashboardSettingsPage() {
           kycVerified={kyc?.kyc_status === 'verified' || !!row?.kyc_verified}
           username={row?.username ?? null}
           deletionRequestedAt={row?.deletion_requested_at ?? null}
+          // Supabase parks a requested address here until its link is opened;
+          // user.email stays on the old one until then.
+          pendingEmail={user.new_email ?? null}
+          hasPassword={hasPasswordIdentity(user)}
+          // Set by resolveCallbackRedirect when /auth/confirm verifies an
+          // email_change link.
+          emailJustChanged={searchParams.email === 'changed'}
         />
       </div>
     </DashboardShell>
