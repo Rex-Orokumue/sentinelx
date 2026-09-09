@@ -18,10 +18,39 @@ import { isIdentifierBanned, isUsernameRetired } from './signup-blocks'
 import { verifyPassword, hasPasswordIdentity } from './reauth'
 import { DEVICE_TOKEN_COOKIE } from '@/lib/notifications/device-cookie'
 
+// Codes, not prose — the auth forms translate them under `auth.errors` /
+// `auth.notices`, so a form rendered in Pidgin cannot answer in English. Same
+// convention as changeEmail() and requestAccountDeletion().
+export type AuthErrorCode =
+  | 'invalid_email'
+  | 'password_required'
+  | 'password_too_short'
+  | 'username_too_short'
+  | 'username_too_long'
+  | 'username_charset'
+  | 'invalid_credentials'
+  | 'email_not_confirmed'
+  | 'blocked_details'
+  | 'username_taken'
+  | 'username_taken_go_back'
+  | 'signup_failed'
+  | 'link_expired'
+  | 'reset_failed'
+
+export type AuthNoticeCode = 'resend_sent' | 'reset_sent' | 'check_email'
+
 // `needsConfirmation` is set by login() when the account exists but the email
 // was never confirmed — the form then offers a "resend" button instead of the
 // dead-end "invalid email or password".
-export type ActionState = { error?: string; success?: string; needsConfirmation?: boolean } | undefined
+export type ActionState =
+  | { errorCode?: AuthErrorCode; noticeCode?: AuthNoticeCode; needsConfirmation?: boolean }
+  | undefined
+
+// Zod carries our codes in `message` (see lib/auth/schema.ts), so the first
+// issue's message IS the code.
+function firstIssueCode(error: { issues: { message: string }[] }): AuthErrorCode {
+  return error.issues[0].message as AuthErrorCode
+}
 
 function safeNext(value: FormDataEntryValue | null): string {
   const next = typeof value === 'string' ? value : ''
@@ -33,18 +62,15 @@ export async function login(_prev: ActionState, formData: FormData): Promise<Act
     email: formData.get('email'),
     password: formData.get('password'),
   })
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  if (!parsed.success) return { errorCode: firstIssueCode(parsed.error) }
 
   const supabase = createClient()
   const { error } = await supabase.auth.signInWithPassword(parsed.data)
   if (error) {
     if ((error as { code?: string }).code === 'email_not_confirmed') {
-      return {
-        error: "Your email isn't confirmed yet — check your inbox (and spam) for the link.",
-        needsConfirmation: true,
-      }
+      return { errorCode: 'email_not_confirmed', needsConfirmation: true }
     }
-    return { error: 'Invalid email or password.' }
+    return { errorCode: 'invalid_credentials' }
   }
 
   revalidatePath('/', 'layout')
@@ -58,7 +84,7 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
     password: formData.get('password'),
     ref: formData.get('ref') || undefined,
   })
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  if (!parsed.success) return { errorCode: firstIssueCode(parsed.error) }
 
   const { username, email, password, ref } = parsed.data
   const supabase = createClient()
@@ -69,13 +95,13 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
   // given address.
   const admin = createAdminClient()
   if (await isIdentifierBanned(admin, email)) {
-    return { error: 'We could not create an account with those details.' }
+    return { errorCode: 'blocked_details' }
   }
   // Checked here as well as at claim time: rejecting at the wizard is a far
   // better experience than accepting the signup and refusing the handle after
   // the user has confirmed their email.
   if (await isUsernameRetired(admin, username)) {
-    return { error: 'That username is taken — try another.' }
+    return { errorCode: 'username_taken' }
   }
 
   // The username is NOT claimed here — see migration 073. It rides along as
@@ -103,7 +129,7 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
       status: (error as { status?: number }).status,
       message: error.message,
     })
-    return { error: mapSignupError(error) }
+    return { errorCode: mapSignupError(error) }
   }
 
   // Seeds the new player's language from whatever they were browsing in —
@@ -114,7 +140,7 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
     await supabase.from('profiles').update({ locale }).eq('id', data.user.id)
   }
 
-  return { success: 'check-email' }
+  return { noticeCode: 'check_email' }
 }
 
 // Re-send the signup confirmation link. Offered on the "check your email"
@@ -125,7 +151,7 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
 export async function resendConfirmation(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const email = String(formData.get('email') ?? '').trim().toLowerCase()
   if (!z.string().email().safeParse(email).success) {
-    return { error: 'Enter a valid email address.' }
+    return { errorCode: 'invalid_email' }
   }
 
   const supabase = createClient()
@@ -136,22 +162,19 @@ export async function resendConfirmation(_prev: ActionState, formData: FormData)
       message: error.message,
     })
   }
-  return {
-    success:
-      "If that address still needs confirming, a fresh link is on its way. Check your spam folder — and Google sign-in skips email entirely.",
-  }
+  return { noticeCode: 'resend_sent' }
 }
 
 export async function requestReset(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = requestResetSchema.safeParse({ email: formData.get('email') })
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  if (!parsed.success) return { errorCode: firstIssueCode(parsed.error) }
 
   const supabase = createClient()
   // The recovery link format (token_hash + type + next=/reset-password) is
   // controlled by the Supabase "Reset password" template → /auth/confirm.
   await supabase.auth.resetPasswordForEmail(parsed.data.email)
   // Neutral response regardless of whether the account exists.
-  return { success: "If an account exists for that email, we've sent a reset link." }
+  return { noticeCode: 'reset_sent' }
 }
 
 // Codes rather than prose: the settings form translates them, the same way
@@ -250,14 +273,17 @@ export async function changeEmail(
 
 export async function resetPassword(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const parsed = resetPasswordSchema.safeParse({ password: formData.get('password') })
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  if (!parsed.success) return { errorCode: firstIssueCode(parsed.error) }
 
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Your reset link has expired. Please request a new one.' }
+  if (!user) return { errorCode: 'link_expired' }
 
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password })
-  if (error) return { error: error.message }
+  if (error) {
+    console.error('[resetPassword] updateUser failed', error.message)
+    return { errorCode: 'reset_failed' }
+  }
 
   revalidatePath('/', 'layout')
   redirect('/dashboard')

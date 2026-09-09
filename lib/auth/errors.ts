@@ -17,9 +17,8 @@ export function isUsernameTakenError(error: unknown): boolean {
   return msg.includes('duplicate key') || msg.includes('unique constraint')
 }
 
-export function mapSignupError(error: unknown): string {
-  if (isUsernameTakenError(error)) {
-    return 'That username is taken — go back and pick another.'
-  }
-  return 'Something went wrong creating your account. Please try again.'
+// Returns a code for the signup form to translate, not prose.
+export function mapSignupError(error: unknown): 'username_taken_go_back' | 'signup_failed' {
+  if (isUsernameTakenError(error)) return 'username_taken_go_back'
+  return 'signup_failed'
 }

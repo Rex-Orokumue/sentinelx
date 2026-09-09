@@ -84,7 +84,7 @@ describe('signup blocks deleted-account identifiers', () => {
       undefined,
       formData({ username: 'freehandle', email: 'cheat@x.com', password: 'password123' }),
     )
-    expect(result).toEqual({ error: 'We could not create an account with those details.' })
+    expect(result).toEqual({ errorCode: 'blocked_details' })
     // Generic on purpose: a distinct message would let anyone probe the
     // blocklist for a given address.
     expect(signUp).not.toHaveBeenCalled()
@@ -99,7 +99,7 @@ describe('signup blocks deleted-account identifiers', () => {
       undefined,
       formData({ username: 'sniperking', email: 'new@x.com', password: 'password123' }),
     )
-    expect(result).toEqual({ error: 'That username is taken — try another.' })
+    expect(result).toEqual({ errorCode: 'username_taken' })
     expect(signUp).not.toHaveBeenCalled()
   })
 
@@ -111,7 +111,7 @@ describe('signup blocks deleted-account identifiers', () => {
       undefined,
       formData({ username: 'brandnew', email: 'ok@x.com', password: 'password123' }),
     )
-    expect(result).toEqual({ success: 'check-email' })
+    expect(result).toEqual({ noticeCode: 'check_email' })
     expect(signUp).toHaveBeenCalledOnce()
   })
 })
@@ -168,7 +168,7 @@ describe('login surfaces an unconfirmed email distinctly', () => {
     signInWithPassword.mockResolvedValueOnce({ error: { code: 'invalid_credentials', message: 'bad' } })
     const { login } = await import('./actions')
     const result = await login(undefined, formData({ email: 'u@u.com', password: 'wrongpass1' }))
-    expect(result).toEqual({ error: 'Invalid email or password.' })
+    expect(result).toEqual({ errorCode: 'invalid_credentials' })
   })
 })
 
@@ -182,14 +182,14 @@ describe('resendConfirmation', () => {
   it('returns a neutral success message that does not confirm the account exists', async () => {
     const { resendConfirmation } = await import('./actions')
     const result = await resendConfirmation(undefined, formData({ email: 'someone@example.com' }))
-    expect(result?.success).toBeTruthy()
-    expect(result?.error).toBeUndefined()
+    expect(result?.noticeCode).toBe('resend_sent')
+    expect(result?.errorCode).toBeUndefined()
   })
 
   it('rejects an invalid email without calling Supabase', async () => {
     const { resendConfirmation } = await import('./actions')
     const result = await resendConfirmation(undefined, formData({ email: 'not-an-email' }))
-    expect(result?.error).toBeTruthy()
+    expect(result?.errorCode).toBe('invalid_email')
     expect(resend).not.toHaveBeenCalled()
   })
 })

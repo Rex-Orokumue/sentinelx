@@ -1,10 +1,14 @@
 import { redirect } from 'next/navigation'
-import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
+import type { Locale } from '@/i18n/locales'
 import { createClient } from '@/lib/supabase/server'
 import { safeInternalPath } from '@/lib/onboarding/safe-path'
 import { ClaimUsernameForm } from '@/components/onboarding/ClaimUsernameForm'
 
-export const metadata: Metadata = { title: 'Choose your username · SentinelX Esports' }
+export async function generateMetadata({ params }: { params: { locale: Locale } }) {
+  const t = await getTranslations({ locale: params.locale, namespace: 'auth.meta' })
+  return { title: t('username'), robots: { index: false, follow: false } }
+}
 
 export default async function ClaimUsernamePage({
   searchParams,
@@ -29,11 +33,12 @@ export default async function ClaimUsernamePage({
   const desired = user.user_metadata?.username
   const defaultUsername = typeof desired === 'string' ? desired : ''
   const next = safeInternalPath(searchParams.next, '')
+  const t = await getTranslations('auth.usernameStep')
 
   return (
     <div>
-      <h1 className="mb-1 text-xl font-bold">Choose your handle</h1>
-      <p className="mb-6 text-sm text-slate-400">This is your public username on SentinelX Esports.</p>
+      <h1 className="mb-1 text-xl font-bold">{t('title')}</h1>
+      <p className="mb-6 text-sm text-slate-400">{t('subtitle')}</p>
       <ClaimUsernameForm defaultUsername={defaultUsername} next={next || undefined} />
     </div>
   )

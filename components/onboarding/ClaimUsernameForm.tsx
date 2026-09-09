@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import { Check, X, Loader2, AlertTriangle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { claimUsername, type ClaimUsernameState } from '@/lib/onboarding/actions'
 import { useUsernameAvailability } from '@/hooks/useUsernameAvailability'
 import { Button } from '@/components/ui/button'
@@ -9,10 +10,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 function SubmitButton({ disabled }: { disabled: boolean }) {
+  const t = useTranslations('auth.usernameStep')
   const { pending } = useFormStatus()
   return (
     <Button type="submit" className="w-full" disabled={disabled || pending}>
-      {pending ? 'Saving…' : 'Continue'}
+      {pending ? t('submitting') : t('submit')}
     </Button>
   )
 }
@@ -24,6 +26,7 @@ export function ClaimUsernameForm({
   defaultUsername?: string
   next?: string
 }) {
+  const t = useTranslations('auth')
   const [username, setUsername] = useState(defaultUsername)
   const [state, formAction] = useFormState<ClaimUsernameState, FormData>(claimUsername, undefined)
   const availability = useUsernameAvailability(username)
@@ -32,7 +35,7 @@ export function ClaimUsernameForm({
     <form action={formAction} className="space-y-4">
       {next && <input type="hidden" name="next" value={next} />}
       <div className="space-y-1.5">
-        <Label htmlFor="username-input">Username</Label>
+        <Label htmlFor="username-input">{t('common.username')}</Label>
         <div className="relative">
           <Input
             id="username-input"
@@ -52,15 +55,15 @@ export function ClaimUsernameForm({
             {availability === 'unknown' && <AlertTriangle className="h-4 w-4 text-amber-500" />}
           </span>
         </div>
-        {availability === 'taken' && <p className="text-sm text-red-400">That username is taken.</p>}
+        {availability === 'taken' && <p className="text-sm text-red-400">{t('availability.taken')}</p>}
         {availability === 'invalid' && (
-          <p className="text-sm text-red-400">3–20 characters: letters, numbers, underscores.</p>
+          <p className="text-sm text-red-400">{t('availability.invalid')}</p>
         )}
         {availability === 'unknown' && (
-          <p className="text-sm text-amber-400">Couldn&apos;t verify right now — you can still continue.</p>
+          <p className="text-sm text-amber-400">{t('availability.unknown')}</p>
         )}
       </div>
-      {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
+      {state?.errorCode && <p className="text-sm text-red-400">{t(`errors.${state.errorCode}`)}</p>}
       <SubmitButton disabled={availability !== 'available' && availability !== 'unknown'} />
     </form>
   )

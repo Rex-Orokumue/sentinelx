@@ -30,6 +30,109 @@
     "escrow": "How escrow dey work",
     "trust": "Zolarux escrow dey protect every trade."
   },
+  "auth": {
+    "meta": {
+      "login": "Log in · SentinelX Esports",
+      "signup": "Sign up · SentinelX Esports",
+      "forgotPassword": "Forgot password · SentinelX Esports",
+      "resetPassword": "Set new password · SentinelX Esports",
+      "username": "Choose your username · SentinelX Esports",
+      "phone": "Verify your phone · SentinelX Esports"
+    },
+    "common": {
+      "email": "Email",
+      "password": "Password",
+      "username": "Username",
+      "or": "OR",
+      "backToLogin": "Go back to log in",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "atLeast8": "Na 8 characters minimum.",
+      "continueWithGoogle": "Continue with Google",
+      "back": "Go back"
+    },
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Log in to your SentinelX Esports account.",
+      "submit": "Log in",
+      "submitting": "We dey sign you in…",
+      "resend": "Send di confirmation email again",
+      "resending": "E dey send…",
+      "resendHint": "You no see di first one? Check your spam — or use Google sign-in for below, wey no need email confirmation at all.",
+      "forgot": "You forget password?",
+      "createAccount": "Create account"
+    },
+    "signup": {
+      "step1Title": "Join SentinelX Esports",
+      "step1Subtitle": "Dis na di fastest way — no email confirmation needed:",
+      "continueWithEmail": "Continue with email",
+      "haveAccount": "You get account already?",
+      "logIn": "Log in",
+      "step2Title": "Create your account",
+      "submit": "Create account",
+      "submitting": "We dey create di account…",
+      "checkEmailTitle": "Check your email",
+      "checkEmailBody": "We don send confirmation link go {email}. Click am to activate your account, then log in and pick your handle.",
+      "nothingYet": "Nothing enter after some minutes? Check your spam folder, then:",
+      "resend": "Send am again",
+      "resending": "E dey send…",
+      "googleTipBefore": "Email link fit delay sometimes. If you sign up with Google, no confirmation dey at all — ",
+      "startOver": "start over",
+      "googleTipAfter": " and use di Google button.",
+      "orSignUpWithEmail": "OR SIGN UP WITH EMAIL",
+      "signingUpAs": "You dey sign up as {username}."
+    },
+    "forgot": {
+      "title": "Reset your password",
+      "subtitle": "Put your email and we go send you reset link.",
+      "submit": "Send reset link",
+      "submitting": "E dey send…"
+    },
+    "reset": {
+      "title": "Set new password",
+      "subtitle": "Choose new password for your account.",
+      "newPassword": "New password",
+      "submit": "Set new password",
+      "submitting": "E dey update…"
+    },
+    "usernameStep": {
+      "title": "Choose your handle",
+      "subtitle": "Na dis one go be your public username for SentinelX Esports.",
+      "submit": "Continue",
+      "submitting": "E dey save…"
+    },
+    "phoneStep": {
+      "title": "Verify your phone",
+      "subtitle": "We go send 6-digit code for WhatsApp so we fit reach you about fixtures and results."
+    },
+    "availability": {
+      "taken": "Person don take dat username.",
+      "invalid": "3–20 characters: letters, numbers, underscore.",
+      "unknown": "We no fit check am right now — you fit still continue."
+    },
+    "notices": {
+      "check_email": "Check your email for di confirmation link.",
+      "resend_sent": "If dat address still need confirmation, new link dey come. Check your spam folder — and Google sign-in no need email at all.",
+      "reset_sent": "If account dey for dat email, we don send reset link."
+    },
+    "errors": {
+      "invalid_email": "Put email address wey correct.",
+      "password_required": "You need to put password.",
+      "password_too_short": "Password must be 8 characters minimum.",
+      "username_too_short": "Username must be 3 characters minimum.",
+      "username_too_long": "Username no suppose pass 20 characters.",
+      "username_charset": "Na letters, numbers and underscore only.",
+      "invalid_credentials": "Di email or password no correct.",
+      "email_not_confirmed": "You never confam your email — check your inbox (and spam) for di link.",
+      "blocked_details": "We no fit create account with dose details.",
+      "username_taken": "Person don take dat username — try another one.",
+      "username_taken_go_back": "Person don take dat username — go back and pick another one.",
+      "signup_failed": "Something spoil when we dey create your account. Abeg try again.",
+      "username_save_failed": "We no fit save your username. Abeg try again.",
+      "link_expired": "Your reset link don expire. Abeg request new one.",
+      "reset_failed": "We no fit update your password. Abeg try again."
+    }
+  },
   "accountDeletion": {
     "title": "Delete account",
     "scheduledFor": "We go delete your account permanently for {date}.",
