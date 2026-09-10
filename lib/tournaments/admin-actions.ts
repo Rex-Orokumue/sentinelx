@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireStaff, requireAdmin } from '@/lib/admin/auth'
-import { tournamentSchema, type TournamentInput } from './admin-schema'
+import { type TournamentInput } from './admin-schema'
+import { parseForm } from './admin-form'
 import { slugify } from './slug'
 import { missingForPublish } from './readiness'
 import { manualCreditWallet } from '@/lib/admin/wallet-actions'
@@ -14,33 +15,6 @@ import { broadcastPush } from '@/lib/notifications/push'
 
 export type TournamentFormState = { error?: string; success?: boolean } | undefined
 export type PublishState = { error?: string; fieldErrors?: string[]; success?: boolean } | undefined
-
-function parseForm(formData: FormData) {
-  return tournamentSchema.safeParse({
-    title: formData.get('title'),
-    gameId: formData.get('gameId'),
-    slug: formData.get('slug') ?? '',
-    description: formData.get('description') ?? '',
-    bannerUrl: formData.get('bannerUrl') ?? '',
-    cardImageUrl: formData.get('cardImageUrl') ?? '',
-    registrationFee: formData.get('registrationFee'),
-    prizePool: formData.get('prizePool'),
-    maxPlayers: formData.get('maxPlayers') ?? '',
-    registrationStart: formData.get('registrationStart') ?? '',
-    registrationEnd: formData.get('registrationEnd') ?? '',
-    tournamentStart: formData.get('tournamentStart') ?? '',
-    tournamentEnd: formData.get('tournamentEnd') ?? '',
-    rules: formData.get('rules') ?? '',
-    dataSupportText: formData.get('dataSupportText') ?? '',
-    dataSupportWhatsapp: formData.get('dataSupportWhatsapp') ?? '',
-    tournamentType: formData.get('tournamentType') ?? 'open',
-    seasonId: formData.get('seasonId') ?? '',
-    format: formData.get('format') ?? 'group_knockout',
-    manualKnockoutPairing: formData.get('manualKnockoutPairing') ?? 'false',
-    prizeSecond: formData.get('prizeSecond') ?? '',
-    prizeThird: formData.get('prizeThird') ?? '',
-  })
-}
 
 // Map validated form values onto the tournaments row columns (empty string -> null).
 function toRow(d: TournamentInput) {
