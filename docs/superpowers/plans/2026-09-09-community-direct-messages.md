@@ -87,7 +87,7 @@
 **Interfaces:**
 - Produces: tables `dm_threads`, `dm_messages`, `dm_blocks`, `dm_reports`, `dm_muted_players` in production; `Database['public']['Tables']` entries for all five in `lib/supabase/types.ts`; private bucket `dm-images` with storage RLS; `player_notifications.type` accepts `'direct_message'`; `dm_messages` on the realtime publication; `anonymise_account()` deletes DM rows; `/messages` redirects unauthenticated users to `/login`.
 
-- [ ] **Step 1: Write the migration**
+- [x] **Step 1: Write the migration**
 
 Create `supabase/migrations/<ts>_direct_messages.sql` (real current UTC timestamp, e.g. `20260909213000`):
 
@@ -356,11 +356,11 @@ REVOKE ALL ON FUNCTION public.anonymise_account(uuid) FROM public, anon, authent
 
 > **If the DB's `anonymise_account` body has drifted from `079_anonymise_account.sql`** (check with `SELECT prosrc FROM pg_proc WHERE proname='anonymise_account';` in Step 3), keep every line it currently has and only add the four `dm_*` DELETEs before the final `END;`.
 
-- [ ] **Step 2: Apply to production**
+- [x] **Step 2: Apply to production**
 
 Supabase MCP `apply_migration` tool (name `direct_messages`), or `npx supabase db push` from the primary checkout if the CLI is reachable (memory `project_supabase_connectivity_gotcha` — prefer MCP). If neither is available, stop and ask the user.
 
-- [ ] **Step 3: Verify in production**
+- [x] **Step 3: Verify in production**
 
 Run via MCP `execute_sql`:
 
@@ -379,7 +379,7 @@ SELECT pg_get_constraintdef(oid) LIKE '%direct_message%' AS notif_type_ok
 
 Expected: 5 non-null regclasses, `dm-images` bucket with `public = f`, one publication row, `deletion_patched = t`, `notif_type_ok = t`.
 
-- [ ] **Step 4: Regenerate types**
+- [x] **Step 4: Regenerate types**
 
 MCP `generate_typescript_types` (project `itxubrkbropttfdackmi`) → write the `.types` payload to `lib/supabase/types.ts`. Confirm:
 
@@ -387,19 +387,19 @@ MCP `generate_typescript_types` (project `itxubrkbropttfdackmi`) → write the `
 grep -c "dm_threads:\|dm_messages:\|dm_blocks:\|dm_reports:\|dm_muted_players:" lib/supabase/types.ts   # expect >= 5
 ```
 
-- [ ] **Step 5: Guard `/messages` in middleware**
+- [x] **Step 5: Guard `/messages` in middleware**
 
 In `lib/supabase/middleware.ts`, change `const PROTECTED = ['/dashboard', '/admin']` to `const PROTECTED = ['/dashboard', '/admin', '/messages']`.
 
-- [ ] **Step 6: Add the notification type**
+- [x] **Step 6: Add the notification type**
 
 In `lib/notifications/inbox.ts`, add `| 'direct_message'` to the `NotificationType` union (near `'post_reaction'` is fine).
 
-- [ ] **Step 7: Typecheck**
+- [x] **Step 7: Typecheck**
 
 Run: `npx tsc --noEmit` → passes (nothing consumes the new tables yet).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add supabase/migrations/ lib/supabase/types.ts lib/supabase/middleware.ts lib/notifications/inbox.ts
@@ -425,7 +425,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 - Produces: `orderedPair(x: string, y: string): { playerA: string; playerB: string }` — sorts the two uuids as strings. Throws `Error('a player cannot message themselves')` if `x === y`.
 - Consumed by: `lib/messages/query.ts` (`resolveThreadId`), `lib/messages/actions.ts`.
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```ts
 import { describe, it, expect } from 'vitest'
@@ -444,9 +444,9 @@ describe('orderedPair', () => {
 })
 ```
 
-- [ ] **Step 2: Run — verify fail** — `npx vitest run lib/messages/thread-key.test.ts` → FAIL (module not found).
+- [x] **Step 2: Run — verify fail** — `npx vitest run lib/messages/thread-key.test.ts` → FAIL (module not found).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```ts
 // The one place the normalised thread pair is computed. dm_threads has a
@@ -458,9 +458,9 @@ export function orderedPair(x: string, y: string): { playerA: string; playerB: s
 }
 ```
 
-- [ ] **Step 4: Run — verify pass** — PASS (3).
+- [x] **Step 4: Run — verify pass** — PASS (3).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/messages/thread-key.ts lib/messages/thread-key.test.ts
@@ -487,7 +487,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
   - `countNewContactsSince(createdAts: string[], sinceIso: string): number` — how many of the given thread `created_at` timestamps are `>= sinceIso`. (Feeds the admin "N new people in 24h" signal — the caller passes the `created_at`s of threads this player started.)
 - Consumed by: `lib/messages/query.ts`, `lib/messages/admin-query.ts`, `components/messages/*`.
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```ts
 import { describe, it, expect } from 'vitest'
@@ -535,9 +535,9 @@ describe('countNewContactsSince', () => {
 })
 ```
 
-- [ ] **Step 2: Run — verify fail** → FAIL (module not found).
+- [x] **Step 2: Run — verify fail** → FAIL (module not found).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```ts
 export type UnreadInput = { senderId: string; readAt: string | null }
@@ -566,9 +566,9 @@ export function countNewContactsSince(createdAts: string[], sinceIso: string): n
 }
 ```
 
-- [ ] **Step 4: Run — verify pass** → PASS (7).
+- [x] **Step 4: Run — verify pass** → PASS (7).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/messages/predicates.ts lib/messages/predicates.test.ts
@@ -592,7 +592,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
   - `reportReasonSchema: z.ZodType<string>` — trims, min 1 (`'Add a reason so staff can act on it'`), max 1000 (`'Keep it under 1000 characters'`).
 - Consumed by: `lib/messages/actions.ts`, `components/messages/MessageComposer.tsx`, `components/messages/ThreadMenu.tsx`.
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 ```ts
 import { describe, it, expect } from 'vitest'
@@ -625,9 +625,9 @@ describe('reportReasonSchema', () => {
 })
 ```
 
-- [ ] **Step 2: Run — verify fail** → FAIL.
+- [x] **Step 2: Run — verify fail** → FAIL.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```ts
 import { z } from 'zod'
@@ -647,9 +647,9 @@ export const reportReasonSchema = z
   .max(1000, 'Keep it under 1000 characters')
 ```
 
-- [ ] **Step 4: Run — verify pass** → PASS (6).
+- [x] **Step 4: Run — verify pass** → PASS (6).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/messages/schema.ts lib/messages/schema.test.ts
@@ -679,7 +679,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
   - `fetchProfileMessagingState(viewerId: string, profileId: string): Promise<ProfileMessagingState>` — for the profile page's Block/Unblock button.
 - Consumed by: Tasks 7, 8, 9.
 
-- [ ] **Step 1: Write `query.ts`**
+- [x] **Step 1: Write `query.ts`**
 
 ```ts
 import { createClient } from '@/lib/supabase/server'
@@ -871,9 +871,9 @@ export async function fetchProfileMessagingState(
 }
 ```
 
-- [ ] **Step 2: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file lib/messages/query.ts` → passes. (If `dm_*` are `never`-typed, Task 1 Step 4 was not completed.)
+- [x] **Step 2: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file lib/messages/query.ts` → passes. (If `dm_*` are `never`-typed, Task 1 Step 4 was not completed.)
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add lib/messages/query.ts
@@ -900,7 +900,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
   - `reportConversation(input: { threadId: string; messageId?: string; reason: string }): Promise<{ error?: string }>`
 - Consumed by: `MessageComposer`, `Conversation`, `ThreadMenu`, `ProfilePlayerActions`, both pages.
 
-- [ ] **Step 1: Write `actions.ts`**
+- [x] **Step 1: Write `actions.ts`**
 
 ```ts
 'use server'
@@ -1122,9 +1122,9 @@ export async function reportConversation(input: {
 }
 ```
 
-- [ ] **Step 2: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file lib/messages/actions.ts` → passes.
+- [x] **Step 2: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file lib/messages/actions.ts` → passes.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add lib/messages/actions.ts
@@ -1147,7 +1147,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 - Consumes: `fetchThreadList`, `type ThreadSummary` (Task 5); `Avatar` from `@/components/shared/Avatar`; `formatRelativeTime` from `@/lib/format`; `createClient` from `@/lib/supabase/client`.
 - Produces: the `/messages` route — `ThreadListItem` rows linking to `/messages/[threadId]`; empty state pointing at `/players`; a `<MessagesRealtime>` island that `router.refresh()`es on any `dm_messages` change.
 
-- [ ] **Step 1: `MessagesRealtime.tsx`**
+- [x] **Step 1: `MessagesRealtime.tsx`**
 
 ```tsx
 'use client'
@@ -1180,7 +1180,7 @@ export function MessagesRealtime() {
 }
 ```
 
-- [ ] **Step 2: `ThreadListItem.tsx`**
+- [x] **Step 2: `ThreadListItem.tsx`**
 
 ```tsx
 import Link from 'next/link'
@@ -1213,7 +1213,7 @@ export function ThreadListItem({ thread }: { thread: ThreadSummary }) {
 }
 ```
 
-- [ ] **Step 3: `page.tsx`**
+- [x] **Step 3: `page.tsx`**
 
 ```tsx
 import type { Metadata } from 'next'
@@ -1258,9 +1258,9 @@ export default async function MessagesPage() {
 }
 ```
 
-- [ ] **Step 4: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file "app/[locale]/messages/page.tsx" --file components/messages/ThreadListItem.tsx --file components/messages/MessagesRealtime.tsx` → passes.
+- [x] **Step 4: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file "app/[locale]/messages/page.tsx" --file components/messages/ThreadListItem.tsx --file components/messages/MessagesRealtime.tsx` → passes.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add "app/[locale]/messages/page.tsx" components/messages/ThreadListItem.tsx components/messages/MessagesRealtime.tsx
@@ -1284,7 +1284,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 - Consumes: `fetchThread`, `type ThreadDetail`, `type ConversationMessage` (Task 5); `sendMessage`, `markThreadRead`, `blockUser`, `unblockUser`, `reportConversation` (Task 6); `messageBodySchema`, `reportReasonSchema` (Task 4); `Avatar`; `formatRelativeTime`; `createClient` from `@/lib/supabase/client`; `resizeImageToMaxWidth` from `@/lib/media/resize-image`.
 - Produces: the `/messages/[threadId]` route — header (avatar/name → profile, overflow menu), a scrolling message list that appends in realtime (text bubbles + image bubbles), a composer with a text field and an image button. `notFound()` when `fetchThread` returns `null`.
 
-- [ ] **Step 1: `MessageComposer.tsx`**
+- [x] **Step 1: `MessageComposer.tsx`**
 
 ```tsx
 'use client'
@@ -1426,7 +1426,7 @@ export function MessageComposer({ threadId, disabled, disabledReason }: { thread
 }
 ```
 
-- [ ] **Step 2: `ThreadMenu.tsx`**
+- [x] **Step 2: `ThreadMenu.tsx`**
 
 ```tsx
 'use client'
@@ -1549,7 +1549,7 @@ export function ThreadMenu({ threadId, otherId, otherName, blockedByMe }: { thre
 }
 ```
 
-- [ ] **Step 3: `Conversation.tsx`**
+- [x] **Step 3: `Conversation.tsx`**
 
 ```tsx
 'use client'
@@ -1658,7 +1658,7 @@ export function Conversation({ detail, viewerId }: { detail: ThreadDetail; viewe
 
 > **Executor cleanup for `Conversation.tsx`:** the `dm:refresh` dance above is a placeholder for "an image message arrived and needs server re-signing." Replace it properly: add `import { useRouter } from 'next/navigation'`, `const router = useRouter()`, and in the realtime handler, when `r.image_url` is truthy, just call `router.refresh()` (drop the `window.dispatchEvent` / event-listener block entirely). Text messages still append optimistically from the payload; only image messages fall back to a refresh. Keep the de-dupe-on-`id` guard so the refresh + any echo don't double-render.
 
-- [ ] **Step 4: `page.tsx`**
+- [x] **Step 4: `page.tsx`**
 
 ```tsx
 import type { Metadata } from 'next'
@@ -1705,9 +1705,9 @@ export default async function ThreadPage({ params }: { params: { threadId: strin
 
 > **`h-[calc(100dvh-64px)]`** assumes a 64px site header. Check `components/shared/SiteHeader.tsx` / the root layout for the real height and adjust the `64px`. Goal: composer pinned to the bottom of the viewport, transcript scrolls between header and composer, no page-level scroll.
 
-- [ ] **Step 5: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file "app/[locale]/messages/[threadId]/page.tsx" --file components/messages/Conversation.tsx --file components/messages/MessageComposer.tsx --file components/messages/ThreadMenu.tsx` → passes.
+- [x] **Step 5: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file "app/[locale]/messages/[threadId]/page.tsx" --file components/messages/Conversation.tsx --file components/messages/MessageComposer.tsx --file components/messages/ThreadMenu.tsx` → passes.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add "app/[locale]/messages/[threadId]" components/messages/Conversation.tsx components/messages/MessageComposer.tsx components/messages/ThreadMenu.tsx
@@ -1730,7 +1730,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 - Consumes: `startConversation`, `blockUser`, `unblockUser` (Task 6); `fetchProfileMessagingState`, `type ProfileMessagingState` (Task 5); the existing `AddFriendButton` / `ChallengeButton` / `FriendStatusAction` behaviour in `ProfileHeader`.
 - Produces: `<ProfilePlayerActions>` — a client component rendering, for a logged-in non-owner viewer: the existing friend action + `<ChallengeButton>` + a **Message** button (→ `startConversation` → `/messages/[id]`) + a **Block / Unblock** button. `ProfileHeader` gains a `messagingState?: ProfileMessagingState` prop and delegates the action row to this component; the profile page fetches that state.
 
-- [ ] **Step 1: `ProfilePlayerActions.tsx`**
+- [x] **Step 1: `ProfilePlayerActions.tsx`**
 
 ```tsx
 'use client'
@@ -1824,7 +1824,7 @@ function FriendStatusInline({ status, profileId }: { status: FriendshipStatus; p
 
 > Check `components/player/ProfileHeader.tsx` for the exact `FriendStatusAction` body and copy it verbatim into `FriendStatusInline` (the plan shows it from an earlier read — verify the strings/classes still match).
 
-- [ ] **Step 2: Wire into `ProfileHeader.tsx`**
+- [x] **Step 2: Wire into `ProfileHeader.tsx`**
 
 Add `messagingState?: { blockedByMe: boolean; blockedByThem: boolean }` to the props. Replace the existing:
 
@@ -1851,7 +1851,7 @@ with:
 
 Add `import { ProfilePlayerActions } from '@/components/player/ProfilePlayerActions'`. Leave the private `FriendStatusAction` / `ChallengeButton` imports in place only if still used elsewhere in the file; otherwise remove the now-dead `FriendStatusAction` and its `ChallengeButton` import (lint will flag unused).
 
-- [ ] **Step 3: Fetch the state in the profile page**
+- [x] **Step 3: Fetch the state in the profile page**
 
 In `app/[locale]/(public)/players/[username]/page.tsx`, after resolving `user` and `profile`, add:
 
@@ -1864,9 +1864,9 @@ const messagingState =
 
 and pass `messagingState={messagingState}` into `<ProfileHeader .../>`.
 
-- [ ] **Step 4: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file components/player/ProfilePlayerActions.tsx --file components/player/ProfileHeader.tsx --file "app/[locale]/(public)/players/[username]/page.tsx"` → passes.
+- [x] **Step 4: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file components/player/ProfilePlayerActions.tsx --file components/player/ProfileHeader.tsx --file "app/[locale]/(public)/players/[username]/page.tsx"` → passes.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/player/ProfilePlayerActions.tsx components/player/ProfileHeader.tsx "app/[locale]/(public)/players/[username]/page.tsx"
@@ -1898,7 +1898,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
   - `DmReportRow` — client component: transcript toggle, "Resolve" (+ optional delete-flagged), "Mute messaging" / "Unmute".
 - Consumed by: `app/[locale]/admin/messages/page.tsx`.
 
-- [ ] **Step 1: `admin-query.ts`**
+- [x] **Step 1: `admin-query.ts`**
 
 ```ts
 import { createClient } from '@/lib/supabase/server'
@@ -2008,7 +2008,7 @@ export async function fetchDmReports(limit = 40): Promise<DmReportView[]> {
 }
 ```
 
-- [ ] **Step 2: `admin-actions.ts`**
+- [x] **Step 2: `admin-actions.ts`**
 
 ```ts
 'use server'
@@ -2060,7 +2060,7 @@ export async function setMessagingMuted(_prev: AdminActionState, formData: FormD
 }
 ```
 
-- [ ] **Step 3: `DmReportRow.tsx`**
+- [x] **Step 3: `DmReportRow.tsx`**
 
 ```tsx
 'use client'
@@ -2143,7 +2143,7 @@ export function DmReportRow({ report }: { report: DmReportView }) {
 }
 ```
 
-- [ ] **Step 4: `page.tsx`**
+- [x] **Step 4: `page.tsx`**
 
 ```tsx
 import type { Metadata } from 'next'
@@ -2174,15 +2174,15 @@ export default async function AdminMessagesPage() {
 }
 ```
 
-- [ ] **Step 5: Nav entry** — in `lib/admin/nav.ts`, add after `Challenges`:
+- [x] **Step 5: Nav entry** — in `lib/admin/nav.ts`, add after `Challenges`:
 
 ```ts
   { label: 'Messages', href: '/admin/messages', adminOnly: false },
 ```
 
-- [ ] **Step 6: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file lib/messages/admin-query.ts --file lib/messages/admin-actions.ts --file components/admin/DmReportRow.tsx --file "app/[locale]/admin/messages/page.tsx" --file lib/admin/nav.ts` → passes.
+- [x] **Step 6: Typecheck + lint** — `npx tsc --noEmit && npx next lint --file lib/messages/admin-query.ts --file lib/messages/admin-actions.ts --file components/admin/DmReportRow.tsx --file "app/[locale]/admin/messages/page.tsx" --file lib/admin/nav.ts` → passes.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add lib/messages/admin-query.ts lib/messages/admin-actions.ts components/admin/DmReportRow.tsx "app/[locale]/admin/messages/page.tsx" lib/admin/nav.ts
@@ -2202,25 +2202,25 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 
 **Context:** `PrivacyPage` builds `sections=[...]` from `t('sN...')` keys. §2 ("What Data We Collect") has an `s2Play` / `s2PlayList` sub-block (a single string of `<li>…</li>` rendered via `t.rich('s2PlayList', listItemTag)`). §4 ("Who We Share Your Data With", `id: 'who-we-share-with'`) ends its fragment with `<p>{t('s4P2')}</p><p>{t('s4P3')}</p>`.
 
-- [ ] **Step 1: `messages/en.json`** — under `"privacy"`:
+- [x] **Step 1: `messages/en.json`** — under `"privacy"`:
   - Add key: `"s4Dm": "When you report a private conversation, our moderators can read that conversation in order to review your report and act on it. We do not read private messages otherwise."`
   - Append one `<li>` to `s2PlayList`: `<li>Private messages and photos you send other players to coordinate matches, and any reports you file</li>`
 
-- [ ] **Step 2: `messages/fr.json`** — same keys:
+- [x] **Step 2: `messages/fr.json`** — same keys:
   - `"s4Dm": "Lorsque vous signalez une conversation privée, nos modérateurs peuvent la lire afin d'examiner votre signalement et d'y donner suite. Nous ne lisons pas les messages privés autrement."`
   - `s2PlayList` extra `<li>`: `<li>Les messages privés et photos que vous envoyez à d'autres joueurs pour organiser des matchs, et les signalements que vous déposez</li>`
 
-- [ ] **Step 3: `messages/pcm.json`** — same keys:
+- [x] **Step 3: `messages/pcm.json`** — same keys:
   - `"s4Dm": "If you report a private chat, our moderators fit read that chat so dem go fit check your report and do something about am. We no dey read private messages otherwise."`
   - `s2PlayList` extra `<li>`: `<li>Private messages and photos wey you send other players to arrange matches, and any report wey you file</li>`
 
-- [ ] **Step 4: Render `s4Dm`** — in `app/[locale]/(public)/privacy/page.tsx`, in the §4 section fragment, add right after `<p>{t('s4P3')}</p>`:
+- [x] **Step 4: Render `s4Dm`** — in `app/[locale]/(public)/privacy/page.tsx`, in the §4 section fragment, add right after `<p>{t('s4P3')}</p>`:
 
 ```tsx
 <p>{t('s4Dm')}</p>
 ```
 
-- [ ] **Step 5: Typecheck + lint + intl sanity**
+- [x] **Step 5: Typecheck + lint + intl sanity**
 
 ```bash
 npx tsc --noEmit && npx next lint --file "app/[locale]/(public)/privacy/page.tsx"
@@ -2228,7 +2228,7 @@ node -e "['en','fr','pcm'].forEach(l=>{const m=require('./messages/'+l+'.json');
 ```
 Expected: both pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add messages/ "app/[locale]/(public)/privacy/page.tsx"
