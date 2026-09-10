@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { parsePlayerPhone } from '@/lib/phone/number'
 import { renderTemplate, type TemplateInput } from './templates'
 import { sendWhatsApp } from './termii'
 import { deferNotification } from './defer'
@@ -19,10 +20,13 @@ async function sendWhatsAppNotification(input: NotifyInput): Promise<void> {
 
     const { data: profile } = await admin
       .from('profiles')
-      .select('whatsapp_number')
+      .select('whatsapp_number, country')
       .eq('id', input.playerId)
       .maybeSingle()
-    const toNumber = profile?.whatsapp_number ?? null
+    // Stored numbers are free-typed — "09077682083", "+234 903 …", "903…".
+    // Termii needs E.164; an unparseable number degrades to "no recipient"
+    // (the row stays 'skipped'), same as a missing number.
+    const toNumber = parsePlayerPhone(profile?.whatsapp_number, { country: profile?.country })?.e164 ?? null
 
     // Insert-first, conservative default; on dedupe_key conflict this inserts nothing
     // and returns no row → idempotent early return.
