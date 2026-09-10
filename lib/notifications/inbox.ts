@@ -38,6 +38,9 @@ export type NotificationType =
   | 'result_needs_review'
   | 'result_disputed'
   | 'result_no_submission'
+  | 'status_from_friend'
+  | 'status_viewed'
+  | 'status_removed'
 
 // Best-effort — NEVER throws into the caller's primary action, mirroring
 // lib/notifications/notify.ts's WhatsApp helper. A failed in-app notification
