@@ -30,6 +30,7 @@ export type NotificationType =
   | 'new_announcement'
   | 'post_comment'
   | 'post_reaction'
+  | 'direct_message'
   | 'wager_settled'
   | 'bracket_released'
   | 'match_reminder'

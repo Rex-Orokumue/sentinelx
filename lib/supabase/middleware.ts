@@ -5,7 +5,7 @@ import { resolveOnboardingGate } from '@/lib/onboarding/gate'
 import { withLocalePrefix } from '@/lib/i18n/locale-path'
 import type { Locale } from '@/i18n/locales'
 
-const PROTECTED = ['/dashboard', '/admin']
+const PROTECTED = ['/dashboard', '/admin', '/messages']
 // Exact-match only — '/players/[username]' profile pages stay public (SEO,
 // WhatsApp link previews per CLAUDE.md), just the '/players' directory/search
 // listing requires login.
