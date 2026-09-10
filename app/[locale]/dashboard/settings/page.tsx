@@ -119,6 +119,8 @@ export default async function DashboardSettingsPage({
             bracket_released: prefs.push?.bracket_released ?? true,
             match_assigned: prefs.push?.match_assigned ?? true,
             prize_credited: prefs.push?.prize_credited ?? true,
+            status_from_friend: prefs.push?.status_from_friend ?? true,
+            status_viewed: prefs.push?.status_viewed ?? true,
           }}
           enabled={(fcmTokenCount ?? 0) > 0}
           mutedTypes={mutedTypes}

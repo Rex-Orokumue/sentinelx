@@ -20,6 +20,8 @@ export interface PushPrefs {
   bracket_released: boolean
   match_assigned: boolean
   prize_credited: boolean
+  status_from_friend: boolean
+  status_viewed: boolean
 }
 
 const LABELS: [keyof PushPrefs, string][] = [
@@ -34,6 +36,8 @@ const LABELS: [keyof PushPrefs, string][] = [
   ['referral_converted', 'Referral converted'],
   ['post_comment', 'Comments on your posts'],
   ['post_reaction', 'Reactions on your posts'],
+  ['status_from_friend', 'A friend posts a status'],
+  ['status_viewed', 'Someone views your status'],
   ['new_announcement', 'Community announcements'],
   ['tournament_announced', 'New tournaments'],
 ]
