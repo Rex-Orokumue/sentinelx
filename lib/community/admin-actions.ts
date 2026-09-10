@@ -8,6 +8,7 @@ import { recordCoinTransaction } from '@/lib/coins/service'
 import { awardXP } from '@/lib/membership/xp'
 import { broadcastInApp } from '@/lib/notifications/inbox'
 import { broadcastPush } from '@/lib/notifications/push'
+import { notifyStatusRemoved } from './status-notify'
 
 export type AdminActionState = { error?: string } | undefined
 
@@ -79,8 +80,19 @@ export async function adminDeleteStatus(_prev: AdminActionState, formData: FormD
   if (!id) return { error: 'Missing status.' }
 
   const admin = createAdminClient()
+
+  const { data: statusRow } = await admin
+    .from('player_statuses')
+    .select('player_id')
+    .eq('id', id)
+    .maybeSingle()
+
   const { error } = await admin.from('player_statuses').delete().eq('id', id)
   if (error) return { error: 'Could not delete this status.' }
+
+  if (statusRow?.player_id) {
+    void notifyStatusRemoved(admin, { authorId: statusRow.player_id })
+  }
 
   revalidatePath('/community')
   revalidatePath('/admin/community')
