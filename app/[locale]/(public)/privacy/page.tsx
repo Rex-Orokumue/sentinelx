@@ -86,6 +86,7 @@ export default async function PrivacyPage() {
               <ul>{t.rich('s4List', { ...listItemTag, ...strongTag })}</ul>
               <p>{t('s4P2')}</p>
               <p>{t('s4P3')}</p>
+              <p>{t('s4Dm')}</p>
             </>
           ),
         },
