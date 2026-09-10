@@ -38,9 +38,9 @@ export async function fetchDmReports(limit = 40): Promise<DmReportView[]> {
     .limit(limit)
   if (!reports || reports.length === 0) return []
 
-  const threadIds = [...new Set(reports.map((r) => r.thread_id))]
-  const reportedIds = [...new Set(reports.map((r) => r.reported_id))]
-  const personIds = [...new Set(reports.flatMap((r) => [r.reporter_id, r.reported_id]))]
+  const threadIds = Array.from(new Set(reports.map((r) => r.thread_id)))
+  const reportedIds = Array.from(new Set(reports.map((r) => r.reported_id)))
+  const personIds = Array.from(new Set(reports.flatMap((r) => [r.reporter_id, r.reported_id])))
 
   const [{ data: profiles }, { data: msgs }, { data: mutes }, { data: startedThreads }] = await Promise.all([
     supabase.from('profiles').select('id, username, display_name').in('id', personIds),
@@ -70,7 +70,7 @@ export async function fetchDmReports(limit = 40): Promise<DmReportView[]> {
 
   // Sign every image path once.
   const admin = createAdminClient()
-  const allPaths = [...new Set(((msgs ?? []) as MsgRow[]).filter((m) => m.image_url).map((m) => m.image_url as string))]
+  const allPaths = Array.from(new Set(((msgs ?? []) as MsgRow[]).filter((m) => m.image_url).map((m) => m.image_url as string)))
   const signed = new Map<string, string>()
   await Promise.all(
     allPaths.map(async (p) => {
