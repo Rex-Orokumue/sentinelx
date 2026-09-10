@@ -7,6 +7,7 @@ import { getCoinBalance } from '@/lib/coins/service'
 import { getChampion, type BracketMatch } from '@/lib/tournaments/bracket'
 import { matchOutcome, type ProfileView, type ProfileMatch, type ProfileTitle } from '@/lib/players/profile'
 import { friendshipStatus, type FriendshipStatus } from '@/lib/friends/list'
+import { fetchProfileMessagingState } from '@/lib/messages/query'
 import { scoreStatsByPlayerAndCategory, winsByPlayerAndGame, type GameScopedMatch, type CategoryStat } from '@/lib/rankings/game-breakdown'
 import { CATEGORY_META } from '@/lib/games/categories'
 import { RANKING_MIN_MATCHES } from '@/lib/rankings/leaderboard'
@@ -191,6 +192,9 @@ export default async function PlayerProfilePage({ params }: { params: { username
       )
     }
   }
+
+  const messagingState =
+    user && user.id !== p.id ? await fetchProfileMessagingState(user.id, p.id) : undefined
 
   const [
     { data: rankData },
@@ -476,6 +480,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
             avatarFrameUrl={cosmetics.avatarBorder ? AVATAR_BORDER_FRAMES[cosmetics.avatarBorder] : undefined}
             profileThemeClass={cosmetics.profileTheme ? PROFILE_THEME_CLASSES[cosmetics.profileTheme] : undefined}
             usernameColourClass={cosmetics.usernameColour ? USERNAME_COLOUR_CLASSES[cosmetics.usernameColour] : undefined}
+            messagingState={messagingState}
           />
           <ProfileStats profile={profile} />
           <XPProgressPanel xp={p.xp} coinBalance={isOwner ? (coinBalance ?? 0) : undefined} />
