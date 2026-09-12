@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { orderedPair } from './thread-key'
-import { unreadCount, isBlockedBetween, type BlockRow } from './predicates'
+import { unreadCount, isBlockedBetween, resolveParticipantContent, type BlockRow } from './predicates'
 
 const PROFILE = 'id, username, display_name, avatar_url'
 type ProfileRow = { id: string; username: string | null; display_name: string | null; avatar_url: string | null }
@@ -27,6 +27,7 @@ export type ThreadSummary = {
   otherAvatarUrl: string | null
   lastMessage: string | null
   lastWasImage: boolean
+  lastRemoved: boolean
   lastMessageAt: string
   unread: number
 }
@@ -47,7 +48,7 @@ export async function fetchThreadList(viewerId: string): Promise<ThreadSummary[]
     supabase.from('profiles').select(PROFILE).in('id', otherIds),
     supabase
       .from('dm_messages')
-      .select('thread_id, sender_id, body, image_url, created_at, read_at')
+      .select('thread_id, sender_id, body, image_url, created_at, read_at, deleted_at')
       .in('thread_id', threadIds)
       .order('created_at', { ascending: true }),
     supabase
@@ -58,7 +59,7 @@ export async function fetchThreadList(viewerId: string): Promise<ThreadSummary[]
 
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p as ProfileRow]))
   const blockRows: BlockRow[] = (blocks ?? []).map((b) => ({ blockerId: b.blocker_id, blockedId: b.blocked_id }))
-  const byThread = new Map<string, { sender_id: string; body: string | null; image_url: string | null; read_at: string | null }[]>()
+  const byThread = new Map<string, { sender_id: string; body: string | null; image_url: string | null; read_at: string | null; deleted_at: string | null }[]>()
   for (const m of msgs ?? []) {
     const list = byThread.get(m.thread_id) ?? []
     list.push(m)
@@ -72,14 +73,18 @@ export async function fetchThreadList(viewerId: string): Promise<ThreadSummary[]
     const list = byThread.get(t.id) ?? []
     const last = list[list.length - 1]
     const other = profileById.get(otherId)
+    const lastContent = last
+      ? resolveParticipantContent({ body: last.body, imageUrl: last.image_url, deletedAt: last.deleted_at })
+      : null
     out.push({
       threadId: t.id,
       otherId,
       otherName: other?.display_name ?? other?.username ?? 'Player',
       otherUsername: other?.username ?? null,
       otherAvatarUrl: other?.avatar_url ?? null,
-      lastMessage: last?.body ?? null,
-      lastWasImage: !!last && last.body == null && last.image_url != null,
+      lastMessage: lastContent?.body ?? null,
+      lastWasImage: !!lastContent && lastContent.body == null && lastContent.imageUrl != null,
+      lastRemoved: lastContent?.removed ?? false,
       lastMessageAt: t.last_message_at,
       unread: unreadCount(list.map((m) => ({ senderId: m.sender_id, readAt: m.read_at })), viewerId),
     })
@@ -94,6 +99,9 @@ export type ConversationMessage = {
   imageUrl: string | null
   createdAt: string
   readAt: string | null
+  editedAt: string | null
+  deletedAt: string | null
+  replyTo: { id: string; senderName: string; body: string | null; removed: boolean } | null
 }
 
 export type ThreadDetail = {
@@ -120,7 +128,7 @@ export async function fetchThread(threadId: string, viewerId: string): Promise<T
     supabase.from('profiles').select(PROFILE).eq('id', otherId).maybeSingle(),
     supabase
       .from('dm_messages')
-      .select('id, sender_id, body, image_url, created_at, read_at')
+      .select('id, sender_id, body, image_url, created_at, read_at, edited_at, deleted_at, reply_to_id')
       .eq('thread_id', threadId)
       .order('created_at', { ascending: true }),
     supabase
@@ -130,7 +138,30 @@ export async function fetchThread(threadId: string, viewerId: string): Promise<T
   ])
 
   const rows = messages ?? []
-  const signed = await signImages(rows.filter((m) => m.image_url).map((m) => m.image_url as string))
+  const signed = await signImages(rows.filter((m) => m.image_url && !m.deleted_at).map((m) => m.image_url as string))
+
+  const replyIds = Array.from(new Set(rows.filter((m) => m.reply_to_id).map((m) => m.reply_to_id as string)))
+  const replyTargets = new Map<string, { sender_id: string; body: string | null; image_url: string | null; deleted_at: string | null }>()
+  if (replyIds.length > 0) {
+    const { data: targets } = await supabase
+      .from('dm_messages')
+      .select('id, sender_id, body, image_url, deleted_at')
+      .in('id', replyIds)
+    for (const t of targets ?? []) replyTargets.set(t.id, t)
+  }
+  function resolveReply(replyToId: string | null): ConversationMessage['replyTo'] {
+    if (!replyToId) return null
+    const target = replyTargets.get(replyToId)
+    if (!target) return null
+    const content = resolveParticipantContent({ body: target.body, imageUrl: target.image_url, deletedAt: target.deleted_at })
+    return {
+      id: replyToId,
+      senderName: target.sender_id === viewerId ? 'You' : (other?.display_name ?? other?.username ?? 'Player'),
+      body: content.removed ? null : content.body,
+      removed: content.removed,
+    }
+  }
+
   const blockRows = (blocks ?? []) as { blocker_id: string; blocked_id: string }[]
 
   return {
@@ -141,14 +172,20 @@ export async function fetchThread(threadId: string, viewerId: string): Promise<T
       username: other?.username ?? null,
       avatarUrl: other?.avatar_url ?? null,
     },
-    messages: rows.map((m) => ({
-      id: m.id,
-      senderId: m.sender_id,
-      body: m.body,
-      imageUrl: m.image_url ? (signed.get(m.image_url) ?? null) : null,
-      createdAt: m.created_at,
-      readAt: m.read_at,
-    })),
+    messages: rows.map((m) => {
+      const content = resolveParticipantContent({ body: m.body, imageUrl: m.image_url, deletedAt: m.deleted_at })
+      return {
+        id: m.id,
+        senderId: m.sender_id,
+        body: content.body,
+        imageUrl: content.imageUrl ? (signed.get(content.imageUrl) ?? null) : null,
+        createdAt: m.created_at,
+        readAt: m.read_at,
+        editedAt: m.edited_at,
+        deletedAt: m.deleted_at,
+        replyTo: resolveReply(m.reply_to_id),
+      }
+    }),
     blockedByMe: blockRows.some((b) => b.blocker_id === viewerId && b.blocked_id === otherId),
     blockedByThem: blockRows.some((b) => b.blocker_id === otherId && b.blocked_id === viewerId),
   }
