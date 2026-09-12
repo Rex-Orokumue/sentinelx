@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { orderedPair } from './thread-key'
 import { messageBodySchema, reportReasonSchema } from './schema'
+import { canEditOrUnsend } from './predicates'
 import { notifyInApp } from '@/lib/notifications/inbox'
 
 async function authed() {
@@ -63,6 +64,7 @@ export async function sendMessage(input: {
   recipientId?: string
   body?: string
   imageUrl?: string
+  replyToId?: string
 }): Promise<{ threadId?: string; error?: string }> {
   const { supabase, userId } = await authed()
   if (!userId) return { error: 'Please log in.' }
@@ -113,11 +115,24 @@ export async function sendMessage(input: {
     return { error: iBlocked ? 'Unblock this player to message them.' : 'You can no longer message this player.' }
   }
 
+  // A reply target must belong to THIS thread — a client could otherwise pass
+  // an arbitrary message id from a thread the sender has no business quoting.
+  let replyToId: string | null = null
+  if (input.replyToId) {
+    const { data: target } = await admin
+      .from('dm_messages')
+      .select('id')
+      .eq('id', input.replyToId)
+      .eq('thread_id', threadId)
+      .maybeSingle()
+    replyToId = target?.id ?? null
+  }
+
   // Insert via the SESSION client so the RLS sender-insert policy applies (defence
   // in depth) — dm_can_message() re-checks block + mute server-side.
   const { error: insErr } = await supabase
     .from('dm_messages')
-    .insert({ thread_id: threadId, sender_id: userId, body, image_url: imageUrl })
+    .insert({ thread_id: threadId, sender_id: userId, body, image_url: imageUrl, reply_to_id: replyToId })
   if (insErr) {
     console.error('[sendMessage] insert failed', { userId, threadId, code: insErr.code, message: insErr.message })
     return { error: 'Could not send your message. Please try again.' }
@@ -213,5 +228,68 @@ export async function reportConversation(input: {
     reason: parsed.data,
   })
   if (error) return { error: 'Could not send this report. Please try again.' }
+  return {}
+}
+
+export async function editMessage(input: { messageId: string; body: string }): Promise<{ error?: string }> {
+  const { supabase, userId } = await authed()
+  if (!userId) return { error: 'Please log in.' }
+
+  const parsed = messageBodySchema.safeParse(input.body)
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const admin = createAdminClient()
+  const { data: existing } = await admin
+    .from('dm_messages')
+    .select('id, thread_id, sender_id, body, image_url, created_at')
+    .eq('id', input.messageId)
+    .maybeSingle()
+  if (!existing || existing.sender_id !== userId) return { error: 'Message not found.' }
+  if (!canEditOrUnsend(existing.created_at, new Date().toISOString())) {
+    return { error: 'This message can only be edited within 10 minutes of sending.' }
+  }
+
+  // dm_message_edits has no participant write policy — service-role only.
+  const { error: histErr } = await admin.from('dm_message_edits').insert({
+    message_id: existing.id,
+    body_before: existing.body,
+    image_url_before: existing.image_url,
+  })
+  if (histErr) return { error: 'Could not edit this message. Please try again.' }
+
+  // Session client so the new sender_edit_or_unsend RLS policy applies —
+  // defence in depth, same reasoning as sendMessage's insert.
+  const { error } = await supabase
+    .from('dm_messages')
+    .update({ body: parsed.data, edited_at: new Date().toISOString() })
+    .eq('id', existing.id)
+  if (error) return { error: 'Could not edit this message. Please try again.' }
+
+  revalidatePath(`/messages/${existing.thread_id}`)
+  return {}
+}
+
+export async function unsendMessage(messageId: string): Promise<{ error?: string }> {
+  const { supabase, userId } = await authed()
+  if (!userId) return { error: 'Please log in.' }
+
+  const admin = createAdminClient()
+  const { data: existing } = await admin
+    .from('dm_messages')
+    .select('id, thread_id, sender_id, created_at')
+    .eq('id', messageId)
+    .maybeSingle()
+  if (!existing || existing.sender_id !== userId) return { error: 'Message not found.' }
+  if (!canEditOrUnsend(existing.created_at, new Date().toISOString())) {
+    return { error: 'This message can only be unsent within 10 minutes of sending.' }
+  }
+
+  const { error } = await supabase
+    .from('dm_messages')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', existing.id)
+  if (error) return { error: 'Could not unsend this message. Please try again.' }
+
+  revalidatePath(`/messages/${existing.thread_id}`)
   return {}
 }
