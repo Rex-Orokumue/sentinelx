@@ -1,13 +1,28 @@
 'use client'
-import { useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { SendHorizonal, ImagePlus, X } from 'lucide-react'
+import { SendHorizonal, ImagePlus, X, Check } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { resizeImageToMaxWidth } from '@/lib/media/resize-image'
-import { sendMessage } from '@/lib/messages/actions'
+import { sendMessage, editMessage } from '@/lib/messages/actions'
 import { messageBodySchema } from '@/lib/messages/schema'
+import type { ConversationMessage } from '@/lib/messages/query'
 
-export function MessageComposer({ threadId, disabled, disabledReason }: { threadId: string; disabled?: boolean; disabledReason?: string }) {
+type ComposerMode = { type: 'reply' | 'edit'; target: ConversationMessage } | null
+
+export function MessageComposer({
+  threadId,
+  disabled,
+  disabledReason,
+  mode,
+  onClearMode,
+}: {
+  threadId: string
+  disabled?: boolean
+  disabledReason?: string
+  mode: ComposerMode
+  onClearMode: () => void
+}) {
   const router = useRouter()
   const [body, setBody] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -15,6 +30,15 @@ export function MessageComposer({ threadId, disabled, disabledReason }: { thread
   const [error, setError] = useState<string | null>(null)
   const [pending, start] = useTransition()
   const textRef = useRef<HTMLTextAreaElement>(null)
+
+  // Entering edit mode prefills the current text; entering reply mode leaves
+  // whatever the player was already typing untouched.
+  useEffect(() => {
+    if (mode?.type === 'edit') {
+      setBody(mode.target.body ?? '')
+      textRef.current?.focus()
+    }
+  }, [mode])
 
   if (disabled) {
     return (
@@ -38,8 +62,13 @@ export function MessageComposer({ threadId, disabled, disabledReason }: { thread
     setPreviewUrl(null)
   }
 
+  function cancelMode() {
+    onClearMode()
+    if (mode?.type === 'edit') setBody('')
+  }
+
   const hasText = messageBodySchema.safeParse(body).success
-  const ok = (hasText || file != null) && !pending
+  const ok = mode?.type === 'edit' ? hasText && !pending : (hasText || file != null) && !pending
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -47,6 +76,23 @@ export function MessageComposer({ threadId, disabled, disabledReason }: { thread
     setError(null)
     const text = body
     const img = file
+    const activeMode = mode
+
+    if (activeMode?.type === 'edit') {
+      setBody('')
+      start(async () => {
+        const res = await editMessage({ messageId: activeMode.target.id, body: text })
+        if (res.error) {
+          setError(res.error)
+          setBody(text)
+          return
+        }
+        onClearMode()
+        textRef.current?.focus()
+      })
+      return
+    }
+
     setBody('')
     clearImage()
 
@@ -75,12 +121,18 @@ export function MessageComposer({ threadId, disabled, disabledReason }: { thread
           return
         }
       }
-      const res = await sendMessage({ threadId, body: text || undefined, imageUrl })
+      const res = await sendMessage({
+        threadId,
+        body: text || undefined,
+        imageUrl,
+        replyToId: activeMode?.type === 'reply' ? activeMode.target.id : undefined,
+      })
       if (res.error) {
         setError(res.error)
         setBody(text)
         return
       }
+      if (activeMode?.type === 'reply') onClearMode()
       router.refresh()
       textRef.current?.focus()
     })
@@ -89,6 +141,19 @@ export function MessageComposer({ threadId, disabled, disabledReason }: { thread
   return (
     <form onSubmit={submit} className="sticky bottom-0 z-10 border-t border-sx-border bg-sx-surface px-3 py-2">
       {error && <p className="mb-1 text-xs text-red-400">{error}</p>}
+
+      {mode && (
+        <div className="mb-2 flex items-center gap-2 rounded-lg border border-sx-border bg-sx-bg px-2 py-1.5 text-xs">
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-sx-purple-text">{mode.type === 'edit' ? 'Editing message' : 'Replying to'}</p>
+            {mode.type === 'reply' && <p className="truncate text-sx-gray">{mode.target.body ?? '📷 Photo'}</p>}
+          </div>
+          <button type="button" onClick={cancelMode} aria-label="Cancel" className="shrink-0 text-sx-gray hover:text-white">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       {previewUrl && (
         <div className="relative mb-2 inline-block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -104,10 +169,12 @@ export function MessageComposer({ threadId, disabled, disabledReason }: { thread
         </div>
       )}
       <div className="flex items-end gap-2">
-        <label className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-sx-gray hover:text-white">
-          <ImagePlus className="h-5 w-5" />
-          <input type="file" accept="image/*" onChange={pickFile} className="hidden" />
-        </label>
+        {mode?.type !== 'edit' && (
+          <label className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-sx-gray hover:text-white">
+            <ImagePlus className="h-5 w-5" />
+            <input type="file" accept="image/*" onChange={pickFile} className="hidden" />
+          </label>
+        )}
         <textarea
           ref={textRef}
           value={body}
@@ -126,10 +193,10 @@ export function MessageComposer({ threadId, disabled, disabledReason }: { thread
         <button
           type="submit"
           disabled={!ok}
-          aria-label="Send"
+          aria-label={mode?.type === 'edit' ? 'Save' : 'Send'}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sx-purple text-white hover:bg-sx-purple-light disabled:opacity-40"
         >
-          <SendHorizonal className="h-4 w-4" />
+          {mode?.type === 'edit' ? <Check className="h-4 w-4" /> : <SendHorizonal className="h-4 w-4" />}
         </button>
       </div>
     </form>
