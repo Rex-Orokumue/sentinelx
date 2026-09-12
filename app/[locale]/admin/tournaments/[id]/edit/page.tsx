@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
 import { updateTournament } from '@/lib/tournaments/admin-actions'
 import { TournamentForm, type TournamentFormValues } from '@/components/admin/TournamentForm'
+import { fetchModeCatalogue } from '@/lib/tournaments/mode-catalogue'
 
 export const metadata: Metadata = { title: 'Edit tournament · Admin · SentinelX' }
 
@@ -19,10 +20,11 @@ function moneyStr(n: number | null): string {
 export default async function EditTournamentPage({ params }: { params: { id: string } }) {
   await requireStaff()
   const supabase = createClient()
-  const [{ data: t }, { data: games }, { data: seasons }] = await Promise.all([
+  const [{ data: t }, { data: games }, { data: seasons }, catalogue] = await Promise.all([
     supabase.from('tournaments').select('*').eq('id', params.id).maybeSingle(),
     supabase.from('games').select('id, name, supported_formats').eq('active', true).order('name'),
     supabase.from('seasons').select('id, name').order('start_date', { ascending: false }),
+    fetchModeCatalogue(),
   ])
   if (!t) notFound()
 
@@ -53,6 +55,11 @@ export default async function EditTournamentPage({ params }: { params: { id: str
     competitionFormat: t.competition_format ?? 'head_to_head',
     entryUnit: t.entry_unit ?? 'solo',
     squadSize: t.squad_size == null ? '' : String(t.squad_size),
+    modeId: t.mode_id ?? '',
+    formatId: t.format_id ?? '',
+    defaultMapId: t.default_map_id ?? '',
+    matchRules: t.match_rules ?? '',
+    matchType: t.match_type ?? '',
   }
 
   return (
@@ -95,6 +102,7 @@ export default async function EditTournamentPage({ params }: { params: { id: str
           supportedFormats: g.supported_formats ?? [],
         }))}
         seasons={seasons ?? []}
+        catalogue={catalogue}
         initial={initial}
         slugLocked={t.status !== 'draft'}
         submitLabel="Save changes"

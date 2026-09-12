@@ -4,6 +4,8 @@ import { useFormState, useFormStatus } from 'react-dom'
 import { type TournamentFormState } from '@/lib/tournaments/admin-actions'
 import { TournamentCardImageField } from './TournamentCardImageField'
 import { formatsForGame, FORMAT_LABEL, type CompetitionFormat } from '@/lib/tournaments/formats'
+import { formatsForMode, mapsForMode, resolveModeSelection } from '@/lib/tournaments/mode-selection'
+import type { ModeCatalogue } from '@/lib/tournaments/mode-catalogue'
 
 export interface TournamentFormValues {
   id?: string
@@ -32,6 +34,11 @@ export interface TournamentFormValues {
   competitionFormat: string
   entryUnit: string
   squadSize: string
+  modeId: string
+  formatId: string
+  defaultMapId: string
+  matchRules: string
+  matchType: string
 }
 
 type Action = (prev: TournamentFormState, fd: FormData) => Promise<TournamentFormState>
@@ -40,6 +47,7 @@ export function TournamentForm({
   action,
   games,
   seasons,
+  catalogue,
   initial,
   slugLocked,
   submitLabel,
@@ -47,6 +55,7 @@ export function TournamentForm({
   action: Action
   games: { id: string; name: string; supportedFormats: string[] }[]
   seasons: { id: string; name: string }[]
+  catalogue: ModeCatalogue
   initial: TournamentFormValues
   slugLocked: boolean
   submitLabel: string
@@ -57,10 +66,35 @@ export function TournamentForm({
   const [competitionFormat, setCompetitionFormat] = useState(initial.competitionFormat || 'head_to_head')
   const [entryUnit, setEntryUnit] = useState(initial.entryUnit || 'solo')
 
+  const [modeId, setModeId] = useState(initial.modeId)
+  const [formatId, setFormatId] = useState(initial.formatId)
+  const [mapId, setMapId] = useState(initial.defaultMapId)
+
   // Only the formats the chosen game declares. Falls back to head-to-head
   // when no game is picked yet, so the control is never empty.
   const availableFormats = formatsForGame(games.find((g) => g.id === gameId)?.supportedFormats)
-  const isPointsRace = competitionFormat === 'points_race'
+
+  // Modes belong to a game. A game with none keeps the existing Competition
+  // Format picker and every mode field stays empty.
+  const gameModes = catalogue.modes.filter((m) => m.gameId === gameId)
+  const hasModes = gameModes.length > 0
+  const selectedMode = gameModes.find((m) => m.id === modeId) ?? null
+  const modeFormats = formatsForMode(catalogue.formats, modeId || null)
+  const modeMaps = mapsForMode(catalogue.maps, modeId || null)
+  const selectedFormat = modeFormats.find((f) => f.id === formatId) ?? null
+  const derived = resolveModeSelection(selectedMode, selectedFormat)
+
+  // Changing Mode must clear Format and Map, or a stale Clash Squad map
+  // survives onto a Battle Royale tournament — the exact bug the mock had.
+  function onModeChange(nextModeId: string) {
+    setModeId(nextModeId)
+    setFormatId('')
+    setMapId('')
+  }
+
+  const isPointsRace = hasModes
+    ? derived.competitionFormat === 'points_race'
+    : competitionFormat === 'points_race'
   const isInvitationOnly = tournamentType === 'masters' || tournamentType === 'champions_cup'
   return (
     <form action={formAction} className="space-y-4">
@@ -105,6 +139,9 @@ export function TournamentForm({
               setCompetitionFormat('head_to_head')
               setEntryUnit('solo')
             }
+            // Modes belong to ONE game, so every mode-derived choice is stale
+            // the moment the game changes.
+            onModeChange('')
           }}
           required
           className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
@@ -120,7 +157,7 @@ export function TournamentForm({
         </select>
       </div>
 
-      {availableFormats.length > 1 && (
+      {!hasModes && availableFormats.length > 1 && (
         <div className="space-y-1.5">
           <label htmlFor="competitionFormat" className="text-sm font-medium text-slate-300">
             Competition format
@@ -146,11 +183,11 @@ export function TournamentForm({
       )}
       {/* Always submitted, even when the picker is hidden for a single-format
           game, so the action always receives a value. */}
-      {availableFormats.length <= 1 && (
+      {!hasModes && availableFormats.length <= 1 && (
         <input type="hidden" name="competitionFormat" value={competitionFormat} />
       )}
 
-      {isPointsRace && (
+      {!hasModes && isPointsRace && (
         <>
           <div className="space-y-1.5">
             <label htmlFor="entryUnit" className="text-sm font-medium text-slate-300">
@@ -181,7 +218,116 @@ export function TournamentForm({
           </p>
         </>
       )}
-      {!isPointsRace && <input type="hidden" name="entryUnit" value="solo" />}
+      {!hasModes && !isPointsRace && <input type="hidden" name="entryUnit" value="solo" />}
+
+      {hasModes && (
+        <>
+          <div className="space-y-1.5">
+            <label htmlFor="modeId" className="text-sm font-medium text-slate-300">Mode</label>
+            <select
+              id="modeId"
+              name="modeId"
+              value={modeId}
+              onChange={(e) => onModeChange(e.target.value)}
+              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
+            >
+              <option value="">Choose a mode</option>
+              {gameModes.map((m) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {modeFormats.length > 0 && (
+            <div className="space-y-1.5">
+              <label htmlFor="formatId" className="text-sm font-medium text-slate-300">Format</label>
+              <select
+                id="formatId"
+                name="formatId"
+                value={formatId}
+                onChange={(e) => setFormatId(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
+              >
+                <option value="">Choose a format</option>
+                {modeFormats.map((f) => (
+                  // Unavailable formats stay VISIBLE but disabled — the roadmap
+                  // is legible, and nobody can create a tournament the platform
+                  // cannot finish.
+                  <option key={f.id} value={f.id} disabled={!f.available}>
+                    {f.name}{f.available ? '' : ' — coming soon'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {modeMaps.length === 1 ? (
+            <div className="space-y-1.5">
+              <span className="text-sm font-medium text-slate-300">Map</span>
+              <p className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300">
+                {modeMaps[0].name}
+              </p>
+              <input type="hidden" name="defaultMapId" value={modeMaps[0].id} />
+            </div>
+          ) : modeMaps.length > 1 ? (
+            <div className="space-y-1.5">
+              <label htmlFor="defaultMapId" className="text-sm font-medium text-slate-300">Map</label>
+              <select
+                id="defaultMapId"
+                name="defaultMapId"
+                value={mapId}
+                onChange={(e) => setMapId(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
+              >
+                <option value="">Choose a map</option>
+                {modeMaps.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500">The default. Each lobby can override it.</p>
+            </div>
+          ) : null}
+
+          <div className="space-y-1.5">
+            <label htmlFor="matchRules" className="text-sm font-medium text-slate-300">Match rules</label>
+            <select
+              id="matchRules"
+              name="matchRules"
+              defaultValue={initial.matchRules || 'normal'}
+              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
+            >
+              <option value="normal">Normal</option>
+              <option value="headshot_only">Headshot only</option>
+              <option value="spam">Spam / unlimited ammo</option>
+            </select>
+          </div>
+
+          {/* Battle Royale expresses length as a stage's rounds_count, so it
+              has no series length at all. */}
+          {selectedMode?.competitionFormat === 'head_to_head' && (
+            <div className="space-y-1.5">
+              <label htmlFor="matchType" className="text-sm font-medium text-slate-300">Match type</label>
+              <select
+                id="matchType"
+                name="matchType"
+                defaultValue={initial.matchType || 'bo1'}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
+              >
+                {catalogue.matchTypes.map((t) => (
+                  <option key={t.slug} value={t.slug} disabled={!t.available}>
+                    {t.name}{t.available ? '' : ' — coming soon'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Derived, never asked twice — see mode-selection.ts. */}
+          <input type="hidden" name="competitionFormat" value={derived.competitionFormat} />
+          <input type="hidden" name="entryUnit" value={derived.entryUnit} />
+          <input type="hidden" name="squadSize" value={String(derived.squadSize)} />
+        </>
+      )}
 
       <div className="space-y-1.5">
         <label htmlFor="tournamentType" className="text-sm font-medium text-slate-300">

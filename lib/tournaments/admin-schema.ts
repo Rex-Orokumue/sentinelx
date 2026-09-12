@@ -43,6 +43,16 @@ export const tournamentSchema = z
     competitionFormat: z.enum(['head_to_head', 'points_race']).default('head_to_head'),
     entryUnit: z.enum(['solo', 'squad']).default('solo'),
     squadSize: z.union([z.literal(''), z.coerce.number().int().min(2).max(6)]).default(''),
+    // Mode/Format/Map are FKs into the catalogue tables; '' means "not a
+    // mode-based game" and maps to NULL.
+    modeId: z.union([z.literal(''), z.string().uuid()]).default(''),
+    formatId: z.union([z.literal(''), z.string().uuid()]).default(''),
+    defaultMapId: z.union([z.literal(''), z.string().uuid()]).default(''),
+    matchRules: z.union([z.literal(''), z.enum(['normal', 'headshot_only', 'spam'])]).default(''),
+    // Accepts every value the CHECK permits. Availability is gated by
+    // match_types.available, never by validation — a schema that rejected bo3
+    // would make enabling it a code change rather than a data flip.
+    matchType: z.union([z.literal(''), z.enum(['bo1', 'bo3', 'bo5'])]).default(''),
     manualKnockoutPairing: z
       .union([z.literal('true'), z.literal('false'), z.literal(''), z.boolean()])
       .transform((v) => v === true || v === 'true')

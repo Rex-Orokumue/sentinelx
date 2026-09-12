@@ -643,6 +643,123 @@ export type Database = {
           },
         ]
       }
+      game_mode_formats: {
+        Row: {
+          active: boolean
+          available: boolean
+          entry_unit: string
+          id: string
+          mode_id: string
+          name: string
+          seq: number
+          slug: string
+          team_size: number
+        }
+        Insert: {
+          active?: boolean
+          available?: boolean
+          entry_unit: string
+          id?: string
+          mode_id: string
+          name: string
+          seq?: number
+          slug: string
+          team_size: number
+        }
+        Update: {
+          active?: boolean
+          available?: boolean
+          entry_unit?: string
+          id?: string
+          mode_id?: string
+          name?: string
+          seq?: number
+          slug?: string
+          team_size?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_mode_formats_mode_id_fkey"
+            columns: ["mode_id"]
+            isOneToOne: false
+            referencedRelation: "game_modes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_mode_maps: {
+        Row: {
+          active: boolean
+          id: string
+          mode_id: string
+          name: string
+          seq: number
+        }
+        Insert: {
+          active?: boolean
+          id?: string
+          mode_id: string
+          name: string
+          seq?: number
+        }
+        Update: {
+          active?: boolean
+          id?: string
+          mode_id?: string
+          name?: string
+          seq?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_mode_maps_mode_id_fkey"
+            columns: ["mode_id"]
+            isOneToOne: false
+            referencedRelation: "game_modes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_modes: {
+        Row: {
+          active: boolean
+          competition_format: string
+          created_at: string
+          game_id: string
+          id: string
+          name: string
+          seq: number
+          slug: string
+        }
+        Insert: {
+          active?: boolean
+          competition_format: string
+          created_at?: string
+          game_id: string
+          id?: string
+          name: string
+          seq?: number
+          slug: string
+        }
+        Update: {
+          active?: boolean
+          competition_format?: string
+          created_at?: string
+          game_id?: string
+          id?: string
+          name?: string
+          seq?: number
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_modes_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           active: boolean
@@ -1377,6 +1494,34 @@ export type Database = {
             referencedRelation: "community_posts"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      match_types: {
+        Row: {
+          active: boolean
+          available: boolean
+          id: string
+          name: string
+          seq: number
+          slug: string
+        }
+        Insert: {
+          active?: boolean
+          available?: boolean
+          id?: string
+          name: string
+          seq?: number
+          slug: string
+        }
+        Update: {
+          active?: boolean
+          available?: boolean
+          id?: string
+          name?: string
+          seq?: number
+          slug?: string
+        }
+        Relationships: [
         ]
       }
       notifications: {
@@ -2684,6 +2829,7 @@ export type Database = {
           created_at: string
           id: string
           label: string
+          map_id: string | null
           room_id: string | null
           room_password: string | null
           round_no: number
@@ -2696,6 +2842,7 @@ export type Database = {
           created_at?: string
           id?: string
           label: string
+          map_id?: string | null
           room_id?: string | null
           room_password?: string | null
           round_no: number
@@ -2708,6 +2855,7 @@ export type Database = {
           created_at?: string
           id?: string
           label?: string
+          map_id?: string | null
           room_id?: string | null
           room_password?: string | null
           round_no?: number
@@ -2881,6 +3029,11 @@ export type Database = {
           invitation_only: boolean
           manual_knockout_pairing: boolean
           max_players: number | null
+          mode_id: string | null
+          format_id: string | null
+          default_map_id: string | null
+          match_rules: string | null
+          match_type: string | null
           prize_pool: number
           prize_second: number | null
           prize_third: number | null
@@ -2916,6 +3069,11 @@ export type Database = {
           invitation_only?: boolean
           manual_knockout_pairing?: boolean
           max_players?: number | null
+          mode_id?: string | null
+          format_id?: string | null
+          default_map_id?: string | null
+          match_rules?: string | null
+          match_type?: string | null
           prize_pool?: number
           prize_second?: number | null
           prize_third?: number | null
@@ -2951,6 +3109,11 @@ export type Database = {
           invitation_only?: boolean
           manual_knockout_pairing?: boolean
           max_players?: number | null
+          mode_id?: string | null
+          format_id?: string | null
+          default_map_id?: string | null
+          match_rules?: string | null
+          match_type?: string | null
           prize_pool?: number
           prize_second?: number | null
           prize_third?: number | null
