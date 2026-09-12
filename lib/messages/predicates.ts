@@ -22,3 +22,23 @@ export function isBlockedBetween(blocks: BlockRow[], x: string, y: string): bool
 export function countNewContactsSince(createdAts: string[], sinceIso: string): number {
   return createdAts.filter((t) => t >= sinceIso).length
 }
+
+// 10-minute "change your mind" window for editing/unsending your own
+// message. Enforced here for the UI (disable the controls after 10 min) AND
+// server-side in the sender_edit_or_unsend RLS policy — same client/DB
+// relationship as isBlockedBetween is to dm_can_message().
+export function canEditOrUnsend(createdAtIso: string, nowIso: string): boolean {
+  const createdAt = new Date(createdAtIso).getTime()
+  const now = new Date(nowIso).getTime()
+  return now - createdAt <= 10 * 60 * 1000
+}
+
+export type MessageContentInput = { body: string | null; imageUrl: string | null; deletedAt: string | null }
+export type ParticipantContent = { body: string | null; imageUrl: string | null; removed: boolean }
+
+// What a PARTICIPANT sees. Staff bypass this entirely — admin-query.ts reads
+// body/image_url directly and never calls this.
+export function resolveParticipantContent(input: MessageContentInput): ParticipantContent {
+  if (input.deletedAt) return { body: null, imageUrl: null, removed: true }
+  return { body: input.body, imageUrl: input.imageUrl, removed: false }
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { unreadCount, isBlockedBetween, countNewContactsSince } from './predicates'
+import { unreadCount, isBlockedBetween, countNewContactsSince, canEditOrUnsend, resolveParticipantContent } from './predicates'
 
 describe('unreadCount', () => {
   const rows = [
@@ -39,5 +39,34 @@ describe('countNewContactsSince', () => {
   })
   it('is zero for none', () => {
     expect(countNewContactsSince([], '2026-09-09T00:00:00Z')).toBe(0)
+  })
+})
+
+describe('canEditOrUnsend', () => {
+  it('is true within the 10-minute window', () => {
+    expect(canEditOrUnsend('2026-09-12T12:00:00Z', '2026-09-12T12:09:59Z')).toBe(true)
+  })
+  it('is true at exactly 10 minutes', () => {
+    expect(canEditOrUnsend('2026-09-12T12:00:00Z', '2026-09-12T12:10:00Z')).toBe(true)
+  })
+  it('is false just past 10 minutes', () => {
+    expect(canEditOrUnsend('2026-09-12T12:00:00Z', '2026-09-12T12:10:01Z')).toBe(false)
+  })
+})
+
+describe('resolveParticipantContent', () => {
+  it('hides content once deleted', () => {
+    expect(resolveParticipantContent({ body: 'hi', imageUrl: null, deletedAt: '2026-09-12T12:00:00Z' })).toEqual({
+      body: null,
+      imageUrl: null,
+      removed: true,
+    })
+  })
+  it('passes through untouched content when not deleted', () => {
+    expect(resolveParticipantContent({ body: 'hi', imageUrl: null, deletedAt: null })).toEqual({
+      body: 'hi',
+      imageUrl: null,
+      removed: false,
+    })
   })
 })
