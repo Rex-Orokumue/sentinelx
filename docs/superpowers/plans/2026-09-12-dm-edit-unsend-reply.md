@@ -60,7 +60,7 @@
 **Interfaces:**
 - Produces: `dm_messages.edited_at`, `dm_messages.deleted_at`, `dm_messages.reply_to_id` columns; table `dm_message_edits`; RLS policy `dm_messages_sender_edit_or_unsend`; `Database['public']['Tables']` entries updated in `lib/supabase/types.ts`.
 
-- [ ] **Step 1: Write the migration**
+- [x] **Step 1: Write the migration**
 
 Create `supabase/migrations/<ts>_dm_edit_unsend_reply.sql` (real current UTC timestamp):
 
@@ -112,11 +112,11 @@ CREATE POLICY "dm_messages_sender_edit_or_unsend" ON public.dm_messages
   WITH CHECK (sender_id = auth.uid());
 ```
 
-- [ ] **Step 2: Apply to production**
+- [x] **Step 2: Apply to production**
 
 Supabase MCP `apply_migration` tool (name `dm_edit_unsend_reply`), or `npx supabase db push` from the primary checkout if the CLI is reachable (memory `project_supabase_connectivity_gotcha` — prefer MCP). If neither is available, stop and ask the user.
 
-- [ ] **Step 3: Verify in production**
+- [x] **Step 3: Verify in production**
 
 Run via MCP `execute_sql` (one statement per call — a prior session in this same feature learned the hard way that a multi-statement `execute_sql` call only surfaces the *last* statement's result):
 
@@ -144,7 +144,7 @@ WHERE polrelid = 'public.dm_message_edits'::regclass AND polname = 'dm_message_e
 ```
 Expected: 1 row.
 
-- [ ] **Step 4: Regenerate types**
+- [x] **Step 4: Regenerate types**
 
 MCP `generate_typescript_types` (project `itxubrkbropttfdackmi`). The result comes back as `{"types": "..."}` — if it's too large for the tool result, it's saved to a file; extract the `types` field's string value and write it verbatim to `lib/supabase/types.ts` (a prior session in this feature did this with a one-off `python -c "json.load(...)['types']"` script when the raw JSON was too large to paste). Confirm:
 
@@ -153,7 +153,7 @@ grep -c "dm_message_edits:" lib/supabase/types.ts   # expect >= 1
 sed -n '/dm_messages: {/,/Relationships:/p' lib/supabase/types.ts | grep -c "edited_at:\|deleted_at:\|reply_to_id:"   # expect >= 6 (3 fields x Row+Insert+Update)
 ```
 
-- [ ] **Step 5: Typecheck**
+- [x] **Step 5: Typecheck**
 
 Run: `npx tsc --noEmit`. **Capture the real exit code — do not pipe through `tail` and trust its exit status.**
 
@@ -163,7 +163,7 @@ cat /tmp/tsc_task1.txt
 ```
 Expected: `EXIT=0`, no error lines above it.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add supabase/migrations/ lib/supabase/types.ts
@@ -193,7 +193,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
   - `resolveParticipantContent(input: MessageContentInput): ParticipantContent` — blanks `body`/`imageUrl` and sets `removed: true` when `deletedAt` is set; passes through unchanged otherwise. Staff never call this — `admin-query.ts` reads `body`/`image_url` directly.
 - Consumed by: `lib/messages/actions.ts` (`canEditOrUnsend`), `lib/messages/query.ts` and `components/messages/Conversation.tsx` (`resolveParticipantContent`).
 
-- [ ] **Step 1: Failing test**
+- [x] **Step 1: Failing test**
 
 Add to the bottom of `lib/messages/predicates.test.ts` (keep the existing three `describe` blocks and their import line — add the two new names to it):
 
@@ -233,9 +233,9 @@ describe('resolveParticipantContent', () => {
 })
 ```
 
-- [ ] **Step 2: Run — verify fail** — `npx vitest run lib/messages/predicates.test.ts` → FAIL (`canEditOrUnsend`/`resolveParticipantContent` not exported).
+- [x] **Step 2: Run — verify fail** — `npx vitest run lib/messages/predicates.test.ts` → FAIL (`canEditOrUnsend`/`resolveParticipantContent` not exported).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Append to `lib/messages/predicates.ts`:
 
@@ -261,9 +261,9 @@ export function resolveParticipantContent(input: MessageContentInput): Participa
 }
 ```
 
-- [ ] **Step 4: Run — verify pass** — `npx vitest run lib/messages/predicates.test.ts` → PASS (12: the existing 7 + 5 new — 3 for `canEditOrUnsend`, 2 for `resolveParticipantContent`).
+- [x] **Step 4: Run — verify pass** — `npx vitest run lib/messages/predicates.test.ts` → PASS (12: the existing 7 + 5 new — 3 for `canEditOrUnsend`, 2 for `resolveParticipantContent`).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/messages/predicates.ts lib/messages/predicates.test.ts
@@ -285,7 +285,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 - Produces: `ConversationMessage` gains `editedAt: string | null`, `deletedAt: string | null`, `replyTo: { id: string; senderName: string; body: string | null; removed: boolean } | null`. `ThreadSummary` gains `lastRemoved: boolean`.
 - Consumed by: Task 4 is independent of this; Tasks 6/7 (UI) consume `ConversationMessage`; `ThreadListItem.tsx` (existing) consumes `ThreadSummary`.
 
-- [ ] **Step 1: Update the predicates import**
+- [x] **Step 1: Update the predicates import**
 
 In `lib/messages/query.ts`, change:
 
@@ -299,7 +299,7 @@ to:
 import { unreadCount, isBlockedBetween, resolveParticipantContent, type BlockRow } from './predicates'
 ```
 
-- [ ] **Step 2: `ThreadSummary` gains `lastRemoved`**
+- [x] **Step 2: `ThreadSummary` gains `lastRemoved`**
 
 Change:
 
@@ -334,7 +334,7 @@ export type ThreadSummary = {
 }
 ```
 
-- [ ] **Step 3: `fetchThreadList` selects `deleted_at` and resolves it**
+- [x] **Step 3: `fetchThreadList` selects `deleted_at` and resolves it**
 
 Change the `dm_messages` select inside `fetchThreadList`:
 
@@ -404,7 +404,7 @@ to:
     })
 ```
 
-- [ ] **Step 4: `ConversationMessage` gains the new fields**
+- [x] **Step 4: `ConversationMessage` gains the new fields**
 
 Change:
 
@@ -435,7 +435,7 @@ export type ConversationMessage = {
 }
 ```
 
-- [ ] **Step 5: `fetchThread` selects the new columns, skips signing deleted images, resolves replies**
+- [x] **Step 5: `fetchThread` selects the new columns, skips signing deleted images, resolves replies**
 
 Change the `dm_messages` select inside `fetchThread`:
 
@@ -529,7 +529,7 @@ to:
     }),
 ```
 
-- [ ] **Step 6: Typecheck + lint**
+- [x] **Step 6: Typecheck + lint**
 
 ```bash
 npx tsc --noEmit > /tmp/tsc_task3.txt 2>&1; echo "EXIT=$?" >> /tmp/tsc_task3.txt; cat /tmp/tsc_task3.txt
@@ -537,7 +537,7 @@ npx next lint --file lib/messages/query.ts > /tmp/lint_task3.txt 2>&1; echo "EXI
 ```
 Expected: both `EXIT=0`. (If `dm_*` columns are `never`-typed, Task 1 Step 4 wasn't completed.)
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add lib/messages/query.ts
@@ -559,7 +559,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 - Produces: `DmTranscriptMessage` gains `editedAt: string | null`, `deletedAt: string | null`, `editHistory: { bodyBefore: string | null; editedAt: string }[]`.
 - Consumed by: `DmReportRow.tsx`.
 
-- [ ] **Step 1: `MsgRow` and `DmTranscriptMessage` gain the new fields**
+- [x] **Step 1: `MsgRow` and `DmTranscriptMessage` gain the new fields**
 
 Change:
 
@@ -602,7 +602,7 @@ to:
 type MsgRow = { id: string; thread_id: string; sender_id: string; body: string | null; image_url: string | null; created_at: string; edited_at: string | null; deleted_at: string | null }
 ```
 
-- [ ] **Step 2: Select the new columns**
+- [x] **Step 2: Select the new columns**
 
 Change the `dm_messages` select inside `fetchDmReports`:
 
@@ -626,7 +626,7 @@ to:
 
 (Leave the image-signing step untouched — staff see images even for unsent messages, so nothing there needs a `!deleted_at` filter the way the participant-facing path in Task 3 did.)
 
-- [ ] **Step 3: Fetch edit history**
+- [x] **Step 3: Fetch edit history**
 
 Immediately after the `msgsByThread` map is built (right after its closing `for` loop, before the `// Sign every image path once.` comment), add:
 
@@ -644,7 +644,7 @@ Immediately after the `msgsByThread` map is built (right after its closing `for`
   }
 ```
 
-- [ ] **Step 4: Include the new fields in the transcript output**
+- [x] **Step 4: Include the new fields in the transcript output**
 
 Change:
 
@@ -675,7 +675,7 @@ to:
     })),
 ```
 
-- [ ] **Step 5: Annotate the admin transcript row**
+- [x] **Step 5: Annotate the admin transcript row**
 
 In `components/admin/DmReportRow.tsx`, change:
 
@@ -719,7 +719,7 @@ to:
           ))}
 ```
 
-- [ ] **Step 6: Typecheck + lint**
+- [x] **Step 6: Typecheck + lint**
 
 ```bash
 npx tsc --noEmit > /tmp/tsc_task4.txt 2>&1; echo "EXIT=$?" >> /tmp/tsc_task4.txt; cat /tmp/tsc_task4.txt
@@ -727,7 +727,7 @@ npx next lint --file lib/messages/admin-query.ts --file components/admin/DmRepor
 ```
 Expected: both `EXIT=0`.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add lib/messages/admin-query.ts components/admin/DmReportRow.tsx
@@ -752,7 +752,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
   - `unsendMessage(messageId: string): Promise<{ error?: string }>`
 - Consumed by: Task 8 (`MessageComposer.tsx`), Task 6 (`MessageBubble.tsx`).
 
-- [ ] **Step 1: Import `canEditOrUnsend`**
+- [x] **Step 1: Import `canEditOrUnsend`**
 
 Change:
 
@@ -767,7 +767,7 @@ import { messageBodySchema, reportReasonSchema } from './schema'
 import { canEditOrUnsend } from './predicates'
 ```
 
-- [ ] **Step 2: `sendMessage` gains `replyToId`**
+- [x] **Step 2: `sendMessage` gains `replyToId`**
 
 Change the signature:
 
@@ -825,7 +825,7 @@ to:
     .insert({ thread_id: threadId, sender_id: userId, body, image_url: imageUrl, reply_to_id: replyToId })
 ```
 
-- [ ] **Step 3: Add `editMessage` and `unsendMessage`**
+- [x] **Step 3: Add `editMessage` and `unsendMessage`**
 
 Append to the end of the file:
 
@@ -894,7 +894,7 @@ export async function unsendMessage(messageId: string): Promise<{ error?: string
 }
 ```
 
-- [ ] **Step 4: Typecheck + lint**
+- [x] **Step 4: Typecheck + lint**
 
 ```bash
 npx tsc --noEmit > /tmp/tsc_task5.txt 2>&1; echo "EXIT=$?" >> /tmp/tsc_task5.txt; cat /tmp/tsc_task5.txt
@@ -902,7 +902,7 @@ npx next lint --file lib/messages/actions.ts > /tmp/lint_task5.txt 2>&1; echo "E
 ```
 Expected: both `EXIT=0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/messages/actions.ts
@@ -924,7 +924,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 - Produces: `MessageBubble({ m, mine, onReply, onEdit }: { m: ConversationMessage; mine: boolean; onReply: (m: ConversationMessage) => void; onEdit: (m: ConversationMessage) => void })` — renders one bubble: reply-quote block (if `m.replyTo`), body/image or "Message removed", "(edited)" tag, swipe-to-reply (touch) + hover-reveal reply icon (desktop), and — only for `mine` messages still inside the 10-minute window — a small "⋯" menu with Edit/Unsend, matching the interaction pattern already established by `ThreadMenu.tsx`'s overflow menu (outside-click-to-close via a `ref` + `mousedown` listener).
 - Consumed by: `Conversation.tsx` (Task 7).
 
-- [ ] **Step 1: Write `MessageBubble.tsx`**
+- [x] **Step 1: Write `MessageBubble.tsx`**
 
 ```tsx
 'use client'
@@ -1084,7 +1084,7 @@ export function MessageBubble({
 }
 ```
 
-- [ ] **Step 2: Typecheck + lint**
+- [x] **Step 2: Typecheck + lint**
 
 ```bash
 npx tsc --noEmit > /tmp/tsc_task6.txt 2>&1; echo "EXIT=$?" >> /tmp/tsc_task6.txt; cat /tmp/tsc_task6.txt
@@ -1092,7 +1092,7 @@ npx next lint --file components/messages/MessageBubble.tsx > /tmp/lint_task6.txt
 ```
 Expected: both `EXIT=0`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add components/messages/MessageBubble.tsx
@@ -1113,7 +1113,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 - Consumes: `resolveParticipantContent` (Task 2); `MessageBubble` (Task 6).
 - Produces: owns `composerMode: { type: 'reply' | 'edit'; target: ConversationMessage } | null`, passed to `MessageComposer` (Task 8) along with a `clearComposerMode` callback.
 
-- [ ] **Step 1: Widen the realtime subscription to `'*'` and handle UPDATE**
+- [x] **Step 1: Widen the realtime subscription to `'*'` and handle UPDATE**
 
 Change the import line:
 
@@ -1210,7 +1210,7 @@ with:
         )
 ```
 
-- [ ] **Step 2: Add composer-mode state and use `MessageBubble`**
+- [x] **Step 2: Add composer-mode state and use `MessageBubble`**
 
 Change the import line:
 
@@ -1289,7 +1289,7 @@ to:
       />
 ```
 
-- [ ] **Step 3: Typecheck + lint**
+- [x] **Step 3: Typecheck + lint**
 
 ```bash
 npx tsc --noEmit > /tmp/tsc_task7.txt 2>&1; echo "EXIT=$?" >> /tmp/tsc_task7.txt; cat /tmp/tsc_task7.txt
@@ -1301,7 +1301,7 @@ npx next lint --file components/messages/Conversation.tsx --file components/mess
 ```
 Expected: `EXIT=0`.
 
-- [ ] **Step 4: Commit (both files)**
+- [x] **Step 4: Commit (both files)**
 
 ```bash
 git add components/messages/Conversation.tsx components/messages/MessageComposer.tsx
@@ -1322,7 +1322,7 @@ Claude-Session: https://claude.ai/code/session_018zQe17sFEE1YWyDS9X2WfV"
 - Consumes: `editMessage` (Task 5); `type ConversationMessage` (Task 3).
 - Produces: `MessageComposer` gains `mode: { type: 'reply' | 'edit'; target: ConversationMessage } | null` and `onClearMode: () => void` props. In reply mode, shows a quoted-excerpt banner above the input and sends with `replyToId` set. In edit mode, prefills the input with the target's current body, swaps the send icon for a checkmark, and calls `editMessage` instead of `sendMessage` on submit.
 
-- [ ] **Step 1: Write the updated composer**
+- [x] **Step 1: Write the updated composer**
 
 Replace the entire contents of `components/messages/MessageComposer.tsx` with:
 
@@ -1533,11 +1533,11 @@ export function MessageComposer({
 }
 ```
 
-- [ ] **Step 2: Verify — run this as part of Task 7's Step 3**
+- [x] **Step 2: Verify — run this as part of Task 7's Step 3**
 
 This file's typecheck/lint verification is Task 7 Step 3 (they must pass together — see the note there). Do not run a separate verification here.
 
-- [ ] **Step 3: Commit — folded into Task 7's Step 4**
+- [x] **Step 3: Commit — folded into Task 7's Step 4**
 
 Both files land in the single commit made at the end of Task 7.
 
@@ -1547,13 +1547,15 @@ Both files land in the single commit made at the end of Task 7.
 
 **Files:** none — manual run on the Vercel preview (do not `npm run build` locally).
 
-- [ ] **Step 1: Push + full unit sweep**
+- [x] **Step 1: Push + full unit sweep**
 
 ```bash
 git push
 npx vitest run lib/messages/ > /tmp/vitest_task9.txt 2>&1; echo "EXIT=$?" >> /tmp/vitest_task9.txt; cat /tmp/vitest_task9.txt
 ```
 Expected: `EXIT=0`; `thread-key` (3) + `predicates` (12, up from 7) + `schema` (6) all green. Wait for the Vercel preview READY.
+
+**Steps 2–10 below are intentionally left unchecked.** Ran 21/21 (up from 16 pre-piece): `thread-key`(3) + `predicates`(12) + `schema`(6), plus a clean `npx tsc --noEmit` and `next lint` across every task. The user explicitly chose to skip the manual cross-account/gesture QA pass and merge on that basis (2026-09-12) rather than have it attempted via browser automation or deferred. The realtime UPDATE handling, swipe gesture, and RLS-window enforcement have no automated coverage — this is a known gap, not a verified pass.
 
 - [ ] **Step 2: Edit, within the window** — Account A sends a message → within 10 minutes, taps "⋯" → Edit → composer prefills, banner says "Editing message" → change the text → checkmark → bubble updates in place with "(edited)". Account B (open on the thread) sees it update live, no reload.
 
@@ -1573,10 +1575,10 @@ Expected: `EXIT=0`; `thread-key` (3) + `predicates` (12, up from 7) + `schema` (
 
 - [ ] **Step 10: Mobile (375px)** — Swipe gesture doesn't cause horizontal page scroll or get confused with vertical message-list scrolling. Edit/unsend menu, reply banner, and quote blocks all fit without overflow.
 
-- [ ] **Step 11: Tick this plan; update the spec**
+- [x] **Step 11: Tick this plan; update the spec**
 
 Tick every box in this plan and in `docs/superpowers/specs/2026-09-12-dm-edit-unsend-reply-design.md` (add `**Status:** shipped <date>`), following the same pattern the original DM piece used.
 
-- [ ] **Step 12: Merge to main**
+- [x] **Step 12: Merge to main**
 
 Per memory `feedback_always_push`: merge `origin/main` in first (resolve `lib/supabase/types.ts` by regenerating from the live schema if it conflicts), re-run `npx vitest run` + `npx tsc --noEmit` (capturing real exit codes, not through `tail`), push the branch, confirm the Vercel preview is green, then fast-forward `main`.

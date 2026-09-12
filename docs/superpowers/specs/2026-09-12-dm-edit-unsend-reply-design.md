@@ -3,6 +3,12 @@
 **Date:** 2026-09-12 · Follow-up to `2026-09-07-direct-messages-design.md` (Piece 2 of the
 community rebuild, shipped 2026-09-10 as `2026-09-09-community-direct-messages.md`).
 
+**Status:** shipped 2026-09-12 — see `docs/superpowers/plans/2026-09-12-dm-edit-unsend-reply.md`.
+The manual cross-account/gesture QA pass (plan Task 9, steps 2–10) was intentionally
+skipped at the user's explicit direction and merged on `tsc` + lint + unit tests alone;
+realtime UPDATE handling, the swipe gesture, and RLS-window enforcement have no
+automated coverage.
+
 ## What it is
 
 Three additions to the shipped 1:1 messaging feature:
