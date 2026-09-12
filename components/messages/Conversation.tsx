@@ -17,31 +17,55 @@ export function Conversation({ detail, viewerId }: { detail: ThreadDetail; viewe
   // with an image triggers a router.refresh() so the server re-signs it. Text
   // messages append optimistically from the payload; the id de-dupe guards
   // against the refresh (or its own echo) double-rendering either kind.
+  //
+  // Supabase Realtime's socket can drop silently (no thrown error, no visible
+  // symptom besides "new messages stop appearing") after a burst of unrelated
+  // activity — e.g. block/unblock's two action+refresh round-trips in quick
+  // succession. `.subscribe()`'s status callback reports CHANNEL_ERROR /
+  // TIMED_OUT / CLOSED when that happens; without handling it the page is
+  // stuck until a manual reload opens a fresh connection. Resubscribing after
+  // a short backoff recovers without one.
   useEffect(() => {
     const supabase = createClient()
-    const channel = supabase
-      .channel(`dm:thread:${detail.threadId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'dm_messages', filter: `thread_id=eq.${detail.threadId}` },
-        (payload) => {
-          const r = payload.new as { id: string; sender_id: string; body: string | null; image_url: string | null; created_at: string; read_at: string | null }
-          if (r.image_url) {
-            router.refresh()
+    let cancelled = false
+    let retryTimer: ReturnType<typeof setTimeout> | null = null
+    let currentChannel: ReturnType<typeof supabase.channel> | null = null
+
+    function subscribe() {
+      currentChannel = supabase
+        .channel(`dm:thread:${detail.threadId}`)
+        .on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'dm_messages', filter: `thread_id=eq.${detail.threadId}` },
+          (payload) => {
+            const r = payload.new as { id: string; sender_id: string; body: string | null; image_url: string | null; created_at: string; read_at: string | null }
+            if (r.image_url) {
+              router.refresh()
+              if (r.sender_id !== viewerId) void markThreadRead(detail.threadId)
+              return
+            }
+            setMessages((prev) =>
+              prev.some((m) => m.id === r.id)
+                ? prev
+                : [...prev, { id: r.id, senderId: r.sender_id, body: r.body, imageUrl: null, createdAt: r.created_at, readAt: r.read_at }],
+            )
             if (r.sender_id !== viewerId) void markThreadRead(detail.threadId)
-            return
+          },
+        )
+        .subscribe((status) => {
+          if (cancelled) return
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            if (currentChannel) supabase.removeChannel(currentChannel)
+            retryTimer = setTimeout(subscribe, 2000)
           }
-          setMessages((prev) =>
-            prev.some((m) => m.id === r.id)
-              ? prev
-              : [...prev, { id: r.id, senderId: r.sender_id, body: r.body, imageUrl: null, createdAt: r.created_at, readAt: r.read_at }],
-          )
-          if (r.sender_id !== viewerId) void markThreadRead(detail.threadId)
-        },
-      )
-      .subscribe()
+        })
+    }
+    subscribe()
+
     return () => {
-      supabase.removeChannel(channel)
+      cancelled = true
+      if (retryTimer) clearTimeout(retryTimer)
+      if (currentChannel) supabase.removeChannel(currentChannel)
     }
   }, [detail.threadId, viewerId, router])
 
