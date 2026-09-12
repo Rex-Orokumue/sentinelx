@@ -103,8 +103,27 @@ game_mode_maps
 ```
 
 On `tournaments`: `mode_id`, `format_id`, `default_map_id` (all nullable FKs,
-so every existing row is untouched) and `match_rules text` with a CHECK of
-`normal | headshot_only | spam`.
+so every existing row is untouched), `match_rules text` with a CHECK of
+`normal | headshot_only | spam`, and `match_type text` (§7.1).
+
+Closed value sets are `text` + `CHECK`, not Postgres enums — the schema
+currently contains **zero** enum types, and `competition_format`, `entry_unit`
+and `status` are all text + CHECK. Matching that beats introducing a second
+convention.
+
+### 5.0 One source of truth for team size
+
+`game_mode_formats.entry_unit` / `team_size` are the **catalogue** — they define
+what "Clash Squad 4v4" means. `tournaments.entry_unit` / `squad_size` remain the
+**authoritative stored values** on the tournament, because every existing
+constraint and query already reads them (`tournaments_squad_size_present`,
+`tournaments_squad_size_range`, `tournaments_squads_are_points_race`,
+`closeRegistration`).
+
+Selecting a Format **writes** those two columns from the catalogue. The admin is
+never asked twice, and nothing downstream changes. The catalogue is the
+definition; the tournament row is the value. They cannot disagree because only
+one of them is ever typed in.
 
 ### 5.1 Map belongs on the lobby, not only the tournament
 
@@ -142,6 +161,29 @@ they are admin-editable precisely so a rotation does not require a deploy.
 metadata — it affects nothing in scoring, and is shown to players on the
 tournament page so they know what they are entering.
 
+## 7.1 Match Type (Bo1 / Bo3 / Bo5)
+
+The mock showed a **Match Type** field and this spec originally omitted it. It
+is **not** an existing column — there is no `match_type`, `best_of` or series
+concept anywhere in the codebase. It is new.
+
+It only means anything for the head-to-head modes. Battle Royale already
+expresses length as `tournament_stages.rounds_count`, so a BR tournament has no
+Match Type at all.
+
+And only **Bo1 is buildable today**: `matches` is one row with one scoreline, so
+a best-of-three needs a *series* — several matches that roll up to one bracket
+result — which does not exist. That is the same class of gap as team-vs-team.
+
+**Decision:** add `tournaments.match_type` (`bo1 | bo3 | bo5`, default `bo1`,
+NULL for BR), and render Bo3/Bo5 greyed as "Coming soon" — the identical
+mechanism §4 uses for the unavailable formats. The field exists rather than
+being silently dropped, the roadmap stays legible, and nobody can create a Bo3
+the bracket cannot resolve.
+
+This supersedes §11 Q1: the round-target question is answered by Match Type
+rather than by a separate field.
+
 ## 8. UI
 
 In the tournament form, for a game that has modes:
@@ -174,13 +216,24 @@ they are registering for.
 ## 10. Compatibility
 
 Every new column is a nullable FK or defaulted. A football tournament has no
-mode, keeps its Competition Format picker, and stores NULL in all four fields —
+mode, keeps its Competition Format picker, and stores NULL in all five fields —
 no existing row changes and no existing test should need editing.
+
+**No backfill is required, as a matter of fact rather than policy.** Checked
+2026-09-12: all 7 tournaments in production are football — Dream League Soccer
+(5) and EA FC Mobile (2) — every one `head_to_head`. There are **zero** Free
+Fire tournaments, so nothing exists that was created under the old top-level
+Competition Format picker and would now read inconsistently on a public page.
+
+Public surfaces must therefore treat Mode/Format/Map/Rules as **optional** and
+render nothing when they are NULL, rather than assuming every tournament has
+them. Should a Free Fire tournament be created before this ships, it gets its
+mode set by hand in admin — a one-row update, not a migration.
 
 ## 11. Open questions
 
-1. **Does Clash Squad 1v1 want a round target** ("first to 4")? The head-to-head
-   engine stores a scoreline, which already covers it. *Proposed: no new field.*
+1. ~~Does Clash Squad 1v1 want a round target?~~ **Answered by §7.1** — Match
+   Type covers series length; the scoreline covers rounds within a match.
 2. **Should Mode be filterable** on `/tournaments`? *Proposed: yes, later, with
    the public surfaces phase.*
 3. **Do other games get modes now?** PUBG (TPP/FPP) and COD Mobile (BR /
