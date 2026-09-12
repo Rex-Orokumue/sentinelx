@@ -8,6 +8,26 @@
     "admin": "Administrateur",
     "moderator": "Modérateur"
   },
+  "notifications": {
+    "whatsapp": {
+      "registrationConfirmed": "✅ Vous êtes inscrit à {tournament} sur Sentinel X ! Inscription confirmée — nous vous rappellerons avant vos matchs. Bonne chance ! 🎮",
+      "fixtureReminder": "⏰ Votre match Sentinel X commence dans ~1 heure : {playerA} contre {playerB} ({tournament}). Préparez-vous → {matchUrl}",
+      "fixtureAssigned": "📅 Nouveau match Sentinel X : {playerA} contre {playerB} ({tournament}). {matchUrl}",
+      "fixtureAssignedWhen": "📅 Nouveau match Sentinel X : {playerA} contre {playerB} ({tournament}) — {whenLabel}. {matchUrl}",
+      "resultConfirmed": "🏁 Résultat confirmé : {playerA} {scoreA}–{scoreB} {playerB} ({tournament}). Consultez le tableau mis à jour sur Sentinel X.",
+      "prizeCredited": "💸 Votre retrait de gains de {amount} a été versé sur votre compte bancaire. Merci d'avoir participé sur Sentinel X ! 🏆",
+      "escrowSale": "💰 Vous avez une vente sur Sentinel X ! « {title} » — les fonds sont conservés en sécurité dans l'entiercement Zolarux. Livrez à l'acheteur maintenant ; vous serez payé dès qu'il confirmera.",
+      "escrowCompleted": "✅ Votre commande sous entiercement Sentinel X pour « {title} » est terminée — les fonds ont été versés au vendeur. Profitez-en !",
+      "escrowRefunded": "↩️ Votre commande sous entiercement Sentinel X pour « {title} » a été remboursée. L'argent vous est renvoyé.",
+      "playerDisqualified": "🚫 Vous avez été retiré de {tournament} sur Sentinel X. Motif : {reason} Si vous pensez qu'il s'agit d'une erreur, contactez le support.",
+      "noshowNeedsDecision": "⚠️ Absence à trancher : {playerA} contre {playerB} ({tournament}, {round}) a dépassé son délai sans résultat confirmé. À examiner sur le tableau de bord admin Sentinel X.",
+      "noshowContacts": "Contactez-les :",
+      "mastersInvitation": "🏆 Vous êtes invité à {tournamentName} ! Vous êtes classé #{rank}. Frais d'inscription : {entryFee}. Répondez avant {deadline} pour réserver votre place.",
+      "championsCupInvitation": "🏆 Vous êtes invité à {tournamentName} — la finale de la saison ! Vous êtes classé #{rank}. Entrée gratuite. Répondez avant {deadline} pour réserver votre place.",
+      "invitationAccepted": "{playerName} a accepté son invitation à {tournamentName}.",
+      "invitationExpiredCascade": "🏆 Une place s'est libérée dans {tournamentName} ! Vous êtes classé #{rank}. Frais d'inscription : {entryFee}. Répondez avant {deadline} pour réserver votre place."
+    }
+  },
   "nav": {
     "home": "Accueil",
     "tournaments": "Tournois",

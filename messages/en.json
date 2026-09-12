@@ -8,6 +8,26 @@
     "admin": "Admin",
     "moderator": "Moderator"
   },
+  "notifications": {
+    "whatsapp": {
+      "registrationConfirmed": "✅ You're registered for {tournament} on Sentinel X! Entry confirmed — we'll remind you before your matches. Good luck! 🎮",
+      "fixtureReminder": "⏰ Your Sentinel X match starts in ~1 hour: {playerA} vs {playerB} ({tournament}). Get ready → {matchUrl}",
+      "fixtureAssigned": "📅 New Sentinel X fixture: {playerA} vs {playerB} ({tournament}). {matchUrl}",
+      "fixtureAssignedWhen": "📅 New Sentinel X fixture: {playerA} vs {playerB} ({tournament}) — {whenLabel}. {matchUrl}",
+      "resultConfirmed": "🏁 Result confirmed: {playerA} {scoreA}–{scoreB} {playerB} ({tournament}). See the updated bracket on Sentinel X.",
+      "prizeCredited": "💸 Your prize withdrawal of {amount} has been paid to your bank account. Thanks for competing on Sentinel X! 🏆",
+      "escrowSale": "💰 You've got a sale on Sentinel X! \"{title}\" — funds are held safely in Zolarux escrow. Deliver to the buyer now; you're paid once they confirm.",
+      "escrowCompleted": "✅ Your Sentinel X escrow order for \"{title}\" is complete — funds have been released to the seller. Enjoy!",
+      "escrowRefunded": "↩️ Your Sentinel X escrow order for \"{title}\" has been refunded. The money is on its way back to you.",
+      "playerDisqualified": "🚫 You've been removed from {tournament} on Sentinel X. Reason: {reason} If you think this is a mistake, reach out to support.",
+      "noshowNeedsDecision": "⚠️ No-show needs a decision: {playerA} vs {playerB} ({tournament}, {round}) passed its deadline with no confirmed result. Review it on the Sentinel X admin dashboard.",
+      "noshowContacts": "Message them:",
+      "mastersInvitation": "🏆 You're invited to {tournamentName}! You ranked #{rank}. Entry fee: {entryFee}. Respond by {deadline} to secure your spot.",
+      "championsCupInvitation": "🏆 You're invited to {tournamentName} — the season finale! You ranked #{rank}. Free entry. Respond by {deadline} to secure your spot.",
+      "invitationAccepted": "{playerName} accepted their invitation to {tournamentName}.",
+      "invitationExpiredCascade": "🏆 A spot opened up in {tournamentName}! You ranked #{rank}. Entry fee: {entryFee}. Respond by {deadline} to secure your spot."
+    }
+  },
   "nav": {
     "home": "Home",
     "tournaments": "Tournaments",

@@ -8,6 +8,26 @@
     "admin": "Admin",
     "moderator": "Moderator"
   },
+  "notifications": {
+    "whatsapp": {
+      "registrationConfirmed": "✅ You don register for {tournament} for Sentinel X! Your entry don confam — we go remind you before your matches. Good luck! 🎮",
+      "fixtureReminder": "⏰ Your Sentinel X match go start for about 1 hour: {playerA} vs {playerB} ({tournament}). Get ready → {matchUrl}",
+      "fixtureAssigned": "📅 New Sentinel X fixture: {playerA} vs {playerB} ({tournament}). {matchUrl}",
+      "fixtureAssignedWhen": "📅 New Sentinel X fixture: {playerA} vs {playerB} ({tournament}) — {whenLabel}. {matchUrl}",
+      "resultConfirmed": "🏁 Dem don confam di result: {playerA} {scoreA}–{scoreB} {playerB} ({tournament}). Check di updated bracket for Sentinel X.",
+      "prizeCredited": "💸 Your prize withdrawal of {amount} don enter your bank account. Thank you for playing for Sentinel X! 🏆",
+      "escrowSale": "💰 You don sell something for Sentinel X! \"{title}\" — di money dey safe for Zolarux escrow. Deliver give di buyer now; once dem confam, we go pay you.",
+      "escrowCompleted": "✅ Your Sentinel X escrow order for \"{title}\" don complete — di money don go to di seller. Enjoy!",
+      "escrowRefunded": "↩️ Your Sentinel X escrow order for \"{title}\" don get refund. Di money dey on im way back to you.",
+      "playerDisqualified": "🚫 Dem don remove you from {tournament} for Sentinel X. Reason: {reason} If you feel say na mistake, contact support.",
+      "noshowNeedsDecision": "⚠️ No-show wey need decision: {playerA} vs {playerB} ({tournament}, {round}) don pass im deadline and no result dey confam. Check am for di Sentinel X admin dashboard.",
+      "noshowContacts": "Message dem:",
+      "mastersInvitation": "🏆 Dem don invite you to {tournamentName}! You rank #{rank}. Entry fee: {entryFee}. Reply before {deadline} make your space hold.",
+      "championsCupInvitation": "🏆 Dem don invite you to {tournamentName} — di season finale! You rank #{rank}. Entry free. Reply before {deadline} make your space hold.",
+      "invitationAccepted": "{playerName} don accept im invitation to {tournamentName}.",
+      "invitationExpiredCascade": "🏆 Space don open for {tournamentName}! You rank #{rank}. Entry fee: {entryFee}. Reply before {deadline} make your space hold."
+    }
+  },
   "nav": {
     "home": "Home",
     "tournaments": "Tournaments",
