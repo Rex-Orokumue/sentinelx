@@ -62,3 +62,12 @@ export function mapsForMode<T extends MapOption & { modeId: string }>(
   if (!modeId) return []
   return all.filter((m) => m.modeId === modeId).map((m) => ({ id: m.id, name: m.name }))
 }
+
+// One source of truth for the rule labels — the admin picks them and the
+// public page prints them, and those two drifting is how a tournament ends up
+// advertising something different from what it was created as.
+export const MATCH_RULES_LABEL: Record<string, string> = {
+  normal: 'Normal',
+  headshot_only: 'Headshot only',
+  spam: 'Spam / unlimited ammo',
+}

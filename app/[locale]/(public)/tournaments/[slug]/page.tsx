@@ -17,6 +17,7 @@ import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 import { getCoinBalance } from '@/lib/coins/service'
 import { GameBadge } from '@/components/game/GameBadge'
 import { resolveGameIconUrl } from '@/lib/games/icon'
+import { MATCH_RULES_LABEL } from '@/lib/tournaments/mode-selection'
 import { ChampionBanner } from '@/components/tournaments/ChampionBanner'
 import { fetchChampions } from '@/lib/tournaments/champions'
 import { gameGenreEmoji } from '@/lib/games/genre-emoji'
@@ -34,7 +35,7 @@ async function getTournament(slug: string) {
   const { data } = await supabase
     .from('tournaments')
     .select(
-      'id, title, slug, description, banner_url, card_image_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, tournament_end, rules, invitation_only, games(name, icon_url, slug, category)',
+      'id, title, slug, description, banner_url, card_image_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, tournament_end, rules, invitation_only, match_rules, games(name, icon_url, slug, category), game_modes(name), game_mode_formats(name), game_mode_maps(name)',
     )
     .eq('slug', slug)
     .maybeSingle()
@@ -125,6 +126,17 @@ export default async function TournamentDetailPage({
   const status = STATUS[t.status] ?? STATUS.completed
   const start = formatDate(t.tournament_start)
   const game = t.games as { name: string; icon_url: string | null; slug: string; category: string | null } | null
+
+  // Free Fire tournaments carry Mode / Format / Map / Rules; football ones have
+  // NULL in all four and must render no line at all — not an empty separator.
+  const modeLine = [
+    (t.game_modes as { name: string } | null)?.name,
+    (t.game_mode_formats as { name: string } | null)?.name,
+    (t.game_mode_maps as { name: string } | null)?.name,
+    t.match_rules ? MATCH_RULES_LABEL[t.match_rules] ?? t.match_rules : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
   // Detail-page hero: the tournament's own upload, else its banner, else the
   // game's artwork. Falls to the genre emoji only if a game has no art at all.
   const heroImage = t.card_image_url?.trim() || t.banner_url || resolveGameIconUrl(game)
@@ -197,6 +209,7 @@ export default async function TournamentDetailPage({
             {game?.name ?? 'Mobile Esports'}
           </p>
           <h1 className="text-2xl font-black leading-tight text-white">{t.title}</h1>
+          {modeLine && <p className="mt-1 text-sm text-slate-400">{modeLine}</p>}
         </div>
         <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold ${status.cls}`}>
           {status.label}

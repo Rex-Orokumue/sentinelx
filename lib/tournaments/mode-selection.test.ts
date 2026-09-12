@@ -3,6 +3,7 @@ import {
   formatsForMode,
   mapsForMode,
   resolveModeSelection,
+  MATCH_RULES_LABEL,
   type FormatOption,
   type ModeOption,
 } from './mode-selection'
@@ -115,5 +116,14 @@ describe('mapsForMode', () => {
 
   it('returns nothing when no mode is selected', () => {
     expect(mapsForMode(all, null)).toEqual([])
+  })
+})
+
+describe('MATCH_RULES_LABEL', () => {
+  it('covers exactly the values the database CHECK permits', () => {
+    // tournaments_match_rules_valid allows these three and nothing else. A
+    // label added here without the migration saves a row Postgres rejects; one
+    // missing renders a raw slug like "headshot_only" to players.
+    expect(Object.keys(MATCH_RULES_LABEL)).toEqual(['normal', 'headshot_only', 'spam'])
   })
 })

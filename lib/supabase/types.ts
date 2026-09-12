@@ -2866,6 +2866,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "tournament_lobbies_map_id_fkey"
+            columns: ["map_id"]
+            isOneToOne: false
+            referencedRelation: "game_mode_maps"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tournament_lobbies_stage_id_fkey"
             columns: ["stage_id"]
             isOneToOne: false
@@ -3136,10 +3143,31 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "tournaments_default_map_id_fkey"
+            columns: ["default_map_id"]
+            isOneToOne: false
+            referencedRelation: "game_mode_maps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournaments_format_id_fkey"
+            columns: ["format_id"]
+            isOneToOne: false
+            referencedRelation: "game_mode_formats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tournaments_game_id_fkey"
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournaments_mode_id_fkey"
+            columns: ["mode_id"]
+            isOneToOne: false
+            referencedRelation: "game_modes"
             referencedColumns: ["id"]
           },
           {

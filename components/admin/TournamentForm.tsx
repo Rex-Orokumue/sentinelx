@@ -4,7 +4,12 @@ import { useFormState, useFormStatus } from 'react-dom'
 import { type TournamentFormState } from '@/lib/tournaments/admin-actions'
 import { TournamentCardImageField } from './TournamentCardImageField'
 import { formatsForGame, FORMAT_LABEL, type CompetitionFormat } from '@/lib/tournaments/formats'
-import { formatsForMode, mapsForMode, resolveModeSelection } from '@/lib/tournaments/mode-selection'
+import {
+  formatsForMode,
+  mapsForMode,
+  resolveModeSelection,
+  MATCH_RULES_LABEL,
+} from '@/lib/tournaments/mode-selection'
 import type { ModeCatalogue } from '@/lib/tournaments/mode-catalogue'
 
 export interface TournamentFormValues {
@@ -296,9 +301,9 @@ export function TournamentForm({
               defaultValue={initial.matchRules || 'normal'}
               className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
             >
-              <option value="normal">Normal</option>
-              <option value="headshot_only">Headshot only</option>
-              <option value="spam">Spam / unlimited ammo</option>
+              {Object.entries(MATCH_RULES_LABEL).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
             </select>
           </div>
 
