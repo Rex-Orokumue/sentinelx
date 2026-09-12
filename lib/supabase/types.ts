@@ -448,35 +448,83 @@ export type Database = {
           },
         ]
       }
+      dm_message_edits: {
+        Row: {
+          body_before: string | null
+          edited_at: string
+          id: string
+          image_url_before: string | null
+          message_id: string
+        }
+        Insert: {
+          body_before?: string | null
+          edited_at?: string
+          id?: string
+          image_url_before?: string | null
+          message_id: string
+        }
+        Update: {
+          body_before?: string | null
+          edited_at?: string
+          id?: string
+          image_url_before?: string | null
+          message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_message_edits_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "dm_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dm_messages: {
         Row: {
           body: string | null
           created_at: string
+          deleted_at: string | null
+          edited_at: string | null
           id: string
           image_url: string | null
           read_at: string | null
+          reply_to_id: string | null
           sender_id: string
           thread_id: string
         }
         Insert: {
           body?: string | null
           created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
           image_url?: string | null
           read_at?: string | null
+          reply_to_id?: string | null
           sender_id: string
           thread_id: string
         }
         Update: {
           body?: string | null
           created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
           image_url?: string | null
           read_at?: string | null
+          reply_to_id?: string | null
           sender_id?: string
           thread_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "dm_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "dm_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "dm_messages_sender_id_fkey"
             columns: ["sender_id"]
@@ -874,6 +922,123 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_mode_formats: {
+        Row: {
+          active: boolean
+          available: boolean
+          entry_unit: string
+          id: string
+          mode_id: string
+          name: string
+          seq: number
+          slug: string
+          team_size: number
+        }
+        Insert: {
+          active?: boolean
+          available?: boolean
+          entry_unit: string
+          id?: string
+          mode_id: string
+          name: string
+          seq?: number
+          slug: string
+          team_size: number
+        }
+        Update: {
+          active?: boolean
+          available?: boolean
+          entry_unit?: string
+          id?: string
+          mode_id?: string
+          name?: string
+          seq?: number
+          slug?: string
+          team_size?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_mode_formats_mode_id_fkey"
+            columns: ["mode_id"]
+            isOneToOne: false
+            referencedRelation: "game_modes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_mode_maps: {
+        Row: {
+          active: boolean
+          id: string
+          mode_id: string
+          name: string
+          seq: number
+        }
+        Insert: {
+          active?: boolean
+          id?: string
+          mode_id: string
+          name: string
+          seq?: number
+        }
+        Update: {
+          active?: boolean
+          id?: string
+          mode_id?: string
+          name?: string
+          seq?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_mode_maps_mode_id_fkey"
+            columns: ["mode_id"]
+            isOneToOne: false
+            referencedRelation: "game_modes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_modes: {
+        Row: {
+          active: boolean
+          competition_format: string
+          created_at: string
+          game_id: string
+          id: string
+          name: string
+          seq: number
+          slug: string
+        }
+        Insert: {
+          active?: boolean
+          competition_format: string
+          created_at?: string
+          game_id: string
+          id?: string
+          name: string
+          seq?: number
+          slug: string
+        }
+        Update: {
+          active?: boolean
+          competition_format?: string
+          created_at?: string
+          game_id?: string
+          id?: string
+          name?: string
+          seq?: number
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_modes_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
             referencedColumns: ["id"]
           },
         ]
@@ -1412,6 +1577,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      match_types: {
+        Row: {
+          active: boolean
+          available: boolean
+          id: string
+          name: string
+          seq: number
+          slug: string
+        }
+        Insert: {
+          active?: boolean
+          available?: boolean
+          id?: string
+          name: string
+          seq?: number
+          slug: string
+        }
+        Update: {
+          active?: boolean
+          available?: boolean
+          id?: string
+          name?: string
+          seq?: number
+          slug?: string
+        }
+        Relationships: []
       }
       match_wagers: {
         Row: {
@@ -2919,6 +3111,7 @@ export type Database = {
           created_at: string
           id: string
           label: string
+          map_id: string | null
           room_id: string | null
           room_password: string | null
           round_no: number
@@ -2931,6 +3124,7 @@ export type Database = {
           created_at?: string
           id?: string
           label: string
+          map_id?: string | null
           room_id?: string | null
           room_password?: string | null
           round_no: number
@@ -2943,6 +3137,7 @@ export type Database = {
           created_at?: string
           id?: string
           label?: string
+          map_id?: string | null
           room_id?: string | null
           room_password?: string | null
           round_no?: number
@@ -2952,6 +3147,13 @@ export type Database = {
           youtube_stream_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tournament_lobbies_map_id_fkey"
+            columns: ["map_id"]
+            isOneToOne: false
+            referencedRelation: "game_mode_maps"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tournament_lobbies_stage_id_fkey"
             columns: ["stage_id"]
@@ -3108,14 +3310,19 @@ export type Database = {
           created_at: string
           data_support_text: string | null
           data_support_whatsapp: string | null
+          default_map_id: string | null
           description: string | null
           entry_unit: string
           format: string
+          format_id: string | null
           game_id: string
           id: string
           invitation_only: boolean
           manual_knockout_pairing: boolean
+          match_rules: string | null
+          match_type: string | null
           max_players: number | null
+          mode_id: string | null
           prize_pool: number
           prize_second: number | null
           prize_third: number | null
@@ -3143,14 +3350,19 @@ export type Database = {
           created_at?: string
           data_support_text?: string | null
           data_support_whatsapp?: string | null
+          default_map_id?: string | null
           description?: string | null
           entry_unit?: string
           format?: string
+          format_id?: string | null
           game_id: string
           id?: string
           invitation_only?: boolean
           manual_knockout_pairing?: boolean
+          match_rules?: string | null
+          match_type?: string | null
           max_players?: number | null
+          mode_id?: string | null
           prize_pool?: number
           prize_second?: number | null
           prize_third?: number | null
@@ -3178,14 +3390,19 @@ export type Database = {
           created_at?: string
           data_support_text?: string | null
           data_support_whatsapp?: string | null
+          default_map_id?: string | null
           description?: string | null
           entry_unit?: string
           format?: string
+          format_id?: string | null
           game_id?: string
           id?: string
           invitation_only?: boolean
           manual_knockout_pairing?: boolean
+          match_rules?: string | null
+          match_type?: string | null
           max_players?: number | null
+          mode_id?: string | null
           prize_pool?: number
           prize_second?: number | null
           prize_third?: number | null
@@ -3208,10 +3425,31 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "tournaments_default_map_id_fkey"
+            columns: ["default_map_id"]
+            isOneToOne: false
+            referencedRelation: "game_mode_maps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournaments_format_id_fkey"
+            columns: ["format_id"]
+            isOneToOne: false
+            referencedRelation: "game_mode_formats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tournaments_game_id_fkey"
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournaments_mode_id_fkey"
+            columns: ["mode_id"]
+            isOneToOne: false
+            referencedRelation: "game_modes"
             referencedColumns: ["id"]
           },
           {
