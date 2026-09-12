@@ -44,6 +44,16 @@ export function DmReportRow({ report }: { report: DmReportView }) {
                 <img src={m.imageUrl} alt="" className="mt-1 max-h-40 rounded border border-slate-800" />
               )}
               <span className="ml-2 text-[10px] text-slate-600">{formatDateTime(m.createdAt)}</span>
+              {m.deletedAt && (
+                <span className="ml-2 rounded bg-amber-900/50 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+                  unsent by sender at {formatDateTime(m.deletedAt)}
+                </span>
+              )}
+              {m.editHistory.length > 0 && (
+                <div className="mt-0.5 text-[10px] text-slate-500">
+                  edited — original: &ldquo;{m.editHistory[0].bodyBefore ?? '(no text)'}&rdquo;
+                </div>
+              )}
             </div>
           ))}
         </div>

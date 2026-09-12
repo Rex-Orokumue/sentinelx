@@ -9,6 +9,9 @@ export type DmTranscriptMessage = {
   imageUrl: string | null
   createdAt: string
   flagged: boolean
+  editedAt: string | null
+  deletedAt: string | null
+  editHistory: { bodyBefore: string | null; editedAt: string }[]
 }
 
 export type DmReportView = {
@@ -26,7 +29,7 @@ export type DmReportView = {
   transcript: DmTranscriptMessage[]
 }
 
-type MsgRow = { id: string; thread_id: string; sender_id: string; body: string | null; image_url: string | null; created_at: string }
+type MsgRow = { id: string; thread_id: string; sender_id: string; body: string | null; image_url: string | null; created_at: string; edited_at: string | null; deleted_at: string | null }
 
 export async function fetchDmReports(limit = 40): Promise<DmReportView[]> {
   const supabase = createClient()
@@ -46,7 +49,7 @@ export async function fetchDmReports(limit = 40): Promise<DmReportView[]> {
     supabase.from('profiles').select('id, username, display_name').in('id', personIds),
     supabase
       .from('dm_messages')
-      .select('id, thread_id, sender_id, body, image_url, created_at')
+      .select('id, thread_id, sender_id, body, image_url, created_at, edited_at, deleted_at')
       .in('thread_id', threadIds)
       .order('created_at', { ascending: true }),
     supabase.from('dm_muted_players').select('player_id').in('player_id', reportedIds),
@@ -66,6 +69,18 @@ export async function fetchDmReports(limit = 40): Promise<DmReportView[]> {
     const list = msgsByThread.get(m.thread_id) ?? []
     list.push(m)
     msgsByThread.set(m.thread_id, list)
+  }
+
+  const allMsgIds = ((msgs ?? []) as MsgRow[]).map((m) => m.id)
+  const { data: edits } =
+    allMsgIds.length > 0
+      ? await supabase.from('dm_message_edits').select('message_id, body_before, edited_at').in('message_id', allMsgIds).order('edited_at', { ascending: true })
+      : { data: [] }
+  const editsByMessage = new Map<string, { bodyBefore: string | null; editedAt: string }[]>()
+  for (const e of edits ?? []) {
+    const list = editsByMessage.get(e.message_id) ?? []
+    list.push({ bodyBefore: e.body_before, editedAt: e.edited_at })
+    editsByMessage.set(e.message_id, list)
   }
 
   // Sign every image path once.
@@ -100,6 +115,9 @@ export async function fetchDmReports(limit = 40): Promise<DmReportView[]> {
       imageUrl: m.image_url ? (signed.get(m.image_url) ?? null) : null,
       createdAt: m.created_at,
       flagged: m.id === r.message_id,
+      editedAt: m.edited_at,
+      deletedAt: m.deleted_at,
+      editHistory: editsByMessage.get(m.id) ?? [],
     })),
   }))
 }
