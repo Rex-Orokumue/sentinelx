@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { X, Bell, Trophy, MessageCircle, Coins, Award, Megaphone, AlertTriangle } from 'lucide-react'
+import { X, Bell, Trophy, MessageCircle, Coins, Award, Megaphone, AlertTriangle, Eye, Trash2 } from 'lucide-react'
 import type { NotificationItem } from '@/lib/nav/session'
 import { markNotificationRead, markAllNotificationsRead, loadMoreNotifications } from '@/lib/notifications/drawer-actions'
 
@@ -15,6 +15,9 @@ const ICONS: Record<string, typeof Bell> = {
   referral_credited: Award,
   post_comment: MessageCircle,
   post_reaction: MessageCircle,
+  status_from_friend: MessageCircle,
+  status_viewed: Eye,
+  status_removed: Trash2,
   tournament_announced: Megaphone,
   new_announcement: Megaphone,
   player_disqualified: AlertTriangle,

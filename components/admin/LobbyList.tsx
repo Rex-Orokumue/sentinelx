@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useFormState, useFormStatus } from 'react-dom'
 import {
   generateNextRound,
@@ -34,7 +35,7 @@ const LOBBY_STATUS_LABEL: Record<string, string> = {
   confirmed: 'Confirmed',
 }
 
-export function LobbyList({ stages }: { stages: StageLobbies[] }) {
+export function LobbyList({ tournamentId, stages }: { tournamentId: string; stages: StageLobbies[] }) {
   if (stages.length === 0) {
     return (
       <p className="rounded-2xl border border-slate-700 bg-slate-900/40 p-5 text-sm text-slate-400">
@@ -46,13 +47,13 @@ export function LobbyList({ stages }: { stages: StageLobbies[] }) {
   return (
     <div className="space-y-8">
       {stages.map((stage) => (
-        <StageBlock key={stage.id} stage={stage} />
+        <StageBlock key={stage.id} stage={stage} tournamentId={tournamentId} />
       ))}
     </div>
   )
 }
 
-function StageBlock({ stage }: { stage: StageLobbies }) {
+function StageBlock({ stage, tournamentId }: { stage: StageLobbies; tournamentId: string }) {
   const [state, formAction] = useFormState<LobbyState, FormData>(generateNextRound, undefined)
 
   const rounds = Array.from(new Set(stage.lobbies.map((l) => l.roundNo))).sort((a, b) => a - b)
@@ -88,7 +89,7 @@ function StageBlock({ stage }: { stage: StageLobbies }) {
                 {stage.lobbies
                   .filter((l) => l.roundNo === roundNo)
                   .map((lobby) => (
-                    <LobbyCard key={lobby.id} lobby={lobby} />
+                    <LobbyCard key={lobby.id} lobby={lobby} tournamentId={tournamentId} />
                   ))}
               </div>
             </div>
@@ -115,7 +116,7 @@ function StageBlock({ stage }: { stage: StageLobbies }) {
   )
 }
 
-function LobbyCard({ lobby }: { lobby: LobbyView }) {
+function LobbyCard({ lobby, tournamentId }: { lobby: LobbyView; tournamentId: string }) {
   const [state, formAction] = useFormState<LobbyState, FormData>(updateLobbyDetails, undefined)
   const locked = lobby.status === 'confirmed'
 
@@ -124,7 +125,12 @@ function LobbyCard({ lobby }: { lobby: LobbyView }) {
       <input type="hidden" name="lobbyId" value={lobby.id} />
       <div className="mb-3 flex items-center justify-between">
         <h4 className="text-sm font-bold text-white">
-          Lobby {lobby.label}
+          <Link
+            href={`/admin/tournaments/${tournamentId}/lobbies/${lobby.id}`}
+            className="hover:text-violet-300"
+          >
+            Lobby {lobby.label}
+          </Link>
           <span className="ml-2 text-xs font-normal text-slate-400">
             {lobby.entrantCount} entrant{lobby.entrantCount === 1 ? '' : 's'}
           </span>

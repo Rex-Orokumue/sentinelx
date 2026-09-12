@@ -74,6 +74,8 @@ const pushPrefsSchema = z.object({
   bracket_released: z.boolean(),
   match_assigned: z.boolean(),
   prize_credited: z.boolean(),
+  status_from_friend: z.boolean(),
+  status_viewed: z.boolean(),
 })
 
 export async function updatePushPrefs(_prev: PrefsState, formData: FormData): Promise<PrefsState> {

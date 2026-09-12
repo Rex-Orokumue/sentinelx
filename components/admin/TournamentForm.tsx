@@ -358,7 +358,7 @@ export function TournamentForm({
       </p>
 
       <Field
-        label="Max players (2–64)"
+        label={isPointsRace ? 'Max players (2–200)' : 'Max players (2–64)'}
         name="maxPlayers"
         type="number"
         defaultValue={initial.maxPlayers}

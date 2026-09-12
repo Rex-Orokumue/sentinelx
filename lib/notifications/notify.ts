@@ -1,5 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { parsePlayerPhone } from '@/lib/phone/number'
 import { renderTemplate, type TemplateInput } from './templates'
+import { toLocale, translatorFor } from './locale'
 import { sendWhatsApp } from './termii'
 import { deferNotification } from './defer'
 
@@ -14,15 +16,23 @@ export function notify(input: NotifyInput): Promise<void> {
 
 async function sendWhatsAppNotification(input: NotifyInput): Promise<void> {
   try {
-    const { templateName, body } = renderTemplate(input)
     const admin = createAdminClient()
 
     const { data: profile } = await admin
       .from('profiles')
-      .select('whatsapp_number')
+      .select('whatsapp_number, country, locale')
       .eq('id', input.playerId)
       .maybeSingle()
-    const toNumber = profile?.whatsapp_number ?? null
+
+    // Rendered in the RECIPIENT's language, not the language of whoever
+    // triggered this. The profile row is already being read for the phone
+    // number, so the locale rides along at no extra cost.
+    const t = await translatorFor(toLocale(profile?.locale), 'notifications.whatsapp')
+    const { templateName, body } = renderTemplate(input, t)
+    // Stored numbers are free-typed — "09077682083", "+234 903 …", "903…".
+    // Termii needs E.164; an unparseable number degrades to "no recipient"
+    // (the row stays 'skipped'), same as a missing number.
+    const toNumber = parsePlayerPhone(profile?.whatsapp_number, { country: profile?.country })?.e164 ?? null
 
     // Insert-first, conservative default; on dedupe_key conflict this inserts nothing
     // and returns no row → idempotent early return.

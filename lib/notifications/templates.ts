@@ -1,3 +1,5 @@
+import type { Translate } from './locale'
+
 export type TemplateInput =
   | { type: 'registration_confirmed'; tournament: string }
   | { type: 'fixture_reminder'; playerA: string; playerB: string; tournament: string; matchUrl: string }
@@ -30,86 +32,129 @@ export interface RenderedTemplate {
   body: string
 }
 
-export function renderTemplate(input: TemplateInput): RenderedTemplate {
+// `templateName` is NOT translated and must never change: Termii/Meta register
+// templates by that name, and a renamed template is an unregistered one. Only
+// `body` is localised.
+//
+// The caller supplies a translator already bound to the RECIPIENT's locale and
+// the `notifications.whatsapp` namespace — see notify() in notify.ts.
+export function renderTemplate(input: TemplateInput, t: Translate): RenderedTemplate {
   switch (input.type) {
     case 'registration_confirmed':
       return {
         templateName: 'registration_confirmed',
-        body: `✅ You're registered for ${input.tournament} on Sentinel X! Entry confirmed — we'll remind you before your matches. Good luck! 🎮`,
+        body: t('registrationConfirmed', { tournament: input.tournament }),
       }
     case 'fixture_reminder':
       return {
         templateName: 'fixture_reminder',
-        body: `⏰ Your Sentinel X match starts in ~1 hour: ${input.playerA} vs ${input.playerB} (${input.tournament}). Get ready → ${input.matchUrl}`,
+        body: t('fixtureReminder', {
+          playerA: input.playerA,
+          playerB: input.playerB,
+          tournament: input.tournament,
+          matchUrl: input.matchUrl,
+        }),
       }
     case 'fixture_assigned':
+      // Two keys rather than one with an optional clause: an ICU conditional on
+      // a possibly-empty string reads worse in the catalog than two plain
+      // sentences, and translators see complete sentences either way.
       return {
         templateName: 'fixture_assigned',
-        body: `📅 New Sentinel X fixture: ${input.playerA} vs ${input.playerB} (${input.tournament})${
-          input.whenLabel ? ` — ${input.whenLabel}` : ''
-        }. ${input.matchUrl}`,
+        body: input.whenLabel
+          ? t('fixtureAssignedWhen', {
+              playerA: input.playerA,
+              playerB: input.playerB,
+              tournament: input.tournament,
+              whenLabel: input.whenLabel,
+              matchUrl: input.matchUrl,
+            })
+          : t('fixtureAssigned', {
+              playerA: input.playerA,
+              playerB: input.playerB,
+              tournament: input.tournament,
+              matchUrl: input.matchUrl,
+            }),
       }
     case 'result_confirmed':
       return {
         templateName: 'result_confirmed',
-        body: `🏁 Result confirmed: ${input.playerA} ${input.scoreA}–${input.scoreB} ${input.playerB} (${input.tournament}). See the updated bracket on Sentinel X.`,
+        body: t('resultConfirmed', {
+          playerA: input.playerA,
+          scoreA: input.scoreA,
+          scoreB: input.scoreB,
+          playerB: input.playerB,
+          tournament: input.tournament,
+        }),
       }
     case 'prize_credited':
-      return {
-        templateName: 'prize_credited',
-        body: `💸 Your prize withdrawal of ${input.amount} has been paid to your bank account. Thanks for competing on Sentinel X! 🏆`,
-      }
+      return { templateName: 'prize_credited', body: t('prizeCredited', { amount: input.amount }) }
     case 'escrow_sale':
-      return {
-        templateName: 'escrow_sale',
-        body: `💰 You've got a sale on Sentinel X! "${input.title}" — funds are held safely in Zolarux escrow. Deliver to the buyer now; you're paid once they confirm.`,
-      }
+      return { templateName: 'escrow_sale', body: t('escrowSale', { title: input.title }) }
     case 'escrow_completed':
-      return {
-        templateName: 'escrow_completed',
-        body: `✅ Your Sentinel X escrow order for "${input.title}" is complete — funds have been released to the seller. Enjoy!`,
-      }
+      return { templateName: 'escrow_completed', body: t('escrowCompleted', { title: input.title }) }
     case 'escrow_refunded':
-      return {
-        templateName: 'escrow_refunded',
-        body: `↩️ Your Sentinel X escrow order for "${input.title}" has been refunded. The money is on its way back to you.`,
-      }
+      return { templateName: 'escrow_refunded', body: t('escrowRefunded', { title: input.title }) }
     case 'player_disqualified':
       return {
         templateName: 'player_disqualified',
-        body: `🚫 You've been removed from ${input.tournament} on Sentinel X. Reason: ${input.reason} If you think this is a mistake, reach out to support.`,
+        body: t('playerDisqualified', { tournament: input.tournament, reason: input.reason }),
       }
     case 'noshow_needs_decision': {
+      // The contact block is assembled here, not in the catalog: it is a
+      // variable-length list of "name: url" pairs, which ICU cannot express and
+      // which carries no translatable words beyond its heading.
       const contacts = [
         input.playerAWhatsAppUrl ? `${input.playerA}: ${input.playerAWhatsAppUrl}` : null,
         input.playerBWhatsAppUrl ? `${input.playerB}: ${input.playerBWhatsAppUrl}` : null,
       ].filter(Boolean)
+      const base = t('noshowNeedsDecision', {
+        playerA: input.playerA,
+        playerB: input.playerB,
+        tournament: input.tournament,
+        round: input.round.replace(/_/g, ' '),
+      })
       return {
         templateName: 'noshow_needs_decision',
-        body:
-          `⚠️ No-show needs a decision: ${input.playerA} vs ${input.playerB} (${input.tournament}, ${input.round.replace(/_/g, ' ')}) passed its deadline with no confirmed result. Review it on the Sentinel X admin dashboard.` +
-          (contacts.length > 0 ? `\n\nMessage them:\n${contacts.join('\n')}` : ''),
+        body: contacts.length > 0 ? `${base}\n\n${t('noshowContacts')}\n${contacts.join('\n')}` : base,
       }
     }
     case 'masters_invitation':
       return {
         templateName: 'masters_invitation',
-        body: `🏆 You're invited to ${input.tournamentName}! You ranked #${input.rank}. Entry fee: ${input.entryFee}. Respond by ${input.deadline} to secure your spot.`,
+        body: t('mastersInvitation', {
+          tournamentName: input.tournamentName,
+          rank: input.rank,
+          entryFee: input.entryFee,
+          deadline: input.deadline,
+        }),
       }
     case 'champions_cup_invitation':
       return {
         templateName: 'champions_cup_invitation',
-        body: `🏆 You're invited to ${input.tournamentName} — the season finale! You ranked #${input.rank}. Free entry. Respond by ${input.deadline} to secure your spot.`,
+        body: t('championsCupInvitation', {
+          tournamentName: input.tournamentName,
+          rank: input.rank,
+          deadline: input.deadline,
+        }),
       }
     case 'invitation_accepted':
       return {
         templateName: 'invitation_accepted',
-        body: `${input.playerName} accepted their invitation to ${input.tournamentName}.`,
+        body: t('invitationAccepted', {
+          playerName: input.playerName,
+          tournamentName: input.tournamentName,
+        }),
       }
     case 'invitation_expired_cascade':
       return {
         templateName: 'invitation_expired_cascade',
-        body: `🏆 A spot opened up in ${input.tournamentName}! You ranked #${input.rank}. Entry fee: ${input.entryFee}. Respond by ${input.deadline} to secure your spot.`,
+        body: t('invitationExpiredCascade', {
+          tournamentName: input.tournamentName,
+          rank: input.rank,
+          entryFee: input.entryFee,
+          deadline: input.deadline,
+        }),
       }
   }
 }

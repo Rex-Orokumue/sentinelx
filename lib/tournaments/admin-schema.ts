@@ -20,9 +20,13 @@ export const tournamentSchema = z
     cardImageUrl: optionalUrl,
     registrationFee: money(1_000_000),
     prizePool: money(1_000_000_000),
+    // Upper bound is the points-race one. The 64 cap is a HEAD-TO-HEAD limit —
+    // a knockout bracket is power-of-two bounded — and it is applied by the
+    // refinement below rather than here, because a BR field of 96 across four
+    // lobbies is completely normal.
     maxPlayers: z.union([
       z.literal(''),
-      z.coerce.number().int().min(2, 'At least 2 players').max(64, 'At most 64 players'),
+      z.coerce.number().int().min(2, 'At least 2 players').max(200, 'At most 200 players'),
     ]),
     registrationStart: localDateTime,
     registrationEnd: localDateTime,
@@ -60,5 +64,13 @@ export const tournamentSchema = z
     message: 'Squads are only available for points-race tournaments.',
     path: ['entryUnit'],
   })
+  // A knockout bracket is power-of-two bounded, so head-to-head stops at 64.
+  // Enforced here rather than in the field so a points race is not limited by
+  // a constraint that belongs to the other engine — closeRegistration applies
+  // the same split.
+  .refine(
+    (d) => d.competitionFormat === 'points_race' || d.maxPlayers === '' || d.maxPlayers <= 64,
+    { message: 'Head-to-head tournaments support at most 64 players.', path: ['maxPlayers'] },
+  )
 
 export type TournamentInput = z.infer<typeof tournamentSchema>

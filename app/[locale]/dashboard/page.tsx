@@ -9,6 +9,8 @@ import { getCoinBalance } from '@/lib/coins/service'
 import type { RecentAchievement } from '@/components/dashboard/RecentAchievements'
 import { HeroIdentityPanel } from '@/components/dashboard/HeroIdentityPanel'
 import { NextMatchCard, type NextMatchData } from '@/components/dashboard/NextMatchCard'
+import { NextLobbyCard } from '@/components/dashboard/NextLobbyCard'
+import { fetchNextLobby } from '@/lib/tournaments/next-lobby'
 import { StatsRow } from '@/components/dashboard/StatsRow'
 import { SeasonStandingCard } from '@/components/dashboard/SeasonStandingCard'
 import { ProgressCard } from '@/components/dashboard/ProgressCard'
@@ -189,6 +191,8 @@ export default async function DashboardPage() {
     opponent_a: NextMatchOpponentRef | NextMatchOpponentRef[] | null
     opponent_b: NextMatchOpponentRef | NextMatchOpponentRef[] | null
   }
+  const nextLobby = await fetchNextLobby(user.id)
+
   const nextMatchRow = (nextMatchRes.data as unknown as NextMatchRow[] | null)?.[0] ?? null
   const nextMatch: NextMatchData | null = nextMatchRow
     ? (() => {
@@ -258,6 +262,7 @@ export default async function DashboardPage() {
         profileThemeClass={profileThemeClass}
         usernameColourClass={usernameColourClass}
       />
+      <NextLobbyCard lobby={nextLobby} />
       <NextMatchCard
         match={nextMatch}
         invitation={
