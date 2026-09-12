@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest'
 
 const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
 const update = vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) }))
@@ -48,6 +48,21 @@ const cookieDelete = vi.fn()
 vi.mock('next/headers', () => ({
   cookies: () => ({ get: cookieGet, delete: cookieDelete }),
 }))
+
+// Pay the module-import cost ONCE, outside any test's timeout budget.
+//
+// The first `await import('./actions')` pulls in supabase-js, zod and next-intl
+// transitively — 0.2-2s warm, and on a loaded machine occasionally past the 5s
+// per-test default. That matters more than a slow test: when a test times out,
+// vitest fails it but does NOT cancel its in-flight promise, so the abandoned
+// signup() keeps running and consumes values from the shared adminMaybeSingle
+// queue that the NEXT test had lined up with mockResolvedValueOnce. The result
+// was an intermittent "expected { errorCode: 'blocked_details' } to deeply
+// equal { errorCode: 'username_taken' }" in the test after the timeout — a
+// failure with nothing wrong in the code it was testing.
+beforeAll(async () => {
+  await import('./actions')
+}, 30_000)
 
 function formData(fields: Record<string, string>): FormData {
   const fd = new FormData()
