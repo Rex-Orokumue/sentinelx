@@ -175,11 +175,46 @@ And only **Bo1 is buildable today**: `matches` is one row with one scoreline, so
 a best-of-three needs a *series* — several matches that roll up to one bracket
 result — which does not exist. That is the same class of gap as team-vs-team.
 
-**Decision:** add `tournaments.match_type` (`bo1 | bo3 | bo5`, default `bo1`,
-NULL for BR), and render Bo3/Bo5 greyed as "Coming soon" — the identical
-mechanism §4 uses for the unavailable formats. The field exists rather than
-being silently dropped, the roadmap stays legible, and nobody can create a Bo3
-the bracket cannot resolve.
+**Decision:** add `tournaments.match_type` (default `bo1`, NULL for BR), and
+render unavailable types greyed as "Coming soon" — the identical mechanism §4
+uses for the unavailable formats. The field exists rather than being silently
+dropped, the roadmap stays legible, and nobody can create a Bo3 the bracket
+cannot resolve.
+
+**The CHECK must accept all three values**, not just `bo1`:
+
+```sql
+CHECK (match_type IS NULL OR match_type IN ('bo1', 'bo3', 'bo5'))
+```
+
+A CHECK that permitted only `bo1` would make enabling Bo3 a migration, which is
+exactly what the gating pattern exists to avoid — `game_mode_formats.available`
+does not delete 4v4 from the schema, it hides it.
+
+### 7.1.1 Availability is data here too
+
+Permitting the value in the CHECK is necessary but **not sufficient**. If the
+greying is written as `if (slug === 'bo1')` in a component, Bo3 still needs a
+code change to expose — the same trap one layer up.
+
+So match types get their own small catalogue, exactly parallel to
+`game_mode_formats`:
+
+```
+match_types
+  id, slug, name, seq, active
+  available boolean   -- false renders "Coming soon", unselectable
+```
+
+Seeded `bo1` available, `bo3` / `bo5` not. Availability is global rather than
+per-mode because the blocker is global: there is no series concept for any
+mode. When series land, turning on Bo3 is one `UPDATE` — no migration, no
+deploy, no component edit.
+
+`tournaments.match_type` stays a `text` column with the CHECK above rather than
+an FK, mirroring how `tournaments.entry_unit` carries a CHECK while
+`game_mode_formats.available` drives the picker. The catalogue governs what an
+admin may choose; the CHECK governs what the database will physically hold.
 
 This supersedes §11 Q1: the round-target question is answered by Match Type
 rather than by a separate field.
