@@ -1014,6 +1014,41 @@ export type Database = {
           },
         ]
       }
+      game_mode_match_rules: {
+        Row: {
+          active: boolean
+          id: string
+          mode_id: string
+          name: string
+          seq: number
+          slug: string
+        }
+        Insert: {
+          active?: boolean
+          id?: string
+          mode_id: string
+          name: string
+          seq?: number
+          slug: string
+        }
+        Update: {
+          active?: boolean
+          id?: string
+          mode_id?: string
+          name?: string
+          seq?: number
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_mode_match_rules_mode_id_fkey"
+            columns: ["mode_id"]
+            isOneToOne: false
+            referencedRelation: "game_modes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_modes: {
         Row: {
           active: boolean
@@ -3331,7 +3366,7 @@ export type Database = {
           id: string
           invitation_only: boolean
           manual_knockout_pairing: boolean
-          match_rules: string | null
+          match_rule_id: string | null
           match_type: string | null
           max_players: number | null
           mode_id: string | null
@@ -3371,7 +3406,7 @@ export type Database = {
           id?: string
           invitation_only?: boolean
           manual_knockout_pairing?: boolean
-          match_rules?: string | null
+          match_rule_id?: string | null
           match_type?: string | null
           max_players?: number | null
           mode_id?: string | null
@@ -3411,7 +3446,7 @@ export type Database = {
           id?: string
           invitation_only?: boolean
           manual_knockout_pairing?: boolean
-          match_rules?: string | null
+          match_rule_id?: string | null
           match_type?: string | null
           max_players?: number | null
           mode_id?: string | null
@@ -3455,6 +3490,13 @@ export type Database = {
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournaments_match_rule_id_fkey"
+            columns: ["match_rule_id"]
+            isOneToOne: false
+            referencedRelation: "game_mode_match_rules"
             referencedColumns: ["id"]
           },
           {

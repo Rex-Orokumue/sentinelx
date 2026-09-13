@@ -38,7 +38,7 @@ export function parseForm(formData: FormData) {
     modeId: formData.get('modeId') ?? '',
     formatId: formData.get('formatId') ?? '',
     defaultMapId: formData.get('defaultMapId') ?? '',
-    matchRules: formData.get('matchRules') ?? '',
+    matchRuleId: formData.get('matchRuleId') ?? '',
     matchType: formData.get('matchType') ?? '',
     prizeSecond: formData.get('prizeSecond') ?? '',
     prizeThird: formData.get('prizeThird') ?? '',

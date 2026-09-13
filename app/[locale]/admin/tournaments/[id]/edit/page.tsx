@@ -58,7 +58,7 @@ export default async function EditTournamentPage({ params }: { params: { id: str
     modeId: t.mode_id ?? '',
     formatId: t.format_id ?? '',
     defaultMapId: t.default_map_id ?? '',
-    matchRules: t.match_rules ?? '',
+    matchRuleId: t.match_rule_id ?? '',
     matchType: t.match_type ?? '',
   }
 

@@ -178,7 +178,7 @@ describe('parseForm — mode, format, map, rules, match type', () => {
       expect(r.data.modeId).toBe('')
       expect(r.data.formatId).toBe('')
       expect(r.data.defaultMapId).toBe('')
-      expect(r.data.matchRules).toBe('')
+      expect(r.data.matchRuleId).toBe('')
       expect(r.data.matchType).toBe('')
     }
   })
@@ -190,7 +190,7 @@ describe('parseForm — mode, format, map, rules, match type', () => {
     fd.set('modeId', '33333333-3333-4333-8333-333333333333')
     fd.set('formatId', '44444444-4444-4444-8444-444444444444')
     fd.set('defaultMapId', '55555555-5555-4555-8555-555555555555')
-    fd.set('matchRules', 'headshot_only')
+    fd.set('matchRuleId', '66666666-6666-4666-8666-666666666666')
     fd.set('matchType', 'bo1')
     const r = parseForm(fd)
 
@@ -199,7 +199,7 @@ describe('parseForm — mode, format, map, rules, match type', () => {
       expect(r.data.modeId).toBe('33333333-3333-4333-8333-333333333333')
       expect(r.data.formatId).toBe('44444444-4444-4444-8444-444444444444')
       expect(r.data.defaultMapId).toBe('55555555-5555-4555-8555-555555555555')
-      expect(r.data.matchRules).toBe('headshot_only')
+      expect(r.data.matchRuleId).toBe('66666666-6666-4666-8666-666666666666')
       expect(r.data.matchType).toBe('bo1')
     }
   })
@@ -220,9 +220,12 @@ describe('parseForm — mode, format, map, rules, match type', () => {
     expect(parseForm(fd).success).toBe(false)
   })
 
-  it('rejects an unknown match rule', () => {
+  it('rejects a match rule id that is not a uuid', () => {
+    // matchRuleId is an FK into game_mode_match_rules, same trust model as
+    // modeId/formatId/defaultMapId: the schema only checks shape, and
+    // whether it names a real row for the chosen mode is the DB's job.
     const fd = footballForm()
-    fd.set('matchRules', 'nonsense')
+    fd.set('matchRuleId', 'nonsense')
     expect(parseForm(fd).success).toBe(false)
   })
 })

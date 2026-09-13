@@ -63,11 +63,16 @@ export function mapsForMode<T extends MapOption & { modeId: string }>(
   return all.filter((m) => m.modeId === modeId).map((m) => ({ id: m.id, name: m.name }))
 }
 
-// One source of truth for the rule labels — the admin picks them and the
-// public page prints them, and those two drifting is how a tournament ends up
-// advertising something different from what it was created as.
-export const MATCH_RULES_LABEL: Record<string, string> = {
-  normal: 'Normal',
-  headshot_only: 'Headshot only',
-  spam: 'Spam / unlimited ammo',
+// Match rules are a per-MODE catalogue (game_mode_match_rules), same shape as
+// maps. This is deliberately not a global enum: Free Fire's "Headshot only"
+// and PUBG's "TPP" are different axes entirely (custom-room rule vs camera
+// perspective), and a flat list would offer PUBG's options on a Free Fire
+// tournament — the exact cross-mode leak the Mode->Format->Map chain exists
+// to prevent, just on a fourth field.
+export function matchRulesForMode<T extends MapOption & { modeId: string }>(
+  all: T[],
+  modeId: string | null,
+): MapOption[] {
+  if (!modeId) return []
+  return all.filter((r) => r.modeId === modeId).map((r) => ({ id: r.id, name: r.name }))
 }

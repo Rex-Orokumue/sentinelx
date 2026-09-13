@@ -48,7 +48,11 @@ export const tournamentSchema = z
     modeId: z.union([z.literal(''), z.string().uuid()]).default(''),
     formatId: z.union([z.literal(''), z.string().uuid()]).default(''),
     defaultMapId: z.union([z.literal(''), z.string().uuid()]).default(''),
-    matchRules: z.union([z.literal(''), z.enum(['normal', 'headshot_only', 'spam'])]).default(''),
+    // An FK into game_mode_match_rules, same trust model as modeId/formatId/
+    // defaultMapId: the schema checks shape only, and which rules are valid
+    // for the chosen mode is the catalogue's job, not an enum here — a fixed
+    // enum is exactly what would make PUBG's TPP/FPP a code change.
+    matchRuleId: z.union([z.literal(''), z.string().uuid()]).default(''),
     // Accepts every value the CHECK permits. Availability is gated by
     // match_types.available, never by validation — a schema that rejected bo3
     // would make enabling it a code change rather than a data flip.

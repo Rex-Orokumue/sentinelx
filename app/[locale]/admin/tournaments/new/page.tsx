@@ -37,7 +37,7 @@ const EMPTY: TournamentFormValues = {
   modeId: '',
   formatId: '',
   defaultMapId: '',
-  matchRules: '',
+  matchRuleId: '',
   matchType: '',
 }
 
