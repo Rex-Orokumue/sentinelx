@@ -228,6 +228,17 @@ export async function blockUser(otherId: string): Promise<{ error?: string }> {
     .from('dm_blocks')
     .upsert({ blocker_id: userId, blocked_id: otherId }, { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true })
   if (error) return { error: 'Could not block this player.' }
+
+  // A block severs any existing follow in either direction (follows spec
+  // §"Blocking interaction"). The request-scoped client's RLS delete policy
+  // only lets userId delete rows where THEY are follower_id, so the reverse
+  // direction (otherId was following userId) needs the admin client.
+  const admin = createAdminClient()
+  await admin
+    .from('player_follows')
+    .delete()
+    .or(`and(follower_id.eq.${userId},following_id.eq.${otherId}),and(follower_id.eq.${otherId},following_id.eq.${userId})`)
+
   revalidatePath('/messages')
   return {}
 }
