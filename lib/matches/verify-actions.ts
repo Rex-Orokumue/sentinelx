@@ -47,7 +47,11 @@ export async function recomputeGroupStats(admin: Admin, groupId: string): Promis
     .from('group_memberships')
     .select('player_id')
     .eq('group_id', groupId)
-  const playerIds = (members ?? []).map((r) => r.player_id)
+  // group_memberships.player_id is nullable as of the team-vs-team schema
+  // (a team row carries team_id instead) — this recompute path is solo-group
+  // only until Phase 3 adds team standings, so a null here would mean a data
+  // bug, not a team row it should silently include.
+  const playerIds = (members ?? []).map((r) => r.player_id).filter((id): id is string => id != null)
   const { data: gm } = await admin
     .from('matches')
     .select('player_a_id, player_b_id, score_a, score_b')
@@ -139,16 +143,21 @@ export async function recomputeGroupAndMaybeAdvance(
       .from('group_memberships')
       .select('player_id, wins, draws, losses, goals_for, goals_against, points')
       .eq('group_id', g.id)
-    const rows: MembershipInput[] = (mem ?? []).map((r) => ({
-      playerId: r.player_id,
-      name: '',
-      wins: r.wins,
-      draws: r.draws,
-      losses: r.losses,
-      goalsFor: r.goals_for,
-      goalsAgainst: r.goals_against,
-      points: r.points,
-    }))
+    // Solo-group knockout advancement only, same as recomputeGroupStats above
+    // — a team standings row (player_id null) has no place in this path until
+    // Phase 3.
+    const rows: MembershipInput[] = (mem ?? [])
+      .filter((r): r is typeof r & { player_id: string } => r.player_id != null)
+      .map((r) => ({
+        playerId: r.player_id,
+        name: '',
+        wins: r.wins,
+        draws: r.draws,
+        losses: r.losses,
+        goalsFor: r.goals_for,
+        goalsAgainst: r.goals_against,
+        points: r.points,
+      }))
     standingsPerGroup.push(sortStandings(rows))
   }
   const advancers = collectAdvancers(standingsPerGroup)

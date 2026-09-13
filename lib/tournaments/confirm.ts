@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { notify } from '@/lib/notifications/notify'
 import { regKey } from '@/lib/notifications/keys'
 import { settleReferralForPaidEntry } from '@/lib/referrals/credit'
+import { finalizeSquadJoin } from './squad-membership'
 
 export type ConfirmResult = 'confirmed' | 'already_paid' | 'not_found' | 'not_successful'
 
@@ -91,6 +92,7 @@ export async function confirmRegistration(reference: string): Promise<ConfirmRes
       registrationFee: tournamentInfo?.registration_fee ?? 0,
       feeWaived: existing.fee_waived ?? false,
     })
+    await finalizeSquadJoin(db, existing.id)
   }
 
   const tournamentTitle = tournamentInfo?.title ?? 'the tournament'
