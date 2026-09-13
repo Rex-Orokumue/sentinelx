@@ -7,8 +7,7 @@ import { nextRoundScheduledAt } from './round-schedule'
 import { seededPaidPlayers } from './seeded-players'
 import { soloEntrantRows } from './entrants'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
-import { notifyInApp } from '@/lib/notifications/inbox'
-import { pushToPlayer } from '@/lib/notifications/push'
+import { notifyBoth } from '@/lib/notifications/send'
 
 export type BracketState = { error?: string; success?: boolean } | undefined
 
@@ -348,18 +347,9 @@ export async function publishBracket(
   // never received a match_assigned notification.
   const registeredPlayers = await seededPaidPlayers(admin, id)
   for (const playerId of registeredPlayers) {
-    void notifyInApp({
-      playerId,
-      type: 'bracket_released',
-      title: 'Bracket is live!',
-      body: `${t.title}'s bracket has been published.`,
+    void notifyBoth(playerId, { type: 'bracket_released', tournament: t.title }, 'bracket_released', {
       link: `/tournaments/${t.slug}/bracket`,
     })
-    void pushToPlayer(
-      playerId,
-      { type: 'bracket_released', tournament: t.title },
-      { url: `/tournaments/${t.slug}/bracket` },
-    )
   }
 
   revalidateAdmin(id)

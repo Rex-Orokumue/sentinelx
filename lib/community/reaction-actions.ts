@@ -3,8 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { reactionSchema, type ReactionType } from './schema'
 import { incrementChallenge } from './challenges'
-import { notifyInApp } from '@/lib/notifications/inbox'
-import { pushToPlayer } from '@/lib/notifications/push'
+import { notifyBoth } from '@/lib/notifications/send'
 import { commentNotificationRecipients } from './comment-recipients'
 import type { PostType } from './feed-query'
 
@@ -81,21 +80,12 @@ export async function toggleReaction(postId: string, reaction: ReactionType): Pr
             commenterId: user.id,
           })
 
-    const title = post.post_type === 'match_result' ? 'New reaction on your match' : 'New reaction'
-    const body = `Someone reacted ${parsed.data} to your post.`
     for (const recipientId of recipients) {
-      void notifyInApp({
-        playerId: recipientId,
-        type: 'post_reaction',
-        title,
-        body,
-        link: `/community/${postId}`,
-      })
-      void pushToPlayer(
+      void notifyBoth(
         recipientId,
         { type: 'post_reaction', onMatch: post.post_type === 'match_result', reaction: parsed.data },
-        { url: `/community/${postId}` },
-        { postId },
+        'post_reaction',
+        { link: `/community/${postId}`, postId },
       )
     }
   }

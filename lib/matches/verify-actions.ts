@@ -16,8 +16,7 @@ import { nextRoundScheduledAt } from '@/lib/tournaments/round-schedule'
 import { sortStandings, type MembershipInput } from '@/lib/tournaments/standings'
 import { syncMatchEvents } from '@/lib/scoring/apply'
 import { notify } from '@/lib/notifications/notify'
-import { notifyInApp } from '@/lib/notifications/inbox'
-import { pushToPlayer } from '@/lib/notifications/push'
+import { notifyBoth } from '@/lib/notifications/send'
 import { resultKey } from '@/lib/notifications/keys'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 import { notifyStaff } from '@/lib/admin/staff'
@@ -535,24 +534,11 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
         scoreB,
         tournament: title,
       })
-      await notifyInApp({
-        playerId: pid,
-        type: 'result_confirmed',
-        title: 'Result confirmed',
-        body: `${a} ${scoreA} – ${scoreB} ${b} — confirmed for ${title}.`,
-        link: `/matches/${id}`,
-      })
-      void pushToPlayer(
+      void notifyBoth(
         pid,
-        {
-          type: 'result_confirmed',
-          playerA: a,
-          scoreA,
-          scoreB,
-          playerB: b,
-          tournament: title,
-        },
-        { url: `/matches/${id}` },
+        { type: 'result_confirmed', playerA: a, scoreA, scoreB, playerB: b, tournament: title },
+        'result_confirmed',
+        { link: `/matches/${id}` },
       )
     }
   }

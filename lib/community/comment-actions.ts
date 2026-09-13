@@ -2,8 +2,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { commentContentSchema } from './schema'
-import { notifyInApp } from '@/lib/notifications/inbox'
-import { pushToPlayer } from '@/lib/notifications/push'
+import { notifyBoth } from '@/lib/notifications/send'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getStaffIds } from '@/lib/admin/staff'
 import { commentNotificationRecipients } from './comment-recipients'
@@ -67,21 +66,16 @@ export async function createComment(input: { postId: string; content: string }):
     })
 
     const excerpt = parsed.data.length > 60 ? `${parsed.data.slice(0, 60)}…` : parsed.data
-    const title = post.post_type === 'match_result' ? 'New comment on your match' : 'New comment'
     for (const recipientId of recipients) {
-      void notifyInApp({
-        playerId: recipientId,
-        type: 'post_comment',
-        title,
-        body: excerpt,
-        link: `/community/${input.postId}`,
-      })
-      void pushToPlayer(
+      void notifyBoth(
         recipientId,
         { type: 'post_comment', onMatch: post.post_type === 'match_result', excerpt },
-        { url: `/community/${input.postId}` },
-        // So "mute this post" silences the thread whatever the type.
-        { postId: input.postId },
+        'post_comment',
+        {
+          link: `/community/${input.postId}`,
+          // So "mute this post" silences the thread whatever the type.
+          postId: input.postId,
+        },
       )
     }
   }

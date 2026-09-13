@@ -1,6 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { notifyInApp } from '@/lib/notifications/inbox'
-import { pushToPlayer } from '@/lib/notifications/push'
+import { notifyBoth } from '@/lib/notifications/send'
 import { deferNotification } from '@/lib/notifications/defer'
 import { friendStatusRecipients, type FriendRow } from './status-recipients'
 
@@ -10,7 +9,7 @@ const COMMUNITY_LINK = '/community'
 
 // A friend posted their first live status. Fans out in-app + push to every
 // accepted friend. Wrapped in deferNotification like notifyStaff: it awaits a
-// query before reaching notifyInApp/pushToPlayer, so a `void` caller would be
+// query before reaching notifyBoth, so a `void` caller would be
 // frozen mid-query on Vercel with nothing handed to the platform yet.
 export function notifyFriendsOfNewStatus(admin: Admin, opts: { authorId: string; authorName: string }): Promise<void> {
   return deferNotification(fanOutNewStatus(admin, opts))
@@ -30,13 +29,12 @@ async function fanOutNewStatus(admin: Admin, opts: { authorId: string; authorNam
     })
     if (recipients.length === 0) return
 
-    const title = 'New status'
-    const body = `${opts.authorName} added to their status.`
     await Promise.all(
-      recipients.flatMap((id) => [
-        notifyInApp({ playerId: id, type: 'status_from_friend', title, body, link: COMMUNITY_LINK }),
-        pushToPlayer(id, { type: 'status_from_friend', authorName: opts.authorName }, { url: COMMUNITY_LINK }),
-      ]),
+      recipients.map((id) =>
+        notifyBoth(id, { type: 'status_from_friend', authorName: opts.authorName }, 'status_from_friend', {
+          link: COMMUNITY_LINK,
+        }),
+      ),
     )
   } catch (err) {
     console.error('[status-notify] notifyFriendsOfNewStatus failed (non-blocking)', err)
@@ -60,12 +58,9 @@ async function fanOutStatusViewed(opts: {
 }): Promise<void> {
   if (opts.authorId === opts.viewerId) return
   try {
-    const title = 'Status viewed'
-    const body = `${opts.viewerName} viewed your status.`
-    await Promise.all([
-      notifyInApp({ playerId: opts.authorId, type: 'status_viewed', title, body, link: COMMUNITY_LINK }),
-      pushToPlayer(opts.authorId, { type: 'status_viewed', viewerName: opts.viewerName }, { url: COMMUNITY_LINK }),
-    ])
+    await notifyBoth(opts.authorId, { type: 'status_viewed', viewerName: opts.viewerName }, 'status_viewed', {
+      link: COMMUNITY_LINK,
+    })
   } catch (err) {
     console.error('[status-notify] notifyStatusViewed failed (non-blocking)', err)
   }
@@ -78,12 +73,7 @@ export function notifyStatusRemoved(_admin: Admin, opts: { authorId: string }): 
 
 async function fanOutStatusRemoved(opts: { authorId: string }): Promise<void> {
   try {
-    const title = 'Status removed'
-    const body = 'A moderator removed your status.'
-    await Promise.all([
-      notifyInApp({ playerId: opts.authorId, type: 'status_removed', title, body, link: COMMUNITY_LINK }),
-      pushToPlayer(opts.authorId, { type: 'status_removed' }, { url: COMMUNITY_LINK }),
-    ])
+    await notifyBoth(opts.authorId, { type: 'status_removed' }, 'status_removed', { link: COMMUNITY_LINK })
   } catch (err) {
     console.error('[status-notify] notifyStatusRemoved failed (non-blocking)', err)
   }

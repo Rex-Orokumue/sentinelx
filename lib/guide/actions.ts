@@ -3,8 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { awardXP } from '@/lib/membership/xp'
 import { recordCoinTransaction } from '@/lib/coins/service'
-import { notifyInApp } from '@/lib/notifications/inbox'
-import { pushToPlayer } from '@/lib/notifications/push'
+import { notifyBoth } from '@/lib/notifications/send'
 import { computeQuestStatus, type QuestStatus } from './quest-status'
 
 type Admin = ReturnType<typeof createAdminClient>
@@ -90,22 +89,11 @@ export async function claimBattleReadyBadge(): Promise<{ ok: true } | { ok: fals
 
   await awardXP(admin, user.id, achievement.xp_reward, 'achievement_unlocked', achievement.id)
   await recordCoinTransaction(admin, user.id, achievement.coin_reward, 'achievement_unlocked', achievement.id)
-  await notifyInApp({
-    playerId: user.id,
-    type: 'achievement_unlocked',
-    title: 'Achievement unlocked!',
-    body: `${achievement.name} — +${achievement.xp_reward} XP, +${achievement.coin_reward} SX Coins.`,
-    link: '/dashboard',
-  })
-  void pushToPlayer(
+  await notifyBoth(
     user.id,
-    {
-      type: 'achievement_unlocked',
-      name: achievement.name,
-      xp: achievement.xp_reward,
-      coins: achievement.coin_reward,
-    },
-    { url: '/dashboard' },
+    { type: 'achievement_unlocked', name: achievement.name, xp: achievement.xp_reward, coins: achievement.coin_reward },
+    'achievement_unlocked',
+    { link: '/dashboard' },
   )
 
   return { ok: true }

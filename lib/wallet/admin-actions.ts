@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/admin/auth'
 import { notifyInApp } from '@/lib/notifications/inbox'
-import { pushToPlayer } from '@/lib/notifications/push'
+import { notifyBoth } from '@/lib/notifications/send'
 import { formatNaira } from '@/lib/format'
 import { creditWallet } from './service'
 
@@ -46,24 +46,18 @@ export async function resolveWalletWithdrawal(
     await creditWallet(admin, wr.player_id, wr.amount, 'withdrawal_reversal', id, note)
   }
 
-  await notifyInApp({
-    playerId: wr.player_id,
-    type: action === 'paid' ? 'prize_credited' : 'withdrawal_rejected',
-    title: action === 'paid' ? 'Prize credited' : 'Withdrawal rejected',
-    body:
-      action === 'paid'
-        ? `${formatNaira(wr.amount)} has been approved for withdrawal.`
-        : note
-          ? `Your withdrawal request was rejected: ${note}`
-          : 'Your withdrawal request was rejected.',
-    link: '/dashboard#wallet',
-  })
   if (action === 'paid') {
-    void pushToPlayer(
-      wr.player_id,
-      { type: 'prize_credited', amount: formatNaira(wr.amount) },
-      { url: '/dashboard#wallet' },
-    )
+    void notifyBoth(wr.player_id, { type: 'prize_credited', amount: formatNaira(wr.amount) }, 'prize_credited', {
+      link: '/dashboard#wallet',
+    })
+  } else {
+    void notifyInApp({
+      playerId: wr.player_id,
+      type: 'withdrawal_rejected',
+      title: 'Withdrawal rejected',
+      body: note ? `Your withdrawal request was rejected: ${note}` : 'Your withdrawal request was rejected.',
+      link: '/dashboard#wallet',
+    })
   }
 
   revalidatePath('/admin/wallet')

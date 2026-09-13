@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const notifyInApp = vi.fn().mockResolvedValue(undefined)
-vi.mock('@/lib/notifications/inbox', () => ({ notifyInApp }))
-const pushToPlayer = vi.fn().mockResolvedValue(undefined)
-vi.mock('@/lib/notifications/push', () => ({ pushToPlayer }))
+const notifyBoth = vi.fn().mockResolvedValue(undefined)
+vi.mock('@/lib/notifications/send', () => ({ notifyBoth }))
 
 const insertSingle = vi.fn()
 const single = vi.fn(() => insertSingle())
@@ -34,8 +32,7 @@ vi.mock('@/lib/admin/staff', () => ({ getStaffIds }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
 beforeEach(() => {
-  notifyInApp.mockClear()
-  pushToPlayer.mockClear()
+  notifyBoth.mockClear()
   matchMaybeSingle.mockClear()
   matchMaybeSingle.mockResolvedValue({ data: null })
   // mockResolvedValue alone leaves call history intact, so the "does not look
@@ -52,8 +49,7 @@ describe('createComment notifications — authored posts', () => {
     })
     const { createComment } = await import('./comment-actions')
     await createComment({ postId: 'post-1', content: 'nice post' })
-    expect(notifyInApp).not.toHaveBeenCalled()
-    expect(pushToPlayer).not.toHaveBeenCalled()
+    expect(notifyBoth).not.toHaveBeenCalled()
   })
 
   it('notifies the post author when someone else comments', async () => {
@@ -63,11 +59,10 @@ describe('createComment notifications — authored posts', () => {
     })
     const { createComment } = await import('./comment-actions')
     await createComment({ postId: 'post-1', content: 'nice post' })
-    expect(notifyInApp).toHaveBeenCalledWith(expect.objectContaining({ playerId: 'author-1', type: 'post_comment' }))
-    expect(pushToPlayer).toHaveBeenCalledWith(
+    expect(notifyBoth).toHaveBeenCalledWith(
       'author-1',
-      expect.objectContaining({ type: 'post_comment' }),
-      expect.anything(),
+      expect.objectContaining({ type: 'post_comment', onMatch: false }),
+      'post_comment',
       expect.anything(),
     )
   })
@@ -87,16 +82,16 @@ describe('createComment notifications — match results', () => {
     })
     const { createComment } = await import('./comment-actions')
     await createComment({ postId: 'post-1', content: 'great game' })
-    expect(pushToPlayer).toHaveBeenCalledWith(
+    expect(notifyBoth).toHaveBeenCalledWith(
       'player-a',
       expect.objectContaining({ type: 'post_comment', onMatch: true }),
-      expect.anything(),
+      'post_comment',
       expect.anything(),
     )
-    expect(pushToPlayer).toHaveBeenCalledWith(
+    expect(notifyBoth).toHaveBeenCalledWith(
       'player-b',
       expect.objectContaining({ type: 'post_comment', onMatch: true }),
-      expect.anything(),
+      'post_comment',
       expect.anything(),
     )
   })
@@ -111,16 +106,16 @@ describe('createComment notifications — match results', () => {
     })
     const { createComment } = await import('./comment-actions')
     await createComment({ postId: 'post-1', content: 'gg' })
-    expect(pushToPlayer).toHaveBeenCalledOnce()
-    expect(pushToPlayer).toHaveBeenCalledWith(
+    expect(notifyBoth).toHaveBeenCalledOnce()
+    expect(notifyBoth).toHaveBeenCalledWith(
       'player-b',
       expect.objectContaining({ type: 'post_comment' }),
-      expect.anything(),
+      'post_comment',
       expect.anything(),
     )
   })
 
-  it('says the comment is on your match, not just "New comment"', async () => {
+  it('marks the notice as on-match, not a generic comment', async () => {
     insertSingle.mockResolvedValueOnce({ data: { id: 'c1' }, error: null })
     maybeSingle.mockResolvedValueOnce({
       data: { author_id: null, content: 'x', post_type: 'match_result', reference_id: 'match-1' },
@@ -128,8 +123,11 @@ describe('createComment notifications — match results', () => {
     matchMaybeSingle.mockResolvedValueOnce({ data: { player_a_id: 'player-a', player_b_id: null } })
     const { createComment } = await import('./comment-actions')
     await createComment({ postId: 'post-1', content: 'gg' })
-    expect(notifyInApp).toHaveBeenCalledWith(
-      expect.objectContaining({ playerId: 'player-a', title: 'New comment on your match' }),
+    expect(notifyBoth).toHaveBeenCalledWith(
+      'player-a',
+      expect.objectContaining({ onMatch: true }),
+      'post_comment',
+      expect.anything(),
     )
   })
 })
@@ -143,16 +141,16 @@ describe('createComment notifications — announcements', () => {
     getStaffIds.mockResolvedValueOnce(['admin-1', 'mod-1'])
     const { createComment } = await import('./comment-actions')
     await createComment({ postId: 'post-1', content: 'question about this' })
-    expect(pushToPlayer).toHaveBeenCalledWith(
+    expect(notifyBoth).toHaveBeenCalledWith(
       'admin-1',
       expect.objectContaining({ type: 'post_comment' }),
-      expect.anything(),
+      'post_comment',
       expect.anything(),
     )
-    expect(pushToPlayer).toHaveBeenCalledWith(
+    expect(notifyBoth).toHaveBeenCalledWith(
       'mod-1',
       expect.objectContaining({ type: 'post_comment' }),
-      expect.anything(),
+      'post_comment',
       expect.anything(),
     )
   })

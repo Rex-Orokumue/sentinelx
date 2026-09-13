@@ -2,7 +2,7 @@ import type { createAdminClient } from '@/lib/supabase/admin'
 import { recordCoinTransaction } from '@/lib/coins/service'
 import { awardXP } from '@/lib/membership/xp'
 import { notifyInApp } from '@/lib/notifications/inbox'
-import { pushToPlayer } from '@/lib/notifications/push'
+import { notifyBoth } from '@/lib/notifications/send'
 import { createAchievementPost } from '@/lib/community/feed-hooks'
 import { REFERRAL_BASE_REWARD_COINS, pickMilestone } from './constants'
 
@@ -93,21 +93,11 @@ export async function settleReferral(
     )
     await admin.from('referrals').update({ coins_awarded: REFERRAL_BASE_REWARD_COINS }).eq('id', referralId)
 
-    await notifyInApp({
-      playerId: referrerId,
-      type: 'referral_credited',
-      title: 'Referral credited',
-      body: `${referredName} just competed for the first time — +${REFERRAL_BASE_REWARD_COINS} SX Coins added.`,
-      link: '/dashboard/referrals',
-    })
-    void pushToPlayer(
+    void notifyBoth(
       referrerId,
-      {
-        type: 'referral_converted',
-        referredName,
-        coins: REFERRAL_BASE_REWARD_COINS,
-      },
-      { url: '/dashboard/referrals' },
+      { type: 'referral_converted', referredName, coins: REFERRAL_BASE_REWARD_COINS },
+      'referral_credited',
+      { link: '/dashboard/referrals' },
     )
 
     const { count: convertedCount } = await admin

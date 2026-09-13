@@ -1,7 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notify } from './notify'
-import { notifyInApp } from './inbox'
-import { pushToPlayer } from './push'
+import { notifyBoth } from './send'
 import { fixtureKey } from './keys'
 import { formatFixtureDate } from '@/lib/format'
 import { SITE_URL } from '@/lib/seo/site'
@@ -52,18 +51,9 @@ export async function notifyNewFixtures(admin: Admin, rows: NewFixtureRow[]): Pr
         matchUrl,
         whenLabel,
       })
-      await notifyInApp({
-        playerId: pid,
-        type: 'fixture_assigned',
-        title: 'New fixture',
-        body: `${a} vs ${b} — ${tournament}${whenLabel ? ` · ${whenLabel}` : ''}`,
+      void notifyBoth(pid, { type: 'fixture_new', playerA: a, playerB: b, tournament }, 'fixture_assigned', {
         link: `/matches/${r.id}`,
       })
-      void pushToPlayer(
-        pid,
-        { type: 'fixture_new', playerA: a, playerB: b, tournament },
-        { url: matchUrl },
-      )
     }
   }
 }
