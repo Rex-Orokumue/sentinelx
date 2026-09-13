@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { fetchFollowers, type FollowListEntry } from '@/lib/follows/query'
+import { fetchFollowers, fetchFollowerIds, type FollowListEntry } from '@/lib/follows/query'
 import { HexAvatar } from '@/components/shared/HexAvatar'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { buildMetadata } from '@/lib/seo/metadata'
@@ -36,7 +36,15 @@ export default async function FollowersPage({ params }: { params: { username: st
   const p = await loadNamedProfile(params.username)
   if (!p) notFound()
   const name = p.display_name ?? p.username
-  const followers = await fetchFollowers(p.id)
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const [followers, followerIds] = await Promise.all([
+    fetchFollowers(p.id),
+    user ? fetchFollowerIds(user.id) : Promise.resolve([] as string[]),
+  ])
+  const followsViewerIds = new Set(followerIds)
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-20 sm:px-6">
@@ -51,13 +59,16 @@ export default async function FollowersPage({ params }: { params: { username: st
       {followers.length === 0 ? (
         <EmptyState icon="👥" title="No followers yet" body={`${name} doesn't have any followers yet.`} />
       ) : (
-        <FollowList entries={followers} />
+        <FollowList entries={followers} followsViewerIds={followsViewerIds} />
       )}
     </div>
   )
 }
 
-function FollowList({ entries }: { entries: FollowListEntry[] }) {
+// followsViewerIds: ids of the people (among `entries`) who follow the
+// current viewer back — drives the "Follows you" tag. Empty for a logged-out
+// viewer or when viewing your own list.
+function FollowList({ entries, followsViewerIds }: { entries: FollowListEntry[]; followsViewerIds: Set<string> }) {
   return (
     <ul className="divide-y divide-sx-border rounded-xl border border-sx-border bg-sx-surface">
       {entries.map((e) => (
@@ -70,6 +81,11 @@ function FollowList({ entries }: { entries: FollowListEntry[] }) {
               size="sm"
             />
             <span className="truncate font-semibold text-white">{e.displayName ?? e.username}</span>
+            {followsViewerIds.has(e.id) && (
+              <span className="ml-auto shrink-0 rounded-full bg-sx-bg px-2 py-0.5 text-[10px] font-bold text-sx-gray">
+                Follows you
+              </span>
+            )}
           </Link>
         </li>
       ))}

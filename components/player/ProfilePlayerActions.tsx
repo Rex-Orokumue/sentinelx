@@ -13,11 +13,14 @@ export function ProfilePlayerActions({
   friendshipStatus,
   blockedByMe,
   isFollowing,
+  followsYou,
 }: {
   profileId: string
   friendshipStatus: FriendshipStatus
   blockedByMe: boolean
   isFollowing: boolean
+  /** True when this profile already follows the viewer back. */
+  followsYou?: boolean
 }) {
   const router = useRouter()
   const [pending, start] = useTransition()
@@ -53,7 +56,7 @@ export function ProfilePlayerActions({
     <div className="mt-4 flex flex-col items-center gap-2 sm:items-start">
       <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
         <FriendStatusInline status={friendshipStatus} profileId={profileId} />
-        {!blocked && <FollowButton profileId={profileId} initialFollowing={isFollowing} />}
+        {!blocked && <FollowButton profileId={profileId} initialFollowing={isFollowing} followsYou={followsYou} />}
         <ChallengeButton opponentId={profileId} />
         {!blocked && (
           <button

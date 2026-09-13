@@ -198,6 +198,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
     user && user.id !== p.id ? await fetchProfileMessagingState(user.id, p.id) : undefined
 
   const isFollowingProfile = user && user.id !== p.id ? await fetchIsFollowing(user.id, p.id) : false
+  const theyFollowMe = user && user.id !== p.id ? await fetchIsFollowing(p.id, user.id) : false
 
   const [
     { data: rankData },
@@ -483,6 +484,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
             viewerId={user?.id ?? null}
             friendshipStatus={friendship}
             isFollowing={isFollowingProfile}
+            followsViewer={theyFollowMe}
             coinBalance={coinBalance ?? undefined}
             achievements={unlockedSlugs}
             avatarFrameUrl={cosmetics.avatarBorder ? AVATAR_BORDER_FRAMES[cosmetics.avatarBorder] : undefined}

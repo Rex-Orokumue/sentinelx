@@ -30,6 +30,15 @@ export async function fetchFollowingIds(viewerId: string): Promise<string[]> {
   return (data ?? []).map((r) => r.following_id)
 }
 
+// Everyone who follows viewerId — the mirror of fetchFollowingIds. Used to
+// mark "Follows you" on the followers/following list pages without an
+// isFollowing round-trip per row.
+export async function fetchFollowerIds(viewerId: string): Promise<string[]> {
+  const supabase = createClient()
+  const { data } = await supabase.from('player_follows').select('follower_id').eq('following_id', viewerId)
+  return (data ?? []).map((r) => r.follower_id)
+}
+
 export interface FollowListEntry {
   id: string
   username: string | null
