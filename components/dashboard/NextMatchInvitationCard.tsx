@@ -16,6 +16,19 @@ function AcceptButton() {
   )
 }
 
+function DeclineButton() {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="rounded-xl border border-slate-700 px-5 py-3 text-sm font-bold text-slate-300 hover:border-slate-500 disabled:cursor-wait disabled:opacity-60"
+    >
+      {pending ? 'Declining…' : 'Decline'}
+    </button>
+  )
+}
+
 // Dashboard Section 2, State C — spec §2: replaces the NextMatchCard slot
 // entirely (same position, same prominence) when a Masters/Champions Cup
 // invitation is pending.
@@ -51,12 +64,7 @@ export function NextMatchInvitationCard({
         </form>
         <form action={declineAction}>
           <input type="hidden" name="invitationId" value={invitation.id} />
-          <button
-            type="submit"
-            className="rounded-xl border border-slate-700 px-5 py-3 text-sm font-bold text-slate-300 hover:border-slate-500"
-          >
-            Decline
-          </button>
+          <DeclineButton />
         </form>
       </div>
       {(acceptState?.error || declineState?.error) && (

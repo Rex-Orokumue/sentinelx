@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useFormState } from 'react-dom'
+import { useFormState, useFormStatus } from 'react-dom'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { requestReset, changeEmail, type ActionState, type ChangeEmailState } from '@/lib/auth/actions'
@@ -15,6 +15,7 @@ import type { DeletionBlocker } from '@/lib/settings/deletion-guards'
 import { deletionDueAt, daysRemaining } from '@/lib/settings/grace'
 import { createClient } from '@/lib/supabase/client'
 import { formatNaira } from '@/lib/format'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function AccountSection({
   email,
@@ -180,12 +181,12 @@ function ChangeEmailPanel({
           )}
 
           <div className="flex flex-col gap-2 pt-1 sm:flex-row">
-            <button
-              type="submit"
+            <SubmitButton
+              pendingLabel={t('sending')}
               className="rounded-lg bg-sx-purple px-4 py-2 text-sm font-bold text-white hover:bg-sx-purple-light"
             >
               {t('submit')}
-            </button>
+            </SubmitButton>
             <button
               type="button"
               onClick={() => setOpen(false)}
@@ -246,12 +247,12 @@ function PendingDeletionPanel({ requestedAt }: { requestedAt: string }) {
           router.refresh()
         }}
       >
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel={t('bannerCancelling')}
           className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500"
         >
           {t('bannerCancel')}
-        </button>
+        </SubmitButton>
       </form>
     </div>
   )
@@ -333,13 +334,7 @@ function DeleteAccountPanel({ username }: { username: string | null }) {
         {state?.blockers && <BlockerList blockers={state.blockers} />}
 
         <div className="flex flex-col gap-2 sm:flex-row">
-          <button
-            type="submit"
-            disabled={confirmText !== 'DELETE'}
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500 disabled:opacity-40"
-          >
-            {t('confirmButton')}
-          </button>
+          <ScheduleDeleteButton confirmText={confirmText} label={t('confirmButton')} pendingLabel={t('confirmButtonPending')} />
           <button
             type="button"
             onClick={() => setOpen(false)}
@@ -380,13 +375,7 @@ function DeleteAccountPanel({ username }: { username: string | null }) {
               {nowState?.error && <p className="text-xs text-red-400">{nowState.error}</p>}
               {nowState?.blockers && <BlockerList blockers={nowState.blockers} />}
               <div className="flex flex-col gap-2 sm:flex-row">
-                <button
-                  type="submit"
-                  disabled={nowText.trim().toLowerCase() !== username.toLowerCase()}
-                  className="rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-40"
-                >
-                  {t('deleteNowButton')}
-                </button>
+                <DeleteNowButton nowText={nowText} username={username} label={t('deleteNowButton')} pendingLabel={t('deleteNowButtonPending')} />
                 <button
                   type="button"
                   onClick={() => setNowOpen(false)}
@@ -403,6 +392,32 @@ function DeleteAccountPanel({ username }: { username: string | null }) {
   )
 }
 
+function ScheduleDeleteButton({ confirmText, label, pendingLabel }: { confirmText: string; label: string; pendingLabel: string }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={confirmText !== 'DELETE' || pending}
+      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500 disabled:cursor-wait disabled:opacity-40"
+    >
+      {pending ? pendingLabel : label}
+    </button>
+  )
+}
+
+function DeleteNowButton({ nowText, username, label, pendingLabel }: { nowText: string; username: string; label: string; pendingLabel: string }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={nowText.trim().toLowerCase() !== username.toLowerCase() || pending}
+      className="rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white hover:bg-red-600 disabled:cursor-wait disabled:opacity-40"
+    >
+      {pending ? pendingLabel : label}
+    </button>
+  )
+}
+
 function ChangePasswordButton({ email }: { email: string }) {
   // requestReset now returns codes rather than prose (lib/auth/actions.ts), so
   // its messages come from the shared `auth` catalog.
@@ -415,9 +430,9 @@ function ChangePasswordButton({ email }: { email: string }) {
       <input type="hidden" name="email" value={email} />
       <div className="flex items-center justify-between">
         <span className="text-sx-gray">Password</span>
-        <button type="submit" className="text-xs font-semibold text-sx-purple-text hover:text-sx-purple-light">
+        <SubmitButton pendingLabel="Sending…" className="text-xs font-semibold text-sx-purple-text hover:text-sx-purple-light">
           Change Password →
-        </button>
+        </SubmitButton>
       </div>
       {state?.errorCode && (
         <p className="text-xs text-red-400">{tAuth(`errors.${state.errorCode}`)}</p>

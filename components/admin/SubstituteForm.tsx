@@ -1,6 +1,7 @@
 'use client'
 import { useFormState } from 'react-dom'
 import { addSubstitute, type DisqualifyState } from '@/lib/tournaments/registrations-admin-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function SubstituteForm({
   tournamentId,
@@ -35,12 +36,12 @@ export function SubstituteForm({
           ))}
         </datalist>
       )}
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="Adding…"
         className="rounded-lg bg-violet-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-violet-500"
       >
         Add substitute
-      </button>
+      </SubmitButton>
       {state?.error && <p className="text-xs text-red-400">{state.error}</p>}
     </form>
   )

@@ -5,6 +5,7 @@ import { initiateWalletDeposit, type WalletDepositState } from '@/lib/wallet/dep
 import { computePaystackFee } from '@/lib/paystack/fees'
 import { formatNaira } from '@/lib/format'
 import { Field } from '@/components/dashboard/FormField'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function DepositForm() {
   const [state, formAction] = useFormState<WalletDepositState, FormData>(initiateWalletDeposit, undefined)
@@ -29,12 +30,12 @@ export function DepositForm() {
         </p>
       )}
       {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="Starting checkout…"
         className="w-full rounded-xl bg-emerald-600 px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-emerald-500"
       >
         Fund wallet
-      </button>
+      </SubmitButton>
     </form>
   )
 }

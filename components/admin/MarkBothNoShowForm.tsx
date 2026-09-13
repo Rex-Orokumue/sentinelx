@@ -1,6 +1,7 @@
 'use client'
 import { useFormState } from 'react-dom'
 import { markBothNoShow, type NoShowState } from '@/lib/matches/noshow-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function MarkBothNoShowForm({ matchId }: { matchId: string }) {
   const [state, action] = useFormState<NoShowState, FormData>(markBothNoShow, undefined)
@@ -29,12 +30,12 @@ export function MarkBothNoShowForm({ matchId }: { matchId: string }) {
         className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
       />
       {state?.error && <p className="text-xs text-red-400">{state.error}</p>}
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="Marking…"
         className="rounded-lg border border-red-500/40 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/10"
       >
         Mark both no-show
-      </button>
+      </SubmitButton>
     </form>
   )
 }

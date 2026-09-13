@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { unlinkGoogle, type UnlinkState } from '@/lib/auth/identities'
 import { createClient } from '@/lib/supabase/client'
 import { willGoogleRelink } from '@/lib/auth/relink'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export type SignInMethod = { provider: string; email: string | null }
 
@@ -63,7 +64,10 @@ export function SignInMethodsSection({
 }
 
 function LinkGoogleButton({ label }: { label: string }) {
+  const [redirecting, setRedirecting] = useState(false)
+
   async function handleClick() {
+    setRedirecting(true)
     // linkIdentity has to run in the browser — it navigates to Google and comes
     // back through /auth/oauth/callback, which exchanges the PKCE code. The
     // intent marker is what sends a failure back to settings instead of /login.
@@ -79,9 +83,10 @@ function LinkGoogleButton({ label }: { label: string }) {
     <button
       type="button"
       onClick={handleClick}
-      className="shrink-0 rounded-lg border border-sx-border px-3 py-1.5 text-xs font-semibold text-sx-purple-text hover:text-sx-purple-light"
+      disabled={redirecting}
+      className="shrink-0 rounded-lg border border-sx-border px-3 py-1.5 text-xs font-semibold text-sx-purple-text hover:text-sx-purple-light disabled:cursor-wait disabled:opacity-60"
     >
-      {label}
+      {redirecting ? '…' : label}
     </button>
   )
 }
@@ -146,12 +151,12 @@ function UnlinkGoogle({
       />
       {state?.errorCode && <p className="text-xs text-red-400">{t(`errors.${state.errorCode}`)}</p>}
       <div className="flex flex-col gap-2 sm:flex-row">
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel={t('unlinkConfirming')}
           className="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-500"
         >
           {t('unlinkConfirm')}
-        </button>
+        </SubmitButton>
         <button
           type="button"
           onClick={() => setOpen(false)}

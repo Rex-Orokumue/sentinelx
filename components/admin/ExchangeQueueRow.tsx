@@ -3,6 +3,7 @@ import { useFormState } from 'react-dom'
 import { approveListing, removeListingAdmin, type ActionState } from '@/lib/exchange/admin-actions'
 import { formatNaira } from '@/lib/format'
 import { CATEGORY_LABELS, type ListingCategory } from '@/lib/exchange/schema'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface PendingListing {
   id: string
@@ -39,11 +40,11 @@ export function ExchangeQueueRow({ listing }: { listing: PendingListing }) {
       <div className="mt-3 flex gap-2">
         <form action={approve}>
           <input type="hidden" name="id" value={listing.id} />
-          <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500">Approve</button>
+          <SubmitButton pendingLabel="Approving…" className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500">Approve</SubmitButton>
         </form>
         <form action={remove}>
           <input type="hidden" name="id" value={listing.id} />
-          <button type="submit" className="rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-500">Remove</button>
+          <SubmitButton pendingLabel="Removing…" className="rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-500">Remove</SubmitButton>
         </form>
       </div>
       {err && <p className="mt-2 text-xs text-red-400">{err}</p>}

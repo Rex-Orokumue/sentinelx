@@ -5,6 +5,7 @@ import {
   clearBannedIdentifier,
   type RecoveryState,
 } from '@/lib/admin/recovery-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 function Result({ state }: { state: RecoveryState }) {
   if (!state) return null
@@ -33,12 +34,12 @@ export function ReleaseUsernameForm() {
         className="w-full rounded-lg border border-sx-border bg-sx-bg px-3 py-2 text-sm text-white"
       />
       <Result state={state} />
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="Releasing…"
         className="rounded-lg bg-sx-purple px-4 py-2 text-sm font-bold text-white hover:bg-sx-purple-light"
       >
         Release username
-      </button>
+      </SubmitButton>
     </form>
   )
 }
@@ -64,12 +65,12 @@ export function ClearIdentifierForm() {
         className="w-full rounded-lg border border-sx-border bg-sx-bg px-3 py-2 text-sm text-white"
       />
       <Result state={state} />
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="Clearing…"
         className="rounded-lg bg-sx-purple px-4 py-2 text-sm font-bold text-white hover:bg-sx-purple-light"
       >
         Clear identifier
-      </button>
+      </SubmitButton>
     </form>
   )
 }

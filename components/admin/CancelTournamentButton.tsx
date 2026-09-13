@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { cancelTournament, type TournamentFormState } from '@/lib/tournaments/admin-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function CancelTournamentButton({
   id,
@@ -34,12 +35,12 @@ export function CancelTournamentButton({
         {paidRegistrations === 1 ? '' : 's'} will need manual refunds.
       </p>
       <div className="flex gap-2">
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Cancelling…"
           className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-500"
         >
           Yes, cancel
-        </button>
+        </SubmitButton>
         <button
           type="button"
           onClick={() => setConfirming(false)}

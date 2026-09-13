@@ -2,6 +2,7 @@
 import { useFormState } from 'react-dom'
 import { addVideo, updateVideo, type TvVideoState } from '@/lib/tv/admin-actions'
 import { TV_CATEGORIES, CATEGORY_LABELS } from '@/lib/tv/schema'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface TvVideoDefaults {
   id?: string
@@ -45,12 +46,12 @@ export function TvVideoForm({ defaults, onDone }: { defaults?: TvVideoDefaults; 
       />
       <Field label="Description (optional)" name="description" defaultValue={defaults?.description} />
       <div className="flex items-center gap-2">
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Saving…"
           className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500"
         >
           {editing ? 'Save changes' : 'Add video'}
-        </button>
+        </SubmitButton>
         {state?.success && <span className="text-xs text-emerald-400">Saved.</span>}
         {state?.error && <span className="text-xs text-red-400">{state.error}</span>}
       </div>

@@ -1,7 +1,26 @@
 'use client'
-import { useFormState } from 'react-dom'
+import { useFormState, useFormStatus } from 'react-dom'
 import { resolveWalletWithdrawal, type WalletWithdrawalResolveState } from '@/lib/wallet/admin-actions'
 import { formatNaira } from '@/lib/format'
+
+// Two submit buttons share one form here, so a generic SubmitButton can't
+// tell which one was clicked — `data` is the pending submission's FormData,
+// which includes the clicked button's name/value pair.
+function ResolveButton({ action, className, children }: { action: 'paid' | 'rejected'; className: string; children: React.ReactNode }) {
+  const { pending, data } = useFormStatus()
+  const isThisOne = pending && data?.get('action') === action
+  return (
+    <button
+      type="submit"
+      name="action"
+      value={action}
+      disabled={pending}
+      className={`${className} disabled:cursor-wait disabled:opacity-60`}
+    >
+      {isThisOne ? 'Working…' : children}
+    </button>
+  )
+}
 
 export interface PendingWalletWithdrawal {
   id: string
@@ -33,22 +52,12 @@ export function WalletWithdrawalQueueRow({ req }: { req: PendingWalletWithdrawal
       />
       {state?.error && <p className="mt-2 text-sm text-red-400">{state.error}</p>}
       <div className="mt-2 flex gap-2">
-        <button
-          type="submit"
-          name="action"
-          value="paid"
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500"
-        >
+        <ResolveButton action="paid" className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500">
           Pay
-        </button>
-        <button
-          type="submit"
-          name="action"
-          value="rejected"
-          className="rounded-lg border border-red-500/40 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/10"
-        >
+        </ResolveButton>
+        <ResolveButton action="rejected" className="rounded-lg border border-red-500/40 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/10">
           Reject
-        </button>
+        </ResolveButton>
       </div>
     </form>
   )

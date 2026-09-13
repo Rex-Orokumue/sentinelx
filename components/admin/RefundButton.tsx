@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { refundRegistration, type RefundState } from '@/lib/tournaments/admin-actions'
 import { formatNaira } from '@/lib/format'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function RefundButton({
   registrationId,
@@ -40,12 +41,12 @@ export function RefundButton({
       <input type="hidden" name="reason" value={reason} />
       <p className="text-xs text-amber-400">Refund {formatNaira(amount)}?</p>
       <div className="flex gap-1.5">
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Refunding…"
           className="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-red-500"
         >
           Confirm
-        </button>
+        </SubmitButton>
         <button
           type="button"
           onClick={() => setConfirming(false)}

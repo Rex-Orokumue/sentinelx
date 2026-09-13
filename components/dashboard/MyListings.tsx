@@ -2,6 +2,7 @@
 import { useFormState } from 'react-dom'
 import { removeListing, type ActionState } from '@/lib/exchange/actions'
 import { formatNaira } from '@/lib/format'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface MyListing {
   id: string
@@ -46,9 +47,9 @@ function Row({ listing }: { listing: MyListing }) {
       {(listing.status === 'pending' || listing.status === 'active') && (
         <form action={action} className="shrink-0">
           <input type="hidden" name="id" value={listing.id} />
-          <button type="submit" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-slate-500">
+          <SubmitButton pendingLabel="Removing…" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-slate-500">
             Remove
-          </button>
+          </SubmitButton>
           {state?.error && <span className="ml-2 text-xs text-red-400">{state.error}</span>}
         </form>
       )}

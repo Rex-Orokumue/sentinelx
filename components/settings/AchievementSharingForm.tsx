@@ -1,6 +1,7 @@
 'use client'
 import { useFormState } from 'react-dom'
 import { updateAchievementSharingPrefs, type PrefsState } from '@/lib/settings/notification-prefs'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface AchievementSharingPrefs {
   tournament: boolean
@@ -36,9 +37,9 @@ export function AchievementSharingForm({ prefs }: { prefs: AchievementSharingPre
         ))}
         {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
         {state?.success && <p className="text-sm text-emerald-400">Saved.</p>}
-        <button type="submit" className="rounded-lg bg-sx-purple px-5 py-2.5 text-sm font-bold text-white hover:bg-sx-purple-light">
+        <SubmitButton pendingLabel="Saving…" className="rounded-lg bg-sx-purple px-5 py-2.5 text-sm font-bold text-white hover:bg-sx-purple-light">
           Save Changes
-        </button>
+        </SubmitButton>
       </form>
     </section>
   )

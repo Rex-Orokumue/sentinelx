@@ -1,6 +1,7 @@
 'use client'
 import { useFormState } from 'react-dom'
 import { createGame, type GameFormState } from '@/lib/games/admin-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function GameForm() {
   const [state, action] = useFormState<GameFormState, FormData>(createGame, undefined)
@@ -35,9 +36,9 @@ export function GameForm() {
         className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
       />
       {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
-      <button type="submit" className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500">
+      <SubmitButton pendingLabel="Adding…" className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500">
         Add game
-      </button>
+      </SubmitButton>
     </form>
   )
 }

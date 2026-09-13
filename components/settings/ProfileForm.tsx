@@ -1,11 +1,24 @@
 'use client'
 import { useState } from 'react'
-import { useFormState } from 'react-dom'
+import { useFormState, useFormStatus } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
 import { updateProfile, type ProfileEditState } from '@/lib/profile/actions'
 import { compressImageToWebp } from '@/lib/avatars/compress'
 import { HexAvatar } from '@/components/shared/HexAvatar'
 import type { MembershipTier } from '@/lib/membership/tiers'
+
+function SaveButton({ uploading }: { uploading: boolean }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={uploading || pending}
+      className="rounded-lg bg-sx-purple px-5 py-2.5 text-sm font-bold text-white hover:bg-sx-purple-light disabled:opacity-50"
+    >
+      {pending ? 'Saving…' : 'Save Changes'}
+    </button>
+  )
+}
 
 export interface SettingsProfile {
   displayName: string | null
@@ -103,13 +116,7 @@ export function ProfileForm({ profile }: { profile: SettingsProfile }) {
 
         {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
         {state?.success && <p className="text-sm text-emerald-400">Profile updated.</p>}
-        <button
-          type="submit"
-          disabled={uploading}
-          className="rounded-lg bg-sx-purple px-5 py-2.5 text-sm font-bold text-white hover:bg-sx-purple-light disabled:opacity-50"
-        >
-          Save Changes
-        </button>
+        <SaveButton uploading={uploading} />
       </form>
     </section>
   )

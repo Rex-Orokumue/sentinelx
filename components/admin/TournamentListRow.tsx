@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { useFormState } from 'react-dom'
+import { useFormState, useFormStatus } from 'react-dom'
 import {
   deleteTournament,
   openRegistration,
@@ -9,6 +9,20 @@ import {
 } from '@/lib/tournaments/admin-actions'
 import { CancelTournamentButton } from './CancelTournamentButton'
 import { GameBadge } from '@/components/game/GameBadge'
+import { SubmitButton } from '@/components/ui/submit-button'
+
+function OpenRegistrationButton({ canPublish }: { canPublish: boolean }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={!canPublish || pending}
+      className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-violet-500 disabled:opacity-40"
+    >
+      {pending ? 'Opening…' : 'Open registration'}
+    </button>
+  )
+}
 
 export interface AdminTournamentRow {
   id: string
@@ -95,24 +109,18 @@ export function TournamentListRow({ t, isAdmin }: { t: AdminTournamentRow; isAdm
           {isDraft && (
             <form action={openAction}>
               <input type="hidden" name="id" value={t.id} />
-              <button
-                type="submit"
-                disabled={!canPublish}
-                className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-violet-500 disabled:opacity-40"
-              >
-                Open registration
-              </button>
+              <OpenRegistrationButton canPublish={canPublish} />
             </form>
           )}
           {isDraft && isAdmin && (
             <form action={delAction}>
               <input type="hidden" name="id" value={t.id} />
-              <button
-                type="submit"
+              <SubmitButton
+                pendingLabel="Deleting…"
                 className="rounded-lg border border-red-500/40 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/10"
               >
                 Delete
-              </button>
+              </SubmitButton>
             </form>
           )}
           {canCancel && (

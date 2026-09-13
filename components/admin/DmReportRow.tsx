@@ -5,6 +5,7 @@ import { formatDateTime } from '@/lib/format'
 import { resolveDmReport, setMessagingMuted, type AdminActionState } from '@/lib/messages/admin-actions'
 import { stickerById } from '@/lib/messages/stickers'
 import type { DmReportView } from '@/lib/messages/admin-query'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function DmReportRow({ report }: { report: DmReportView }) {
   const [resolveState, resolveAction] = useFormState<AdminActionState, FormData>(resolveDmReport, undefined)
@@ -71,9 +72,12 @@ export function DmReportRow({ report }: { report: DmReportView }) {
         <form action={muteAction}>
           <input type="hidden" name="playerId" value={report.reportedId} />
           <input type="hidden" name="muted" value={(!report.reportedMuted).toString()} />
-          <button type="submit" className="rounded-lg border border-amber-700/60 px-3 py-1 text-xs font-bold text-amber-400 hover:bg-amber-950/40">
+          <SubmitButton
+            pendingLabel="Working…"
+            className="rounded-lg border border-amber-700/60 px-3 py-1 text-xs font-bold text-amber-400 hover:bg-amber-950/40"
+          >
             {report.reportedMuted ? 'Unmute messaging' : 'Mute messaging'}
-          </button>
+          </SubmitButton>
         </form>
         {!report.resolvedAt && (
           <form action={resolveAction} className="ml-auto flex items-center gap-2">
@@ -83,9 +87,9 @@ export function DmReportRow({ report }: { report: DmReportView }) {
                 <input type="checkbox" name="deleteMessageId" value={report.flaggedMessageId} /> delete flagged message
               </label>
             )}
-            <button type="submit" className="rounded-lg bg-green-600/80 px-3 py-1 text-xs font-bold text-white hover:bg-green-600">
+            <SubmitButton pendingLabel="Resolving…" className="rounded-lg bg-green-600/80 px-3 py-1 text-xs font-bold text-white hover:bg-green-600">
               Resolve
-            </button>
+            </SubmitButton>
           </form>
         )}
       </div>

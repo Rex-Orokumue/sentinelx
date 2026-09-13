@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { triggerResolvePendingMatches, type ResolveState } from '@/lib/matches/noshow-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function ResolvePendingMatchesButton({ tournamentId }: { tournamentId: string }) {
   const [state, action] = useFormState<ResolveState, FormData>(triggerResolvePendingMatches, undefined)
@@ -26,12 +27,12 @@ export function ResolvePendingMatchesButton({ tournamentId }: { tournamentId: st
         automatically. Continue?
       </p>
       <div className="flex gap-1.5">
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Checking…"
           className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-500"
         >
           Confirm
-        </button>
+        </SubmitButton>
         <button
           type="button"
           onClick={() => setConfirming(false)}

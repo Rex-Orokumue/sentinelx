@@ -5,6 +5,7 @@ import { updatePushPrefs, type PrefsState } from '@/lib/settings/notification-pr
 import { requestPushPermission, disablePush } from '@/components/notifications/useFCM'
 import { sendTestPush, type TestPushResult } from '@/lib/notifications/test-push'
 import { MuteTypeRow } from './MuteTypeRow'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface PushPrefs {
   match_reminder: boolean
@@ -128,9 +129,9 @@ export function PushPrefsForm({
               ))}
               {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
               {state?.success && <p className="text-sm text-emerald-400">Saved.</p>}
-              <button type="submit" className="rounded-lg bg-sx-purple px-5 py-2.5 text-sm font-bold text-white hover:bg-sx-purple-light">
+              <SubmitButton pendingLabel="Saving…" className="rounded-lg bg-sx-purple px-5 py-2.5 text-sm font-bold text-white hover:bg-sx-purple-light">
                 Save Changes
-              </button>
+              </SubmitButton>
             </form>
           )}
         </>
