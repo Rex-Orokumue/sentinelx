@@ -12,31 +12,46 @@ export function SquadEntryFlow({
   tournamentTitle,
   squadSize,
   onChosen,
+  onSkip,
 }: {
   tournamentId: string
   tournamentSlug: string
   tournamentTitle: string
   squadSize: number
   onChosen: (choice: Choice) => void
+  onSkip: () => void
 }) {
   const [mode, setMode] = useState<'choose' | 'create' | 'join'>('choose')
 
   if (mode === 'choose') {
     return (
-      <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="space-y-3">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => setMode('create')}
+            className="flex-1 rounded-xl border border-slate-700 px-5 py-2.5 text-sm font-bold text-white hover:border-violet-500"
+          >
+            Create a Squad
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('join')}
+            className="flex-1 rounded-xl border border-slate-700 px-5 py-2.5 text-sm font-bold text-white hover:border-violet-500"
+          >
+            Join by Code
+          </button>
+        </div>
+        {/* Admin-arranged path (spec §5.2): a player with no squad yet can
+            still register — the admin auto-groups every unassigned paid
+            registrant into squads of exactly team_size when registration
+            closes. */}
         <button
           type="button"
-          onClick={() => setMode('create')}
-          className="flex-1 rounded-xl border border-slate-700 px-5 py-2.5 text-sm font-bold text-white hover:border-violet-500"
+          onClick={onSkip}
+          className="block w-full text-center text-xs font-semibold text-slate-400 hover:text-slate-300"
         >
-          Create a Squad
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('join')}
-          className="flex-1 rounded-xl border border-slate-700 px-5 py-2.5 text-sm font-bold text-white hover:border-violet-500"
-        >
-          Join by Code
+          Don&apos;t have a squad yet? Register now — you&apos;ll be grouped automatically →
         </button>
       </div>
     )

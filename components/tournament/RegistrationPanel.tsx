@@ -303,8 +303,9 @@ function SquadPickerThenRegister(props: {
   squadSize: number
 }) {
   const [choice, setChoice] = useState<{ squadId: string; squadName: string } | null>(null)
+  const [skipped, setSkipped] = useState(false)
 
-  if (!choice) {
+  if (!choice && !skipped) {
     return (
       <SquadEntryFlow
         tournamentId={props.tournamentId}
@@ -312,16 +313,28 @@ function SquadPickerThenRegister(props: {
         tournamentTitle={props.tournamentTitle}
         squadSize={props.squadSize}
         onChosen={setChoice}
+        onSkip={() => setSkipped(true)}
       />
+    )
+  }
+
+  if (skipped) {
+    return (
+      <>
+        <p className="mb-3 text-center text-sm text-slate-300">
+          You&apos;ll be grouped into a squad automatically once registration closes.
+        </p>
+        <RegisterForm {...props} isCompletingPayment={false} />
+      </>
     )
   }
 
   return (
     <>
       <p className="mb-3 text-center text-sm text-slate-300">
-        Joining <span className="font-bold text-white">{choice.squadName}</span>
+        Joining <span className="font-bold text-white">{choice!.squadName}</span>
       </p>
-      <RegisterForm {...props} squadId={choice.squadId} isCompletingPayment={false} />
+      <RegisterForm {...props} squadId={choice!.squadId} isCompletingPayment={false} />
     </>
   )
 }
