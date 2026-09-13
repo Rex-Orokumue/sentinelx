@@ -32,6 +32,7 @@ import { AchievementShowcase } from '@/components/player/AchievementShowcase'
 import { XPProgressPanel } from '@/components/dashboard/XPProgressPanel'
 import { SeasonStandingCard } from '@/components/dashboard/SeasonStandingCard'
 import { ProfileCommunityPosts } from '@/components/player/ProfileCommunityPosts'
+import { ProfileImageGrid } from '@/components/player/ProfileImageGrid'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
 import { JsonLd } from '@/components/seo/JsonLd'
@@ -211,6 +212,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
     { data: rawEquippedItems },
     { data: rawAllUnlocks },
     { data: rawProfilePosts },
+    { data: rawGalleryPosts },
     followCounts,
   ] = await Promise.all([
     supabase.rpc('player_rank', { uname: p.username }),
@@ -269,6 +271,14 @@ export default async function PlayerProfilePage({ params }: { params: { username
       .eq('is_deleted', false)
       .order('created_at', { ascending: false })
       .limit(5),
+    supabase
+      .from('community_posts')
+      .select('id, image_url')
+      .eq('author_id', p.id)
+      .eq('is_deleted', false)
+      .not('image_url', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(18),
     fetchFollowCounts(p.id),
   ])
 
@@ -367,6 +377,12 @@ export default async function PlayerProfilePage({ params }: { params: { username
     postType: r.post_type,
     createdAt: r.created_at,
   }))
+
+  const galleryItems = (
+    (rawGalleryPosts ?? []) as { id: string; image_url: string | null }[]
+  )
+    .filter((r): r is { id: string; image_url: string } => r.image_url != null)
+    .map((r) => ({ id: r.id, imageUrl: r.image_url }))
 
   // Owner-only (design doc §8) — never show another player's coin balance.
   const coinBalance = isOwner ? await getCoinBalance(createAdminClient(), p.id) : null
@@ -505,6 +521,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
           <ProfileMatchHistory matches={matches} username={params.username} />
 
           <ProfileCommunityPosts posts={profilePosts} username={params.username} />
+          <ProfileImageGrid items={galleryItems} />
 
           {isOwner && (
             <SeasonStandingCard
