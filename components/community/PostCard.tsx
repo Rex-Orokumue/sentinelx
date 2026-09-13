@@ -14,7 +14,7 @@ import { AnnouncementCard } from './AnnouncementCard'
 import { ReactionBar } from './ReactionBar'
 import { ShareButton } from './ShareButton'
 import { MutePostButton } from './MutePostButton'
-import { ImageLightbox } from './ImageLightbox'
+import { PostMediaCarousel } from './PostMediaCarousel'
 
 // Handles all 4 post types (spec §13). match_result and announcement get a
 // distinct visual treatment and delegate out; manual and achievement share
@@ -27,7 +27,6 @@ export function PostCard({ post, loggedIn }: { post: PostView; loggedIn: boolean
 
 function ManualOrAchievementCard({ post, loggedIn }: { post: PostView; loggedIn: boolean }) {
   const router = useRouter()
-  const [lightboxOpen, setLightboxOpen] = useState(false)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const isAchievement = post.postType === 'achievement'
@@ -93,20 +92,18 @@ function ManualOrAchievementCard({ post, loggedIn }: { post: PostView; loggedIn:
         </div>
       </div>
 
+      {/* Media-first: image(s) bleed to the card's full width, no padding or
+          rounding on the media itself — achieved with a negative margin that
+          matches the card's own padding, so text-only posts (no images
+          rendered at all) keep today's layout completely unchanged. */}
+      {post.imageUrls.length > 0 && (
+        <div className="-mx-4 mt-3 sm:-mx-5">
+          <PostMediaCarousel images={post.imageUrls} />
+        </div>
+      )}
+
       <p className="mt-3 whitespace-pre-line text-sm text-sx-white/90">{post.content}</p>
       {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
-
-      {post.imageUrl && (
-        <>
-          <button type="button" onClick={() => setLightboxOpen(true)} className="mt-3 block">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={post.imageUrl} alt="" className="max-h-80 w-full rounded-lg object-cover" />
-          </button>
-          {lightboxOpen && (
-            <ImageLightbox urls={[post.imageUrl]} index={0} onClose={() => setLightboxOpen(false)} onIndexChange={() => {}} />
-          )}
-        </>
-      )}
 
       <div className="mt-3 flex items-center justify-between gap-3">
         <ReactionBar postId={post.id} counts={post.reactionCounts} myReaction={post.myReaction} loggedIn={loggedIn} />
