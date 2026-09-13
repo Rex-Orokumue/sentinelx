@@ -1134,8 +1134,9 @@ export type Database = {
           group_id: string
           id: string
           losses: number
-          player_id: string
+          player_id: string | null
           points: number
+          team_id: string | null
           wins: number
         }
         Insert: {
@@ -1145,8 +1146,9 @@ export type Database = {
           group_id: string
           id?: string
           losses?: number
-          player_id: string
+          player_id?: string | null
           points?: number
+          team_id?: string | null
           wins?: number
         }
         Update: {
@@ -1156,8 +1158,9 @@ export type Database = {
           group_id?: string
           id?: string
           losses?: number
-          player_id?: string
+          player_id?: string | null
           points?: number
+          team_id?: string | null
           wins?: number
         }
         Relationships: [
@@ -1173,6 +1176,13 @@ export type Database = {
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_memberships_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
             referencedColumns: ["id"]
           },
         ]
@@ -1730,6 +1740,8 @@ export type Database = {
           score_a: number | null
           score_b: number | null
           status: string
+          team_a_id: string | null
+          team_b_id: string | null
           tournament_id: string
           updated_at: string
           youtube_stream_url: string | null
@@ -1753,6 +1765,8 @@ export type Database = {
           score_a?: number | null
           score_b?: number | null
           status?: string
+          team_a_id?: string | null
+          team_b_id?: string | null
           tournament_id: string
           updated_at?: string
           youtube_stream_url?: string | null
@@ -1776,6 +1790,8 @@ export type Database = {
           score_a?: number | null
           score_b?: number | null
           status?: string
+          team_a_id?: string | null
+          team_b_id?: string | null
           tournament_id?: string
           updated_at?: string
           youtube_stream_url?: string | null
@@ -1800,6 +1816,20 @@ export type Database = {
             columns: ["player_b_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_team_a_id_fkey"
+            columns: ["team_a_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_team_b_id_fkey"
+            columns: ["team_b_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
             referencedColumns: ["id"]
           },
           {
