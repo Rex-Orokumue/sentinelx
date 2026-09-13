@@ -35,6 +35,7 @@ export function MessageComposer({
   onClearMode,
   onAddPending,
   onUpdateLocal,
+  onRemoveLocal,
 }: {
   threadId: string
   viewerId: string
@@ -45,6 +46,7 @@ export function MessageComposer({
   onClearMode: () => void
   onAddPending: (message: DisplayMessage) => void
   onUpdateLocal: (tempId: string, patch: Partial<DisplayMessage>) => void
+  onRemoveLocal: (tempId: string) => void
 }) {
   const router = useRouter()
   const [body, setBody] = useState('')
@@ -128,7 +130,11 @@ export function MessageComposer({
           data: { user },
         } = await supabase.auth.getUser()
         if (!user) {
-          onUpdateLocal(tempId, { status: 'failed', retry: () => attemptTextOrImage(tempId, text, img, replyToId) })
+          onUpdateLocal(tempId, {
+            status: 'failed',
+            retry: () => attemptTextOrImage(tempId, text, img, replyToId),
+            discard: () => onRemoveLocal(tempId),
+          })
           return
         }
         try {
@@ -139,14 +145,26 @@ export function MessageComposer({
             .upload(path, resized, { upsert: false, contentType: 'image/jpeg' })
           if (upErr) throw upErr
           imageUrl = path // store the PATH, not a URL
-        } catch {
-          onUpdateLocal(tempId, { status: 'failed', retry: () => attemptTextOrImage(tempId, text, img, replyToId) })
+        } catch (err) {
+          // Was silently swallowed before — nothing here to diagnose a
+          // recurrence with. name/type/size only, never the file itself.
+          console.error('[dm-image] resize/upload failed', { name: img.name, type: img.type, size: img.size, err })
+          onUpdateLocal(tempId, {
+            status: 'failed',
+            retry: () => attemptTextOrImage(tempId, text, img, replyToId),
+            discard: () => onRemoveLocal(tempId),
+          })
           return
         }
       }
       const res = await sendMessage({ threadId, body: text || undefined, imageUrl, replyToId })
       if (res.error) {
-        onUpdateLocal(tempId, { status: 'failed', retry: () => attemptTextOrImage(tempId, text, img, replyToId) })
+        console.error('[dm-send] server rejected message', { error: res.error })
+        onUpdateLocal(tempId, {
+          status: 'failed',
+          retry: () => attemptTextOrImage(tempId, text, img, replyToId),
+          discard: () => onRemoveLocal(tempId),
+        })
         return
       }
       // Swap in the real id so the realtime echo of this same insert
@@ -205,7 +223,12 @@ export function MessageComposer({
     start(async () => {
       const res = await sendMessage({ threadId, stickerId, replyToId })
       if (res.error) {
-        onUpdateLocal(tempId, { status: 'failed', retry: () => attemptSticker(tempId, stickerId, replyToId) })
+        console.error('[dm-send] server rejected message', { error: res.error })
+        onUpdateLocal(tempId, {
+          status: 'failed',
+          retry: () => attemptSticker(tempId, stickerId, replyToId),
+          discard: () => onRemoveLocal(tempId),
+        })
         return
       }
       onUpdateLocal(tempId, { id: res.messageId ?? tempId, status: 'sent' })
@@ -234,7 +257,11 @@ export function MessageComposer({
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) {
-        onUpdateLocal(tempId, { status: 'failed', retry: () => attemptVoiceNote(tempId, blob, durationSeconds, replyToId) })
+        onUpdateLocal(tempId, {
+          status: 'failed',
+          retry: () => attemptVoiceNote(tempId, blob, durationSeconds, replyToId),
+          discard: () => onRemoveLocal(tempId),
+        })
         return
       }
       const ext = extensionForAudioMime(blob.type)
@@ -243,12 +270,22 @@ export function MessageComposer({
         .from('dm-audio')
         .upload(path, blob, { upsert: false, contentType: blob.type || 'audio/webm' })
       if (upErr) {
-        onUpdateLocal(tempId, { status: 'failed', retry: () => attemptVoiceNote(tempId, blob, durationSeconds, replyToId) })
+        console.error('[dm-audio] upload failed', { type: blob.type, size: blob.size, err: upErr })
+        onUpdateLocal(tempId, {
+          status: 'failed',
+          retry: () => attemptVoiceNote(tempId, blob, durationSeconds, replyToId),
+          discard: () => onRemoveLocal(tempId),
+        })
         return
       }
       const res = await sendMessage({ threadId, audioUrl: path, audioDurationSeconds: durationSeconds, replyToId })
       if (res.error) {
-        onUpdateLocal(tempId, { status: 'failed', retry: () => attemptVoiceNote(tempId, blob, durationSeconds, replyToId) })
+        console.error('[dm-send] server rejected message', { error: res.error })
+        onUpdateLocal(tempId, {
+          status: 'failed',
+          retry: () => attemptVoiceNote(tempId, blob, durationSeconds, replyToId),
+          discard: () => onRemoveLocal(tempId),
+        })
         return
       }
       onUpdateLocal(tempId, { id: res.messageId ?? tempId, status: 'sent' })

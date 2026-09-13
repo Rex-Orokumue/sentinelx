@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useRef, useState, useTransition } from 'react'
-import { Reply, MoreVertical, Pencil, Trash2, Forward, Check, CheckCheck, Clock, AlertCircle } from 'lucide-react'
+import { Reply, MoreVertical, Pencil, Trash2, Forward, Check, CheckCheck, Clock, AlertCircle, X } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/format'
 import { canEditOrUnsend, canForward } from '@/lib/messages/predicates'
 import { unsendMessage } from '@/lib/messages/actions'
@@ -8,6 +8,7 @@ import { stickerById } from '@/lib/messages/stickers'
 import { isLocalId, type DisplayMessage } from '@/lib/messages/optimistic'
 import type { ConversationMessage } from '@/lib/messages/query'
 import { VoiceNoteBubble } from './VoiceNoteBubble'
+import { ImageLightbox } from '@/components/community/ImageLightbox'
 
 // Swipe-right reveals a reply icon behind the bubble, matching WhatsApp's
 // gesture. Desktop has no swipe — hovering reveals the same icon instead
@@ -38,6 +39,7 @@ export function MessageBubble({
   const menuRef = useRef<HTMLDivElement>(null)
   const [pending, start] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -87,15 +89,29 @@ export function MessageBubble({
       m.status === 'pending' ? (
         <Clock className="h-3 w-3 opacity-70" aria-label="Sending…" />
       ) : m.status === 'failed' ? (
-        <button
-          type="button"
-          onClick={() => m.retry?.()}
-          aria-label="Failed to send — tap to retry"
-          title="Failed to send — tap to retry"
-          className="flex items-center text-red-400 hover:text-red-300"
-        >
-          <AlertCircle className="h-3 w-3" />
-        </button>
+        <span className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => m.retry?.()}
+            aria-label="Failed to send — tap to retry"
+            title="Failed to send — tap to retry"
+            className="flex items-center text-red-400 hover:text-red-300"
+          >
+            <AlertCircle className="h-3 w-3" />
+          </button>
+          {/* Nothing was ever saved server-side, so this just drops the
+              bubble locally — there's no "unsend" for a message that never
+              sent, and the "..." menu is hidden for local ids regardless. */}
+          <button
+            type="button"
+            onClick={() => m.discard?.()}
+            aria-label="Discard this message"
+            title="Discard"
+            className="flex items-center text-sx-gray hover:text-white"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </span>
       ) : m.readAt ? (
         <CheckCheck className="h-3 w-3 text-sky-300" aria-label="Read" />
       ) : (
@@ -160,7 +176,12 @@ export function MessageBubble({
               <>
                 {m.imageUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={m.imageUrl} alt="" className="max-h-72 w-full object-cover" />
+                  <img
+                    src={m.imageUrl}
+                    alt=""
+                    onClick={() => setLightboxOpen(true)}
+                    className="max-h-72 w-full cursor-pointer object-cover"
+                  />
                 )}
                 {m.audioUrl && <VoiceNoteBubble src={m.audioUrl} durationSeconds={m.audioDurationSeconds} mine={mine} />}
                 {m.body && <p className="whitespace-pre-wrap break-words px-3 py-2">{m.body}</p>}
@@ -235,6 +256,9 @@ export function MessageBubble({
           )}
           {error && <p className="absolute right-0 top-9 z-20 w-40 text-[10px] text-red-400">{error}</p>}
         </div>
+      )}
+      {lightboxOpen && m.imageUrl && (
+        <ImageLightbox urls={[m.imageUrl]} index={0} onClose={() => setLightboxOpen(false)} onIndexChange={() => {}} />
       )}
     </div>
   )

@@ -8,7 +8,10 @@ import type { ConversationMessage } from './query'
 // buildOptimisticMessage attaches its own retry when it later marks the
 // entry 'failed'.
 export type LocalStatus = 'pending' | 'sent' | 'failed'
-export type DisplayMessage = ConversationMessage & { status?: LocalStatus; retry?: () => void }
+// `discard` is only ever set alongside a 'failed' status — a message stuck on
+// a local id has nothing server-side to unsend, so this just drops it from
+// local state (see MessageBubble's failed-tick button).
+export type DisplayMessage = ConversationMessage & { status?: LocalStatus; retry?: () => void; discard?: () => void }
 
 // Local ids never collide with a real message id (uuid), so `id === real id`
 // checks elsewhere (the realtime dedupe, admin/report flows) can't

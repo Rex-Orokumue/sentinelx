@@ -45,6 +45,11 @@ export function Conversation({
   function updateLocal(tempId: string, patch: Partial<DisplayMessage>) {
     setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, ...patch } : m)))
   }
+  // A failed local send has nothing server-side to unsend — this just drops
+  // the bubble (see MessageBubble's failed-tick discard button).
+  function removeLocal(tempId: string) {
+    setMessages((prev) => prev.filter((m) => m.id !== tempId))
+  }
 
   // Realtime append. RLS scopes the stream; the filter is a second guard. The
   // payload has the storage PATH in image_url/audio_url, not a signed URL —
@@ -107,10 +112,16 @@ export function Conversation({
               )
               return
             }
-            // INSERT. An image/voice note needs a fresh signed URL and a
-            // reply needs its target's content resolved — all server-only
-            // work, so those cases refresh instead of appending the raw
-            // payload. A plain text message or a sticker needs neither.
+            // INSERT. Supabase echoes a writer's own insert back to them over
+            // this same realtime channel — independently of, and often faster
+            // than, the HTTP response their own sendMessage() call is still
+            // waiting on. Handling that echo here raced against the
+            // composer's own optimistic-entry id swap: whichever won, a
+            // duplicate bubble could flash before the composer's own
+            // post-send router.refresh() cleaned it up. The composer already
+            // renders and reconciles everything it sends by itself, so the
+            // echo needs no handling at all — this only exists to deliver the
+            // OTHER participant's new messages live.
             const r = payload.new as {
               id: string
               sender_id: string
@@ -123,9 +134,14 @@ export function Conversation({
               reply_to_id: string | null
               forwarded: boolean
             }
+            if (r.sender_id === viewerId) return
+            // An image/voice note needs a fresh signed URL and a reply needs
+            // its target's content resolved — all server-only work, so those
+            // cases refresh instead of appending the raw payload. A plain
+            // text message or a sticker needs neither.
             if (r.image_url || r.audio_url || r.reply_to_id) {
               router.refresh()
-              if (r.sender_id !== viewerId) void markThreadRead(detail.threadId)
+              void markThreadRead(detail.threadId)
               return
             }
             setMessages((prev) =>
@@ -150,7 +166,7 @@ export function Conversation({
                     },
                   ],
             )
-            if (r.sender_id !== viewerId) void markThreadRead(detail.threadId)
+            void markThreadRead(detail.threadId)
           },
         )
         .subscribe((status) => {
@@ -227,6 +243,7 @@ export function Conversation({
         onClearMode={() => setComposerMode(null)}
         onAddPending={addPending}
         onUpdateLocal={updateLocal}
+        onRemoveLocal={removeLocal}
       />
       {forwardTarget && (
         <ForwardSheet messageId={forwardTarget.id} threads={threads} onClose={() => setForwardTarget(null)} />
