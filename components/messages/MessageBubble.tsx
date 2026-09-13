@@ -1,10 +1,11 @@
 'use client'
 import { useEffect, useRef, useState, useTransition } from 'react'
-import { Reply, MoreVertical, Pencil, Trash2, Forward, Check, CheckCheck } from 'lucide-react'
+import { Reply, MoreVertical, Pencil, Trash2, Forward, Check, CheckCheck, Clock, AlertCircle } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/format'
 import { canEditOrUnsend, canForward } from '@/lib/messages/predicates'
 import { unsendMessage } from '@/lib/messages/actions'
 import { stickerById } from '@/lib/messages/stickers'
+import { isLocalId, type DisplayMessage } from '@/lib/messages/optimistic'
 import type { ConversationMessage } from '@/lib/messages/query'
 import { VoiceNoteBubble } from './VoiceNoteBubble'
 
@@ -23,7 +24,7 @@ export function MessageBubble({
   onEdit,
   onForward,
 }: {
-  m: ConversationMessage
+  m: DisplayMessage
   mine: boolean
   onReply: (m: ConversationMessage) => void
   onEdit: (m: ConversationMessage) => void
@@ -58,7 +59,7 @@ export function MessageBubble({
   function onTouchEnd() {
     draggingRef.current = false
     startXRef.current = null
-    if (dragX >= SWIPE_TRIGGER_PX) onReply(m)
+    if (dragX >= SWIPE_TRIGGER_PX && !isLocalId(m.id)) onReply(m)
     setDragX(0)
   }
 
@@ -71,15 +72,31 @@ export function MessageBubble({
     })
   }
 
-  const editable = mine && !m.deletedAt && canEditOrUnsend(m.createdAt, new Date().toISOString())
+  // A locally-pending/failed message has no real id yet — reply/edit/unsend/
+  // forward all need one server-side, so none of them make sense until this
+  // flips to a real id (which happens the moment the send succeeds).
+  const isLocal = isLocalId(m.id)
+  const editable = mine && !isLocal && !m.deletedAt && canEditOrUnsend(m.createdAt, new Date().toISOString())
   const removed = !!m.deletedAt
-  const forwardable = canForward(m.deletedAt)
+  const forwardable = !isLocal && canForward(m.deletedAt)
   const showMenu = editable || forwardable
   const isSticker = !!m.stickerId && !removed
 
   const ticks =
     mine && !removed ? (
-      m.readAt ? (
+      m.status === 'pending' ? (
+        <Clock className="h-3 w-3 opacity-70" aria-label="Sending…" />
+      ) : m.status === 'failed' ? (
+        <button
+          type="button"
+          onClick={() => m.retry?.()}
+          aria-label="Failed to send — tap to retry"
+          title="Failed to send — tap to retry"
+          className="flex items-center text-red-400 hover:text-red-300"
+        >
+          <AlertCircle className="h-3 w-3" />
+        </button>
+      ) : m.readAt ? (
         <CheckCheck className="h-3 w-3 text-sky-300" aria-label="Read" />
       ) : (
         <Check className="h-3 w-3" aria-label="Sent" />
@@ -94,16 +111,20 @@ export function MessageBubble({
       onTouchEnd={onTouchEnd}
       style={{ transform: dragX ? `translateX(${dragX}px)` : undefined }}
     >
-      {/* Reply reveal — visible while dragging (mobile) or on hover (desktop, no swipe). */}
-      <button
-        type="button"
-        onClick={() => onReply(m)}
-        aria-label="Reply"
-        className={`absolute top-1/2 -translate-y-1/2 ${mine ? '-right-9' : '-left-9'} hidden h-7 w-7 items-center justify-center rounded-full text-sx-gray transition-opacity hover:text-white sm:flex sm:opacity-0 sm:group-hover:opacity-100`}
-        style={dragX ? { opacity: dragX / SWIPE_REVEAL_PX } : undefined}
-      >
-        <Reply className="h-4 w-4" />
-      </button>
+      {/* Reply reveal — visible while dragging (mobile) or on hover (desktop, no
+          swipe). Hidden on a still-local message: replying needs a real
+          message id to quote, which this doesn't have until the send succeeds. */}
+      {!isLocal && (
+        <button
+          type="button"
+          onClick={() => onReply(m)}
+          aria-label="Reply"
+          className={`absolute top-1/2 -translate-y-1/2 ${mine ? '-right-9' : '-left-9'} hidden h-7 w-7 items-center justify-center rounded-full text-sx-gray transition-opacity hover:text-white sm:flex sm:opacity-0 sm:group-hover:opacity-100`}
+          style={dragX ? { opacity: dragX / SWIPE_REVEAL_PX } : undefined}
+        >
+          <Reply className="h-4 w-4" />
+        </button>
+      )}
 
       {isSticker ? (
         // Stickers float with no bubble background, WhatsApp/Telegram-style —

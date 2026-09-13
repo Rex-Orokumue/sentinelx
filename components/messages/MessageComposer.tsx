@@ -8,6 +8,7 @@ import { extensionForAudioMime } from '@/lib/media/audio-extension'
 import { sendMessage, editMessage } from '@/lib/messages/actions'
 import { messageBodySchema } from '@/lib/messages/schema'
 import { STICKER_PACK, stickerById } from '@/lib/messages/stickers'
+import { buildOptimisticMessage, buildReplyPreview, newLocalId, type DisplayMessage } from '@/lib/messages/optimistic'
 import type { ConversationMessage } from '@/lib/messages/query'
 import { VoiceNoteRecorder } from './VoiceNoteRecorder'
 
@@ -26,16 +27,24 @@ function replyPreviewText(target: ConversationMessage): string {
 
 export function MessageComposer({
   threadId,
+  viewerId,
+  otherName,
   disabled,
   disabledReason,
   mode,
   onClearMode,
+  onAddPending,
+  onUpdateLocal,
 }: {
   threadId: string
+  viewerId: string
+  otherName: string
   disabled?: boolean
   disabledReason?: string
   mode: ComposerMode
   onClearMode: () => void
+  onAddPending: (message: DisplayMessage) => void
+  onUpdateLocal: (tempId: string, patch: Partial<DisplayMessage>) => void
 }) {
   const router = useRouter()
   const [body, setBody] = useState('')
@@ -92,8 +101,55 @@ export function MessageComposer({
     if (mode?.type === 'edit') setBody('')
   }
 
+  function replyToFor(activeMode: ComposerMode): DisplayMessage['replyTo'] {
+    if (!activeMode || activeMode.type !== 'reply') return null
+    return buildReplyPreview(activeMode.target, viewerId, otherName, replyPreviewText(activeMode.target))
+  }
+
   const hasText = messageBodySchema.safeParse(body).success
   const ok = mode?.type === 'edit' ? hasText && !pending : (hasText || file != null) && !pending
+
+  // Retries an already-visible message in place — WhatsApp-style: a failed
+  // send stays as a bubble with a red retry mark rather than dumping the
+  // text/attachment back into the composer to resend from scratch.
+  function attemptTextOrImage(tempId: string, text: string, img: File | null, replyToId: string | undefined) {
+    onUpdateLocal(tempId, { status: 'pending' })
+    start(async () => {
+      let imageUrl: string | undefined
+      if (img) {
+        const supabase = createClient()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        if (!user) {
+          onUpdateLocal(tempId, { status: 'failed', retry: () => attemptTextOrImage(tempId, text, img, replyToId) })
+          return
+        }
+        try {
+          const resized = await resizeImageToMaxWidth(img, 1280)
+          const path = `${user.id}/${crypto.randomUUID()}.jpg`
+          const { error: upErr } = await supabase.storage
+            .from('dm-images')
+            .upload(path, resized, { upsert: false, contentType: 'image/jpeg' })
+          if (upErr) throw upErr
+          imageUrl = path // store the PATH, not a URL
+        } catch {
+          onUpdateLocal(tempId, { status: 'failed', retry: () => attemptTextOrImage(tempId, text, img, replyToId) })
+          return
+        }
+      }
+      const res = await sendMessage({ threadId, body: text || undefined, imageUrl, replyToId })
+      if (res.error) {
+        onUpdateLocal(tempId, { status: 'failed', retry: () => attemptTextOrImage(tempId, text, img, replyToId) })
+        return
+      }
+      // Swap in the real id so the realtime echo of this same insert
+      // (Supabase broadcasts INSERTs back to the writer too) dedupes against
+      // this entry instead of appearing as a second copy.
+      onUpdateLocal(tempId, { id: res.messageId ?? tempId, status: 'sent' })
+      router.refresh()
+    })
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -120,46 +176,34 @@ export function MessageComposer({
 
     setBody('')
     clearImage()
+    if (activeMode?.type === 'reply') onClearMode()
 
+    const tempId = newLocalId()
+    const replyToId = activeMode?.type === 'reply' ? activeMode.target.id : undefined
+    // A fresh object URL, independent of the composer's own `previewUrl`
+    // (clearImage() above already revoked that one) — never explicitly
+    // revoked afterwards. The window where it'd be safe to (once the real,
+    // signed-URL version has replaced this entry) is exactly the window a
+    // premature revoke would show a broken image in; the per-session leak
+    // of a few object URLs is the cheaper side of that trade.
+    const optimisticImageUrl = img ? URL.createObjectURL(img) : null
+    onAddPending(
+      buildOptimisticMessage({ id: tempId, viewerId, body: text || null, imageUrl: optimisticImageUrl, replyTo: replyToFor(activeMode) }),
+    )
+    attemptTextOrImage(tempId, text, img, replyToId)
+    textRef.current?.focus()
+  }
+
+  function attemptSticker(tempId: string, stickerId: string, replyToId: string | undefined) {
+    onUpdateLocal(tempId, { status: 'pending' })
     start(async () => {
-      let imageUrl: string | undefined
-      if (img) {
-        const supabase = createClient()
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-        if (!user) {
-          setError('Please log in.')
-          return
-        }
-        try {
-          const resized = await resizeImageToMaxWidth(img, 1280)
-          const path = `${user.id}/${crypto.randomUUID()}.jpg`
-          const { error: upErr } = await supabase.storage
-            .from('dm-images')
-            .upload(path, resized, { upsert: false, contentType: 'image/jpeg' })
-          if (upErr) throw upErr
-          imageUrl = path // store the PATH, not a URL
-        } catch {
-          setError('That image failed to upload. Please try again.')
-          setBody(text)
-          return
-        }
-      }
-      const res = await sendMessage({
-        threadId,
-        body: text || undefined,
-        imageUrl,
-        replyToId: activeMode?.type === 'reply' ? activeMode.target.id : undefined,
-      })
+      const res = await sendMessage({ threadId, stickerId, replyToId })
       if (res.error) {
-        setError(res.error)
-        setBody(text)
+        onUpdateLocal(tempId, { status: 'failed', retry: () => attemptSticker(tempId, stickerId, replyToId) })
         return
       }
-      if (activeMode?.type === 'reply') onClearMode()
+      onUpdateLocal(tempId, { id: res.messageId ?? tempId, status: 'sent' })
       router.refresh()
-      textRef.current?.focus()
     })
   }
 
@@ -170,27 +214,21 @@ export function MessageComposer({
     setStickerPickerOpen(false)
     const activeMode = mode?.type === 'reply' ? mode : null
     if (activeMode) onClearMode()
-    start(async () => {
-      const res = await sendMessage({ threadId, stickerId, replyToId: activeMode?.target.id })
-      if (res.error) {
-        setError(res.error)
-        return
-      }
-      router.refresh()
-    })
+    const tempId = newLocalId()
+    const replyToId = activeMode?.target.id
+    onAddPending(buildOptimisticMessage({ id: tempId, viewerId, stickerId, replyTo: replyToFor(activeMode) }))
+    attemptSticker(tempId, stickerId, replyToId)
   }
 
-  function handleRecorded(blob: Blob, durationSeconds: number) {
-    const activeMode = mode?.type === 'reply' ? mode : null
-    if (activeMode) onClearMode()
-    setRecording(false)
+  function attemptVoiceNote(tempId: string, blob: Blob, durationSeconds: number, replyToId: string | undefined) {
+    onUpdateLocal(tempId, { status: 'pending' })
     start(async () => {
       const supabase = createClient()
       const {
         data: { user },
       } = await supabase.auth.getUser()
       if (!user) {
-        setError('Please log in.')
+        onUpdateLocal(tempId, { status: 'failed', retry: () => attemptVoiceNote(tempId, blob, durationSeconds, replyToId) })
         return
       }
       const ext = extensionForAudioMime(blob.type)
@@ -199,21 +237,33 @@ export function MessageComposer({
         .from('dm-audio')
         .upload(path, blob, { upsert: false, contentType: blob.type || 'audio/webm' })
       if (upErr) {
-        setError('That voice note failed to upload. Please try again.')
+        onUpdateLocal(tempId, { status: 'failed', retry: () => attemptVoiceNote(tempId, blob, durationSeconds, replyToId) })
         return
       }
-      const res = await sendMessage({
-        threadId,
-        audioUrl: path,
-        audioDurationSeconds: durationSeconds,
-        replyToId: activeMode?.target.id,
-      })
+      const res = await sendMessage({ threadId, audioUrl: path, audioDurationSeconds: durationSeconds, replyToId })
       if (res.error) {
-        setError(res.error)
+        onUpdateLocal(tempId, { status: 'failed', retry: () => attemptVoiceNote(tempId, blob, durationSeconds, replyToId) })
         return
       }
+      onUpdateLocal(tempId, { id: res.messageId ?? tempId, status: 'sent' })
       router.refresh()
     })
+  }
+
+  // Fires only once the recorder's own review step confirms Send — the
+  // bubble appears immediately, playable from the local blob, with the same
+  // pending-clock-then-tick treatment as every other message type.
+  function handleRecorded(blob: Blob, durationSeconds: number) {
+    const activeMode = mode?.type === 'reply' ? mode : null
+    if (activeMode) onClearMode()
+    setRecording(false)
+    const tempId = newLocalId()
+    const replyToId = activeMode?.target.id
+    const localAudioUrl = URL.createObjectURL(blob)
+    onAddPending(
+      buildOptimisticMessage({ id: tempId, viewerId, audioUrl: localAudioUrl, audioDurationSeconds: durationSeconds, replyTo: replyToFor(activeMode) }),
+    )
+    attemptVoiceNote(tempId, blob, durationSeconds, replyToId)
   }
 
   return (
@@ -247,7 +297,7 @@ export function MessageComposer({
         </div>
       )}
       {recording ? (
-        <VoiceNoteRecorder onRecorded={handleRecorded} onCancel={() => setRecording(false)} />
+        <VoiceNoteRecorder onSend={handleRecorded} onCancel={() => setRecording(false)} />
       ) : (
         <div className="flex items-end gap-2">
           {mode?.type !== 'edit' && (
@@ -274,8 +324,7 @@ export function MessageComposer({
                         onClick={() => sendSticker(s.id)}
                         aria-label={s.label}
                         title={s.label}
-                        disabled={pending}
-                        className="flex h-11 w-11 items-center justify-center rounded-lg text-2xl hover:bg-white/5 disabled:opacity-40"
+                        className="flex h-11 w-11 items-center justify-center rounded-lg text-2xl hover:bg-white/5"
                       >
                         {s.emoji}
                       </button>

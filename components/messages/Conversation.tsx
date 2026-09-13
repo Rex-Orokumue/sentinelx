@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { markThreadRead } from '@/lib/messages/actions'
 import { resolveParticipantContent } from '@/lib/messages/predicates'
+import { mergeLocalMessages, type DisplayMessage } from '@/lib/messages/optimistic'
 import { dayKeyWAT, formatDateDivider } from '@/lib/format'
 import type { ThreadDetail, ConversationMessage, ThreadSummary } from '@/lib/messages/query'
 import { MessageComposer } from './MessageComposer'
@@ -30,10 +31,20 @@ export function Conversation({
   threads: ThreadSummary[]
 }) {
   const router = useRouter()
-  const [messages, setMessages] = useState<ConversationMessage[]>(detail.messages)
+  const [messages, setMessages] = useState<DisplayMessage[]>(detail.messages)
   const [composerMode, setComposerMode] = useState<{ type: 'reply' | 'edit'; target: ConversationMessage } | null>(null)
   const [forwardTarget, setForwardTarget] = useState<ConversationMessage | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  // Passed to MessageComposer so it can render a message the instant it's
+  // sent (a clock icon until the server confirms) and update that same
+  // entry in place afterwards — see lib/messages/optimistic.ts.
+  function addPending(message: DisplayMessage) {
+    setMessages((prev) => [...prev, message])
+  }
+  function updateLocal(tempId: string, patch: Partial<DisplayMessage>) {
+    setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, ...patch } : m)))
+  }
 
   // Realtime append. RLS scopes the stream; the filter is a second guard. The
   // payload has the storage PATH in image_url/audio_url, not a signed URL —
@@ -160,7 +171,7 @@ export function Conversation({
   }, [detail.threadId, viewerId, router])
 
   useEffect(() => {
-    setMessages(detail.messages)
+    setMessages((prev) => mergeLocalMessages(detail.messages, prev))
   }, [detail.messages])
 
   useEffect(() => {
@@ -208,10 +219,14 @@ export function Conversation({
       </div>
       <MessageComposer
         threadId={detail.threadId}
+        viewerId={viewerId}
+        otherName={detail.other.name}
         disabled={disabled}
         disabledReason={disabledReason}
         mode={composerMode}
         onClearMode={() => setComposerMode(null)}
+        onAddPending={addPending}
+        onUpdateLocal={updateLocal}
       />
       {forwardTarget && (
         <ForwardSheet messageId={forwardTarget.id} threads={threads} onClose={() => setForwardTarget(null)} />

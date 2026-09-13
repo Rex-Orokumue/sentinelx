@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { messageBodySchema, reportReasonSchema } from './schema'
+import { messageBodySchema, reportReasonSchema, audioDurationSchema } from './schema'
 
 describe('messageBodySchema', () => {
   it('trims', () => {
@@ -24,5 +24,20 @@ describe('reportReasonSchema', () => {
   })
   it('accepts a short reason', () => {
     expect(reportReasonSchema.parse('  harassment ')).toBe('harassment')
+  })
+})
+
+describe('audioDurationSchema', () => {
+  it('accepts a typical duration', () => {
+    expect(audioDurationSchema.parse(45)).toBe(45)
+  })
+  it('rejects zero, negative, and non-integer values', () => {
+    expect(audioDurationSchema.safeParse(0).success).toBe(false)
+    expect(audioDurationSchema.safeParse(-1).success).toBe(false)
+    expect(audioDurationSchema.safeParse(1.5).success).toBe(false)
+  })
+  it('accepts up to the 130s ceiling and rejects beyond it', () => {
+    expect(audioDurationSchema.safeParse(130).success).toBe(true)
+    expect(audioDurationSchema.safeParse(131).success).toBe(false)
   })
 })

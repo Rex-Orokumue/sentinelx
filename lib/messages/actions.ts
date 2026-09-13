@@ -70,7 +70,7 @@ export async function sendMessage(input: {
   audioUrl?: string
   audioDurationSeconds?: number
   forwarded?: boolean
-}): Promise<{ threadId?: string; error?: string }> {
+}): Promise<{ threadId?: string; messageId?: string; error?: string }> {
   const { supabase, userId } = await authed()
   if (!userId) return { error: 'Please log in.' }
 
@@ -146,18 +146,26 @@ export async function sendMessage(input: {
   }
 
   // Insert via the SESSION client so the RLS sender-insert policy applies (defence
-  // in depth) — dm_can_message() re-checks block + mute server-side.
-  const { error: insErr } = await supabase.from('dm_messages').insert({
-    thread_id: threadId,
-    sender_id: userId,
-    body,
-    image_url: imageUrl,
-    reply_to_id: replyToId,
-    sticker_id: stickerId,
-    audio_url: audioUrl,
-    audio_duration_seconds: audioDurationSeconds,
-    forwarded: input.forwarded ?? false,
-  })
+  // in depth) — dm_can_message() re-checks block + mute server-side. Returns
+  // the new row's id so the caller can swap it into an optimistic local
+  // entry — without that, the realtime echo of this same insert (Supabase
+  // broadcasts INSERTs back to the writer too) would dedupe against nothing
+  // and show up as a second, duplicate bubble.
+  const { data: inserted, error: insErr } = await supabase
+    .from('dm_messages')
+    .insert({
+      thread_id: threadId,
+      sender_id: userId,
+      body,
+      image_url: imageUrl,
+      reply_to_id: replyToId,
+      sticker_id: stickerId,
+      audio_url: audioUrl,
+      audio_duration_seconds: audioDurationSeconds,
+      forwarded: input.forwarded ?? false,
+    })
+    .select('id')
+    .single()
   if (insErr) {
     console.error('[sendMessage] insert failed', { userId, threadId, code: insErr.code, message: insErr.message })
     return { error: 'Could not send your message. Please try again.' }
@@ -186,7 +194,7 @@ export async function sendMessage(input: {
 
   revalidatePath('/messages')
   revalidatePath(`/messages/${threadId}`)
-  return { threadId }
+  return { threadId, messageId: inserted.id }
 }
 
 export async function markThreadRead(threadId: string): Promise<void> {
