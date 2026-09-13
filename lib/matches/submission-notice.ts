@@ -1,3 +1,5 @@
+import type { NotificationInput } from '@/lib/notifications/copy'
+
 // Copy and addressing for the notification the OTHER player gets when their
 // opponent submits a match result.
 //
@@ -12,8 +14,9 @@
 
 export interface SubmissionNotice {
   recipientId: string
-  title: string
-  body: string
+  // The event and its values. The wording lives in the catalog and is rendered
+  // per recipient by the sender — see lib/notifications/copy.ts.
+  notification: Extract<NotificationInput, { type: 'result_submitted' }>
   link: string
 }
 
@@ -44,17 +47,14 @@ export function opponentSubmissionNotice(input: {
   // in the review queue. Two renderings of one result is how a dispute starts.
   const scoreline = `${nameA} ${input.scoreA} – ${input.scoreB} ${nameB}`
 
-  return input.isResubmission
-    ? {
-        recipientId,
-        title: 'Opponent updated their result',
-        body: `Your opponent updated it to ${scoreline} in ${input.tournamentTitle}. Check it now — tell an admin if it is wrong.`,
-        link: `/matches/${input.matchId}`,
-      }
-    : {
-        recipientId,
-        title: 'Opponent submitted a result',
-        body: `${scoreline} in ${input.tournamentTitle}. Check it now — tell an admin if it is wrong.`,
-        link: `/matches/${input.matchId}`,
-      }
+  return {
+    recipientId,
+    notification: {
+      type: 'result_submitted',
+      scoreline,
+      tournament: input.tournamentTitle,
+      isResubmission: input.isResubmission,
+    },
+    link: `/matches/${input.matchId}`,
+  }
 }

@@ -12,9 +12,8 @@ import {
 } from './knockout-pairing'
 import { nextRoundScheduledAt } from './round-schedule'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
-import { notifyInApp } from '@/lib/notifications/inbox'
-import { pushToPlayer } from '@/lib/notifications/push'
 import { SITE_URL } from '@/lib/seo/site'
+import { notifyBoth } from '@/lib/notifications/send'
 
 export type KnockoutPairingState = { error?: string; success?: boolean } | undefined
 
@@ -236,15 +235,15 @@ export async function swapKnockoutPairing(
     const link = `/tournaments/${t.slug}/bracket`
     for (const pid of ids) {
       const opp = opponentOf(pid)
-      const body = opp
-        ? `Your ${rearrangeable.label} fixture changed — you now play ${nameById.get(opp) ?? 'your opponent'}.`
-        : `Your ${rearrangeable.label} fixture changed — you now have a bye.`
-      await notifyInApp({ playerId: pid, type: 'fixture_assigned', title: 'Fixture updated', body, link })
-      void pushToPlayer(
+      await notifyBoth(
         pid,
-        'match_assigned',
-        { title: 'Fixture updated', body },
-        { url: `${SITE_URL}${link}` },
+        {
+          type: 'fixture_updated',
+          round: rearrangeable.label,
+          opponent: opp ? nameById.get(opp) ?? null : null,
+        },
+        'fixture_assigned',
+        { link, url: `${SITE_URL}${link}` },
       )
     }
   }

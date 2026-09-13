@@ -32,7 +32,7 @@ export async function createAnnouncement(_prev: AdminActionState, formData: Form
 
   const excerpt = parsed.data.length > 80 ? `${parsed.data.slice(0, 80)}…` : parsed.data || 'Check the community feed.'
   void broadcastInApp({ type: 'new_announcement', title: 'New announcement', body: excerpt, link: '/community' })
-  void broadcastPush('new_announcement', { title: 'New announcement', body: excerpt }, { url: '/community' })
+  void broadcastPush({ type: 'new_announcement', excerpt }, { url: '/community' })
 
   revalidatePath('/community')
   revalidatePath('/admin/community')

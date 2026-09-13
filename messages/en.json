@@ -9,6 +9,91 @@
     "moderator": "Moderator"
   },
   "notifications": {
+    "push": {
+      "achievementUnlocked": {
+        "title": "Achievement unlocked!",
+        "body": "{name} — +{xp} XP, +{coins} SX Coins."
+      },
+      "challengeCompleted": {
+        "title": "Challenge complete!",
+        "body": "{challenge} — +{coins} SX Coins, +{xp} XP."
+      },
+      "newAnnouncement": {
+        "title": "New announcement",
+        "body": "{excerpt}"
+      },
+      "postComment": {
+        "title": "New comment",
+        "titleMatch": "New comment on your match",
+        "body": "{excerpt}"
+      },
+      "postReaction": {
+        "title": "New reaction",
+        "titleMatch": "New reaction on your match",
+        "body": "Someone reacted {reaction} to your post."
+      },
+      "statusFromFriend": {
+        "title": "New status",
+        "body": "{authorName} added to their status."
+      },
+      "statusViewed": {
+        "title": "Status viewed",
+        "body": "{viewerName} viewed your status."
+      },
+      "statusRemoved": {
+        "title": "Status removed",
+        "body": "A moderator removed your status."
+      },
+      "resultSubmitted": {
+        "title": "Opponent submitted a result",
+        "titleAgain": "Opponent updated their result",
+        "body": "{scoreline} in {tournament}. Check it now — tell an admin if it is wrong.",
+        "bodyAgain": "Your opponent updated it to {scoreline} in {tournament}. Check it now — tell an admin if it is wrong."
+      },
+      "noshowNeedsDecision": {
+        "title": "No-show needs a decision",
+        "body": "{tournament} — {playerA} vs {playerB} passed its deadline with no confirmed result."
+      },
+      "resultConfirmed": {
+        "title": "Result confirmed",
+        "body": "{playerA} {scoreA} – {scoreB} {playerB} — confirmed for {tournament}."
+      },
+      "fixtureNew": {
+        "title": "New fixture",
+        "body": "{playerA} vs {playerB} — {tournament}"
+      },
+      "fixtureUpdated": {
+        "title": "Fixture updated",
+        "body": "Your {round} fixture changed — you now play {opponent}.",
+        "bodyBye": "Your {round} fixture changed — you now have a bye."
+      },
+      "referralConverted": {
+        "title": "Referral credited",
+        "body": "{referredName} just competed for the first time — +{coins} SX Coins added."
+      },
+      "tournamentAnnounced": {
+        "title": "New tournament!",
+        "body": "{tournament} is open for registration."
+      },
+      "bracketReleased": {
+        "title": "Bracket is live!",
+        "body": "{tournament}'s bracket has been published."
+      },
+      "wagerSettled": {
+        "title": "Wager settled",
+        "titleWon": "Wager won!",
+        "bodyWon": "You won {payout} SX Coins on this match.",
+        "bodyLost": "Your {stake}-coin wager didn't hit this time."
+      },
+      "prizeCredited": {
+        "title": "Prize credited",
+        "body": "{amount} has been approved for withdrawal."
+      },
+      "matchReminder": {
+        "title": "Match in 1 hour",
+        "body": "{tournament} · vs {opponent}"
+      }
+    },
     "whatsapp": {
       "registrationConfirmed": "✅ You're registered for {tournament} on Sentinel X! Entry confirmed — we'll remind you before your matches. Good luck! 🎮",
       "fixtureReminder": "⏰ Your Sentinel X match starts in ~1 hour: {playerA} vs {playerB} ({tournament}). Get ready → {matchUrl}",

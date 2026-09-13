@@ -4,7 +4,7 @@ import type { BracketMatch } from './bracket'
 vi.mock('@/lib/admin/auth', () => ({ requireStaff: vi.fn().mockResolvedValue({ userId: 'staff' }) }))
 vi.mock('@/lib/supabase/admin', () => ({ createAdminClient: vi.fn() }))
 vi.mock('@/lib/notifications/fixture-created', () => ({ notifyNewFixtures: vi.fn() }))
-vi.mock('@/lib/notifications/inbox', () => ({ notifyInApp: vi.fn() }))
+vi.mock('@/lib/notifications/inbox', () => ({ notifyInAppOf: vi.fn() }))
 vi.mock('@/lib/notifications/push', () => ({ pushToPlayer: vi.fn() }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('./bracket-view', () => ({ loadBracketView: vi.fn() }))
@@ -230,13 +230,13 @@ describe('swapKnockoutPairing', () => {
   it('updates changed rows in place and notifies only affected players', async () => {
     const { createAdminClient } = await import('@/lib/supabase/admin')
     const { loadBracketView } = await import('./bracket-view')
-    const { notifyInApp } = await import('@/lib/notifications/inbox')
+    const { notifyInAppOf } = await import('@/lib/notifications/inbox')
     vi.mocked(loadBracketView).mockResolvedValue(
       view([{ round: 'quarter_final', label: 'QF', matches: SCHEDULED_QF }]) as never,
     )
     const updates: Array<{ id: string; row: Record<string, unknown> }> = []
     const inApp: string[] = []
-    vi.mocked(notifyInApp).mockImplementation(async ({ playerId }) => {
+    vi.mocked(notifyInAppOf).mockImplementation(async (playerId) => {
       inApp.push(playerId)
     })
     vi.mocked(createAdminClient).mockReturnValue(

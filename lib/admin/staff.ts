@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notifyInApp, type NotificationType } from '@/lib/notifications/inbox'
-import { pushToPlayer } from '@/lib/notifications/push'
+import { pushPrerendered } from '@/lib/notifications/push'
 import { deferNotification } from '@/lib/notifications/defer'
 
 type Admin = ReturnType<typeof createAdminClient>
@@ -73,7 +73,7 @@ async function fanOutToStaff(
     await Promise.all(
       staffIds.flatMap((staffId) => [
         notifyInApp({ playerId: staffId, type, title: payload.title, body: payload.body, link: payload.link }),
-        pushToPlayer(staffId, type, { title: payload.title, body: payload.body }, { url: payload.link }),
+        pushPrerendered(staffId, type, { title: payload.title, body: payload.body }, { url: payload.link }),
       ]),
     )
   } catch (err) {

@@ -203,11 +203,7 @@ export async function openRegistration(
     body: `${t.title} is open for registration.`,
     link: '/tournaments',
   })
-  void broadcastPush(
-    'tournament_announced',
-    { title: 'New tournament!', body: `${t.title} is open for registration.` },
-    { url: '/tournaments' },
-  )
+  void broadcastPush({ type: 'tournament_announced', tournament: t.title }, { url: '/tournaments' })
 
   revalidatePath('/admin/tournaments')
   revalidatePath('/tournaments')
