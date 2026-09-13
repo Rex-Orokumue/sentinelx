@@ -46,7 +46,7 @@ function toRow(d: TournamentInput) {
     mode_id: d.modeId === '' ? null : d.modeId,
     format_id: d.formatId === '' ? null : d.formatId,
     default_map_id: d.defaultMapId === '' ? null : d.defaultMapId,
-    match_rules: d.matchRules === '' ? null : d.matchRules,
+    match_rule_id: d.matchRuleId === '' ? null : d.matchRuleId,
     match_type: d.matchType === '' ? null : d.matchType,
     prize_second: d.prizeSecond === '' ? null : d.prizeSecond,
     prize_third: d.prizeThird === '' ? null : d.prizeThird,
@@ -203,11 +203,7 @@ export async function openRegistration(
     body: `${t.title} is open for registration.`,
     link: '/tournaments',
   })
-  void broadcastPush(
-    'tournament_announced',
-    { title: 'New tournament!', body: `${t.title} is open for registration.` },
-    { url: '/tournaments' },
-  )
+  void broadcastPush({ type: 'tournament_announced', tournament: t.title }, { url: '/tournaments' })
 
   revalidatePath('/admin/tournaments')
   revalidatePath('/tournaments')

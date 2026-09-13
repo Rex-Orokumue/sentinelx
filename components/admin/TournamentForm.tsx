@@ -7,8 +7,8 @@ import { formatsForGame, FORMAT_LABEL, type CompetitionFormat } from '@/lib/tour
 import {
   formatsForMode,
   mapsForMode,
+  matchRulesForMode,
   resolveModeSelection,
-  MATCH_RULES_LABEL,
 } from '@/lib/tournaments/mode-selection'
 import type { ModeCatalogue } from '@/lib/tournaments/mode-catalogue'
 
@@ -42,7 +42,7 @@ export interface TournamentFormValues {
   modeId: string
   formatId: string
   defaultMapId: string
-  matchRules: string
+  matchRuleId: string
   matchType: string
 }
 
@@ -74,6 +74,7 @@ export function TournamentForm({
   const [modeId, setModeId] = useState(initial.modeId)
   const [formatId, setFormatId] = useState(initial.formatId)
   const [mapId, setMapId] = useState(initial.defaultMapId)
+  const [matchRuleId, setMatchRuleId] = useState(initial.matchRuleId)
 
   // Only the formats the chosen game declares. Falls back to head-to-head
   // when no game is picked yet, so the control is never empty.
@@ -86,15 +87,18 @@ export function TournamentForm({
   const selectedMode = gameModes.find((m) => m.id === modeId) ?? null
   const modeFormats = formatsForMode(catalogue.formats, modeId || null)
   const modeMaps = mapsForMode(catalogue.maps, modeId || null)
+  const modeMatchRules = matchRulesForMode(catalogue.matchRules, modeId || null)
   const selectedFormat = modeFormats.find((f) => f.id === formatId) ?? null
   const derived = resolveModeSelection(selectedMode, selectedFormat)
 
-  // Changing Mode must clear Format and Map, or a stale Clash Squad map
-  // survives onto a Battle Royale tournament — the exact bug the mock had.
+  // Changing Mode must clear Format, Map and Match rules, or a stale Clash
+  // Squad map (or PUBG's TPP surviving onto a Free Fire tournament) carries
+  // over — the exact bug the mock had, now guarded on a third dependent field.
   function onModeChange(nextModeId: string) {
     setModeId(nextModeId)
     setFormatId('')
     setMapId('')
+    setMatchRuleId('')
   }
 
   const isPointsRace = hasModes
@@ -293,19 +297,31 @@ export function TournamentForm({
             </div>
           ) : null}
 
-          <div className="space-y-1.5">
-            <label htmlFor="matchRules" className="text-sm font-medium text-slate-300">Match rules</label>
-            <select
-              id="matchRules"
-              name="matchRules"
-              defaultValue={initial.matchRules || 'normal'}
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
-            >
-              {Object.entries(MATCH_RULES_LABEL).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </div>
+          {modeMatchRules.length === 1 ? (
+            <div className="space-y-1.5">
+              <span className="text-sm font-medium text-slate-300">Match rules</span>
+              <p className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-300">
+                {modeMatchRules[0].name}
+              </p>
+              <input type="hidden" name="matchRuleId" value={modeMatchRules[0].id} />
+            </div>
+          ) : modeMatchRules.length > 1 ? (
+            <div className="space-y-1.5">
+              <label htmlFor="matchRuleId" className="text-sm font-medium text-slate-300">Match rules</label>
+              <select
+                id="matchRuleId"
+                name="matchRuleId"
+                value={matchRuleId}
+                onChange={(e) => setMatchRuleId(e.target.value)}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
+              >
+                <option value="">Choose match rules</option>
+                {modeMatchRules.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+            </div>
+          ) : null}
 
           {/* Battle Royale expresses length as a stage's rounds_count, so it
               has no series length at all. */}

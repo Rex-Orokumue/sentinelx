@@ -1,5 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { deferNotification } from './defer'
+import { renderNotification, type NotificationInput } from './copy'
+import { toLocale, translatorFor } from './locale'
 
 export type NotificationType =
   | 'listing_approved'
@@ -50,6 +52,45 @@ export type NotificationType =
 // defer.ts. An insert is usually fast enough to beat the freeze, which is
 // precisely why this one hid the push bug for so long; "usually" is not a
 // guarantee worth keeping.
+// Renders the bell entry in the RECIPIENT's language. Preferred over
+// notifyInApp for anything with a NotificationInput member; notifyInApp stays
+// for the in-app-only types that have not been moved into the catalog yet.
+export function notifyInAppOf(
+  playerId: string,
+  input: NotificationInput,
+  type: NotificationType,
+  link?: string,
+): Promise<void> {
+  return deferNotification(insertRendered(playerId, input, type, link))
+}
+
+async function insertRendered(
+  playerId: string,
+  input: NotificationInput,
+  type: NotificationType,
+  link?: string,
+): Promise<void> {
+  try {
+    const admin = createAdminClient()
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('locale')
+      .eq('id', playerId)
+      .maybeSingle()
+    const t = await translatorFor(toLocale(profile?.locale), 'notifications.push')
+    const { title, body } = renderNotification(input, t)
+    await admin.from('player_notifications').insert({
+      player_id: playerId,
+      type,
+      title,
+      body,
+      link: link ?? null,
+    })
+  } catch {
+    // best-effort — swallow so the caller's action is never affected
+  }
+}
+
 export function notifyInApp(input: {
   playerId: string
   type: NotificationType

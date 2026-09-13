@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import {
   formatsForMode,
   mapsForMode,
+  matchRulesForMode,
   resolveModeSelection,
-  MATCH_RULES_LABEL,
   type FormatOption,
   type ModeOption,
 } from './mode-selection'
@@ -119,11 +119,22 @@ describe('mapsForMode', () => {
   })
 })
 
-describe('MATCH_RULES_LABEL', () => {
-  it('covers exactly the values the database CHECK permits', () => {
-    // tournaments_match_rules_valid allows these three and nothing else. A
-    // label added here without the migration saves a row Postgres rejects; one
-    // missing renders a raw slug like "headshot_only" to players.
-    expect(Object.keys(MATCH_RULES_LABEL)).toEqual(['normal', 'headshot_only', 'spam'])
+describe('matchRulesForMode', () => {
+  // Match rules are scoped to a MODE, not global: a Free Fire tournament must
+  // never offer PUBG's "TPP"/"FPP", and a PUBG one must never offer Free
+  // Fire's "Headshot only" — the same cross-game leak the Mode->Format->Map
+  // chain was built to prevent, now applying to a fourth field.
+  const all = [
+    { id: 'r-normal', name: 'Normal', modeId: 'm-cs' },
+    { id: 'r-hs', name: 'Headshot only', modeId: 'm-cs' },
+    { id: 'r-tpp', name: 'TPP', modeId: 'm-br' },
+  ]
+
+  it('returns only the chosen mode’s match rules', () => {
+    expect(matchRulesForMode(all, 'm-cs').map((r) => r.name)).toEqual(['Normal', 'Headshot only'])
+  })
+
+  it('returns nothing when no mode is selected', () => {
+    expect(matchRulesForMode(all, null)).toEqual([])
   })
 })
