@@ -8,8 +8,9 @@ import { registrationDetailsSchema, coinsUsedSchema } from './registration-schem
 import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
 import { NAIRA_PER_COIN } from '@/lib/coins/value'
 import { settleReferralForPaidEntry } from '@/lib/referrals/credit'
-import { SITE_URL } from '@/lib/seo/site'
+import { SITE_URL } from '@/lib/seo/site'
 import { assertNotPendingDeletion } from '@/lib/settings/restriction'
+import { finalizeSquadJoin } from './squad-membership'
 
 export type RegisterState = { error?: string; needsUsername?: boolean } | undefined
 
@@ -55,7 +56,7 @@ export async function registerForTournament(
   // Re-fetch server-side; never trust the client for status, capacity, or rules.
   const { data: tournament } = await supabase
     .from('tournaments')
-    .select('id, slug, status, max_players, rules, registration_fee, invitation_only')
+    .select('id, slug, status, max_players, rules, registration_fee, invitation_only, entry_unit, squad_size')
     .eq('id', tournamentId)
     .maybeSingle()
   if (!tournament) return { error: 'Tournament not found.' }
@@ -96,6 +97,30 @@ export async function registerForTournament(
             : guard.reason === 'invitation_only'
               ? 'This tournament is invitation-only. Check your dashboard for an invite.'
               : 'Registration is closed for this tournament.',
+    }
+  }
+
+  // entry_unit='squad' only — the invite-code / create-squad UI never renders
+  // a squadId field for a solo tournament, but never trust the client.
+  const squadIdRaw = String(formData.get('squadId') ?? '')
+  const squadId = squadIdRaw && tournament.entry_unit === 'squad' ? squadIdRaw : null
+  if (squadIdRaw && !squadId) return { error: 'This tournament does not use squads.' }
+  if (squadId) {
+    const { data: squad } = await supabase
+      .from('squads')
+      .select('id, tournament_id, status')
+      .eq('id', squadId)
+      .maybeSingle()
+    if (!squad || squad.tournament_id !== tournamentId) {
+      return { error: 'That squad no longer exists for this tournament.' }
+    }
+    if (squad.status !== 'forming') return { error: 'That squad is no longer accepting members.' }
+    const { count: squadMemberCount } = await supabase
+      .from('squad_members')
+      .select('*', { count: 'exact', head: true })
+      .eq('squad_id', squadId)
+    if ((squadMemberCount ?? 0) >= (tournament.squad_size ?? 0)) {
+      return { error: 'That squad is already full.' }
     }
   }
 
@@ -140,17 +165,21 @@ export async function registerForTournament(
       payment_status: 'paid',
       fee_waived: true,
       paystack_reference: null,
+      joining_squad_id: squadId,
       ...regFields,
     }
+    let waiverRegId = existing?.id
     if (!existing) {
-      const { error: insertErr } = await admin.from('tournament_registrations').insert(freeRegRow)
-      if (insertErr) return { error: 'Could not complete registration. Please try again.' }
+      const { data: inserted, error: insertErr } = await admin.from('tournament_registrations').insert(freeRegRow).select('id').single()
+      if (insertErr || !inserted) return { error: 'Could not complete registration. Please try again.' }
+      waiverRegId = inserted.id
     } else {
       await admin
         .from('tournament_registrations')
-        .update({ payment_status: 'paid', fee_waived: true, paystack_reference: null, ...regFields })
+        .update({ payment_status: 'paid', fee_waived: true, paystack_reference: null, joining_squad_id: squadId, ...regFields })
         .eq('id', existing.id)
     }
+    if (squadId && waiverRegId) await finalizeSquadJoin(admin, waiverRegId)
 
     redirect(`/tournaments/${tournament.slug}?paid=1`)
   }
@@ -166,17 +195,21 @@ export async function registerForTournament(
       payment_status: 'paid',
       fee_waived: false,
       paystack_reference: null,
+      joining_squad_id: squadId,
       ...regFields,
     }
+    let zeroFeeRegId = existing?.id
     if (!existing) {
-      const { error: insertErr } = await admin.from('tournament_registrations').insert(freeRegRow)
-      if (insertErr) return { error: 'Could not complete registration. Please try again.' }
+      const { data: inserted, error: insertErr } = await admin.from('tournament_registrations').insert(freeRegRow).select('id').single()
+      if (insertErr || !inserted) return { error: 'Could not complete registration. Please try again.' }
+      zeroFeeRegId = inserted.id
     } else {
       await admin
         .from('tournament_registrations')
-        .update({ payment_status: 'paid', fee_waived: false, paystack_reference: null, ...regFields })
+        .update({ payment_status: 'paid', fee_waived: false, paystack_reference: null, joining_squad_id: squadId, ...regFields })
         .eq('id', existing.id)
     }
+    if (squadId && zeroFeeRegId) await finalizeSquadJoin(admin, zeroFeeRegId)
 
     redirect(`/tournaments/${tournament.slug}?paid=1`)
   }
@@ -205,15 +238,18 @@ export async function registerForTournament(
       paystack_reference: null,
       coins_used: coinsUsed,
       coin_discount_naira: coinDiscountNaira,
+      joining_squad_id: squadId,
       ...regFields,
     }
+    let coinFreeRegId = existing?.id
     if (!existing) {
-      const { error: insertErr } = await admin.from('tournament_registrations').insert(freeRegRow)
-      if (insertErr) return { error: 'Could not complete registration. Please try again.' }
+      const { data: inserted, error: insertErr } = await admin.from('tournament_registrations').insert(freeRegRow).select('id').single()
+      if (insertErr || !inserted) return { error: 'Could not complete registration. Please try again.' }
+      coinFreeRegId = inserted.id
     } else {
       await admin
         .from('tournament_registrations')
-        .update({ payment_status: 'paid', fee_waived: false, paystack_reference: null, coins_used: coinsUsed, coin_discount_naira: coinDiscountNaira, ...regFields })
+        .update({ payment_status: 'paid', fee_waived: false, paystack_reference: null, coins_used: coinsUsed, coin_discount_naira: coinDiscountNaira, joining_squad_id: squadId, ...regFields })
         .eq('id', existing.id)
     }
 
@@ -221,6 +257,7 @@ export async function registerForTournament(
       registrationFee: tournament.registration_fee,
       feeWaived: false,
     })
+    if (squadId && coinFreeRegId) await finalizeSquadJoin(admin, coinFreeRegId)
 
     redirect(`/tournaments/${tournament.slug}?paid=1`)
   }
@@ -239,13 +276,14 @@ export async function registerForTournament(
       paystack_reference: reference,
       coins_used: coinsUsed,
       coin_discount_naira: coinDiscountNaira,
+      joining_squad_id: squadId,
       ...regFields,
     })
     if (insertErr) return { error: 'Could not start registration. Please try again.' }
   } else {
     await admin
       .from('tournament_registrations')
-      .update({ paystack_reference: reference, coins_used: coinsUsed, coin_discount_naira: coinDiscountNaira, ...regFields })
+      .update({ paystack_reference: reference, coins_used: coinsUsed, coin_discount_naira: coinDiscountNaira, joining_squad_id: squadId, ...regFields })
       .eq('id', existing.id)
   }
 

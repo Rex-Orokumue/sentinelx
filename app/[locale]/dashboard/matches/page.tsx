@@ -148,9 +148,9 @@ export default async function DashboardMatchesPage() {
     groupStandingsById.set(
       groupId,
       (groupStandingsRes.data ?? [])
-        .filter((r) => r.group_id === groupId)
+        .filter((r) => r.group_id === groupId && r.player_id != null)
         .map((r) => ({
-          playerId: r.player_id, name: '', wins: r.wins, draws: r.draws, losses: r.losses,
+          playerId: r.player_id as string, name: '', wins: r.wins, draws: r.draws, losses: r.losses,
           goalsFor: r.goals_for, goalsAgainst: r.goals_against, points: r.points,
         })),
     )

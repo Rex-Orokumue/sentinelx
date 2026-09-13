@@ -87,18 +87,20 @@ export async function awardSeasonPoints(admin: Admin, tournamentId: string): Pro
       .select('player_id, wins, draws, losses, goals_for, goals_against, points')
       .eq('group_id', groupRow.id)
     const standings = sortStandings(
-      (memberships ?? []).map(
-        (m): MembershipInput => ({
-          playerId: m.player_id,
-          name: '',
-          wins: m.wins,
-          draws: m.draws,
-          losses: m.losses,
-          goalsFor: m.goals_for,
-          goalsAgainst: m.goals_against,
-          points: m.points,
-        }),
-      ),
+      (memberships ?? [])
+        .filter((m) => m.player_id != null)
+        .map(
+          (m): MembershipInput => ({
+            playerId: m.player_id as string,
+            name: '',
+            wins: m.wins,
+            draws: m.draws,
+            losses: m.losses,
+            goalsFor: m.goals_for,
+            goalsAgainst: m.goals_against,
+            points: m.points,
+          }),
+        ),
     )
 
     if (tournament.season_id) {

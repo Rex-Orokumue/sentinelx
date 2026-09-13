@@ -43,3 +43,38 @@ export function soloEntrantRows(tournamentId: string, seeds: EntrantSeed[]): Sol
 
   return rows
 }
+
+export interface SquadEntrantSeed {
+  squadId: string
+  displayName: string
+}
+
+export interface SquadEntrantRow {
+  tournament_id: string
+  kind: 'squad'
+  squad_id: string
+  display_name: string
+  status: 'active'
+}
+
+// One per completed squad — the sibling this file's own top-of-file comment
+// already named ("one per completed squad for a squad tournament (phase 5)"),
+// now built.
+export function squadEntrantRows(tournamentId: string, seeds: SquadEntrantSeed[]): SquadEntrantRow[] {
+  const seen = new Set<string>()
+  const rows: SquadEntrantRow[] = []
+
+  for (const s of seeds) {
+    if (seen.has(s.squadId)) continue
+    seen.add(s.squadId)
+    rows.push({
+      tournament_id: tournamentId,
+      kind: 'squad',
+      squad_id: s.squadId,
+      display_name: s.displayName.trim() || 'Squad',
+      status: 'active',
+    })
+  }
+
+  return rows
+}

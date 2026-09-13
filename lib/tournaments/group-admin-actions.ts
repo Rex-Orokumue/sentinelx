@@ -36,7 +36,10 @@ async function regenerateGroupMatches(
       .from('group_memberships')
       .select('player_id')
       .eq('group_id', groupId)
-    const pairs = roundRobinPairs((roster ?? []).map((r) => r.player_id))
+    // Solo-group regeneration only — movePlayerToGroup operates on player
+    // rosters; team-group moves are a Phase 3 concern.
+    const rosterIds = (roster ?? []).map((r) => r.player_id).filter((id): id is string => id != null)
+    const pairs = roundRobinPairs(rosterIds)
     for (const [a, b] of pairs) {
       rows.push({
         tournament_id: tournamentId,

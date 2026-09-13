@@ -1,11 +1,14 @@
 'use server'
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { requireStaff } from '@/lib/admin/auth'
+import { requireStaff, requireAdmin } from '@/lib/admin/auth'
 import { resolveGroupCount, snakeDistribute, roundRobinPairs, knockoutRound1 } from './draw'
 import { nextRoundScheduledAt } from './round-schedule'
 import { seededPaidPlayers } from './seeded-players'
-import { soloEntrantRows } from './entrants'
+import { soloEntrantRows, squadEntrantRows } from './entrants'
+import { autoGroupIntoSquads, squadNameFor } from './squad-lifecycle'
+import { uniqueInviteCode } from './squad-membership'
+import { refundFormingSquads } from './squad-refund'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 import { notifyInApp } from '@/lib/notifications/inbox'
 import { pushToPlayer } from '@/lib/notifications/push'
@@ -56,6 +59,106 @@ async function createSoloEntrants(admin: Admin, tournamentId: string, seeded: st
 
   const { error } = await admin.from('tournament_entrants').insert(rows)
   if (error) throw new Error(`Failed to create entrants: ${error.message}`)
+}
+
+// Squad-race equivalent of createSoloEntrants: one entrant per complete
+// squad. Replaces rather than appends, same reason createSoloEntrants does.
+async function createSquadEntrants(admin: Admin, tournamentId: string): Promise<void> {
+  const { data: squads } = await admin
+    .from('squads')
+    .select('id, name')
+    .eq('tournament_id', tournamentId)
+    .eq('status', 'complete')
+
+  const { error: delErr } = await admin.from('tournament_entrants').delete().eq('tournament_id', tournamentId)
+  if (delErr) throw new Error(`Failed to clear existing entrants: ${delErr.message}`)
+
+  const rows = squadEntrantRows(
+    tournamentId,
+    (squads ?? []).map((s) => ({ squadId: s.id, displayName: s.name })),
+  )
+  if (rows.length === 0) return
+
+  const { error } = await admin.from('tournament_entrants').insert(rows)
+  if (error) throw new Error(`Failed to create entrants: ${error.message}`)
+}
+
+// Admin-arranged squad formation (spec §5.2). Takes every paid registrant not
+// already in a complete squad (a self-serve squad that reached team_size
+// before close is left untouched), shuffles, and splits into groups of
+// exactly team_size via autoGroupIntoSquads — anyone left over is returned,
+// not force-assigned, for the admin review screen to place explicitly.
+async function autoGroupRemainingPlayers(
+  admin: Admin,
+  tournamentId: string,
+  teamSize: number,
+): Promise<{ leftover: string[] }> {
+  const { data: paidRegs } = await admin
+    .from('tournament_registrations')
+    .select('player_id')
+    .eq('tournament_id', tournamentId)
+    .eq('payment_status', 'paid')
+    .eq('status', 'active')
+
+  const { data: completeSquads } = await admin
+    .from('squads')
+    .select('id')
+    .eq('tournament_id', tournamentId)
+    .eq('status', 'complete')
+  const completeSquadIds = (completeSquads ?? []).map((s) => s.id)
+
+  let placedIds = new Set<string>()
+  if (completeSquadIds.length > 0) {
+    const { data: placed } = await admin.from('squad_members').select('player_id').in('squad_id', completeSquadIds)
+    placedIds = new Set((placed ?? []).map((r) => r.player_id as string))
+  }
+
+  const unplaced = (paidRegs ?? []).map((r) => r.player_id as string).filter((id) => !placedIds.has(id))
+  const { groups, leftover } = autoGroupIntoSquads(unplaced, teamSize)
+  if (groups.length === 0) return { leftover }
+
+  const { count: existingSquadCount } = await admin
+    .from('squads')
+    .select('*', { count: 'exact', head: true })
+    .eq('tournament_id', tournamentId)
+
+  for (let i = 0; i < groups.length; i++) {
+    const group = groups[i]
+    const inviteCode = await uniqueInviteCode(admin)
+    const { data: squad } = await admin
+      .from('squads')
+      .insert({
+        tournament_id: tournamentId,
+        name: squadNameFor((existingSquadCount ?? 0) + i + 1),
+        captain_id: group[0],
+        invite_code: inviteCode,
+        // No 'forming' wait — payment already happened via ordinary solo
+        // registration (spec §5.2 step 3).
+        status: 'complete',
+      })
+      .select('id')
+      .single()
+    if (!squad) continue
+    const { error: memberInsertErr } = await admin.from('squad_members').insert(
+      group.map((playerId, idx) => ({
+        squad_id: squad.id,
+        tournament_id: tournamentId,
+        player_id: playerId,
+        role: idx === 0 ? 'captain' : 'member',
+      })),
+    )
+    // A multi-row insert is all-or-nothing — if it fails (e.g. a player still
+    // has a stale squad_members row from another squad), don't leave a
+    // 'complete' squad with zero members and its would-be roster stranded
+    // with no squad at all. Drop the empty squad and surface the failure so
+    // the admin sees it on the review screen rather than a silent gap.
+    if (memberInsertErr) {
+      await admin.from('squads').delete().eq('id', squad.id)
+      throw new Error(`Failed to assign players to ${squadNameFor((existingSquadCount ?? 0) + i + 1)}: ${memberInsertErr.message}`)
+    }
+  }
+
+  return { leftover }
 }
 
 async function generate(
@@ -194,11 +297,34 @@ export async function closeRegistration(
   if (seeded.length < 2) return { error: 'Need at least 2 paid players to close registration.' }
 
   if (t.competition_format === 'points_race') {
-    // Squad entrants need the squad lifecycle (phase 5). Refusing here keeps a
-    // half-built path from being reachable by accident.
-    if (t.entry_unit !== 'solo') {
-      return { error: 'Squad tournaments cannot be closed yet — squad registration is not built.' }
+    if (t.entry_unit === 'squad') {
+      // Refunds + squad assembly are financial/roster-shaping actions —
+      // requireStaff() above already passed, but a moderator must not reach
+      // this far (CLAUDE.md: moderators get "no financial actions").
+      await requireAdmin()
+
+      const { data: squadTournament } = await admin.from('tournaments').select('squad_size').eq('id', id).maybeSingle()
+      const teamSize = squadTournament?.squad_size
+      if (!teamSize) return { error: 'This tournament has no squad size configured.' }
+
+      await refundFormingSquads(admin, id)
+      try {
+        await autoGroupRemainingPlayers(admin, id, teamSize)
+      } catch (e) {
+        return { error: e instanceof Error ? e.message : 'Failed to auto-group remaining players into squads.' }
+      }
+
+      await admin.from('tournaments').update({ status: 'registration_closed' }).eq('id', id)
+      try {
+        await createSquadEntrants(admin, id)
+      } catch (e) {
+        return { error: e instanceof Error ? e.message : 'Failed to create entrants.' }
+      }
+      revalidateAdmin(id)
+      revalidatePath(`/admin/tournaments/${id}/squads`)
+      return { success: true }
     }
+
     await admin.from('tournaments').update({ status: 'registration_closed' }).eq('id', id)
     try {
       await createSoloEntrants(admin, id, seeded)

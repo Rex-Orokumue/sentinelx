@@ -34,7 +34,7 @@ async function getTournament(slug: string) {
   const { data } = await supabase
     .from('tournaments')
     .select(
-      'id, title, slug, description, banner_url, card_image_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, tournament_end, rules, invitation_only, games(name, icon_url, slug, category), game_modes(name), game_mode_formats(name), game_mode_maps(name), game_mode_match_rules(name)',
+      'id, title, slug, description, banner_url, card_image_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, tournament_end, rules, invitation_only, entry_unit, squad_size, games(name, icon_url, slug, category), game_modes(name), game_mode_formats(name), game_mode_maps(name), game_mode_match_rules(name)',
     )
     .eq('slug', slug)
     .maybeSingle()
@@ -121,6 +121,26 @@ export default async function TournamentDetailPage({
     registrationStatus,
     invitationOnly: t.invitation_only,
   })
+
+  let mySquad: { name: string; inviteCode: string; memberCount: number; teamSize: number } | null = null
+  if (user && t.entry_unit === 'squad' && view === 'registered') {
+    const { data: membership } = await supabase
+      .from('squad_members')
+      .select('squad_id, squads(name, invite_code)')
+      .eq('tournament_id', t.id)
+      .eq('player_id', user.id)
+      .maybeSingle()
+    if (membership) {
+      const squad = Array.isArray(membership.squads) ? membership.squads[0] : membership.squads
+      const { count } = await supabase
+        .from('squad_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('squad_id', membership.squad_id)
+      if (squad) {
+        mySquad = { name: squad.name, inviteCode: squad.invite_code, memberCount: count ?? 0, teamSize: t.squad_size ?? 0 }
+      }
+    }
+  }
 
   const status = STATUS[t.status] ?? STATUS.completed
   const start = formatDate(t.tournament_start)
@@ -245,6 +265,9 @@ export default async function TournamentDetailPage({
           tournamentId={t.id}
           slug={t.slug}
           fee={t.registration_fee}
+          entryUnit={t.entry_unit as 'solo' | 'squad'}
+          squadSize={t.squad_size}
+          mySquad={mySquad}
           loginHref={`/login?next=/tournaments/${t.slug}`}
           prefill={prefill}
           rules={splitRules(t.rules)}

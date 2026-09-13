@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { soloEntrantRows } from './entrants'
+import { soloEntrantRows, squadEntrantRows } from './entrants'
 
 const T = 'ffffffff-ffff-4fff-8fff-ffffffffffff'
 
@@ -47,5 +47,31 @@ describe('soloEntrantRows', () => {
 
   it('returns nothing for no seeds', () => {
     expect(soloEntrantRows(T, [])).toEqual([])
+  })
+})
+
+describe('squadEntrantRows', () => {
+  it('builds one row per squad, kind squad', () => {
+    const rows = squadEntrantRows('t1', [
+      { squadId: 's1', displayName: 'Lagos Vipers' },
+      { squadId: 's2', displayName: 'Abuja Falcons' },
+    ])
+    expect(rows).toEqual([
+      { tournament_id: 't1', kind: 'squad', squad_id: 's1', display_name: 'Lagos Vipers', status: 'active' },
+      { tournament_id: 't1', kind: 'squad', squad_id: 's2', display_name: 'Abuja Falcons', status: 'active' },
+    ])
+  })
+
+  it('drops a duplicate squad id rather than letting the UNIQUE constraint abort the insert', () => {
+    const rows = squadEntrantRows('t1', [
+      { squadId: 's1', displayName: 'Lagos Vipers' },
+      { squadId: 's1', displayName: 'Lagos Vipers' },
+    ])
+    expect(rows).toHaveLength(1)
+  })
+
+  it('falls back to a placeholder name for a blank display name', () => {
+    const rows = squadEntrantRows('t1', [{ squadId: 's1', displayName: '  ' }])
+    expect(rows[0].display_name).toBe('Squad')
   })
 })

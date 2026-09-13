@@ -9,6 +9,8 @@ import { formatNaira } from '@/lib/format'
 import { Field } from '@/components/dashboard/FormField'
 import { COINS_HALF_ENTRY, COINS_PER_ENTRY, NAIRA_PER_COIN } from '@/lib/coins/value'
 import { RegistrationGate } from './RegistrationGate'
+import { SquadEntryFlow } from './SquadEntryFlow'
+import { squadInviteShareUrl } from '@/lib/tournaments/squad-share'
 
 const box = 'rounded-2xl border border-slate-800 bg-slate-900 p-5'
 
@@ -17,6 +19,9 @@ export function RegistrationPanel({
   tournamentId,
   slug,
   fee,
+  entryUnit,
+  squadSize,
+  mySquad,
   loginHref,
   prefill,
   rules,
@@ -30,6 +35,9 @@ export function RegistrationPanel({
   tournamentId: string
   slug: string
   fee: number
+  entryUnit: 'solo' | 'squad'
+  squadSize: number | null
+  mySquad: { name: string; inviteCode: string; memberCount: number; teamSize: number } | null
   loginHref: string
   prefill: { displayName: string; whatsapp: string }
   rules: string[]
@@ -66,6 +74,23 @@ export function RegistrationPanel({
           >
             Choose your username
           </Link>
+        </div>
+      )
+    }
+    if (entryUnit === 'squad' && view === 'can_register') {
+      return (
+        <div className={box}>
+          <SquadPickerThenRegister
+            tournamentId={tournamentId}
+            slug={slug}
+            fee={fee}
+            prefill={prefill}
+            rules={rules}
+            gameName={gameName}
+            tournamentTitle={tournamentTitle}
+            coinBalance={coinBalance}
+            squadSize={squadSize ?? 0}
+          />
         </div>
       )
     }
@@ -115,6 +140,27 @@ export function RegistrationPanel({
             View Bracket
           </Link>
         </div>
+        {mySquad && (
+          <div className="mt-3 rounded-xl border border-slate-700 bg-slate-950 p-3">
+            <p className="text-center text-sm text-slate-300">
+              Your squad: <span className="font-bold text-white">{mySquad.name}</span> —{' '}
+              {mySquad.memberCount}/{mySquad.teamSize} joined
+            </p>
+            {mySquad.memberCount < mySquad.teamSize && (
+              <>
+                <p className="mt-1 text-center text-lg font-bold tracking-widest text-white">{mySquad.inviteCode}</p>
+                <a
+                  href={squadInviteShareUrl({ tournamentTitle, tournamentSlug: slug, squadName: mySquad.name, inviteCode: mySquad.inviteCode })}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 block text-center text-xs font-semibold text-emerald-400 hover:text-emerald-300"
+                >
+                  ↗ Share invite on WhatsApp
+                </a>
+              </>
+            )}
+          </div>
+        )}
       </div>
     )
   }
@@ -245,6 +291,54 @@ function WaitlistForm({
   )
 }
 
+function SquadPickerThenRegister(props: {
+  tournamentId: string
+  slug: string
+  fee: number
+  prefill: { displayName: string; whatsapp: string }
+  rules: string[]
+  gameName: string
+  tournamentTitle: string
+  coinBalance: number
+  squadSize: number
+}) {
+  const [choice, setChoice] = useState<{ squadId: string; squadName: string } | null>(null)
+  const [skipped, setSkipped] = useState(false)
+
+  if (!choice && !skipped) {
+    return (
+      <SquadEntryFlow
+        tournamentId={props.tournamentId}
+        tournamentSlug={props.slug}
+        tournamentTitle={props.tournamentTitle}
+        squadSize={props.squadSize}
+        onChosen={setChoice}
+        onSkip={() => setSkipped(true)}
+      />
+    )
+  }
+
+  if (skipped) {
+    return (
+      <>
+        <p className="mb-3 text-center text-sm text-slate-300">
+          You&apos;ll be grouped into a squad automatically once registration closes.
+        </p>
+        <RegisterForm {...props} isCompletingPayment={false} />
+      </>
+    )
+  }
+
+  return (
+    <>
+      <p className="mb-3 text-center text-sm text-slate-300">
+        Joining <span className="font-bold text-white">{choice!.squadName}</span>
+      </p>
+      <RegisterForm {...props} squadId={choice!.squadId} isCompletingPayment={false} />
+    </>
+  )
+}
+
 type CoinTier = '0' | '500' | '1000'
 
 function RegisterForm({
@@ -257,6 +351,7 @@ function RegisterForm({
   tournamentTitle,
   coinBalance,
   isCompletingPayment,
+  squadId,
 }: {
   tournamentId: string
   slug: string
@@ -267,6 +362,7 @@ function RegisterForm({
   tournamentTitle: string
   coinBalance: number
   isCompletingPayment: boolean
+  squadId?: string
 }) {
   const [state, formAction] = useFormState<RegisterState, FormData>(registerForTournament, undefined)
   const [tier, setTier] = useState<CoinTier>('0')
@@ -291,6 +387,7 @@ function RegisterForm({
     <>
       <form action={formAction} className="space-y-3">
         <input type="hidden" name="tournamentId" value={tournamentId} />
+        {squadId && <input type="hidden" name="squadId" value={squadId} />}
         <Field name="displayName" label="Display name" defaultValue={prefill.displayName} />
         <Field
           name="whatsapp"
