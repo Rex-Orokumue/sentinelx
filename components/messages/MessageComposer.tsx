@@ -107,7 +107,13 @@ export function MessageComposer({
   }
 
   const hasText = messageBodySchema.safeParse(body).success
-  const ok = mode?.type === 'edit' ? hasText && !pending : (hasText || file != null) && !pending
+  // Edit still gates on !pending — one message being edited at a time is the
+  // right restriction. A regular send does not: body/file are cleared
+  // synchronously below before the upload/insert ever starts, so there's
+  // nothing to double-submit, and each send gets its own tempId — so the
+  // composer must stay usable while an earlier send is still in flight
+  // (that's the whole point of showing a pending clock instead of blocking).
+  const ok = mode?.type === 'edit' ? hasText && !pending : hasText || file != null
 
   // Retries an already-visible message in place — WhatsApp-style: a failed
   // send stays as a bubble with a red retry mark rather than dumping the
