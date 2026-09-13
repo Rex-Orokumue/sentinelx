@@ -92,6 +92,16 @@
       "matchReminder": {
         "title": "Match dans 1 heure",
         "body": "{tournament} · contre {opponent}"
+      },
+      "newFollower": {
+        "title": "Nouvel abonné",
+        "body": "{followerName} a commencé à vous suivre."
+      },
+      "directMessage": {
+        "title": "Nouveau message de {fromName}",
+        "sticker": "Autocollant",
+        "voice": "Note vocale",
+        "photo": "Photo"
       }
     },
     "whatsapp": {

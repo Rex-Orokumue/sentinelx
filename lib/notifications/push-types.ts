@@ -3,7 +3,7 @@
 // both push.ts and any settings-UI code that needs the full key list can
 // import the type without pulling in fcm.ts's firebase-admin dependency.
 //
-// 15 of these are real pref keys. 'status_removed' is the exception: it is a
+// 17 of these are real pref keys. 'status_removed' is the exception: it is a
 // moderation notice that is always delivered, so it appears here only for
 // pushToPlayer's parameter type and has no notification_prefs.push entry
 // (push?.['status_removed'] is undefined, never === false, so it always sends).
@@ -25,6 +25,8 @@ export type PushNotificationType =
   | 'bracket_released'
   | 'match_assigned'
   | 'prize_credited'
+  | 'new_follower'
+  | 'direct_message'
   | 'noshow_needs_decision'
   | 'withdrawal_pending'
   | 'exchange_listing_pending'

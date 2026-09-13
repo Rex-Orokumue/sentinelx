@@ -14,6 +14,7 @@ export type NotificationType =
   | 'result_submitted'
   | 'referral_credited'
   | 'friend_request'
+  | 'new_follower'
   | 'wallet_credited'
   | 'fixture_assigned'
   | 'player_disqualified'
