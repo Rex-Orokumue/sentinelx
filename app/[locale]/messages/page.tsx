@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { SquarePen } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { fetchThreadList } from '@/lib/messages/query'
 import { ThreadListItem } from '@/components/messages/ThreadListItem'
@@ -20,7 +21,19 @@ export default async function MessagesPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 pb-24">
       <MessagesRealtime />
-      <h1 className="mb-4 font-display text-2xl font-black uppercase text-white">Messages</h1>
+      {/* Compose is always here, not just in the empty state below — before
+          this, starting a NEW conversation once you already had one meant
+          leaving the page to find the player's profile again. */}
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="font-display text-2xl font-black uppercase text-white">Messages</h1>
+        <Link
+          href="/players"
+          aria-label="New message"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-sx-purple-text transition-colors hover:bg-white/5"
+        >
+          <SquarePen className="h-5 w-5" />
+        </Link>
+      </div>
       {threads.length === 0 ? (
         <div className="rounded-xl border border-sx-border bg-sx-surface p-8 text-center">
           <p className="text-sm text-sx-gray">No conversations yet.</p>

@@ -209,6 +209,16 @@ export function MobileNavSheet({
               >
                 {tAccount('myProfile')}
               </SheetLink>
+              <SheetLink href="/messages" active={pathname.startsWith('/messages')} onClose={onClose}>
+                <span className="flex items-center justify-between gap-2">
+                  {tAccount('messages')}
+                  {session.unreadMessageCount > 0 && (
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                      {session.unreadMessageCount > 99 ? '99+' : session.unreadMessageCount}
+                    </span>
+                  )}
+                </span>
+              </SheetLink>
               <SheetLink
                 href="/dashboard"
                 active={pathname === '/dashboard'}

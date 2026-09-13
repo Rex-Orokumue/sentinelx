@@ -243,6 +243,7 @@
   },
   "account": {
     "myProfile": "My Profile",
+    "messages": "Messages",
     "dashboard": "Dashboard",
     "wallet": "Wallet",
     "friendlies": "Friendlies",

@@ -243,6 +243,7 @@
   },
   "account": {
     "myProfile": "Mon profil",
+    "messages": "Messages",
     "dashboard": "Tableau de bord",
     "wallet": "Portefeuille",
     "friendlies": "Matchs amicaux",
