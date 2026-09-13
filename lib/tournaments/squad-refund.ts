@@ -118,6 +118,11 @@ export async function refundFormingSquads(admin: Admin, tournamentId: string): P
     }
 
     await admin.from('squads').update({ status: 'withdrawn' }).eq('id', squad.id)
+    // A withdrawn squad's members are no longer "in" it — delete their
+    // squad_members rows so squad_members_one_squad_per_tournament doesn't
+    // collide when admin-arranged auto-grouping (or a fresh self-serve join)
+    // later places the same player in a different squad for this tournament.
+    await admin.from('squad_members').delete().eq('squad_id', squad.id)
   }
 
   return { refundedSquads: squads.length }

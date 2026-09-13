@@ -139,7 +139,7 @@ async function autoGroupRemainingPlayers(
       .select('id')
       .single()
     if (!squad) continue
-    await admin.from('squad_members').insert(
+    const { error: memberInsertErr } = await admin.from('squad_members').insert(
       group.map((playerId, idx) => ({
         squad_id: squad.id,
         tournament_id: tournamentId,
@@ -147,6 +147,15 @@ async function autoGroupRemainingPlayers(
         role: idx === 0 ? 'captain' : 'member',
       })),
     )
+    // A multi-row insert is all-or-nothing — if it fails (e.g. a player still
+    // has a stale squad_members row from another squad), don't leave a
+    // 'complete' squad with zero members and its would-be roster stranded
+    // with no squad at all. Drop the empty squad and surface the failure so
+    // the admin sees it on the review screen rather than a silent gap.
+    if (memberInsertErr) {
+      await admin.from('squads').delete().eq('id', squad.id)
+      throw new Error(`Failed to assign players to ${squadNameFor((existingSquadCount ?? 0) + i + 1)}: ${memberInsertErr.message}`)
+    }
   }
 
   return { leftover }
@@ -299,7 +308,11 @@ export async function closeRegistration(
       if (!teamSize) return { error: 'This tournament has no squad size configured.' }
 
       await refundFormingSquads(admin, id)
-      await autoGroupRemainingPlayers(admin, id, teamSize)
+      try {
+        await autoGroupRemainingPlayers(admin, id, teamSize)
+      } catch (e) {
+        return { error: e instanceof Error ? e.message : 'Failed to auto-group remaining players into squads.' }
+      }
 
       await admin.from('tournaments').update({ status: 'registration_closed' }).eq('id', id)
       try {
