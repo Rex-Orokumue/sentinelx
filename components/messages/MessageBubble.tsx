@@ -156,7 +156,9 @@ export function MessageBubble({
         </div>
       ) : (
         <div className="relative max-w-[80%]">
-          <div className={`overflow-hidden rounded-2xl text-sm ${mine ? 'bg-sx-purple text-white' : 'bg-sx-surface text-white'}`}>
+          <div
+            className={`overflow-hidden rounded-2xl text-sm ${mine ? 'rounded-br-none bg-sx-purple text-white' : 'rounded-bl-none bg-sx-surface text-white'}`}
+          >
             {m.forwarded && !removed && (
               <p className={`mx-2 mt-2 flex items-center gap-1 text-[10px] italic ${mine ? 'text-white/60' : 'text-sx-gray'}`}>
                 <Forward className="h-3 w-3" /> Forwarded
@@ -194,13 +196,21 @@ export function MessageBubble({
               {ticks}
             </p>
           </div>
-          {/* Bubble tail — a small triangular nub on the outer bottom corner,
-              same colour as the bubble it's attached to. Lives on this outer
-              (non-clipping) wrapper, not the rounded/overflow-hidden div
-              above, so it isn't clipped by that div's own rounded corners. */}
+          {/* Bubble tail — a small triangular nub, same colour as the bubble
+              it's attached to. Lives on this outer (non-clipping) wrapper,
+              not the rounded/overflow-hidden div above, so it isn't clipped
+              by that div's own rounded corners. The bubble's corner on this
+              side is squared off above (rounded-br-none/rounded-bl-none) so
+              the tail sits flush against a straight edge instead of trying
+              to fill a rounded notch — that mismatch is what made it look
+              like a disconnected floating triangle. `right-0`/`left-0` plus
+              a translate pushes it fully outside the bubble, pulled back by
+              1px so the shared edge doesn't show a subpixel seam. */}
           <span
             aria-hidden
-            className={`absolute bottom-0 h-3 w-3 ${mine ? '-right-1 bg-sx-purple' : '-left-1 bg-sx-surface'}`}
+            className={`absolute bottom-0 h-3 w-3 ${
+              mine ? 'right-0 translate-x-[calc(100%-1px)] bg-sx-purple' : 'left-0 -translate-x-[calc(100%-1px)] bg-sx-surface'
+            }`}
             style={{ clipPath: mine ? 'polygon(0 0, 0% 100%, 100% 100%)' : 'polygon(100% 0, 0% 100%, 100% 100%)' }}
           />
         </div>
