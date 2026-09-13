@@ -3,15 +3,18 @@ import { isBoostLive, BOOST_DURATION_MS } from './boost'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { postContentSchema } from './schema'
+import { postContentSchema, clampImageUrls } from './schema'
 import { incrementChallenge } from './challenges'
 import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
 
 export type DeleteState = { error?: string } | undefined
 
 // A post needs text or an image, not neither (spec §6 "Empty post ... Post
-// button disabled" — this is the server-side twin of that client check).
-export async function createPost(input: { content: string; imageUrl?: string | null }): Promise<{ id?: string; error?: string }> {
+// button disabled" — this is the server-side twin of that client check). Up
+// to 5 images: the first is written to the legacy community_posts.image_url
+// column (every existing reader — CommunityGallery, AnnouncementCard, admin —
+// keeps working unchanged); the rest go to community_post_images.
+export async function createPost(input: { content: string; imageUrls?: string[] }): Promise<{ id?: string; error?: string }> {
   const supabase = createClient()
   const {
     data: { user },
@@ -21,17 +24,33 @@ export async function createPost(input: { content: string; imageUrl?: string | n
   const parsed = postContentSchema.safeParse(input.content)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const content = parsed.data
-  const imageUrl = input.imageUrl?.trim() || null
-  if (!content && !imageUrl) return { error: 'Write something or add a screenshot first.' }
+  const imageUrls = clampImageUrls(input.imageUrls ?? [])
+  const firstImageUrl = imageUrls[0] ?? null
+  if (!content && !firstImageUrl) return { error: 'Write something or add a screenshot first.' }
 
   const { data: post, error } = await supabase
     .from('community_posts')
-    .insert({ author_id: user.id, content, image_url: imageUrl, post_type: 'manual' })
+    .insert({ author_id: user.id, content, image_url: firstImageUrl, post_type: 'manual' })
     .select('id')
     .single()
   if (error || !post) {
     console.error('[createPost] community_posts insert failed', { authorId: user.id, code: error?.code, message: error?.message })
     return { error: 'Could not post. Please try again.' }
+  }
+
+  if (imageUrls.length > 1) {
+    const extraImages = imageUrls.slice(1).map((image_url, i) => ({
+      post_id: post.id,
+      image_url,
+      display_order: i + 1,
+    }))
+    const { error: imagesError } = await supabase.from('community_post_images').insert(extraImages)
+    // Don't fail the post over this — the post itself succeeded and has its
+    // first image; a partial-image post is a smaller problem than losing the
+    // player's post entirely.
+    if (imagesError) {
+      console.error('[createPost] community_post_images insert failed', { postId: post.id, code: imagesError.code, message: imagesError.message })
+    }
   }
 
   // Weekly "Community Voice" challenge — needs the service-role client since
