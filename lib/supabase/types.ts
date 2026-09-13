@@ -3249,6 +3249,7 @@ export type Database = {
           entrant_id: string | null
           fee_waived: boolean
           id: string
+          joining_squad_id: string | null
           payment_status: string
           paystack_reference: string | null
           player_id: string
@@ -3269,6 +3270,7 @@ export type Database = {
           entrant_id?: string | null
           fee_waived?: boolean
           id?: string
+          joining_squad_id?: string | null
           payment_status?: string
           paystack_reference?: string | null
           player_id: string
@@ -3289,6 +3291,7 @@ export type Database = {
           entrant_id?: string | null
           fee_waived?: boolean
           id?: string
+          joining_squad_id?: string | null
           payment_status?: string
           paystack_reference?: string | null
           player_id?: string
@@ -3307,6 +3310,13 @@ export type Database = {
             columns: ["entrant_id"]
             isOneToOne: false
             referencedRelation: "tournament_entrants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_registrations_joining_squad_id_fkey"
+            columns: ["joining_squad_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
             referencedColumns: ["id"]
           },
           {
