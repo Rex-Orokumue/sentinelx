@@ -1,6 +1,7 @@
 'use client'
 import { useFormState } from 'react-dom'
 import { grantWaiver, type WaiverFormState } from '@/lib/tournaments/waiver-admin-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function WaiverForm({ tournamentId }: { tournamentId: string }) {
   const [state, action] = useFormState<WaiverFormState, FormData>(grantWaiver, undefined)
@@ -31,12 +32,12 @@ export function WaiverForm({ tournamentId }: { tournamentId: string }) {
         />
       </div>
       <div className="flex items-center gap-2">
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Granting…"
           className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500"
         >
           Grant waiver
-        </button>
+        </SubmitButton>
         {state?.success && !state.warning && <span className="text-xs text-emerald-400">Waiver granted.</span>}
         {state?.error && <span className="text-xs text-red-400">{state.error}</span>}
       </div>

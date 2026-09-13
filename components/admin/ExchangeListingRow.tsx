@@ -1,5 +1,5 @@
 'use client'
-import { useFormState } from 'react-dom'
+import { useFormState, useFormStatus } from 'react-dom'
 import {
   deleteListingAdmin,
   markListingSoldAdmin,
@@ -10,6 +10,35 @@ import { formatNaira } from '@/lib/format'
 import { CATEGORY_LABELS, LISTING_BADGES, type ListingBadge, type ListingCategory } from '@/lib/exchange/schema'
 import { BADGE_PRESENTATION } from '@/lib/exchange/badges'
 import { WhatsAppChip } from '@/components/shared/WhatsAppChip'
+import { SubmitButton } from '@/components/ui/submit-button'
+
+function MarkSoldButton({ canMarkSold }: { canMarkSold: boolean }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={!canMarkSold || pending}
+      className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+      title={canMarkSold ? undefined : 'Blocked — an order is in progress on this listing.'}
+    >
+      {pending ? 'Marking…' : 'Mark as sold'}
+    </button>
+  )
+}
+
+function DeleteListingButton({ canDelete }: { canDelete: boolean }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={!canDelete || pending}
+      className="rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+      title={canDelete ? undefined : 'Blocked — this listing has order history.'}
+    >
+      {pending ? 'Deleting…' : 'Delete'}
+    </button>
+  )
+}
 
 export interface AdminListing {
   id: string
@@ -73,14 +102,7 @@ export function ExchangeListingRow({ listing }: { listing: AdminListing }) {
             }}
           >
             <input type="hidden" name="id" value={listing.id} />
-            <button
-              type="submit"
-              disabled={!listing.canMarkSold}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
-              title={listing.canMarkSold ? undefined : 'Blocked — an order is in progress on this listing.'}
-            >
-              Mark as sold
-            </button>
+            <MarkSoldButton canMarkSold={listing.canMarkSold} />
           </form>
         )}
         <form
@@ -93,14 +115,7 @@ export function ExchangeListingRow({ listing }: { listing: AdminListing }) {
           }}
         >
           <input type="hidden" name="id" value={listing.id} />
-          <button
-            type="submit"
-            disabled={!listing.canDelete}
-            className="rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40"
-            title={listing.canDelete ? undefined : 'Blocked — this listing has order history.'}
-          >
-            Delete
-          </button>
+          <DeleteListingButton canDelete={listing.canDelete} />
         </form>
         <WhatsAppChip name={`Message @${listing.sellerName}`} url={listing.whatsappUrl} />
       </div>
@@ -131,12 +146,12 @@ export function ExchangeListingRow({ listing }: { listing: AdminListing }) {
             className="w-32 rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
           />
         </label>
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Saving…"
           className="rounded-lg border border-slate-700 px-4 py-2 text-xs font-bold text-slate-200 hover:border-slate-500"
         >
           Save
-        </button>
+        </SubmitButton>
         {merchState?.success && <span className="text-xs text-emerald-400">Saved</span>}
       </form>
 

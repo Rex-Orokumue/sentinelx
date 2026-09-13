@@ -6,6 +6,7 @@ import {
   toggleChallengeActive,
   type ChallengeActionState,
 } from '@/lib/admin/challenge-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface AdminChallenge {
   id: string
@@ -60,9 +61,9 @@ function CreateChallengeForm() {
       </div>
       {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
       {state?.success && <p className="text-sm text-emerald-400">Challenge created.</p>}
-      <button type="submit" className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500">
+      <SubmitButton pendingLabel="Adding…" className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500">
         Add challenge
-      </button>
+      </SubmitButton>
     </form>
   )
 }
@@ -92,9 +93,9 @@ function EditChallengeRow({ item }: { item: AdminChallenge }) {
             <input name="goal" type="number" min={1} defaultValue={item.goal} required className={`${inputClass} w-20`} />
             <input name="coinReward" type="number" min={0} defaultValue={item.coin_reward} required className={`${inputClass} w-24`} />
             <input name="xpReward" type="number" min={0} defaultValue={item.xp_reward} required className={`${inputClass} w-20`} />
-            <button type="submit" className="rounded-lg border border-slate-700 px-2 py-1 text-xs font-bold text-slate-300 hover:border-slate-500">
+            <SubmitButton pendingLabel="Saving…" className="rounded-lg border border-slate-700 px-2 py-1 text-xs font-bold text-slate-300 hover:border-slate-500">
               Save
-            </button>
+            </SubmitButton>
           </div>
         </form>
         {updateState?.error && <p className="mt-1 text-xs text-red-400">{updateState.error}</p>}
@@ -103,14 +104,14 @@ function EditChallengeRow({ item }: { item: AdminChallenge }) {
         <form action={toggleAction}>
           <input type="hidden" name="id" value={item.id} />
           <input type="hidden" name="active" value={String(item.active)} />
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="…"
             className={`rounded-lg px-2 py-1 text-xs font-bold ${
               item.active ? 'bg-emerald-600/20 text-emerald-400' : 'bg-slate-700/40 text-slate-400'
             }`}
           >
             {item.active ? 'Active' : 'Inactive'}
-          </button>
+          </SubmitButton>
         </form>
         {toggleState?.error && <p className="mt-1 text-xs text-red-400">{toggleState.error}</p>}
       </td>

@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { toggleGameActive, type GameFormState } from '@/lib/games/admin-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function GameRow({
   game,
@@ -42,8 +43,8 @@ export function GameRow({
           <form action={action} className="flex shrink-0 items-center gap-2">
             <input type="hidden" name="id" value={game.id} />
             <input type="hidden" name="nextActive" value={String(nextActive)} />
-            <button
-              type="submit"
+            <SubmitButton
+              pendingLabel="Working…"
               className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-500"
             >
               {game.active
@@ -51,7 +52,7 @@ export function GameRow({
                   ? `Confirm — ${activeTournamentCount} active tournament${activeTournamentCount === 1 ? '' : 's'} will be unaffected`
                   : 'Confirm deactivate'
                 : 'Confirm activate'}
-            </button>
+            </SubmitButton>
             <button
               type="button"
               onClick={() => setConfirming(false)}

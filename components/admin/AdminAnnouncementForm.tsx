@@ -2,6 +2,7 @@
 import { useRef } from 'react'
 import { useFormState } from 'react-dom'
 import { createAnnouncement, type AdminActionState } from '@/lib/community/admin-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function AdminAnnouncementForm() {
   const [state, action] = useFormState<AdminActionState, FormData>(createAnnouncement, undefined)
@@ -26,9 +27,9 @@ export function AdminAnnouncementForm() {
         className="mt-3 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
       />
       <div className="mt-2 flex items-center justify-end">
-        <button type="submit" className="rounded-lg bg-violet-600 px-5 py-2 text-xs font-bold text-white hover:bg-violet-500">
+        <SubmitButton pendingLabel="Posting…" className="rounded-lg bg-violet-600 px-5 py-2 text-xs font-bold text-white hover:bg-violet-500">
           Post announcement
-        </button>
+        </SubmitButton>
       </div>
       {state?.error && <p className="mt-2 text-xs text-red-400">{state.error}</p>}
     </form>

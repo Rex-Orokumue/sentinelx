@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { useFormState } from 'react-dom'
+import { useFormState, useFormStatus } from 'react-dom'
 import { payStake, type PayStakeState } from '@/lib/friendly-matches/pay-actions'
 import { submitFriendlyResult } from '@/lib/friendly-matches/result-actions'
 import { acceptChallenge, declineChallenge, type FriendlyActionState } from '@/lib/friendly-matches/actions'
@@ -226,6 +226,19 @@ function GameCodeField({
   )
 }
 
+function ResultSubmitButton({ screenshotPath, uploading }: { screenshotPath: string; uploading: boolean }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={uploading || !screenshotPath || pending}
+      className="w-full rounded-xl bg-violet-600 px-6 py-3 text-sm font-bold text-white hover:bg-violet-500 disabled:cursor-wait disabled:opacity-50"
+    >
+      {pending ? 'Submitting…' : 'Submit result'}
+    </button>
+  )
+}
+
 function ResultForm({ matchId }: { matchId: string }) {
   const [state, action] = useFormState<FriendlyActionState, FormData>(submitFriendlyResult, undefined)
   const [uploading, setUploading] = useState(false)
@@ -277,13 +290,7 @@ function ResultForm({ matchId }: { matchId: string }) {
         <p className="text-xs font-semibold text-emerald-400">✓ {fileName} uploaded</p>
       )}
       {state?.error && <p className="text-xs text-red-400">{state.error}</p>}
-      <button
-        type="submit"
-        disabled={uploading || !screenshotPath}
-        className="w-full rounded-xl bg-violet-600 px-6 py-3 text-sm font-bold text-white hover:bg-violet-500 disabled:opacity-50"
-      >
-        Submit result
-      </button>
+      <ResultSubmitButton screenshotPath={screenshotPath} uploading={uploading} />
     </form>
   )
 }

@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { disqualifyRegistration, type DisqualifyState } from '@/lib/tournaments/registrations-admin-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function DisqualifyButton({
   registrationId,
@@ -44,12 +45,12 @@ export function DisqualifyButton({
         className="w-48 rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-red-500 focus:outline-none"
       />
       <div className="flex gap-1.5">
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Disqualifying…"
           className="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-red-500"
         >
           Confirm
-        </button>
+        </SubmitButton>
         <button
           type="button"
           onClick={() => setConfirming(false)}

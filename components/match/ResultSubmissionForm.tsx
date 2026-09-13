@@ -24,7 +24,7 @@ export function ResultSubmissionForm({
   const [state, formAction] = useFormState<SubmitResultState, FormData>(submitMatchResult, undefined)
   const [uploading, setUploading] = useState(false)
   const [clientError, setClientError] = useState<string | null>(null)
-  const [, startTransition] = useTransition()
+  const [submitting, startTransition] = useTransition()
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -134,10 +134,10 @@ export function ResultSubmissionForm({
 
       <button
         type="submit"
-        disabled={uploading}
-        className="w-full rounded-xl bg-violet-600 px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-violet-500 disabled:opacity-60"
+        disabled={uploading || submitting}
+        className="w-full rounded-xl bg-violet-600 px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-violet-500 disabled:cursor-wait disabled:opacity-60"
       >
-        {uploading ? 'Uploading…' : initial ? 'Update result' : 'Submit result'}
+        {uploading ? 'Uploading…' : submitting ? 'Submitting…' : initial ? 'Update result' : 'Submit result'}
       </button>
     </form>
   )

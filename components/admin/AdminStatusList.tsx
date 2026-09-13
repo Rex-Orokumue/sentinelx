@@ -4,6 +4,7 @@ import { useFormState } from 'react-dom'
 import { formatDateTime } from '@/lib/format'
 import { adminDeleteStatus, type AdminActionState } from '@/lib/community/admin-actions'
 import type { AdminStatusRow } from '@/lib/community/admin-query'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function AdminStatusList({ statuses }: { statuses: AdminStatusRow[] }) {
   if (statuses.length === 0) {
@@ -54,9 +55,9 @@ function AdminStatusRowItem({ status }: { status: AdminStatusRow }) {
         ) : (
           <form action={action} className="shrink-0">
             <input type="hidden" name="id" value={status.id} />
-            <button type="submit" className="text-xs font-bold text-red-400 hover:text-red-300">
+            <SubmitButton pendingLabel="Deleting…" className="text-xs font-bold text-red-400 hover:text-red-300">
               Confirm
-            </button>
+            </SubmitButton>
           </form>
         )}
       </div>

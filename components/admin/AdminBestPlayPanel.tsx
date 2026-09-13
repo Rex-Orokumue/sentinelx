@@ -1,7 +1,20 @@
 'use client'
-import { useFormState } from 'react-dom'
+import { useFormState, useFormStatus } from 'react-dom'
 import { confirmBestPlayWinner, type AdminActionState } from '@/lib/community/admin-actions'
 import type { AdminNominationRow } from '@/lib/community/admin-query'
+
+function ConfirmWinnerButton({ disabled }: { disabled: boolean }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={disabled || pending}
+      className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-500 disabled:opacity-40"
+    >
+      {pending ? 'Confirming…' : 'Confirm Winner'}
+    </button>
+  )
+}
 
 export function AdminBestPlayPanel({ nominations }: { nominations: AdminNominationRow[] }) {
   if (nominations.length === 0) {
@@ -39,9 +52,7 @@ function NominationRow({ nomination: n, disabled }: { nomination: AdminNominatio
         ) : (
           <form action={action}>
             <input type="hidden" name="nominationId" value={n.nominationId} />
-            <button type="submit" disabled={disabled} className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-500 disabled:opacity-40">
-              Confirm Winner
-            </button>
+            <ConfirmWinnerButton disabled={disabled} />
           </form>
         )}
       </div>

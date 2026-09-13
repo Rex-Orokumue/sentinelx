@@ -5,6 +5,7 @@ import { ChevronDown } from 'lucide-react'
 import { signOut } from '@/lib/auth/actions'
 import { Avatar } from '@/components/shared/Avatar'
 import type { NavSession } from '@/lib/nav/session'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function AccountMenu({ session }: { session: NavSession }) {
   const [open, setOpen] = useState(false)
@@ -93,12 +94,12 @@ export function AccountMenu({ session }: { session: NavSession }) {
             <MenuLink href="/admin" onNavigate={() => setOpen(false)}>Admin</MenuLink>
           )}
           <form action={signOut}>
-            <button
-              type="submit"
+            <SubmitButton
+              pendingLabel="Signing out…"
               className="block w-full px-4 py-2 text-left text-sm text-white/70 transition-colors hover:bg-white/5 hover:text-white"
             >
               Sign out
-            </button>
+            </SubmitButton>
           </form>
         </div>
       )}

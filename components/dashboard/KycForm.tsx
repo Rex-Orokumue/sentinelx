@@ -1,8 +1,21 @@
 'use client'
 import { useState, useTransition } from 'react'
-import { useFormState } from 'react-dom'
+import { useFormState, useFormStatus } from 'react-dom'
 import { submitKyc, resolveAccountName, type KycState } from '@/lib/kyc/actions'
 import { Field } from './FormField'
+
+function SaveButton({ resolvedName }: { resolvedName: string | null }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={!resolvedName || pending}
+      className="w-full rounded-xl bg-violet-600 px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-violet-500 disabled:cursor-not-allowed disabled:cursor-wait disabled:opacity-50"
+    >
+      {pending ? 'Saving…' : 'Save payout details'}
+    </button>
+  )
+}
 
 export function KycForm({
   banks,
@@ -86,13 +99,7 @@ export function KycForm({
       <Field name="lastName" label="Last name" placeholder="As on your bank account" />
 
       {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
-      <button
-        type="submit"
-        disabled={!resolvedName}
-        className="w-full rounded-xl bg-violet-600 px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        Save payout details
-      </button>
+      <SaveButton resolvedName={resolvedName} />
     </form>
   )
 }

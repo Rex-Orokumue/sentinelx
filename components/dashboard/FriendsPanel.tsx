@@ -7,6 +7,7 @@ import {
   type FriendActionState,
 } from '@/lib/friends/actions'
 import { Avatar } from '@/components/shared/Avatar'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface FriendRequestRow {
   id: string
@@ -100,15 +101,15 @@ function IncomingRequestRow({ req }: { req: FriendRequestRow }) {
       <div className="flex shrink-0 gap-2">
         <form action={action}>
           <input type="hidden" name="id" value={req.id} />
-          <button type="submit" className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-violet-500">
+          <SubmitButton pendingLabel="Accepting…" className="rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-violet-500">
             Accept
-          </button>
+          </SubmitButton>
         </form>
         <form action={declineAction}>
           <input type="hidden" name="id" value={req.id} />
-          <button type="submit" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:border-slate-500">
+          <SubmitButton pendingLabel="Declining…" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:border-slate-500">
             Decline
-          </button>
+          </SubmitButton>
         </form>
       </div>
       {(state?.error || declineState?.error) && (
@@ -130,9 +131,9 @@ function FriendRow({ friend }: { friend: FriendRow }) {
       />
       <form action={action}>
         <input type="hidden" name="id" value={friend.id} />
-        <button type="submit" className="shrink-0 text-xs font-semibold text-red-400 hover:text-red-300">
+        <SubmitButton pendingLabel="Removing…" className="shrink-0 text-xs font-semibold text-red-400 hover:text-red-300">
           Remove
-        </button>
+        </SubmitButton>
       </form>
       {state?.error && <p className="text-xs text-red-400">{state.error}</p>}
     </div>

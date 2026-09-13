@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { manualCreditWalletFormAction, type ManualCreditFormState } from '@/lib/admin/wallet-actions'
 import { formatNaira, formatDateTime } from '@/lib/format'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface AdminWalletRow {
   playerId: string
@@ -53,12 +54,12 @@ export function WalletListRow({ wallet }: { wallet: AdminWalletRow }) {
           <input name="reason" placeholder="Reason (required)" required className={`w-full ${inputClass}`} />
           <p className="text-xs font-semibold text-amber-400">Credit {wallet.name}&apos;s wallet?</p>
           <div className="flex gap-2">
-            <button
-              type="submit"
+            <SubmitButton
+              pendingLabel="Crediting…"
               className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500"
             >
               Confirm credit
-            </button>
+            </SubmitButton>
             <button
               type="button"
               onClick={() => setConfirming(false)}

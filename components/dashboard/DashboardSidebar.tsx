@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut } from '@/lib/auth/actions'
 import { DASHBOARD_NAV_ITEMS, isDashboardNavActive } from '@/lib/dashboard/nav'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 // 'use client' for usePathname to highlight the active tab — same pattern as
 // components/wallet/WalletSidebar.tsx.
@@ -25,12 +26,12 @@ export function DashboardSidebar() {
         )
       })}
       <form action={signOut}>
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Signing out…"
           className="w-full shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm font-semibold text-sx-gray transition-colors hover:text-white"
         >
           Sign out
-        </button>
+        </SubmitButton>
       </form>
     </nav>
   )

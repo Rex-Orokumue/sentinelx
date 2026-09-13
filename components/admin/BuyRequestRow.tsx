@@ -11,6 +11,7 @@ import { canAdminSetStatus, type BuyRequestStatus } from '@/lib/exchange/request
 import { formatNaira } from '@/lib/format'
 import { CATEGORY_LABELS, type ListingCategory } from '@/lib/exchange/schema'
 import { WhatsAppChip } from '@/components/shared/WhatsAppChip'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface AdminBuyRequest {
   id: string
@@ -50,17 +51,17 @@ export function BuyRequestRow({ request }: { request: AdminBuyRequest }) {
         {canAdminSetStatus(request.status, 'in_progress') && (
           <form action={inProgress}>
             <input type="hidden" name="id" value={request.id} />
-            <button type="submit" className="rounded-lg bg-sky-600 px-4 py-2 text-xs font-bold text-white hover:bg-sky-500">
+            <SubmitButton pendingLabel="Marking…" className="rounded-lg bg-sky-600 px-4 py-2 text-xs font-bold text-white hover:bg-sky-500">
               Mark in-progress
-            </button>
+            </SubmitButton>
           </form>
         )}
         {canAdminSetStatus(request.status, 'fulfilled') && (
           <form action={fulfilled}>
             <input type="hidden" name="id" value={request.id} />
-            <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500">
+            <SubmitButton pendingLabel="Marking…" className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500">
               Mark fulfilled
-            </button>
+            </SubmitButton>
           </form>
         )}
         {canAdminSetStatus(request.status, 'closed') && (
@@ -74,9 +75,9 @@ export function BuyRequestRow({ request }: { request: AdminBuyRequest }) {
               placeholder="Note (optional)"
               className="rounded-lg border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
             />
-            <button type="submit" className="rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-500">
+            <SubmitButton pendingLabel="Closing…" className="rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-500">
               Close
-            </button>
+            </SubmitButton>
           </form>
         )}
         <WhatsAppChip name={`Message @${request.buyerName}`} url={request.whatsappUrl} />

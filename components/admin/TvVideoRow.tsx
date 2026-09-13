@@ -4,6 +4,7 @@ import { useFormState } from 'react-dom'
 import { toggleVideoActive, deleteVideo, type TvVideoState } from '@/lib/tv/admin-actions'
 import { CATEGORY_LABELS, type TvCategory } from '@/lib/tv/schema'
 import { TvVideoForm } from '@/components/admin/TvVideoForm'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface AdminTvVideo {
   id: string
@@ -59,21 +60,21 @@ export function TvVideoRow({ video }: { video: AdminTvVideo }) {
         <form action={toggleAction}>
           <input type="hidden" name="id" value={video.id} />
           <input type="hidden" name="active" value={String(video.active)} />
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Working…"
             className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-slate-500"
           >
             {video.active ? 'Hide' : 'Unhide'}
-          </button>
+          </SubmitButton>
         </form>
         <form action={deleteAction}>
           <input type="hidden" name="id" value={video.id} />
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Deleting…"
             className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-500"
           >
             Delete
-          </button>
+          </SubmitButton>
         </form>
       </div>
       {(toggleState?.error || deleteState?.error) && (

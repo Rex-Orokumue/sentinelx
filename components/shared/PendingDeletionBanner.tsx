@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl'
 import { AlertTriangle } from 'lucide-react'
 import { cancelAccountDeletion } from '@/lib/settings/account'
 import { deletionDueAt, daysRemaining } from '@/lib/settings/grace'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 // Deliberately not dismissible. Dismissing the only standing warning about
 // impending account deletion defeats the point of showing it — and the whole
@@ -28,12 +29,12 @@ export function PendingDeletionBanner({ requestedAt }: { requestedAt: string }) 
             router.refresh()
           }}
         >
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel={t('bannerCancelling')}
             className="whitespace-nowrap rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-500"
           >
             {t('bannerCancel')}
-          </button>
+          </SubmitButton>
         </form>
       </div>
     </div>

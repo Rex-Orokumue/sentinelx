@@ -8,6 +8,7 @@ import {
   disputeLobbyResult,
   type LobbyResultState,
 } from '@/lib/tournaments/lobby-result-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function LobbyResultForm({
   lobbyId,
@@ -29,7 +30,7 @@ export function LobbyResultForm({
   const [state, formAction] = useFormState<LobbyResultState, FormData>(submitLobbyResult, undefined)
   const [uploading, setUploading] = useState(false)
   const [clientError, setClientError] = useState<string | null>(null)
-  const [, startTransition] = useTransition()
+  const [submitting, startTransition] = useTransition()
 
   // Once the admin has confirmed, the result is the record. The only thing left
   // a player can do is say it is wrong.
@@ -142,10 +143,10 @@ export function LobbyResultForm({
 
       <button
         type="submit"
-        disabled={uploading}
-        className="w-full rounded-lg bg-violet-600 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-500 disabled:opacity-60"
+        disabled={uploading || submitting}
+        className="w-full rounded-lg bg-violet-600 px-4 py-3 text-sm font-semibold text-white hover:bg-violet-500 disabled:cursor-wait disabled:opacity-60"
       >
-        {uploading ? 'Uploading…' : 'Submit result'}
+        {uploading ? 'Uploading…' : submitting ? 'Submitting…' : 'Submit result'}
       </button>
     </form>
   )
@@ -183,9 +184,9 @@ function ConfirmedResult({
         <form action={formAction}>
           <input type="hidden" name="lobbyId" value={lobbyId} />
           {state?.error && <p className="mb-2 text-xs text-red-400">{state.error}</p>}
-          <button type="submit" className="text-xs font-semibold text-red-400 hover:text-red-300">
+          <SubmitButton pendingLabel="Raising dispute…" className="text-xs font-semibold text-red-400 hover:text-red-300">
             Something wrong? Raise a dispute
-          </button>
+          </SubmitButton>
         </form>
       )}
     </div>

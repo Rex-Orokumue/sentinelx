@@ -6,6 +6,7 @@ import {
   toggleStoreItemActive,
   type StoreActionState,
 } from '@/lib/admin/store-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface AdminStoreItem {
   id: string
@@ -63,12 +64,12 @@ function CreateStoreItemForm() {
       </div>
       {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
       {state?.success && <p className="text-sm text-emerald-400">Item created.</p>}
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="Adding…"
         className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500"
       >
         Add item
-      </button>
+      </SubmitButton>
     </form>
   )
 }
@@ -100,12 +101,12 @@ function EditStoreItemRow({ item }: { item: AdminStoreItem }) {
             required
             className={`${inputClass} w-24`}
           />
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Saving…"
             className="rounded-lg border border-slate-700 px-2 py-1 text-xs font-bold text-slate-300 hover:border-slate-500"
           >
             Save
-          </button>
+          </SubmitButton>
         </form>
         {updateState?.error && <p className="mt-1 text-xs text-red-400">{updateState.error}</p>}
       </td>
@@ -113,14 +114,14 @@ function EditStoreItemRow({ item }: { item: AdminStoreItem }) {
         <form action={toggleAction}>
           <input type="hidden" name="id" value={item.id} />
           <input type="hidden" name="active" value={String(item.active)} />
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="…"
             className={`rounded-lg px-2 py-1 text-xs font-bold ${
               item.active ? 'bg-emerald-600/20 text-emerald-400' : 'bg-slate-700/40 text-slate-400'
             }`}
           >
             {item.active ? 'Active' : 'Inactive'}
-          </button>
+          </SubmitButton>
         </form>
         {toggleState?.error && <p className="mt-1 text-xs text-red-400">{toggleState.error}</p>}
       </td>

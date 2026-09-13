@@ -8,6 +8,7 @@ import {
   type EconomyActionState,
 } from '@/lib/admin/player-economy-actions'
 import { formatDateTime } from '@/lib/format'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface UnlockedAchievement {
   achievementId: string
@@ -96,12 +97,12 @@ function GrantCoinsForm({ playerId }: { playerId: string }) {
       </div>
       {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
       {state?.success && <p className="text-sm text-emerald-400">Granted.</p>}
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="Granting…"
         className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500"
       >
         Grant coins
-      </button>
+      </SubmitButton>
     </form>
   )
 }
@@ -118,12 +119,12 @@ function DeductCoinsForm({ playerId }: { playerId: string }) {
       </div>
       {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
       {state?.success && <p className="text-sm text-emerald-400">Deducted.</p>}
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="Deducting…"
         className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500"
       >
         Deduct coins
-      </button>
+      </SubmitButton>
     </form>
   )
 }
@@ -140,12 +141,12 @@ function GrantXpForm({ playerId }: { playerId: string }) {
       </div>
       {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
       {state?.success && <p className="text-sm text-emerald-400">Granted.</p>}
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="Granting…"
         className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500"
       >
         Grant XP
-      </button>
+      </SubmitButton>
     </form>
   )
 }
@@ -164,12 +165,12 @@ function ManualUnlockForm({ playerId, locked }: { playerId: string; locked: Admi
           </option>
         ))}
       </select>
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="Unlocking…"
         className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-300 hover:border-slate-500"
       >
         Unlock
-      </button>
+      </SubmitButton>
       {state?.error && <p className="w-full text-xs text-red-400">{state.error}</p>}
       {state?.success && <p className="w-full text-xs text-emerald-400">Unlocked.</p>}
     </form>

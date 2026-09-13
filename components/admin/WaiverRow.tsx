@@ -2,6 +2,7 @@
 import { useFormState } from 'react-dom'
 import { revokeWaiver, type WaiverFormState } from '@/lib/tournaments/waiver-admin-actions'
 import { formatDateTime } from '@/lib/format'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface AdminWaiver {
   id: string
@@ -43,12 +44,12 @@ export function WaiverRow({
         <form action={action}>
           <input type="hidden" name="id" value={waiver.id} />
           <input type="hidden" name="tournamentId" value={tournamentId} />
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Revoking…"
             className="rounded-lg border border-red-500/40 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/10"
           >
             Revoke
-          </button>
+          </SubmitButton>
         </form>
       )}
       {state?.error && <p className="text-xs text-red-400">{state.error}</p>}

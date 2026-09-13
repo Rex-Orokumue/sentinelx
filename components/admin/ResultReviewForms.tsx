@@ -1,6 +1,7 @@
 'use client'
 import { useFormState } from 'react-dom'
 import { confirmResult, disputeResult, type VerifyState } from '@/lib/matches/verify-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function ResultReviewForms({
   matchId,
@@ -40,12 +41,12 @@ export function ResultReviewForms({
           <ScoreField label={playerBName} name="scoreB" defaultValue={prefill?.scoreB} />
         </div>
         {confirmState?.error && <p className="text-sm text-red-400">{confirmState.error}</p>}
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Confirming…"
           className="w-full rounded-xl bg-violet-600 px-7 py-3 text-sm font-bold text-white hover:bg-violet-500"
         >
           Confirm result
-        </button>
+        </SubmitButton>
       </form>
 
       <form action={disputeAction} className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-5">
@@ -59,12 +60,12 @@ export function ResultReviewForms({
           className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-amber-500 focus:outline-none"
         />
         {disputeState?.error && <p className="text-sm text-red-400">{disputeState.error}</p>}
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Submitting…"
           className="rounded-lg border border-amber-500/40 px-4 py-2 text-xs font-bold text-amber-400 hover:bg-amber-500/10"
         >
           Mark disputed
-        </button>
+        </SubmitButton>
       </form>
     </div>
   )

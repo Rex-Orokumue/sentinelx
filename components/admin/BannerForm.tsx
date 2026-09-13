@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { useFormState } from 'react-dom'
+import { useFormState, useFormStatus } from 'react-dom'
 import { addBanner, updateBanner, type BannerFormState } from '@/lib/banners/admin-actions'
 import { createClient } from '@/lib/supabase/client'
 
@@ -9,6 +9,19 @@ export interface BannerDefaults {
   title?: string
   imageUrl?: string
   linkUrl?: string
+}
+
+function SaveButton({ disabled, editing }: { disabled: boolean; editing: boolean }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={disabled || pending}
+      className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500 disabled:opacity-40"
+    >
+      {pending ? 'Saving…' : editing ? 'Save changes' : 'Add banner'}
+    </button>
+  )
 }
 
 export function BannerForm({ defaults, onDone }: { defaults?: BannerDefaults; onDone?: () => void }) {
@@ -92,13 +105,7 @@ export function BannerForm({ defaults, onDone }: { defaults?: BannerDefaults; on
       </div>
 
       <div className="flex items-center gap-2">
-        <button
-          type="submit"
-          disabled={!imageUrl || uploading}
-          className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500 disabled:opacity-40"
-        >
-          {editing ? 'Save changes' : 'Add banner'}
-        </button>
+        <SaveButton disabled={!imageUrl || uploading} editing={editing} />
         {state?.success && <span className="text-xs text-emerald-400">Saved.</span>}
         {state?.error && <span className="text-xs text-red-400">{state.error}</span>}
       </div>

@@ -3,6 +3,7 @@ import { useFormState } from 'react-dom'
 import { formatDateTime } from '@/lib/format'
 import type { AdminRegistrationRow } from './RegistrationsTable'
 import { removeFromWaitlist, promoteFromWaitlist, type DisqualifyState } from '@/lib/tournaments/registrations-admin-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 function WaitlistRemoveButton({ registrationId, tournamentId }: { registrationId: string; tournamentId: string }) {
   const [state, action] = useFormState<DisqualifyState, FormData>(removeFromWaitlist, undefined)
@@ -20,12 +21,12 @@ function WaitlistRemoveButton({ registrationId, tournamentId }: { registrationId
     >
       <input type="hidden" name="registrationId" value={registrationId} />
       <input type="hidden" name="tournamentId" value={tournamentId} />
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="…"
         className="rounded-lg border border-red-500/40 px-2 py-0.5 text-xs font-bold text-red-400 hover:bg-red-500/10"
       >
         ✕
-      </button>
+      </SubmitButton>
       {state?.error && <p className="mt-1 text-xs text-red-400">{state.error}</p>}
     </form>
   )
@@ -59,12 +60,12 @@ function WaitlistPromoteButton({
       <input type="hidden" name="tournamentId" value={tournamentId} />
       <input type="hidden" name="playerId" value={playerId} />
       <input type="hidden" name="tournamentTitle" value={tournamentTitle} />
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="Adding…"
         className="rounded-lg border border-emerald-500/40 px-2.5 py-0.5 text-xs font-bold text-emerald-400 hover:bg-emerald-500/10"
       >
         Add
-      </button>
+      </SubmitButton>
       {state?.error && <p className="mt-1 text-xs text-red-400">{state.error}</p>}
     </form>
   )
