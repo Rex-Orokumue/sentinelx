@@ -2,8 +2,7 @@ import Link from 'next/link'
 import { HexAvatar } from '@/components/shared/HexAvatar'
 import { TierBadge } from '@/components/player/TierBadge'
 import { MembershipBadge } from './MembershipBadge'
-import { AddFriendButton } from '@/components/player/AddFriendButton'
-import { ChallengeButton } from '@/components/player/ChallengeButton'
+import { ProfilePlayerActions } from '@/components/player/ProfilePlayerActions'
 import { formatMonthYear } from '@/lib/format'
 import type { ProfileView } from '@/lib/players/profile'
 import type { FriendshipStatus } from '@/lib/friends/list'
@@ -18,6 +17,7 @@ export function ProfileHeader({
   avatarFrameUrl,
   profileThemeClass,
   usernameColourClass,
+  messagingState,
 }: {
   profile: ProfileView
   viewerId: string | null
@@ -33,6 +33,7 @@ export function ProfileHeader({
   profileThemeClass?: string
   /** Equipped username_colour cosmetic — REPLACES the default `text-white`, same reasoning as above. */
   usernameColourClass?: string
+  messagingState?: { blockedByMe: boolean; blockedByThem: boolean }
 }) {
   const name = profile.displayName ?? profile.username
   const since = formatMonthYear(profile.createdAt)
@@ -98,26 +99,14 @@ export function ProfileHeader({
             <p className="mt-3 whitespace-pre-line text-sm italic text-sx-gray">&ldquo;{profile.bio}&rdquo;</p>
           )}
           {viewerId && !isOwner && (
-            <div className="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start">
-              <FriendStatusAction status={friendshipStatus} profileId={profile.id} />
-              <ChallengeButton opponentId={profile.id} />
-            </div>
+            <ProfilePlayerActions
+              profileId={profile.id}
+              friendshipStatus={friendshipStatus}
+              blockedByMe={messagingState?.blockedByMe ?? false}
+            />
           )}
         </div>
       </div>
     </header>
   )
-}
-
-function FriendStatusAction({ status, profileId }: { status: FriendshipStatus; profileId: string }) {
-  if (status === 'friends') {
-    return <p className="text-sm font-semibold text-sx-green">✓ Friends</p>
-  }
-  if (status === 'pending_sent') {
-    return <p className="text-sm text-sx-gray">Friend request sent</p>
-  }
-  if (status === 'pending_received') {
-    return <p className="text-sm text-sx-gray">They sent you a friend request — check your dashboard</p>
-  }
-  return <AddFriendButton recipientId={profileId} />
 }

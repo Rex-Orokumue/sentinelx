@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl'
 import { AccountMenu } from '@/components/shared/AccountMenu'
 import { BalanceChips } from '@/components/shared/BalanceChips'
 import { NotificationBell } from '@/components/shared/NotificationBell'
+import { MessagesBell } from '@/components/shared/MessagesBell'
 import { MobileNavSheet } from '@/components/shared/MobileNavSheet'
 import { LanguageSwitcher } from '@/components/shared/LanguageSwitcher'
 import { NavMoreDropdown } from '@/components/shared/NavMoreDropdown'
@@ -90,7 +91,8 @@ export function SiteHeader({
               <span>Community</span>
             </a>
 
-            {/* Notifications — every breakpoint, never in the bottom tab bar */}
+            {/* Notifications + Messages — every breakpoint, never in the
+                bottom tab bar */}
             {session.isLoggedIn && (
               <>
                 {/* Balance chips measured 145px of a 328px content row at
@@ -102,6 +104,7 @@ export function SiteHeader({
                 <div className="hidden sm:block">
                   <BalanceChips walletBalance={session.walletBalance} coinBalance={session.coinBalance} />
                 </div>
+                <MessagesBell initialUnreadCount={session.unreadMessageCount} />
                 <NotificationBell
                   initialNotifications={session.recentNotifications}
                   initialUnreadCount={session.unreadNotificationCount}

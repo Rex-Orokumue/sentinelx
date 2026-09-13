@@ -412,6 +412,301 @@ export type Database = {
           },
         ]
       }
+      dm_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_message_edits: {
+        Row: {
+          body_before: string | null
+          edited_at: string
+          id: string
+          image_url_before: string | null
+          message_id: string
+        }
+        Insert: {
+          body_before?: string | null
+          edited_at?: string
+          id?: string
+          image_url_before?: string | null
+          message_id: string
+        }
+        Update: {
+          body_before?: string | null
+          edited_at?: string
+          id?: string
+          image_url_before?: string | null
+          message_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_message_edits_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "dm_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_messages: {
+        Row: {
+          audio_duration_seconds: number | null
+          audio_url: string | null
+          body: string | null
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          forwarded: boolean
+          id: string
+          image_url: string | null
+          read_at: string | null
+          reply_to_id: string | null
+          sender_id: string
+          sticker_id: string | null
+          thread_id: string
+        }
+        Insert: {
+          audio_duration_seconds?: number | null
+          audio_url?: string | null
+          body?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          forwarded?: boolean
+          id?: string
+          image_url?: string | null
+          read_at?: string | null
+          reply_to_id?: string | null
+          sender_id: string
+          sticker_id?: string | null
+          thread_id: string
+        }
+        Update: {
+          audio_duration_seconds?: number | null
+          audio_url?: string | null
+          body?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          forwarded?: boolean
+          id?: string
+          image_url?: string | null
+          read_at?: string | null
+          reply_to_id?: string | null
+          sender_id?: string
+          sticker_id?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "dm_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "dm_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_muted_players: {
+        Row: {
+          muted_at: string
+          muted_by: string | null
+          player_id: string
+        }
+        Insert: {
+          muted_at?: string
+          muted_by?: string | null
+          player_id: string
+        }
+        Update: {
+          muted_at?: string
+          muted_by?: string | null
+          player_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_muted_players_muted_by_fkey"
+            columns: ["muted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_muted_players_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_reports: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string | null
+          reason: string
+          reported_id: string
+          reporter_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          thread_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          reason: string
+          reported_id: string
+          reporter_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          thread_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string | null
+          reason?: string
+          reported_id?: string
+          reporter_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_reports_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "dm_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_reports_reported_id_fkey"
+            columns: ["reported_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_reports_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_reports_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "dm_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dm_threads: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          last_message_at: string
+          player_a: string
+          player_b: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          last_message_at?: string
+          player_a: string
+          player_b: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          last_message_at?: string
+          player_a?: string
+          player_b?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dm_threads_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_threads_player_a_fkey"
+            columns: ["player_a"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dm_threads_player_b_fkey"
+            columns: ["player_b"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fcm_tokens: {
         Row: {
           created_at: string
@@ -639,6 +934,123 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_mode_formats: {
+        Row: {
+          active: boolean
+          available: boolean
+          entry_unit: string
+          id: string
+          mode_id: string
+          name: string
+          seq: number
+          slug: string
+          team_size: number
+        }
+        Insert: {
+          active?: boolean
+          available?: boolean
+          entry_unit: string
+          id?: string
+          mode_id: string
+          name: string
+          seq?: number
+          slug: string
+          team_size: number
+        }
+        Update: {
+          active?: boolean
+          available?: boolean
+          entry_unit?: string
+          id?: string
+          mode_id?: string
+          name?: string
+          seq?: number
+          slug?: string
+          team_size?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_mode_formats_mode_id_fkey"
+            columns: ["mode_id"]
+            isOneToOne: false
+            referencedRelation: "game_modes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_mode_maps: {
+        Row: {
+          active: boolean
+          id: string
+          mode_id: string
+          name: string
+          seq: number
+        }
+        Insert: {
+          active?: boolean
+          id?: string
+          mode_id: string
+          name: string
+          seq?: number
+        }
+        Update: {
+          active?: boolean
+          id?: string
+          mode_id?: string
+          name?: string
+          seq?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_mode_maps_mode_id_fkey"
+            columns: ["mode_id"]
+            isOneToOne: false
+            referencedRelation: "game_modes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      game_modes: {
+        Row: {
+          active: boolean
+          competition_format: string
+          created_at: string
+          game_id: string
+          id: string
+          name: string
+          seq: number
+          slug: string
+        }
+        Insert: {
+          active?: boolean
+          competition_format: string
+          created_at?: string
+          game_id: string
+          id?: string
+          name: string
+          seq?: number
+          slug: string
+        }
+        Update: {
+          active?: boolean
+          competition_format?: string
+          created_at?: string
+          game_id?: string
+          id?: string
+          name?: string
+          seq?: number
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_modes_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
             referencedColumns: ["id"]
           },
         ]
@@ -1177,6 +1589,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      match_types: {
+        Row: {
+          active: boolean
+          available: boolean
+          id: string
+          name: string
+          seq: number
+          slug: string
+        }
+        Insert: {
+          active?: boolean
+          available?: boolean
+          id?: string
+          name: string
+          seq?: number
+          slug: string
+        }
+        Update: {
+          active?: boolean
+          available?: boolean
+          id?: string
+          name?: string
+          seq?: number
+          slug?: string
+        }
+        Relationships: []
       }
       match_wagers: {
         Row: {
@@ -2684,6 +3123,7 @@ export type Database = {
           created_at: string
           id: string
           label: string
+          map_id: string | null
           room_id: string | null
           room_password: string | null
           round_no: number
@@ -2696,6 +3136,7 @@ export type Database = {
           created_at?: string
           id?: string
           label: string
+          map_id?: string | null
           room_id?: string | null
           room_password?: string | null
           round_no: number
@@ -2708,6 +3149,7 @@ export type Database = {
           created_at?: string
           id?: string
           label?: string
+          map_id?: string | null
           room_id?: string | null
           room_password?: string | null
           round_no?: number
@@ -2717,6 +3159,13 @@ export type Database = {
           youtube_stream_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tournament_lobbies_map_id_fkey"
+            columns: ["map_id"]
+            isOneToOne: false
+            referencedRelation: "game_mode_maps"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tournament_lobbies_stage_id_fkey"
             columns: ["stage_id"]
@@ -2873,14 +3322,19 @@ export type Database = {
           created_at: string
           data_support_text: string | null
           data_support_whatsapp: string | null
+          default_map_id: string | null
           description: string | null
           entry_unit: string
           format: string
+          format_id: string | null
           game_id: string
           id: string
           invitation_only: boolean
           manual_knockout_pairing: boolean
+          match_rules: string | null
+          match_type: string | null
           max_players: number | null
+          mode_id: string | null
           prize_pool: number
           prize_second: number | null
           prize_third: number | null
@@ -2908,14 +3362,19 @@ export type Database = {
           created_at?: string
           data_support_text?: string | null
           data_support_whatsapp?: string | null
+          default_map_id?: string | null
           description?: string | null
           entry_unit?: string
           format?: string
+          format_id?: string | null
           game_id: string
           id?: string
           invitation_only?: boolean
           manual_knockout_pairing?: boolean
+          match_rules?: string | null
+          match_type?: string | null
           max_players?: number | null
+          mode_id?: string | null
           prize_pool?: number
           prize_second?: number | null
           prize_third?: number | null
@@ -2943,14 +3402,19 @@ export type Database = {
           created_at?: string
           data_support_text?: string | null
           data_support_whatsapp?: string | null
+          default_map_id?: string | null
           description?: string | null
           entry_unit?: string
           format?: string
+          format_id?: string | null
           game_id?: string
           id?: string
           invitation_only?: boolean
           manual_knockout_pairing?: boolean
+          match_rules?: string | null
+          match_type?: string | null
           max_players?: number | null
+          mode_id?: string | null
           prize_pool?: number
           prize_second?: number | null
           prize_third?: number | null
@@ -2973,10 +3437,31 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "tournaments_default_map_id_fkey"
+            columns: ["default_map_id"]
+            isOneToOne: false
+            referencedRelation: "game_mode_maps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournaments_format_id_fkey"
+            columns: ["format_id"]
+            isOneToOne: false
+            referencedRelation: "game_mode_formats"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tournaments_game_id_fkey"
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournaments_mode_id_fkey"
+            columns: ["mode_id"]
+            isOneToOne: false
+            referencedRelation: "game_modes"
             referencedColumns: ["id"]
           },
           {
@@ -3254,6 +3739,10 @@ export type Database = {
     }
     Functions: {
       anonymise_account: { Args: { p_id: string }; Returns: undefined }
+      dm_can_message: {
+        Args: { p_sender: string; p_thread: string }
+        Returns: boolean
+      }
       expire_unconfirmed_signups: { Args: never; Returns: undefined }
       increment_listing_view: {
         Args: { p_listing_id: string }

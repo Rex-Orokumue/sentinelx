@@ -135,6 +135,33 @@ export function formatRelativeTime(iso: string | null | undefined): string | nul
   return formatDate(iso)
 }
 
+/** WAT calendar-day key ("YYYY-MM-DD") for grouping/comparing timestamps by day. */
+export function dayKeyWAT(iso: string | null | undefined): string | null {
+  const d = toDate(iso)
+  if (!d) return null
+  return d.toLocaleDateString('sv-SE', { timeZone: TZ })
+}
+
+/**
+ * "Today" / "Yesterday" / "8 Jul 2026" — a date-divider label for grouping a
+ * list of timestamps by WAT calendar day (e.g. a DM conversation log).
+ * `nowIso` defaults to the current instant; pass it explicitly to keep this
+ * pure and testable. Returns null for missing/invalid input.
+ */
+export function formatDateDivider(iso: string | null | undefined, nowIso: string = new Date().toISOString()): string | null {
+  const key = dayKeyWAT(iso)
+  if (!key) return null
+  if (key === dayKeyWAT(nowIso)) return 'Today'
+  // WAT has no daylight saving (see file header) — 24 hours earlier in UTC
+  // terms is exactly one WAT calendar day earlier, no offset arithmetic needed.
+  const yesterday = toDate(nowIso)
+  if (yesterday) {
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1)
+    if (key === dayKeyWAT(yesterday.toISOString())) return 'Yesterday'
+  }
+  return formatDate(iso)
+}
+
 /**
  * A fixture's display date: date-only for a full-day match ("28 Jul 2026"),
  * date + time for a timed one ("8 Jul, 20:00"). Returns null for missing/

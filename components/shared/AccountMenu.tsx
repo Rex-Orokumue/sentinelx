@@ -76,6 +76,16 @@ export function AccountMenu({ session }: { session: NavSession }) {
             My Profile
           </MenuLink>
           <MenuLink href="/players" onNavigate={() => setOpen(false)}>Find Players</MenuLink>
+          <MenuLink href="/messages" onNavigate={() => setOpen(false)}>
+            <span className="flex items-center justify-between gap-2">
+              Messages
+              {session.unreadMessageCount > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                  {session.unreadMessageCount > 99 ? '99+' : session.unreadMessageCount}
+                </span>
+              )}
+            </span>
+          </MenuLink>
           <MenuLink href="/dashboard" onNavigate={() => setOpen(false)}>Dashboard</MenuLink>
           <MenuLink href="/dashboard/wallet" onNavigate={() => setOpen(false)}>Wallet</MenuLink>
           <MenuLink href="/dashboard/friendlies" onNavigate={() => setOpen(false)}>Friendlies</MenuLink>

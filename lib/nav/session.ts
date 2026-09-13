@@ -22,6 +22,7 @@ export interface NavSession {
   avatarUrl: string | null
   frameUrl: string | undefined
   unreadNotificationCount: number
+  unreadMessageCount: number
   recentNotifications: NotificationItem[]
   walletBalance: number
   coinBalance: number
@@ -38,6 +39,7 @@ const LOGGED_OUT: NavSession = {
   avatarUrl: null,
   frameUrl: undefined,
   unreadNotificationCount: 0,
+  unreadMessageCount: 0,
   recentNotifications: [],
   walletBalance: 0,
   coinBalance: 0,
@@ -51,7 +53,7 @@ export async function getNavSession(): Promise<NavSession> {
   } = await supabase.auth.getUser()
   if (!user) return LOGGED_OUT
 
-  const [{ data: profile }, staff, { count: unreadCount }, { data: notifRows }, { data: walletRow }, { data: coinsRow }] =
+  const [{ data: profile }, staff, { count: unreadCount }, { count: unreadMessageCount }, { data: notifRows }, { data: walletRow }, { data: coinsRow }] =
     await Promise.all([
       supabase.from('profiles').select('username, display_name, avatar_url, deletion_requested_at, equipped_avatar_border').eq('id', user.id).maybeSingle(),
       getStaffContext(),
@@ -59,6 +61,15 @@ export async function getNavSession(): Promise<NavSession> {
         .from('player_notifications')
         .select('id', { count: 'exact', head: true })
         .eq('player_id', user.id)
+        .eq('read', false),
+      // Piggybacks on the notification row every DM already creates
+      // (notifyInApp in lib/messages/actions.ts) and markThreadRead already
+      // keeps in sync — no separate dm_messages count query needed.
+      supabase
+        .from('player_notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('player_id', user.id)
+        .eq('type', 'direct_message')
         .eq('read', false),
       supabase
         .from('player_notifications')
@@ -90,6 +101,7 @@ export async function getNavSession(): Promise<NavSession> {
     avatarUrl: profile?.avatar_url ?? null,
     frameUrl: frameUrlFor(profile?.equipped_avatar_border),
     unreadNotificationCount: unreadCount ?? 0,
+    unreadMessageCount: unreadMessageCount ?? 0,
     recentNotifications,
     // .maybeSingle() + `?? 0` covers both "no row yet" (new player) and a
     // query-level error (Supabase-js returns {data:null, error}, never
