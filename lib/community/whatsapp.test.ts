@@ -24,6 +24,7 @@ const BASE_POST: PostView = {
   postType: 'manual',
   content: 'Just hit a new personal best!',
   imageUrl: null,
+  imageUrls: [],
   referenceId: null,
   isPinned: false,
   boostedUntil: null,
