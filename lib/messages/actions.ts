@@ -6,7 +6,7 @@ import { orderedPair } from './thread-key'
 import { messageBodySchema, reportReasonSchema, audioDurationSchema } from './schema'
 import { canEditOrUnsend, canForward } from './predicates'
 import { isValidStickerId, stickerById } from './stickers'
-import { notifyInApp } from '@/lib/notifications/inbox'
+import { notifyBoth } from '@/lib/notifications/send'
 
 async function authed() {
   const supabase = createClient()
@@ -175,20 +175,14 @@ export async function sendMessage(input: {
 
   const { data: me } = await admin.from('profiles').select('display_name, username').eq('id', userId).maybeSingle()
   const fromName = me?.display_name ?? me?.username ?? 'Someone'
-  const preview = body
-    ? body.length > 80
-      ? `${body.slice(0, 80)}…`
-      : body
-    : stickerId
-      ? `${stickerById(stickerId)?.emoji ?? '🙂'} Sticker`
-      : audioUrl
-        ? '🎤 Voice note'
-        : '📷 Photo'
-  void notifyInApp({
-    playerId: otherId,
-    type: 'direct_message',
-    title: `New message from ${fromName}`,
-    body: preview,
+  // notifyBoth renders bell + push from one NotificationInput (lib/notifications/copy.ts),
+  // so both channels agree and both are localized — this used to be a bare
+  // notifyInApp() bell-only insert, which meant a DM never triggered a push
+  // notification at all.
+  const kind: 'text' | 'sticker' | 'voice' | 'photo' = body ? 'text' : stickerId ? 'sticker' : audioUrl ? 'voice' : 'photo'
+  const excerpt = body ? (body.length > 80 ? `${body.slice(0, 80)}…` : body) : undefined
+  const emoji = stickerId ? (stickerById(stickerId)?.emoji ?? '🙂') : undefined
+  void notifyBoth(otherId, { type: 'direct_message', fromName, kind, excerpt, emoji }, 'direct_message', {
     link: `/messages/${threadId}`,
   })
 
