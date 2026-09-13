@@ -482,39 +482,51 @@ export type Database = {
       }
       dm_messages: {
         Row: {
+          audio_duration_seconds: number | null
+          audio_url: string | null
           body: string | null
           created_at: string
           deleted_at: string | null
           edited_at: string | null
+          forwarded: boolean
           id: string
           image_url: string | null
           read_at: string | null
           reply_to_id: string | null
           sender_id: string
+          sticker_id: string | null
           thread_id: string
         }
         Insert: {
+          audio_duration_seconds?: number | null
+          audio_url?: string | null
           body?: string | null
           created_at?: string
           deleted_at?: string | null
           edited_at?: string | null
+          forwarded?: boolean
           id?: string
           image_url?: string | null
           read_at?: string | null
           reply_to_id?: string | null
           sender_id: string
+          sticker_id?: string | null
           thread_id: string
         }
         Update: {
+          audio_duration_seconds?: number | null
+          audio_url?: string | null
           body?: string | null
           created_at?: string
           deleted_at?: string | null
           edited_at?: string | null
+          forwarded?: boolean
           id?: string
           image_url?: string | null
           read_at?: string | null
           reply_to_id?: string | null
           sender_id?: string
+          sticker_id?: string | null
           thread_id?: string
         }
         Relationships: [

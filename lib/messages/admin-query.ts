@@ -7,6 +7,10 @@ export type DmTranscriptMessage = {
   senderName: string
   body: string | null
   imageUrl: string | null
+  stickerId: string | null
+  audioUrl: string | null
+  audioDurationSeconds: number | null
+  forwarded: boolean
   createdAt: string
   flagged: boolean
   editedAt: string | null
@@ -29,7 +33,20 @@ export type DmReportView = {
   transcript: DmTranscriptMessage[]
 }
 
-type MsgRow = { id: string; thread_id: string; sender_id: string; body: string | null; image_url: string | null; created_at: string; edited_at: string | null; deleted_at: string | null }
+type MsgRow = {
+  id: string
+  thread_id: string
+  sender_id: string
+  body: string | null
+  image_url: string | null
+  sticker_id: string | null
+  audio_url: string | null
+  audio_duration_seconds: number | null
+  forwarded: boolean
+  created_at: string
+  edited_at: string | null
+  deleted_at: string | null
+}
 
 export async function fetchDmReports(limit = 40): Promise<DmReportView[]> {
   const supabase = createClient()
@@ -49,7 +66,7 @@ export async function fetchDmReports(limit = 40): Promise<DmReportView[]> {
     supabase.from('profiles').select('id, username, display_name').in('id', personIds),
     supabase
       .from('dm_messages')
-      .select('id, thread_id, sender_id, body, image_url, created_at, edited_at, deleted_at')
+      .select('id, thread_id, sender_id, body, image_url, sticker_id, audio_url, audio_duration_seconds, forwarded, created_at, edited_at, deleted_at')
       .in('thread_id', threadIds)
       .order('created_at', { ascending: true }),
     supabase.from('dm_muted_players').select('player_id').in('player_id', reportedIds),
@@ -83,16 +100,23 @@ export async function fetchDmReports(limit = 40): Promise<DmReportView[]> {
     editsByMessage.set(e.message_id, list)
   }
 
-  // Sign every image path once.
+  // Sign every image/audio path once.
   const admin = createAdminClient()
-  const allPaths = Array.from(new Set(((msgs ?? []) as MsgRow[]).filter((m) => m.image_url).map((m) => m.image_url as string)))
-  const signed = new Map<string, string>()
-  await Promise.all(
-    allPaths.map(async (p) => {
-      const { data } = await admin.storage.from('dm-images').createSignedUrl(p, 3600)
-      if (data?.signedUrl) signed.set(p, data.signedUrl)
-    }),
-  )
+  async function signAll(bucket: 'dm-images' | 'dm-audio', paths: string[]): Promise<Map<string, string>> {
+    const out = new Map<string, string>()
+    await Promise.all(
+      paths.map(async (p) => {
+        const { data } = await admin.storage.from(bucket).createSignedUrl(p, 3600)
+        if (data?.signedUrl) out.set(p, data.signedUrl)
+      }),
+    )
+    return out
+  }
+  const allRows = (msgs ?? []) as MsgRow[]
+  const [signed, signedAudio] = await Promise.all([
+    signAll('dm-images', Array.from(new Set(allRows.filter((m) => m.image_url).map((m) => m.image_url as string)))),
+    signAll('dm-audio', Array.from(new Set(allRows.filter((m) => m.audio_url).map((m) => m.audio_url as string)))),
+  ])
 
   const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
@@ -113,6 +137,10 @@ export async function fetchDmReports(limit = 40): Promise<DmReportView[]> {
       senderName: nameById.get(m.sender_id) ?? 'Player',
       body: m.body,
       imageUrl: m.image_url ? (signed.get(m.image_url) ?? null) : null,
+      stickerId: m.sticker_id,
+      audioUrl: m.audio_url ? (signedAudio.get(m.audio_url) ?? null) : null,
+      audioDurationSeconds: m.audio_duration_seconds,
+      forwarded: m.forwarded,
       createdAt: m.created_at,
       flagged: m.id === r.message_id,
       editedAt: m.edited_at,

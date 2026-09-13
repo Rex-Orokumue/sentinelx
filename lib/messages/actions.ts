@@ -3,8 +3,9 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { orderedPair } from './thread-key'
-import { messageBodySchema, reportReasonSchema } from './schema'
-import { canEditOrUnsend } from './predicates'
+import { messageBodySchema, reportReasonSchema, audioDurationSchema } from './schema'
+import { canEditOrUnsend, canForward } from './predicates'
+import { isValidStickerId, stickerById } from './stickers'
 import { notifyInApp } from '@/lib/notifications/inbox'
 
 async function authed() {
@@ -65,13 +66,29 @@ export async function sendMessage(input: {
   body?: string
   imageUrl?: string
   replyToId?: string
+  stickerId?: string
+  audioUrl?: string
+  audioDurationSeconds?: number
+  forwarded?: boolean
 }): Promise<{ threadId?: string; error?: string }> {
   const { supabase, userId } = await authed()
   if (!userId) return { error: 'Please log in.' }
 
   const rawBody = (input.body ?? '').trim()
   const imageUrl = input.imageUrl?.trim() || null
-  if (!rawBody && !imageUrl) return { error: 'Type a message or add a photo.' }
+  const audioUrl = input.audioUrl?.trim() || null
+  let stickerId: string | null = null
+  if (input.stickerId) {
+    if (!isValidStickerId(input.stickerId)) return { error: 'Unknown sticker.' }
+    stickerId = input.stickerId
+  }
+  let audioDurationSeconds: number | null = null
+  if (audioUrl) {
+    const parsedDuration = audioDurationSchema.safeParse(input.audioDurationSeconds)
+    if (!parsedDuration.success) return { error: 'Invalid voice note.' }
+    audioDurationSeconds = parsedDuration.data
+  }
+  if (!rawBody && !imageUrl && !stickerId && !audioUrl) return { error: 'Type a message, add a photo, or send a sticker.' }
   let body: string | null = null
   if (rawBody) {
     const parsed = messageBodySchema.safeParse(rawBody)
@@ -130,9 +147,17 @@ export async function sendMessage(input: {
 
   // Insert via the SESSION client so the RLS sender-insert policy applies (defence
   // in depth) — dm_can_message() re-checks block + mute server-side.
-  const { error: insErr } = await supabase
-    .from('dm_messages')
-    .insert({ thread_id: threadId, sender_id: userId, body, image_url: imageUrl, reply_to_id: replyToId })
+  const { error: insErr } = await supabase.from('dm_messages').insert({
+    thread_id: threadId,
+    sender_id: userId,
+    body,
+    image_url: imageUrl,
+    reply_to_id: replyToId,
+    sticker_id: stickerId,
+    audio_url: audioUrl,
+    audio_duration_seconds: audioDurationSeconds,
+    forwarded: input.forwarded ?? false,
+  })
   if (insErr) {
     console.error('[sendMessage] insert failed', { userId, threadId, code: insErr.code, message: insErr.message })
     return { error: 'Could not send your message. Please try again.' }
@@ -142,7 +167,15 @@ export async function sendMessage(input: {
 
   const { data: me } = await admin.from('profiles').select('display_name, username').eq('id', userId).maybeSingle()
   const fromName = me?.display_name ?? me?.username ?? 'Someone'
-  const preview = body ? (body.length > 80 ? `${body.slice(0, 80)}…` : body) : '📷 Photo'
+  const preview = body
+    ? body.length > 80
+      ? `${body.slice(0, 80)}…`
+      : body
+    : stickerId
+      ? `${stickerById(stickerId)?.emoji ?? '🙂'} Sticker`
+      : audioUrl
+        ? '🎤 Voice note'
+        : '📷 Photo'
   void notifyInApp({
     playerId: otherId,
     type: 'direct_message',
@@ -292,4 +325,49 @@ export async function unsendMessage(messageId: string): Promise<{ error?: string
 
   revalidatePath(`/messages/${existing.thread_id}`)
   return {}
+}
+
+// Copies a message's content into a new message in a different thread — no
+// reference back to the original sender/thread/message is stored (WhatsApp's
+// no-attribution behaviour), just the `forwarded` flag for the UI tag. Any
+// message the forwarder can see is forwardable, any time — no 10-minute
+// window like edit/unsend, since forwarding doesn't touch the original.
+export async function forwardMessage(input: { messageId: string; toThreadId: string }): Promise<{ error?: string }> {
+  const { userId } = await authed()
+  if (!userId) return { error: 'Please log in.' }
+
+  const admin = createAdminClient()
+  const { data: source } = await admin
+    .from('dm_messages')
+    .select('thread_id, body, image_url, sticker_id, audio_url, audio_duration_seconds, deleted_at')
+    .eq('id', input.messageId)
+    .maybeSingle()
+  if (!source) return { error: 'Message not found.' }
+  if (!canForward(source.deleted_at)) return { error: 'This message can no longer be forwarded.' }
+
+  // The forwarder must be a participant of the SOURCE thread — otherwise
+  // anyone who ever learns a message id could exfiltrate its content into a
+  // thread of their own choosing.
+  const { data: sourceThread } = await admin
+    .from('dm_threads')
+    .select('player_a, player_b')
+    .eq('id', source.thread_id)
+    .maybeSingle()
+  if (!sourceThread || (sourceThread.player_a !== userId && sourceThread.player_b !== userId)) {
+    return { error: 'Message not found.' }
+  }
+
+  // Reuses sendMessage for the block/mute pre-checks, the RLS-guarded insert,
+  // the thread bump, and the recipient notification — a forward is just a
+  // send whose content came from another message instead of the composer.
+  const res = await sendMessage({
+    threadId: input.toThreadId,
+    body: source.body ?? undefined,
+    imageUrl: source.image_url ?? undefined,
+    stickerId: source.sticker_id ?? undefined,
+    audioUrl: source.audio_url ?? undefined,
+    audioDurationSeconds: source.audio_duration_seconds ?? undefined,
+    forwarded: true,
+  })
+  return res.error ? { error: res.error } : {}
 }

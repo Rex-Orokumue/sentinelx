@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { unreadCount, isBlockedBetween, countNewContactsSince, canEditOrUnsend, resolveParticipantContent } from './predicates'
+import { unreadCount, isBlockedBetween, countNewContactsSince, canEditOrUnsend, resolveParticipantContent, canForward } from './predicates'
 
 describe('unreadCount', () => {
   const rows = [
@@ -60,6 +60,8 @@ describe('resolveParticipantContent', () => {
       body: null,
       imageUrl: null,
       removed: true,
+      stickerId: null,
+      audioUrl: null,
     })
   })
   it('passes through untouched content when not deleted', () => {
@@ -67,6 +69,42 @@ describe('resolveParticipantContent', () => {
       body: 'hi',
       imageUrl: null,
       removed: false,
+      stickerId: null,
+      audioUrl: null,
     })
+  })
+  it('hides a sticker once deleted', () => {
+    expect(resolveParticipantContent({ body: null, imageUrl: null, deletedAt: '2026-09-12T12:00:00Z', stickerId: 'gg' })).toEqual({
+      body: null,
+      imageUrl: null,
+      removed: true,
+      stickerId: null,
+      audioUrl: null,
+    })
+  })
+  it('passes through a sticker or a voice note when not deleted', () => {
+    expect(resolveParticipantContent({ body: null, imageUrl: null, deletedAt: null, stickerId: 'gg' })).toEqual({
+      body: null,
+      imageUrl: null,
+      removed: false,
+      stickerId: 'gg',
+      audioUrl: null,
+    })
+    expect(resolveParticipantContent({ body: null, imageUrl: null, deletedAt: null, audioUrl: 'u1/a.webm' })).toEqual({
+      body: null,
+      imageUrl: null,
+      removed: false,
+      stickerId: null,
+      audioUrl: 'u1/a.webm',
+    })
+  })
+})
+
+describe('canForward', () => {
+  it('is true for a message that still has content', () => {
+    expect(canForward(null)).toBe(true)
+  })
+  it('is false once the message has been unsent', () => {
+    expect(canForward('2026-09-12T12:00:00Z')).toBe(false)
   })
 })

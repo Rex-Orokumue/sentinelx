@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { formatDateTime } from '@/lib/format'
 import { resolveDmReport, setMessagingMuted, type AdminActionState } from '@/lib/messages/admin-actions'
+import { stickerById } from '@/lib/messages/stickers'
 import type { DmReportView } from '@/lib/messages/admin-query'
 
 export function DmReportRow({ report }: { report: DmReportView }) {
@@ -38,11 +39,18 @@ export function DmReportRow({ report }: { report: DmReportView }) {
           {report.transcript.map((m) => (
             <div key={m.id} className={`text-xs ${m.flagged ? 'rounded bg-red-950/50 px-1.5 py-1' : ''}`}>
               <span className="font-bold text-slate-300">{m.senderName}: </span>
+              {m.forwarded && <span className="mr-1 italic text-slate-500">[forwarded]</span>}
               {m.body && <span className="text-slate-200">{m.body}</span>}
+              {m.stickerId && <span className="text-2xl align-middle">{stickerById(m.stickerId)?.emoji ?? '🙂'}</span>}
               {m.imageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={m.imageUrl} alt="" className="mt-1 max-h-40 rounded border border-slate-800" />
               )}
+              {m.audioUrl && (
+                // eslint-disable-next-line jsx-a11y/media-has-caption
+                <audio src={m.audioUrl} controls className="mt-1 h-8 max-w-full" />
+              )}
+              {m.audioDurationSeconds != null && <span className="ml-1 text-slate-500">({m.audioDurationSeconds}s)</span>}
               <span className="ml-2 text-[10px] text-slate-600">{formatDateTime(m.createdAt)}</span>
               {m.deletedAt && (
                 <span className="ml-2 rounded bg-amber-900/50 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">

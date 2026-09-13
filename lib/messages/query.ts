@@ -2,17 +2,18 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { orderedPair } from './thread-key'
 import { unreadCount, isBlockedBetween, resolveParticipantContent, type BlockRow } from './predicates'
+import { stickerById } from './stickers'
 
 const PROFILE = 'id, username, display_name, avatar_url'
 type ProfileRow = { id: string; username: string | null; display_name: string | null; avatar_url: string | null }
 
-async function signImages(paths: string[]): Promise<Map<string, string>> {
+async function signPaths(bucket: 'dm-images' | 'dm-audio', paths: string[]): Promise<Map<string, string>> {
   const out = new Map<string, string>()
   if (paths.length === 0) return out
   const admin = createAdminClient()
   await Promise.all(
     paths.map(async (p) => {
-      const { data } = await admin.storage.from('dm-images').createSignedUrl(p, 3600)
+      const { data } = await admin.storage.from(bucket).createSignedUrl(p, 3600)
       if (data?.signedUrl) out.set(p, data.signedUrl)
     }),
   )
@@ -27,6 +28,8 @@ export type ThreadSummary = {
   otherAvatarUrl: string | null
   lastMessage: string | null
   lastWasImage: boolean
+  lastStickerId: string | null
+  lastWasAudio: boolean
   lastRemoved: boolean
   lastMessageAt: string
   unread: number
@@ -48,7 +51,7 @@ export async function fetchThreadList(viewerId: string): Promise<ThreadSummary[]
     supabase.from('profiles').select(PROFILE).in('id', otherIds),
     supabase
       .from('dm_messages')
-      .select('thread_id, sender_id, body, image_url, created_at, read_at, deleted_at')
+      .select('thread_id, sender_id, body, image_url, created_at, read_at, deleted_at, sticker_id, audio_url')
       .in('thread_id', threadIds)
       .order('created_at', { ascending: true }),
     supabase
@@ -59,7 +62,10 @@ export async function fetchThreadList(viewerId: string): Promise<ThreadSummary[]
 
   const profileById = new Map((profiles ?? []).map((p) => [p.id, p as ProfileRow]))
   const blockRows: BlockRow[] = (blocks ?? []).map((b) => ({ blockerId: b.blocker_id, blockedId: b.blocked_id }))
-  const byThread = new Map<string, { sender_id: string; body: string | null; image_url: string | null; read_at: string | null; deleted_at: string | null }[]>()
+  const byThread = new Map<
+    string,
+    { sender_id: string; body: string | null; image_url: string | null; read_at: string | null; deleted_at: string | null; sticker_id: string | null; audio_url: string | null }[]
+  >()
   for (const m of msgs ?? []) {
     const list = byThread.get(m.thread_id) ?? []
     list.push(m)
@@ -74,7 +80,13 @@ export async function fetchThreadList(viewerId: string): Promise<ThreadSummary[]
     const last = list[list.length - 1]
     const other = profileById.get(otherId)
     const lastContent = last
-      ? resolveParticipantContent({ body: last.body, imageUrl: last.image_url, deletedAt: last.deleted_at })
+      ? resolveParticipantContent({
+          body: last.body,
+          imageUrl: last.image_url,
+          deletedAt: last.deleted_at,
+          stickerId: last.sticker_id,
+          audioUrl: last.audio_url,
+        })
       : null
     out.push({
       threadId: t.id,
@@ -83,7 +95,9 @@ export async function fetchThreadList(viewerId: string): Promise<ThreadSummary[]
       otherUsername: other?.username ?? null,
       otherAvatarUrl: other?.avatar_url ?? null,
       lastMessage: lastContent?.body ?? null,
-      lastWasImage: !!lastContent && lastContent.body == null && lastContent.imageUrl != null,
+      lastWasImage: !!lastContent && lastContent.body == null && lastContent.stickerId == null && lastContent.imageUrl != null,
+      lastStickerId: lastContent?.stickerId ?? null,
+      lastWasAudio: !!lastContent && lastContent.body == null && lastContent.stickerId == null && lastContent.imageUrl == null && lastContent.audioUrl != null,
       lastRemoved: lastContent?.removed ?? false,
       lastMessageAt: t.last_message_at,
       unread: unreadCount(list.map((m) => ({ senderId: m.sender_id, readAt: m.read_at })), viewerId),
@@ -97,6 +111,10 @@ export type ConversationMessage = {
   senderId: string
   body: string | null
   imageUrl: string | null
+  stickerId: string | null
+  audioUrl: string | null
+  audioDurationSeconds: number | null
+  forwarded: boolean
   createdAt: string
   readAt: string | null
   editedAt: string | null
@@ -128,7 +146,9 @@ export async function fetchThread(threadId: string, viewerId: string): Promise<T
     supabase.from('profiles').select(PROFILE).eq('id', otherId).maybeSingle(),
     supabase
       .from('dm_messages')
-      .select('id, sender_id, body, image_url, created_at, read_at, edited_at, deleted_at, reply_to_id')
+      .select(
+        'id, sender_id, body, image_url, created_at, read_at, edited_at, deleted_at, reply_to_id, sticker_id, audio_url, audio_duration_seconds, forwarded',
+      )
       .eq('thread_id', threadId)
       .order('created_at', { ascending: true }),
     supabase
@@ -138,14 +158,20 @@ export async function fetchThread(threadId: string, viewerId: string): Promise<T
   ])
 
   const rows = messages ?? []
-  const signed = await signImages(rows.filter((m) => m.image_url && !m.deleted_at).map((m) => m.image_url as string))
+  const [signedImages, signedAudio] = await Promise.all([
+    signPaths('dm-images', rows.filter((m) => m.image_url && !m.deleted_at).map((m) => m.image_url as string)),
+    signPaths('dm-audio', rows.filter((m) => m.audio_url && !m.deleted_at).map((m) => m.audio_url as string)),
+  ])
 
   const replyIds = Array.from(new Set(rows.filter((m) => m.reply_to_id).map((m) => m.reply_to_id as string)))
-  const replyTargets = new Map<string, { sender_id: string; body: string | null; image_url: string | null; deleted_at: string | null }>()
+  const replyTargets = new Map<
+    string,
+    { sender_id: string; body: string | null; image_url: string | null; deleted_at: string | null; sticker_id: string | null; audio_url: string | null }
+  >()
   if (replyIds.length > 0) {
     const { data: targets } = await supabase
       .from('dm_messages')
-      .select('id, sender_id, body, image_url, deleted_at')
+      .select('id, sender_id, body, image_url, deleted_at, sticker_id, audio_url')
       .in('id', replyIds)
     for (const t of targets ?? []) replyTargets.set(t.id, t)
   }
@@ -153,11 +179,23 @@ export async function fetchThread(threadId: string, viewerId: string): Promise<T
     if (!replyToId) return null
     const target = replyTargets.get(replyToId)
     if (!target) return null
-    const content = resolveParticipantContent({ body: target.body, imageUrl: target.image_url, deletedAt: target.deleted_at })
+    const content = resolveParticipantContent({
+      body: target.body,
+      imageUrl: target.image_url,
+      deletedAt: target.deleted_at,
+      stickerId: target.sticker_id,
+      audioUrl: target.audio_url,
+    })
+    // Fills in a display label for content types that have no text body of
+    // their own — an actual image still falls through to null here, and
+    // callers (MessageBubble, MessageComposer) fall back to '📷 Photo'.
+    const body = content.removed
+      ? null
+      : (content.body ?? (content.stickerId ? `${stickerById(content.stickerId)?.emoji ?? '🙂'} Sticker` : content.audioUrl ? '🎤 Voice note' : null))
     return {
       id: replyToId,
       senderName: target.sender_id === viewerId ? 'You' : (other?.display_name ?? other?.username ?? 'Player'),
-      body: content.removed ? null : content.body,
+      body,
       removed: content.removed,
     }
   }
@@ -173,12 +211,22 @@ export async function fetchThread(threadId: string, viewerId: string): Promise<T
       avatarUrl: other?.avatar_url ?? null,
     },
     messages: rows.map((m) => {
-      const content = resolveParticipantContent({ body: m.body, imageUrl: m.image_url, deletedAt: m.deleted_at })
+      const content = resolveParticipantContent({
+        body: m.body,
+        imageUrl: m.image_url,
+        deletedAt: m.deleted_at,
+        stickerId: m.sticker_id,
+        audioUrl: m.audio_url,
+      })
       return {
         id: m.id,
         senderId: m.sender_id,
         body: content.body,
-        imageUrl: content.imageUrl ? (signed.get(content.imageUrl) ?? null) : null,
+        imageUrl: content.imageUrl ? (signedImages.get(content.imageUrl) ?? null) : null,
+        stickerId: content.stickerId,
+        audioUrl: content.audioUrl ? (signedAudio.get(content.audioUrl) ?? null) : null,
+        audioDurationSeconds: content.removed ? null : m.audio_duration_seconds,
+        forwarded: m.forwarded,
         createdAt: m.created_at,
         readAt: m.read_at,
         editedAt: m.edited_at,

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatNaira, formatNairaCompact, formatCompactNumber, fromDateLocal, todayDateLocal, formatFixtureDate } from './format'
+import { formatNaira, formatNairaCompact, formatCompactNumber, fromDateLocal, todayDateLocal, formatFixtureDate, dayKeyWAT, formatDateDivider } from './format'
 
 describe('formatNaira', () => {
   it('prepends ₦ and groups thousands', () => {
@@ -66,5 +66,39 @@ describe('formatFixtureDate', () => {
     expect(formatFixtureDate(null, true)).toBeNull()
     expect(formatFixtureDate(null, false)).toBeNull()
     expect(formatFixtureDate(undefined, true)).toBeNull()
+  })
+})
+
+describe('dayKeyWAT', () => {
+  it('keys by the WAT calendar day, not the UTC one', () => {
+    // 23:30 UTC on the 13th is 00:30 WAT on the 14th.
+    expect(dayKeyWAT('2026-07-13T23:30:00.000Z')).toBe('2026-07-14')
+  })
+
+  it('returns null for missing/invalid input', () => {
+    expect(dayKeyWAT(null)).toBeNull()
+    expect(dayKeyWAT(undefined)).toBeNull()
+    expect(dayKeyWAT('not-a-date')).toBeNull()
+  })
+})
+
+describe('formatDateDivider', () => {
+  const now = '2026-07-14T12:00:00.000Z' // midday WAT on the 14th
+
+  it('labels the same WAT day as "Today"', () => {
+    expect(formatDateDivider('2026-07-14T06:00:00.000Z', now)).toBe('Today')
+  })
+
+  it('labels the previous WAT day as "Yesterday"', () => {
+    expect(formatDateDivider('2026-07-13T22:00:00.000Z', now)).toBe('Yesterday')
+  })
+
+  it('falls back to a full date further back', () => {
+    expect(formatDateDivider('2026-07-01T12:00:00.000Z', now)).toBe('1 Jul 2026')
+  })
+
+  it('returns null for missing/invalid input', () => {
+    expect(formatDateDivider(null, now)).toBeNull()
+    expect(formatDateDivider(undefined, now)).toBeNull()
   })
 })

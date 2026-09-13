@@ -1,10 +1,19 @@
 import Link from 'next/link'
 import { Avatar } from '@/components/shared/Avatar'
 import { formatRelativeTime } from '@/lib/format'
+import { stickerById } from '@/lib/messages/stickers'
 import type { ThreadSummary } from '@/lib/messages/query'
 
 export function ThreadListItem({ thread }: { thread: ThreadSummary }) {
-  const preview = thread.lastMessage ?? (thread.lastWasImage ? '📷 Photo' : 'No messages yet')
+  const preview =
+    thread.lastMessage ??
+    (thread.lastStickerId
+      ? `${stickerById(thread.lastStickerId)?.emoji ?? '🙂'} Sticker`
+      : thread.lastWasAudio
+        ? '🎤 Voice note'
+        : thread.lastWasImage
+          ? '📷 Photo'
+          : 'No messages yet')
   return (
     <Link
       href={`/messages/${thread.threadId}`}

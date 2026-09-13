@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
-import { fetchThread } from '@/lib/messages/query'
+import { fetchThread, fetchThreadList } from '@/lib/messages/query'
 import { Avatar } from '@/components/shared/Avatar'
 import { Conversation } from '@/components/messages/Conversation'
 import { ThreadMenu } from '@/components/messages/ThreadMenu'
@@ -17,7 +17,7 @@ export default async function ThreadPage({ params }: { params: { threadId: strin
   } = await supabase.auth.getUser()
   if (!user) redirect(`/login?next=/messages/${params.threadId}`)
 
-  const detail = await fetchThread(params.threadId, user.id)
+  const [detail, threads] = await Promise.all([fetchThread(params.threadId, user.id), fetchThreadList(user.id)])
   if (!detail) notFound()
 
   return (
@@ -39,7 +39,7 @@ export default async function ThreadPage({ params }: { params: { threadId: strin
           <ThreadMenu threadId={detail.threadId} otherId={detail.other.id} otherName={detail.other.name} blockedByMe={detail.blockedByMe} />
         </div>
       </header>
-      <Conversation detail={detail} viewerId={user.id} />
+      <Conversation detail={detail} viewerId={user.id} threads={threads} />
     </div>
   )
 }

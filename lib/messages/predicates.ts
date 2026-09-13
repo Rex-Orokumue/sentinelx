@@ -33,12 +33,37 @@ export function canEditOrUnsend(createdAtIso: string, nowIso: string): boolean {
   return now - createdAt <= 10 * 60 * 1000
 }
 
-export type MessageContentInput = { body: string | null; imageUrl: string | null; deletedAt: string | null }
-export type ParticipantContent = { body: string | null; imageUrl: string | null; removed: boolean }
+export type MessageContentInput = {
+  body: string | null
+  imageUrl: string | null
+  deletedAt: string | null
+  stickerId?: string | null
+  audioUrl?: string | null
+}
+export type ParticipantContent = {
+  body: string | null
+  imageUrl: string | null
+  removed: boolean
+  stickerId: string | null
+  audioUrl: string | null
+}
 
 // What a PARTICIPANT sees. Staff bypass this entirely — admin-query.ts reads
-// body/image_url directly and never calls this.
+// body/image_url/sticker_id/audio_url directly and never calls this.
 export function resolveParticipantContent(input: MessageContentInput): ParticipantContent {
-  if (input.deletedAt) return { body: null, imageUrl: null, removed: true }
-  return { body: input.body, imageUrl: input.imageUrl, removed: false }
+  if (input.deletedAt) return { body: null, imageUrl: null, removed: true, stickerId: null, audioUrl: null }
+  return {
+    body: input.body,
+    imageUrl: input.imageUrl,
+    removed: false,
+    stickerId: input.stickerId ?? null,
+    audioUrl: input.audioUrl ?? null,
+  }
+}
+
+// Forwarding needs the original content to still exist — an unsent message
+// has none left to copy. No time limit, unlike edit/unsend: forwarding is
+// allowed on anyone's message, any time, as long as it's still visible.
+export function canForward(deletedAt: string | null): boolean {
+  return !deletedAt
 }
