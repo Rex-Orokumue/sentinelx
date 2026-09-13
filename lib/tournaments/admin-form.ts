@@ -35,6 +35,11 @@ export function parseForm(formData: FormData) {
     competitionFormat: formData.get('competitionFormat') ?? 'head_to_head',
     entryUnit: formData.get('entryUnit') ?? 'solo',
     squadSize: formData.get('squadSize') ?? '',
+    modeId: formData.get('modeId') ?? '',
+    formatId: formData.get('formatId') ?? '',
+    defaultMapId: formData.get('defaultMapId') ?? '',
+    matchRules: formData.get('matchRules') ?? '',
+    matchType: formData.get('matchType') ?? '',
     prizeSecond: formData.get('prizeSecond') ?? '',
     prizeThird: formData.get('prizeThird') ?? '',
   })

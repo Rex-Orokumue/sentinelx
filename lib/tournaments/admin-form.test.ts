@@ -169,3 +169,60 @@ describe('parseForm — max players cap by format', () => {
     expect(parseForm(fd).success).toBe(false)
   })
 })
+
+describe('parseForm — mode, format, map, rules, match type', () => {
+  it('defaults every new field to empty for a football tournament', () => {
+    const r = parseForm(footballForm())
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect(r.data.modeId).toBe('')
+      expect(r.data.formatId).toBe('')
+      expect(r.data.defaultMapId).toBe('')
+      expect(r.data.matchRules).toBe('')
+      expect(r.data.matchType).toBe('')
+    }
+  })
+
+  it('carries the four selections through to the parsed result', () => {
+    // The bug this guards: parseForm hand-picks fields, so one added to the
+    // schema but not here is dropped and the default silently wins.
+    const fd = footballForm()
+    fd.set('modeId', '33333333-3333-4333-8333-333333333333')
+    fd.set('formatId', '44444444-4444-4444-8444-444444444444')
+    fd.set('defaultMapId', '55555555-5555-4555-8555-555555555555')
+    fd.set('matchRules', 'headshot_only')
+    fd.set('matchType', 'bo1')
+    const r = parseForm(fd)
+
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect(r.data.modeId).toBe('33333333-3333-4333-8333-333333333333')
+      expect(r.data.formatId).toBe('44444444-4444-4444-8444-444444444444')
+      expect(r.data.defaultMapId).toBe('55555555-5555-4555-8555-555555555555')
+      expect(r.data.matchRules).toBe('headshot_only')
+      expect(r.data.matchType).toBe('bo1')
+    }
+  })
+
+  it('accepts every match type the CHECK permits, not only the selectable one', () => {
+    // Availability is gated by match_types.available, NOT by validation. A
+    // schema that rejected bo3 would make enabling it a code change.
+    for (const matchType of ['bo1', 'bo3', 'bo5']) {
+      const fd = footballForm()
+      fd.set('matchType', matchType)
+      expect(parseForm(fd).success, matchType).toBe(true)
+    }
+  })
+
+  it('rejects a match type the database would refuse', () => {
+    const fd = footballForm()
+    fd.set('matchType', 'bo7')
+    expect(parseForm(fd).success).toBe(false)
+  })
+
+  it('rejects an unknown match rule', () => {
+    const fd = footballForm()
+    fd.set('matchRules', 'nonsense')
+    expect(parseForm(fd).success).toBe(false)
+  })
+})

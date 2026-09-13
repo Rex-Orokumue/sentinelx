@@ -43,6 +43,11 @@ function toRow(d: TournamentInput) {
     competition_format: d.competitionFormat,
     entry_unit: d.entryUnit,
     squad_size: d.squadSize === '' ? null : d.squadSize,
+    mode_id: d.modeId === '' ? null : d.modeId,
+    format_id: d.formatId === '' ? null : d.formatId,
+    default_map_id: d.defaultMapId === '' ? null : d.defaultMapId,
+    match_rules: d.matchRules === '' ? null : d.matchRules,
+    match_type: d.matchType === '' ? null : d.matchType,
     prize_second: d.prizeSecond === '' ? null : d.prizeSecond,
     prize_third: d.prizeThird === '' ? null : d.prizeThird,
   }

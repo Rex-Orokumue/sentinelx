@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
 import { createTournament } from '@/lib/tournaments/admin-actions'
 import { TournamentForm, type TournamentFormValues } from '@/components/admin/TournamentForm'
+import { fetchModeCatalogue } from '@/lib/tournaments/mode-catalogue'
 
 export const metadata: Metadata = { title: 'New tournament · Admin · SentinelX' }
 
@@ -33,14 +34,20 @@ const EMPTY: TournamentFormValues = {
   competitionFormat: 'head_to_head',
   entryUnit: 'solo',
   squadSize: '',
+  modeId: '',
+  formatId: '',
+  defaultMapId: '',
+  matchRules: '',
+  matchType: '',
 }
 
 export default async function NewTournamentPage() {
   await requireStaff()
   const supabase = createClient()
-  const [{ data: games }, { data: seasons }] = await Promise.all([
+  const [{ data: games }, { data: seasons }, catalogue] = await Promise.all([
     supabase.from('games').select('id, name, supported_formats').eq('active', true).order('name'),
     supabase.from('seasons').select('id, name').order('start_date', { ascending: false }),
+    fetchModeCatalogue(),
   ])
 
   return (
@@ -62,6 +69,7 @@ export default async function NewTournamentPage() {
           supportedFormats: g.supported_formats ?? [],
         }))}
           seasons={seasons ?? []}
+          catalogue={catalogue}
           initial={EMPTY}
           slugLocked={false}
           submitLabel="Create tournament"
