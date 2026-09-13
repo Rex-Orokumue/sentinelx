@@ -8,6 +8,7 @@ import { getChampion, type BracketMatch } from '@/lib/tournaments/bracket'
 import { matchOutcome, type ProfileView, type ProfileMatch, type ProfileTitle } from '@/lib/players/profile'
 import { friendshipStatus, type FriendshipStatus } from '@/lib/friends/list'
 import { fetchProfileMessagingState } from '@/lib/messages/query'
+import { fetchFollowCounts, fetchIsFollowing } from '@/lib/follows/query'
 import { scoreStatsByPlayerAndCategory, winsByPlayerAndGame, type GameScopedMatch, type CategoryStat } from '@/lib/rankings/game-breakdown'
 import { CATEGORY_META } from '@/lib/games/categories'
 import { RANKING_MIN_MATCHES } from '@/lib/rankings/leaderboard'
@@ -196,6 +197,8 @@ export default async function PlayerProfilePage({ params }: { params: { username
   const messagingState =
     user && user.id !== p.id ? await fetchProfileMessagingState(user.id, p.id) : undefined
 
+  const isFollowingProfile = user && user.id !== p.id ? await fetchIsFollowing(user.id, p.id) : false
+
   const [
     { data: rankData },
     { data: rawMatches },
@@ -208,6 +211,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
     { data: rawEquippedItems },
     { data: rawAllUnlocks },
     { data: rawProfilePosts },
+    followCounts,
   ] = await Promise.all([
     supabase.rpc('player_rank', { uname: p.username }),
     supabase
@@ -265,6 +269,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
       .eq('is_deleted', false)
       .order('created_at', { ascending: false })
       .limit(5),
+    fetchFollowCounts(p.id),
   ])
 
   const cosmetics = equippedCosmeticsBySlug(rawEquippedItems ?? [])
@@ -418,6 +423,8 @@ export default async function PlayerProfilePage({ params }: { params: { username
     tournamentsPlayed: tournamentsPlayed ?? 0,
     currentStreak,
     totalRankedPlayers: totalRankedPlayers ?? null,
+    followerCount: followCounts.followers,
+    followingCount: followCounts.following,
   }
 
   const finalRows = (rawFinals ?? []) as unknown as FinalRow[]
@@ -475,6 +482,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
             profile={profile}
             viewerId={user?.id ?? null}
             friendshipStatus={friendship}
+            isFollowing={isFollowingProfile}
             coinBalance={coinBalance ?? undefined}
             achievements={unlockedSlugs}
             avatarFrameUrl={cosmetics.avatarBorder ? AVATAR_BORDER_FRAMES[cosmetics.avatarBorder] : undefined}

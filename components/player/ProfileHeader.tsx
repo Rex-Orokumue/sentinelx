@@ -12,6 +12,7 @@ export function ProfileHeader({
   profile,
   viewerId,
   friendshipStatus,
+  isFollowing,
   coinBalance,
   achievements,
   avatarFrameUrl,
@@ -22,6 +23,7 @@ export function ProfileHeader({
   profile: ProfileView
   viewerId: string | null
   friendshipStatus: FriendshipStatus
+  isFollowing: boolean
   coinBalance?: number
   /** Unlocked achievement slugs — drives the HexAvatar's decoration badges. */
   achievements?: string[]
@@ -95,6 +97,14 @@ export function ProfileHeader({
               </span>
             )}
           </div>
+          <div className="mt-2 flex items-center justify-center gap-4 text-sm sm:justify-start">
+            <Link href={`/players/${profile.username}/followers`} className="text-sx-gray hover:text-white">
+              <span className="font-bold text-white">{profile.followerCount}</span> Followers
+            </Link>
+            <Link href={`/players/${profile.username}/following`} className="text-sx-gray hover:text-white">
+              <span className="font-bold text-white">{profile.followingCount}</span> Following
+            </Link>
+          </div>
           {profile.bio && (
             <p className="mt-3 whitespace-pre-line text-sm italic text-sx-gray">&ldquo;{profile.bio}&rdquo;</p>
           )}
@@ -103,6 +113,7 @@ export function ProfileHeader({
               profileId={profile.id}
               friendshipStatus={friendshipStatus}
               blockedByMe={messagingState?.blockedByMe ?? false}
+              isFollowing={isFollowing}
             />
           )}
         </div>

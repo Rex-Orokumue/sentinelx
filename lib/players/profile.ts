@@ -34,6 +34,10 @@ export interface ProfileView {
   currentStreak: number
   /** Total ranked players, for a "Top X%" read on rank. Null when rank is null. */
   totalRankedPlayers: number | null
+  /** Distinct players who follow this profile. */
+  followerCount: number
+  /** Distinct players this profile follows. */
+  followingCount: number
 }
 
 export interface ProfileMatch {
