@@ -2,6 +2,7 @@
 import { useFormState } from 'react-dom'
 import { confirmFriendlyResult, disputeFriendlyResult, type FriendlyAdminState } from '@/lib/friendly-matches/admin-actions'
 import { formatNaira } from '@/lib/format'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface FriendlySubmission {
   submittedBy: 'challenger' | 'opponent'
@@ -61,12 +62,12 @@ export function FriendlyQueueRow({ req }: { req: PendingFriendlyMatch }) {
           placeholder="Dispute reason (required to dispute)"
           className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
         />
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="Disputing…"
           className="mt-2 rounded-lg border border-red-500/40 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/10"
         >
           Dispute
-        </button>
+        </SubmitButton>
       </form>
 
       <form action={confirmAction} className="mt-3 space-y-2">
@@ -76,9 +77,9 @@ export function FriendlyQueueRow({ req }: { req: PendingFriendlyMatch }) {
           <span className="pb-2 text-slate-500">–</span>
           <ScoreField label={req.opponentName} name="scoreOpponent" defaultValue={req.prefillScoreOpponent ?? undefined} />
         </div>
-        <button type="submit" className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500">
+        <SubmitButton pendingLabel="Confirming…" className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-500">
           Confirm official result
-        </button>
+        </SubmitButton>
       </form>
 
       {(confirmState?.error || disputeState?.error) && (

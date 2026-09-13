@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { toggleBannerActive, deleteBanner, type BannerFormState } from '@/lib/banners/admin-actions'
 import { BannerForm } from '@/components/admin/BannerForm'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface AdminBanner {
   id: string
@@ -55,21 +56,21 @@ export function BannerRow({ banner }: { banner: AdminBanner }) {
         <form action={toggleAction}>
           <input type="hidden" name="id" value={banner.id} />
           <input type="hidden" name="active" value={String(banner.active)} />
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Working…"
             className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-slate-500"
           >
             {banner.active ? 'Hide' : 'Unhide'}
-          </button>
+          </SubmitButton>
         </form>
         <form action={deleteAction}>
           <input type="hidden" name="id" value={banner.id} />
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Deleting…"
             className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-500"
           >
             Delete
-          </button>
+          </SubmitButton>
         </form>
       </div>
       {(toggleState?.error || deleteState?.error) && (

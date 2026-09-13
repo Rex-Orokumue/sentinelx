@@ -1,7 +1,20 @@
 'use client'
 import { useState } from 'react'
-import { useFormState } from 'react-dom'
+import { useFormState, useFormStatus } from 'react-dom'
 import { sendChallenge, type FriendlyActionState } from '@/lib/friendly-matches/actions'
+
+function SendChallengeButton({ showStake }: { showStake: boolean }) {
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="w-full rounded-lg bg-violet-600 px-3 py-2 text-xs font-bold text-white hover:bg-violet-500 disabled:cursor-wait disabled:opacity-60"
+    >
+      {pending ? 'Sending…' : showStake ? 'Send staked challenge' : 'Challenge to a friendly'}
+    </button>
+  )
+}
 
 export function ChallengeButton({ opponentId }: { opponentId: string }) {
   const [showStake, setShowStake] = useState(false)
@@ -44,12 +57,7 @@ export function ChallengeButton({ opponentId }: { opponentId: string }) {
           </div>
         </>
       )}
-      <button
-        type="submit"
-        className="w-full rounded-lg bg-violet-600 px-3 py-2 text-xs font-bold text-white hover:bg-violet-500"
-      >
-        {showStake ? 'Send staked challenge' : 'Challenge to a friendly'}
-      </button>
+      <SendChallengeButton showStake={showStake} />
       {state?.error && <p className="text-xs text-red-400">{state.error}</p>}
     </form>
   )

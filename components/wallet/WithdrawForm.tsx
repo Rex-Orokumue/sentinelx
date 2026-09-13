@@ -3,6 +3,7 @@ import { useFormState } from 'react-dom'
 import { requestWalletWithdrawal, type WalletWithdrawalState } from '@/lib/wallet/actions'
 import { formatNaira } from '@/lib/format'
 import { Field } from '@/components/dashboard/FormField'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function WithdrawForm({ balance, hasActive }: { balance: number; hasActive: boolean }) {
   const [state, formAction] = useFormState<WalletWithdrawalState, FormData>(requestWalletWithdrawal, undefined)
@@ -20,12 +21,12 @@ export function WithdrawForm({ balance, hasActive }: { balance: number; hasActiv
       <Field name="amount" label={`Amount (₦, up to ${formatNaira(balance)})`} type="number" min={100} max={balance} placeholder="100" />
       <p className="text-xs text-sx-gray">Available: {formatNaira(balance)} · Min: ₦100</p>
       {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="Requesting…"
         className="w-full rounded-xl bg-sx-purple px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-sx-purple-light"
       >
         Withdraw
-      </button>
+      </SubmitButton>
     </form>
   )
 }

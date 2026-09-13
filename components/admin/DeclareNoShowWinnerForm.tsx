@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { declareNoShowWinner, type NoShowState } from '@/lib/matches/noshow-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export function DeclareNoShowWinnerForm({
   matchId,
@@ -65,12 +66,12 @@ export function DeclareNoShowWinnerForm({
         className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:border-violet-500 focus:outline-none"
       />
       {state?.error && <p className="text-xs text-red-400">{state.error}</p>}
-      <button
-        type="submit"
+      <SubmitButton
+        pendingLabel="Declaring…"
         className="rounded-lg border border-violet-500/40 px-4 py-2 text-xs font-bold text-violet-400 hover:bg-violet-500/10"
       >
         Declare winner
-      </button>
+      </SubmitButton>
     </form>
   )
 }

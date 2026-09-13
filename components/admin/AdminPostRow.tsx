@@ -4,6 +4,7 @@ import { useFormState } from 'react-dom'
 import { formatDateTime } from '@/lib/format'
 import { togglePin, adminDeletePost, nominateBestPlay, type AdminActionState } from '@/lib/community/admin-actions'
 import type { AdminPostRow as AdminPostRowData } from '@/lib/community/admin-query'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 const TYPE_LABEL: Record<string, string> = {
   manual: 'Manual',
@@ -33,16 +34,16 @@ export function AdminPostRow({ post }: { post: AdminPostRowData }) {
           <form action={pinAction}>
             <input type="hidden" name="id" value={post.id} />
             <input type="hidden" name="pinned" value={(!post.isPinned).toString()} />
-            <button type="submit" className="text-xs font-semibold text-violet-400 hover:text-violet-300">
+            <SubmitButton pendingLabel="…" className="text-xs font-semibold text-violet-400 hover:text-violet-300">
               {post.isPinned ? 'Unpin' : 'Pin'}
-            </button>
+            </SubmitButton>
           </form>
           {(post.postType === 'manual' || post.postType === 'match_result') && (
             <form action={nomAction}>
               <input type="hidden" name="postId" value={post.id} />
-              <button type="submit" className="text-xs font-semibold text-amber-400 hover:text-amber-300">
+              <SubmitButton pendingLabel="Nominating…" className="text-xs font-semibold text-amber-400 hover:text-amber-300">
                 Nominate Best Play
-              </button>
+              </SubmitButton>
             </form>
           )}
           {!showDelete ? (
@@ -57,9 +58,9 @@ export function AdminPostRow({ post }: { post: AdminPostRowData }) {
                 placeholder="Reason (optional)"
                 className="w-32 rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-[11px] text-white placeholder:text-slate-600"
               />
-              <button type="submit" className="text-xs font-bold text-red-400 hover:text-red-300">
+              <SubmitButton pendingLabel="Deleting…" className="text-xs font-bold text-red-400 hover:text-red-300">
                 Confirm
-              </button>
+              </SubmitButton>
             </form>
           )}
         </div>

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from '@/i18n/navigation'
 import { useTranslations } from 'next-intl'
 import { ChevronRight, X } from 'lucide-react'
+import { useFormStatus } from 'react-dom'
 import { signOut } from '@/lib/auth/actions'
 import { SHEET_SITE_LINKS } from '@/lib/nav/links'
 import { isAdminNavActive, type AdminSheetData } from '@/lib/admin/nav'
@@ -15,6 +16,20 @@ const activeLinkStyle = { background: 'rgba(124,58,237,0.15)' }
 
 function sectionOpenKey(id: string) {
   return `sx-nav-sheet-open:${id}`
+}
+
+function SignOutButton() {
+  const tAccount = useTranslations('account')
+  const { pending } = useFormStatus()
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="block w-full rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-white/70 transition-colors hover:text-white disabled:cursor-wait disabled:opacity-60"
+    >
+      {pending ? tAccount('signOutPending') : tAccount('signOut')}
+    </button>
+  )
 }
 
 // Each menu section is its own <details> — the sheet stacks up to ~28 links
@@ -233,12 +248,7 @@ export function MobileNavSheet({
                 {tAccount('friendlies')}
               </SheetLink>
               <form action={signOut}>
-                <button
-                  type="submit"
-                  className="block w-full rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-white/70 transition-colors hover:text-white"
-                >
-                  {tAccount('signOut')}
-                </button>
+                <SignOutButton />
               </form>
             </>
           ) : (

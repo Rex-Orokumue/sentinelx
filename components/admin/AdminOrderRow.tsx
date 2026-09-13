@@ -3,6 +3,7 @@ import { useFormState } from 'react-dom'
 import { formatNaira, formatDateTime } from '@/lib/format'
 import { buildZolaruxWhatsAppUrl } from '@/lib/exchange/escrow'
 import { cancelOrderAdmin, type ActionState } from '@/lib/exchange/admin-actions'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface AdminOrderRow {
   id: string
@@ -64,12 +65,12 @@ export function AdminOrderRow({ order }: { order: AdminOrderRow }) {
             }}
           >
             <input type="hidden" name="id" value={order.id} />
-            <button
-              type="submit"
+            <SubmitButton
+              pendingLabel="Cancelling…"
               className="inline-flex items-center gap-2 rounded-lg border border-red-500/30 px-3 py-1.5 text-xs font-bold text-red-400 transition-colors hover:bg-red-500/10"
             >
               Cancel order
-            </button>
+            </SubmitButton>
           </form>
         )}
       </div>

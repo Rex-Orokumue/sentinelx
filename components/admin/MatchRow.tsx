@@ -3,6 +3,7 @@ import { useState, type InputHTMLAttributes } from 'react'
 import { useFormState } from 'react-dom'
 import { updateMatch, toggleMatchLive, type MatchAdminState } from '@/lib/matches/admin-actions'
 import { WhatsAppChip } from '@/components/shared/WhatsAppChip'
+import { SubmitButton } from '@/components/ui/submit-button'
 
 export interface AdminMatchRow {
   id: string
@@ -92,12 +93,12 @@ export function MatchRow({ match }: { match: AdminMatchRow }) {
         <Field label="Stream URL" name="streamUrl" type="url" defaultValue={match.streamUrl} placeholder="YouTube link" />
         <Field label="Replay URL" name="replayUrl" type="url" defaultValue={match.replayUrl} placeholder="YouTube link" />
         <div className="flex items-center gap-2 sm:col-span-3">
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Saving…"
             className="rounded-lg bg-violet-600 px-4 py-2 text-xs font-bold text-white hover:bg-violet-500"
           >
             Save
-          </button>
+          </SubmitButton>
           {saveState?.success && <span className="text-xs text-emerald-400">Saved.</span>}
         </div>
       </form>
@@ -105,8 +106,8 @@ export function MatchRow({ match }: { match: AdminMatchRow }) {
       {canToggle && (
         <form action={liveAction} className="mt-2">
           <input type="hidden" name="id" value={match.id} />
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Working…"
             className={`rounded-lg px-4 py-2 text-xs font-bold ${
               match.status === 'live'
                 ? 'border border-slate-700 text-slate-200 hover:border-slate-500'
@@ -114,7 +115,7 @@ export function MatchRow({ match }: { match: AdminMatchRow }) {
             }`}
           >
             {match.status === 'live' ? 'End live' : 'Go live'}
-          </button>
+          </SubmitButton>
         </form>
       )}
 
