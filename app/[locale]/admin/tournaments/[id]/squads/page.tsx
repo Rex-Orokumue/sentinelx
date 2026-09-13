@@ -14,10 +14,14 @@ export default async function AdminSquadsPage({ params }: { params: { id: string
     .maybeSingle()
   if (!tournament || tournament.entry_unit !== 'squad') notFound()
 
+  // A withdrawn squad is dissolved — its members were already released back
+  // to the unassigned pool by refundFormingSquads, so it has nothing left to
+  // review or act on here.
   const { data: squads } = await admin
     .from('squads')
     .select('id, name, status, captain_id')
     .eq('tournament_id', tournament.id)
+    .neq('status', 'withdrawn')
     .order('name')
 
   const { data: members } = await admin
