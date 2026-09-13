@@ -13,6 +13,7 @@ export function ProfileHeader({
   viewerId,
   friendshipStatus,
   isFollowing,
+  followsViewer,
   coinBalance,
   achievements,
   avatarFrameUrl,
@@ -24,6 +25,8 @@ export function ProfileHeader({
   viewerId: string | null
   friendshipStatus: FriendshipStatus
   isFollowing: boolean
+  /** True when this profile already follows the viewer back — drives the "Follows you" badge. */
+  followsViewer?: boolean
   coinBalance?: number
   /** Unlocked achievement slugs — drives the HexAvatar's decoration badges. */
   achievements?: string[]
@@ -114,6 +117,7 @@ export function ProfileHeader({
               friendshipStatus={friendshipStatus}
               blockedByMe={messagingState?.blockedByMe ?? false}
               isFollowing={isFollowing}
+              followsYou={followsViewer}
             />
           )}
         </div>

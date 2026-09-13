@@ -30,6 +30,11 @@ const SAMPLES: NotificationInput[] = [
   { type: 'wager_settled', won: false, payout: 0, stake: 60 },
   { type: 'prize_credited', amount: '₦10,000' },
   { type: 'match_reminder', tournament: 'DLS Cup', opponent: 'Sam' },
+  { type: 'new_follower', followerName: 'Rex' },
+  { type: 'direct_message', fromName: 'Rex', kind: 'text', excerpt: 'gg well played' },
+  { type: 'direct_message', fromName: 'Rex', kind: 'sticker', emoji: '🔥' },
+  { type: 'direct_message', fromName: 'Rex', kind: 'voice' },
+  { type: 'direct_message', fromName: 'Rex', kind: 'photo' },
 ]
 
 describe('renderNotification', () => {

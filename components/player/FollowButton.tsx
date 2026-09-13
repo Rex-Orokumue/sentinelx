@@ -4,7 +4,16 @@ import { useRouter } from 'next/navigation'
 import { UserPlus, UserCheck } from 'lucide-react'
 import { followPlayer, unfollowPlayer } from '@/lib/follows/actions'
 
-export function FollowButton({ profileId, initialFollowing }: { profileId: string; initialFollowing: boolean }) {
+export function FollowButton({
+  profileId,
+  initialFollowing,
+  followsYou,
+}: {
+  profileId: string
+  initialFollowing: boolean
+  /** True when this profile already follows the viewer back — shown as a small badge, independent of the button's own state. */
+  followsYou?: boolean
+}) {
   const router = useRouter()
   const [pending, start] = useTransition()
   const [following, setFollowing] = useState(initialFollowing)
@@ -38,6 +47,7 @@ export function FollowButton({ profileId, initialFollowing }: { profileId: strin
         {following ? <UserCheck className="h-3.5 w-3.5" /> : <UserPlus className="h-3.5 w-3.5" />}
         {pending ? '…' : following ? 'Following' : 'Follow'}
       </button>
+      {followsYou && <span className="rounded-full bg-sx-bg px-2 py-0.5 text-[10px] font-bold text-sx-gray">Follows you</span>}
       {error && <span className="text-[11px] text-red-400">{error}</span>}
     </div>
   )

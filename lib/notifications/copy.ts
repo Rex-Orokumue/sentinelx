@@ -40,6 +40,18 @@ export type NotificationInput =
   | { type: 'wager_settled'; won: boolean; payout: number; stake: number }
   | { type: 'prize_credited'; amount: string }
   | { type: 'match_reminder'; tournament: string; opponent: string }
+  | { type: 'new_follower'; followerName: string }
+  | {
+      type: 'direct_message'
+      fromName: string
+      kind: 'text' | 'sticker' | 'voice' | 'photo'
+      // Only meaningful for 'text' (the raw, already-truncated message body —
+      // free text, not translated) and 'sticker' (the sticker's own emoji,
+      // prefixed onto the translated "Sticker" word so the notification still
+      // shows which one was sent).
+      excerpt?: string
+      emoji?: string
+    }
 
 export interface RenderedNotification {
   title: string
@@ -69,6 +81,8 @@ const PUSH_TYPE: Record<NotificationInput['type'], PushNotificationType> = {
   wager_settled: 'wager_settled',
   prize_credited: 'prize_credited',
   match_reminder: 'match_reminder',
+  new_follower: 'new_follower',
+  direct_message: 'direct_message',
 }
 
 export function pushTypeFor(input: NotificationInput): PushNotificationType {
@@ -197,5 +211,17 @@ export function renderNotification(input: NotificationInput, t: Translate): Rend
         title: t('matchReminder.title'),
         body: t('matchReminder.body', { tournament: input.tournament, opponent: input.opponent }),
       }
+    case 'new_follower':
+      return {
+        title: t('newFollower.title'),
+        body: t('newFollower.body', { followerName: input.followerName }),
+      }
+    case 'direct_message': {
+      const title = t('directMessage.title', { fromName: input.fromName })
+      if (input.kind === 'text') return { title, body: input.excerpt ?? '' }
+      if (input.kind === 'sticker') return { title, body: `${input.emoji ?? '🙂'} ${t('directMessage.sticker')}` }
+      if (input.kind === 'voice') return { title, body: t('directMessage.voice') }
+      return { title, body: t('directMessage.photo') }
+    }
   }
 }
