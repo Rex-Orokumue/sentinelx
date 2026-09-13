@@ -23,6 +23,8 @@ export interface PushPrefs {
   prize_credited: boolean
   status_from_friend: boolean
   status_viewed: boolean
+  new_follower: boolean
+  direct_message: boolean
 }
 
 const LABELS: [keyof PushPrefs, string][] = [
@@ -39,6 +41,8 @@ const LABELS: [keyof PushPrefs, string][] = [
   ['post_reaction', 'Reactions on your posts'],
   ['status_from_friend', 'A friend posts a status'],
   ['status_viewed', 'Someone views your status'],
+  ['new_follower', 'Someone follows you'],
+  ['direct_message', 'Direct messages'],
   ['new_announcement', 'Community announcements'],
   ['tournament_announced', 'New tournaments'],
 ]
