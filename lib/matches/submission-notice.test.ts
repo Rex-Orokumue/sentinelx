@@ -18,8 +18,14 @@ describe('opponentSubmissionNotice', () => {
     const notice = opponentSubmissionNotice({ ...base, submitterId: 'a' })
 
     expect(notice?.recipientId).toBe('b')
-    expect(notice?.title).toBe('Opponent submitted a result')
-    expect(notice?.body).toBe('Kelvin_G 3 – 1 ShadowX in Lagos Cup. Check it now — tell an admin if it is wrong.')
+    // Wording is the catalog's job now; this module decides WHO is told and
+    // with WHICH values.
+    expect(notice?.notification).toEqual({
+      type: 'result_submitted',
+      scoreline: 'Kelvin_G 3 – 1 ShadowX',
+      tournament: 'Lagos Cup',
+      isResubmission: false,
+    })
     expect(notice?.link).toBe('/matches/m1')
   })
 
@@ -30,8 +36,7 @@ describe('opponentSubmissionNotice', () => {
   it('says updated, not submitted, on a re-submission', () => {
     const notice = opponentSubmissionNotice({ ...base, submitterId: 'a', isResubmission: true })
 
-    expect(notice?.title).toBe('Opponent updated their result')
-    expect(notice?.body).toContain('updated it to')
+    expect(notice?.notification.isResubmission).toBe(true)
   })
 
   it('renders the score exactly as submitted, never reordered for the reader', () => {
@@ -40,7 +45,7 @@ describe('opponentSubmissionNotice', () => {
     // "your score first" would make the two disagree.
     const notice = opponentSubmissionNotice({ ...base, submitterId: 'b' })
 
-    expect(notice?.body).toContain('Kelvin_G 3 – 1 ShadowX')
+    expect(notice?.notification.scoreline).toBe('Kelvin_G 3 – 1 ShadowX')
   })
 
   it('returns nothing when the match has no opponent yet', () => {
@@ -56,6 +61,6 @@ describe('opponentSubmissionNotice', () => {
   it('falls back to a neutral name when a profile has none', () => {
     const notice = opponentSubmissionNotice({ ...base, submitterId: 'a', playerBName: null })
 
-    expect(notice?.body).toContain('Kelvin_G 3 – 1 Player')
+    expect(notice?.notification.scoreline).toBe('Kelvin_G 3 – 1 Player')
   })
 })

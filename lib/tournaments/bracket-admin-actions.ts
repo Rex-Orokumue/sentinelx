@@ -357,8 +357,7 @@ export async function publishBracket(
     })
     void pushToPlayer(
       playerId,
-      'bracket_released',
-      { title: 'Bracket is live!', body: `${t.title}'s bracket has been published.` },
+      { type: 'bracket_released', tournament: t.title },
       { url: `/tournaments/${t.slug}/bracket` },
     )
   }

@@ -99,8 +99,12 @@ export async function claimBattleReadyBadge(): Promise<{ ok: true } | { ok: fals
   })
   void pushToPlayer(
     user.id,
-    'achievement_unlocked',
-    { title: 'Achievement unlocked!', body: `${achievement.name} — +${achievement.xp_reward} XP, +${achievement.coin_reward} SX Coins.` },
+    {
+      type: 'achievement_unlocked',
+      name: achievement.name,
+      xp: achievement.xp_reward,
+      coins: achievement.coin_reward,
+    },
     { url: '/dashboard' },
   )
 

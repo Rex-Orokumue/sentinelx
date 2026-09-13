@@ -102,8 +102,11 @@ export async function settleReferral(
     })
     void pushToPlayer(
       referrerId,
-      'referral_converted',
-      { title: 'Referral credited', body: `${referredName} just competed for the first time — +${REFERRAL_BASE_REWARD_COINS} SX Coins added.` },
+      {
+        type: 'referral_converted',
+        referredName,
+        coins: REFERRAL_BASE_REWARD_COINS,
+      },
       { url: '/dashboard/referrals' },
     )
 

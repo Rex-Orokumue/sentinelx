@@ -35,7 +35,7 @@ async function fanOutNewStatus(admin: Admin, opts: { authorId: string; authorNam
     await Promise.all(
       recipients.flatMap((id) => [
         notifyInApp({ playerId: id, type: 'status_from_friend', title, body, link: COMMUNITY_LINK }),
-        pushToPlayer(id, 'status_from_friend', { title, body }, { url: COMMUNITY_LINK }),
+        pushToPlayer(id, { type: 'status_from_friend', authorName: opts.authorName }, { url: COMMUNITY_LINK }),
       ]),
     )
   } catch (err) {
@@ -64,7 +64,7 @@ async function fanOutStatusViewed(opts: {
     const body = `${opts.viewerName} viewed your status.`
     await Promise.all([
       notifyInApp({ playerId: opts.authorId, type: 'status_viewed', title, body, link: COMMUNITY_LINK }),
-      pushToPlayer(opts.authorId, 'status_viewed', { title, body }, { url: COMMUNITY_LINK }),
+      pushToPlayer(opts.authorId, { type: 'status_viewed', viewerName: opts.viewerName }, { url: COMMUNITY_LINK }),
     ])
   } catch (err) {
     console.error('[status-notify] notifyStatusViewed failed (non-blocking)', err)
@@ -82,7 +82,7 @@ async function fanOutStatusRemoved(opts: { authorId: string }): Promise<void> {
     const body = 'A moderator removed your status.'
     await Promise.all([
       notifyInApp({ playerId: opts.authorId, type: 'status_removed', title, body, link: COMMUNITY_LINK }),
-      pushToPlayer(opts.authorId, 'status_removed', { title, body }, { url: COMMUNITY_LINK }),
+      pushToPlayer(opts.authorId, { type: 'status_removed' }, { url: COMMUNITY_LINK }),
     ])
   } catch (err) {
     console.error('[status-notify] notifyStatusRemoved failed (non-blocking)', err)

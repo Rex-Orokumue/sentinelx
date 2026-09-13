@@ -242,8 +242,7 @@ export async function swapKnockoutPairing(
       await notifyInApp({ playerId: pid, type: 'fixture_assigned', title: 'Fixture updated', body, link })
       void pushToPlayer(
         pid,
-        'match_assigned',
-        { title: 'Fixture updated', body },
+        { type: 'fixture_updated', round: rearrangeable.label, opponent: opp ? nameById.get(opp) ?? null : null },
         { url: `${SITE_URL}${link}` },
       )
     }

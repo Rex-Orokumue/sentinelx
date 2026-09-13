@@ -64,7 +64,12 @@ describe('createComment notifications — authored posts', () => {
     const { createComment } = await import('./comment-actions')
     await createComment({ postId: 'post-1', content: 'nice post' })
     expect(notifyInApp).toHaveBeenCalledWith(expect.objectContaining({ playerId: 'author-1', type: 'post_comment' }))
-    expect(pushToPlayer).toHaveBeenCalledWith('author-1', 'post_comment', expect.anything(), expect.anything(), expect.anything())
+    expect(pushToPlayer).toHaveBeenCalledWith(
+      'author-1',
+      expect.objectContaining({ type: 'post_comment' }),
+      expect.anything(),
+      expect.anything(),
+    )
   })
 })
 
@@ -82,8 +87,18 @@ describe('createComment notifications — match results', () => {
     })
     const { createComment } = await import('./comment-actions')
     await createComment({ postId: 'post-1', content: 'great game' })
-    expect(pushToPlayer).toHaveBeenCalledWith('player-a', 'post_comment', expect.anything(), expect.anything(), expect.anything())
-    expect(pushToPlayer).toHaveBeenCalledWith('player-b', 'post_comment', expect.anything(), expect.anything(), expect.anything())
+    expect(pushToPlayer).toHaveBeenCalledWith(
+      'player-a',
+      expect.objectContaining({ type: 'post_comment', onMatch: true }),
+      expect.anything(),
+      expect.anything(),
+    )
+    expect(pushToPlayer).toHaveBeenCalledWith(
+      'player-b',
+      expect.objectContaining({ type: 'post_comment', onMatch: true }),
+      expect.anything(),
+      expect.anything(),
+    )
   })
 
   it('does not notify a match player who is the one commenting', async () => {
@@ -97,7 +112,12 @@ describe('createComment notifications — match results', () => {
     const { createComment } = await import('./comment-actions')
     await createComment({ postId: 'post-1', content: 'gg' })
     expect(pushToPlayer).toHaveBeenCalledOnce()
-    expect(pushToPlayer).toHaveBeenCalledWith('player-b', 'post_comment', expect.anything(), expect.anything(), expect.anything())
+    expect(pushToPlayer).toHaveBeenCalledWith(
+      'player-b',
+      expect.objectContaining({ type: 'post_comment' }),
+      expect.anything(),
+      expect.anything(),
+    )
   })
 
   it('says the comment is on your match, not just "New comment"', async () => {
@@ -123,8 +143,18 @@ describe('createComment notifications — announcements', () => {
     getStaffIds.mockResolvedValueOnce(['admin-1', 'mod-1'])
     const { createComment } = await import('./comment-actions')
     await createComment({ postId: 'post-1', content: 'question about this' })
-    expect(pushToPlayer).toHaveBeenCalledWith('admin-1', 'post_comment', expect.anything(), expect.anything(), expect.anything())
-    expect(pushToPlayer).toHaveBeenCalledWith('mod-1', 'post_comment', expect.anything(), expect.anything(), expect.anything())
+    expect(pushToPlayer).toHaveBeenCalledWith(
+      'admin-1',
+      expect.objectContaining({ type: 'post_comment' }),
+      expect.anything(),
+      expect.anything(),
+    )
+    expect(pushToPlayer).toHaveBeenCalledWith(
+      'mod-1',
+      expect.objectContaining({ type: 'post_comment' }),
+      expect.anything(),
+      expect.anything(),
+    )
   })
 
   // Only announcements pay for the staff lookup.

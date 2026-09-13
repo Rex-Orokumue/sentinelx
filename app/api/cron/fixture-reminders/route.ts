@@ -82,8 +82,7 @@ export async function POST(req: Request) {
       })
       void pushToPlayer(
         pid,
-        'match_reminder',
-        { title: 'Match in 1 hour', body: `${tournament} · vs ${opponent}` },
+        { type: 'match_reminder', tournament, opponent },
         { url: matchUrl },
       )
       reminded += 1

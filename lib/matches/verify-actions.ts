@@ -544,8 +544,14 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
       })
       void pushToPlayer(
         pid,
-        'result_confirmed',
-        { title: 'Result confirmed', body: `${a} ${scoreA} – ${scoreB} ${b} — confirmed for ${title}.` },
+        {
+          type: 'result_confirmed',
+          playerA: a,
+          scoreA,
+          scoreB,
+          playerB: b,
+          tournament: title,
+        },
         { url: `/matches/${id}` },
       )
     }

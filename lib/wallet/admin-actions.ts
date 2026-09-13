@@ -61,8 +61,7 @@ export async function resolveWalletWithdrawal(
   if (action === 'paid') {
     void pushToPlayer(
       wr.player_id,
-      'prize_credited',
-      { title: 'Prize credited', body: `${formatNaira(wr.amount)} has been approved for withdrawal.` },
+      { type: 'prize_credited', amount: formatNaira(wr.amount) },
       { url: '/dashboard#wallet' },
     )
   }

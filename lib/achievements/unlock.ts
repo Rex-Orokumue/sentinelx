@@ -76,8 +76,12 @@ async function unlock(admin: Admin, playerId: string, achievement: AchievementRo
   })
   void pushToPlayer(
     playerId,
-    'achievement_unlocked',
-    { title: 'Achievement unlocked!', body: `${achievement.name} — +${achievement.xp_reward} XP, +${achievement.coin_reward} SX Coins.` },
+    {
+      type: 'achievement_unlocked',
+      name: achievement.name,
+      xp: achievement.xp_reward,
+      coins: achievement.coin_reward,
+    },
     { url: '/dashboard' },
   )
 }

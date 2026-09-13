@@ -93,8 +93,7 @@ export async function toggleReaction(postId: string, reaction: ReactionType): Pr
       })
       void pushToPlayer(
         recipientId,
-        'post_reaction',
-        { title, body },
+        { type: 'post_reaction', onMatch: post.post_type === 'match_result', reaction: parsed.data },
         { url: `/community/${postId}` },
         { postId },
       )

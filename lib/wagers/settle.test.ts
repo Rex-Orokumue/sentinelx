@@ -64,7 +64,15 @@ describe('settleMatchWagers notifications', () => {
 
     expect(notifyInApp).toHaveBeenCalledWith(expect.objectContaining({ playerId: 'winner-1', type: 'wager_settled' }))
     expect(notifyInApp).toHaveBeenCalledWith(expect.objectContaining({ playerId: 'loser-1', type: 'wager_settled' }))
-    expect(pushToPlayer).toHaveBeenCalledWith('winner-1', 'wager_settled', expect.anything(), expect.anything())
-    expect(pushToPlayer).toHaveBeenCalledWith('loser-1', 'wager_settled', expect.anything(), expect.anything())
+    expect(pushToPlayer).toHaveBeenCalledWith(
+      'winner-1',
+      expect.objectContaining({ type: 'wager_settled', won: true }),
+      expect.anything(),
+    )
+    expect(pushToPlayer).toHaveBeenCalledWith(
+      'loser-1',
+      expect.objectContaining({ type: 'wager_settled', won: false }),
+      expect.anything(),
+    )
   })
 })

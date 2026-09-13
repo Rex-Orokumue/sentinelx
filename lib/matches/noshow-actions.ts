@@ -143,8 +143,7 @@ export async function resolvePendingNoShowMatches(
       })
       void pushToPlayer(
         staffId,
-        'noshow_needs_decision',
-        { title: 'No-show needs a decision', body: `${tournamentTitle} — ${playerA} vs ${playerB} passed its deadline with no confirmed result.` },
+        { type: 'noshow_needs_decision', tournament: tournamentTitle, playerA, playerB },
         { url: `/admin/matches/${m.id}/review` },
       )
     }

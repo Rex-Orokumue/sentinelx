@@ -92,8 +92,12 @@ export async function incrementChallenge(
       })
       void pushToPlayer(
         playerId,
-        'challenge_completed',
-        { title: 'Challenge complete!', body: `${challenge.title} — +${challenge.coin_reward} SX Coins, +${challenge.xp_reward} XP.` },
+        {
+          type: 'challenge_completed',
+          challenge: challenge.title,
+          coins: challenge.coin_reward,
+          xp: challenge.xp_reward,
+        },
         { url: '/community' },
       )
     }

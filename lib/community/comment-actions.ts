@@ -78,8 +78,7 @@ export async function createComment(input: { postId: string; content: string }):
       })
       void pushToPlayer(
         recipientId,
-        'post_comment',
-        { title, body: excerpt },
+        { type: 'post_comment', onMatch: post.post_type === 'match_result', excerpt },
         { url: `/community/${input.postId}` },
         // So "mute this post" silences the thread whatever the type.
         { postId: input.postId },

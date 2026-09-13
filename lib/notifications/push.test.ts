@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ALWAYS_MUTED_UNTIL, type MuteRow } from './mutes'
+import type { NotificationInput } from './copy'
+
+const WAGER: NotificationInput = { type: 'wager_settled', won: true, payout: 10, stake: 5 }
+const SAMPLE: Record<string, NotificationInput> = {
+  wager_settled: WAGER,
+  post_reaction: { type: 'post_reaction', onMatch: false, reaction: '🔥' },
+  post_comment: { type: 'post_comment', onMatch: false, excerpt: 'hi' },
+  match_assigned: { type: 'fixture_updated', round: 'final', opponent: null },
+}
 
 const sendFCMToPlayer = vi.fn().mockResolvedValue(undefined)
 vi.mock('./fcm', () => ({ sendFCMToPlayer, sendToTokens: vi.fn() }))
@@ -29,14 +38,18 @@ describe('pushToPlayer', () => {
   it('sends when the pref key is absent (default true)', async () => {
     maybeSingle.mockResolvedValueOnce({ data: { notification_prefs: { push: {} } } })
     const { pushToPlayer } = await import('./push')
-    await pushToPlayer('p1', 'wager_settled', { title: 'T', body: 'B' }, { url: '/x' })
-    expect(sendFCMToPlayer).toHaveBeenCalledWith('p1', { title: 'T', body: 'B' }, { url: '/x', type: 'wager_settled' })
+    await pushToPlayer('p1', WAGER, { url: '/x' })
+    expect(sendFCMToPlayer).toHaveBeenCalledWith(
+      'p1',
+      { title: expect.any(String), body: expect.any(String) },
+      { url: '/x', type: 'wager_settled' },
+    )
   })
 
   it('skips when the player turned the type off', async () => {
     maybeSingle.mockResolvedValueOnce({ data: { notification_prefs: { push: { wager_settled: false } } } })
     const { pushToPlayer } = await import('./push')
-    await pushToPlayer('p1', 'wager_settled', { title: 'T', body: 'B' }, { url: '/x' })
+    await pushToPlayer('p1', WAGER, { url: '/x' })
     expect(sendFCMToPlayer).not.toHaveBeenCalled()
   })
 })
@@ -50,7 +63,7 @@ describe('pushToPlayer — mutes', () => {
     maybeSingle.mockResolvedValueOnce({ data: { notification_prefs: { push: {} } } })
     muteRows = [{ notification_type: 'post_reaction', post_id: null, muted_until: future }]
     const { pushToPlayer } = await import('./push')
-    await pushToPlayer('p1', 'post_reaction', { title: 'T', body: 'B' }, { url: '/x' })
+    await pushToPlayer('p1', SAMPLE['post_reaction'], { url: '/x' })
     expect(sendFCMToPlayer).not.toHaveBeenCalled()
   })
 
@@ -58,7 +71,7 @@ describe('pushToPlayer — mutes', () => {
     maybeSingle.mockResolvedValueOnce({ data: { notification_prefs: { push: {} } } })
     muteRows = [{ notification_type: 'post_reaction', post_id: null, muted_until: future }]
     const { pushToPlayer } = await import('./push')
-    await pushToPlayer('p1', 'match_assigned', { title: 'T', body: 'B' }, { url: '/x' })
+    await pushToPlayer('p1', SAMPLE['match_assigned'], { url: '/x' })
     expect(sendFCMToPlayer).toHaveBeenCalled()
   })
 
@@ -66,7 +79,7 @@ describe('pushToPlayer — mutes', () => {
     maybeSingle.mockResolvedValueOnce({ data: { notification_prefs: { push: {} } } })
     muteRows = [{ notification_type: null, post_id: 'post-9', muted_until: future }]
     const { pushToPlayer } = await import('./push')
-    await pushToPlayer('p1', 'post_comment', { title: 'T', body: 'B' }, { url: '/x' }, { postId: 'post-9' })
+    await pushToPlayer('p1', SAMPLE['post_comment'], { url: '/x' }, { postId: 'post-9' })
     expect(sendFCMToPlayer).not.toHaveBeenCalled()
   })
 
@@ -75,7 +88,7 @@ describe('pushToPlayer — mutes', () => {
     maybeSingle.mockResolvedValueOnce({ data: { notification_prefs: { push: {} } } })
     muteRows = [{ notification_type: null, post_id: 'post-9', muted_until: future }]
     const { pushToPlayer } = await import('./push')
-    await pushToPlayer('p1', 'post_comment', { title: 'T', body: 'B' }, { url: '/x' }, { postId: 'post-1' })
+    await pushToPlayer('p1', SAMPLE['post_comment'], { url: '/x' }, { postId: 'post-1' })
     expect(sendFCMToPlayer).toHaveBeenCalled()
   })
 
@@ -83,7 +96,7 @@ describe('pushToPlayer — mutes', () => {
     maybeSingle.mockResolvedValueOnce({ data: { notification_prefs: { push: {} } } })
     muteRows = [{ notification_type: 'post_comment', post_id: null, muted_until: ALWAYS_MUTED_UNTIL }]
     const { pushToPlayer } = await import('./push')
-    await pushToPlayer('p1', 'post_comment', { title: 'T', body: 'B' }, { url: '/x' })
+    await pushToPlayer('p1', SAMPLE['post_comment'], { url: '/x' })
     expect(sendFCMToPlayer).not.toHaveBeenCalled()
   })
 })

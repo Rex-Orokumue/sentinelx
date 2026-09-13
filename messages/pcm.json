@@ -9,6 +9,91 @@
     "moderator": "Moderator"
   },
   "notifications": {
+    "push": {
+      "achievementUnlocked": {
+        "title": "You don unlock achievement!",
+        "body": "{name} — +{xp} XP, +{coins} SX Coins."
+      },
+      "challengeCompleted": {
+        "title": "You don finish di challenge!",
+        "body": "{challenge} — +{coins} SX Coins, +{xp} XP."
+      },
+      "newAnnouncement": {
+        "title": "New announcement",
+        "body": "{excerpt}"
+      },
+      "postComment": {
+        "title": "New comment",
+        "titleMatch": "New comment for your match",
+        "body": "{excerpt}"
+      },
+      "postReaction": {
+        "title": "New reaction",
+        "titleMatch": "New reaction for your match",
+        "body": "Person react {reaction} to your post."
+      },
+      "statusFromFriend": {
+        "title": "New status",
+        "body": "{authorName} don add to im status."
+      },
+      "statusViewed": {
+        "title": "Dem view your status",
+        "body": "{viewerName} don view your status."
+      },
+      "statusRemoved": {
+        "title": "Dem remove your status",
+        "body": "Moderator don remove your status."
+      },
+      "resultSubmitted": {
+        "title": "Your opponent don submit result",
+        "titleAgain": "Your opponent don change im result",
+        "body": "{scoreline} for {tournament}. Check am now — tell admin if e no correct.",
+        "bodyAgain": "Your opponent don change am to {scoreline} for {tournament}. Check am now — tell admin if e no correct."
+      },
+      "noshowNeedsDecision": {
+        "title": "No-show wey need decision",
+        "body": "{tournament} — {playerA} vs {playerB} don pass im deadline and no result dey confam."
+      },
+      "resultConfirmed": {
+        "title": "Dem don confam di result",
+        "body": "{playerA} {scoreA} – {scoreB} {playerB} — confam for {tournament}."
+      },
+      "fixtureNew": {
+        "title": "New fixture",
+        "body": "{playerA} vs {playerB} — {tournament}"
+      },
+      "fixtureUpdated": {
+        "title": "Dem change your fixture",
+        "body": "Your {round} fixture don change — na {opponent} you go play now.",
+        "bodyBye": "Your {round} fixture don change — you get bye now."
+      },
+      "referralConverted": {
+        "title": "Dem credit your referral",
+        "body": "{referredName} just play im first match — +{coins} SX Coins don enter."
+      },
+      "tournamentAnnounced": {
+        "title": "New tournament!",
+        "body": "{tournament} don open for registration."
+      },
+      "bracketReleased": {
+        "title": "Di bracket don land!",
+        "body": "Dem don publish di bracket for {tournament}."
+      },
+      "wagerSettled": {
+        "title": "Dem don settle di wager",
+        "titleWon": "You win di wager!",
+        "bodyWon": "You win {payout} SX Coins for dis match.",
+        "bodyLost": "Your {stake}-coin wager no enter dis time."
+      },
+      "prizeCredited": {
+        "title": "Dem credit your prize",
+        "body": "Dem don approve {amount} for withdrawal."
+      },
+      "matchReminder": {
+        "title": "Match remain 1 hour",
+        "body": "{tournament} · vs {opponent}"
+      }
+    },
     "whatsapp": {
       "registrationConfirmed": "✅ You don register for {tournament} for Sentinel X! Your entry don confam — we go remind you before your matches. Good luck! 🎮",
       "fixtureReminder": "⏰ Your Sentinel X match go start for about 1 hour: {playerA} vs {playerB} ({tournament}). Get ready → {matchUrl}",

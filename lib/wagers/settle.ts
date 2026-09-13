@@ -69,7 +69,11 @@ export async function settleMatchWagers(admin: Admin, matchId: string, winnerId:
       ? `You won ${payout} SX Coins on this match.`
       : `Your ${w.stakeCoins}-coin wager didn't hit this time.`
     void notifyInApp({ playerId: w.bettorId, type: 'wager_settled', title: won ? 'Wager won!' : 'Wager settled', body, link: `/matches/${matchId}` })
-    void pushToPlayer(w.bettorId, 'wager_settled', { title: won ? 'Wager won!' : 'Wager settled', body }, { url: `/matches/${matchId}` })
+    void pushToPlayer(
+      w.bettorId,
+      { type: 'wager_settled', won, payout, stake: w.stakeCoins },
+      { url: `/matches/${matchId}` },
+    )
   }
 
   if (platformFee > 0) {

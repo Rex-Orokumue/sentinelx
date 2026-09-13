@@ -61,8 +61,7 @@ export async function notifyNewFixtures(admin: Admin, rows: NewFixtureRow[]): Pr
       })
       void pushToPlayer(
         pid,
-        'match_assigned',
-        { title: 'New fixture', body: `${a} vs ${b} — ${tournament}` },
+        { type: 'fixture_new', playerA: a, playerB: b, tournament },
         { url: matchUrl },
       )
     }

@@ -5,9 +5,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { submitResultSchema } from './schema'
 import { notifyStaff } from '@/lib/admin/staff'
 import { resultNotification } from '@/lib/admin/notification-copy'
-import { notifyInApp } from '@/lib/notifications/inbox'
-import { pushToPlayer } from '@/lib/notifications/push'
 import { opponentSubmissionNotice } from './submission-notice'
+import { notifyBoth } from '@/lib/notifications/send'
 
 export type SubmitResultState = { error?: string; success?: boolean } | undefined
 
@@ -143,21 +142,9 @@ export async function submitMatchResult(
         isResubmission: Boolean(existing),
       })
       if (notice) {
-        await Promise.all([
-          notifyInApp({
-            playerId: notice.recipientId,
-            type: 'result_submitted',
-            title: notice.title,
-            body: notice.body,
-            link: notice.link,
-          }),
-          pushToPlayer(
-            notice.recipientId,
-            'result_submitted',
-            { title: notice.title, body: notice.body },
-            { url: notice.link },
-          ),
-        ])
+        await notifyBoth(notice.recipientId, notice.notification, 'result_submitted', {
+          link: notice.link,
+        })
       }
     }
   }
