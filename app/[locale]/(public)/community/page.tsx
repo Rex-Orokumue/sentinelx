@@ -9,6 +9,7 @@ import { fetchTopCommunityMembers } from '@/lib/community/top-members-query'
 import { fetchUpcomingCommunityEvents } from '@/lib/community/upcoming-events-query'
 import { fetchCommunityGallery } from '@/lib/community/gallery-query'
 import { fetchStatusRings } from '@/lib/community/status-query'
+import { fetchFollowingIds } from '@/lib/follows/query'
 import { NewPostLauncher } from '@/components/community/NewPostLauncher'
 import { StatusTray, type TrayViewer } from '@/components/community/StatusTray'
 import type { ViewerProfile as ComposerViewer } from '@/components/community/PostComposer'
@@ -68,6 +69,7 @@ export default async function CommunityPage() {
     upcomingEvents,
     gallery,
     statusRings,
+    followingIds,
   ] = await Promise.all([
     fetchFeedPage({ offset: 0, limit: PAGE_SIZE, viewerId }),
     fetchChallengeWidget(viewerId),
@@ -78,6 +80,7 @@ export default async function CommunityPage() {
     fetchUpcomingCommunityEvents(3),
     fetchCommunityGallery(0, 8),
     fetchStatusRings(viewerId),
+    viewerId ? fetchFollowingIds(viewerId) : Promise.resolve([] as string[]),
   ])
 
   const trayViewer: TrayViewer | null = viewerId
@@ -123,7 +126,13 @@ export default async function CommunityPage() {
           <div className="mb-4 lg:hidden">
             {challengeWidget && <ChallengeWidget weekLabel={challengeWidget.weekLabel} challenges={challengeWidget.challenges} />}
           </div>
-          <FeedList pinned={pinned} initialPosts={posts} initialHasMore={hasMore} loggedIn={!!viewerId} />
+          <FeedList
+            pinned={pinned}
+            initialPosts={posts}
+            initialHasMore={hasMore}
+            loggedIn={!!viewerId}
+            followingIds={followingIds}
+          />
         </div>
         {/* ChallengeWidget is `lg:sticky` — it must be the LAST widget here, or a
             later static sibling (Upcoming Tournaments) renders behind it once it
