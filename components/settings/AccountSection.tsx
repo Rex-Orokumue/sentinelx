@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useFormState, useFormStatus } from 'react-dom'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
+import { Eye, EyeOff } from 'lucide-react'
 import { requestReset, changeEmail, type ActionState, type ChangeEmailState } from '@/lib/auth/actions'
 import {
   requestAccountDeletion,
@@ -95,8 +96,11 @@ function ChangeEmailPanel({
   justChanged: boolean
 }) {
   const t = useTranslations('emailChange')
+  // Shared show/hide-password strings, not this namespace's own.
+  const tAuth = useTranslations('auth')
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [showPw, setShowPw] = useState(false)
 
   const [state, formAction] = useFormState<ChangeEmailState, FormData>(async (prev, fd) => {
     const result = await changeEmail(prev, fd)
@@ -157,14 +161,24 @@ function ChangeEmailPanel({
           <label className="block pt-1 text-xs text-sx-gray" htmlFor="current-password">
             {t('passwordLabel')}
           </label>
-          <input
-            id="current-password"
-            type="password"
-            name="password"
-            autoComplete="current-password"
-            required
-            className="w-full rounded-lg border border-sx-border bg-slate-950 px-3 py-2 text-sm text-white"
-          />
+          <div className="relative">
+            <input
+              id="current-password"
+              type={showPw ? 'text' : 'password'}
+              name="password"
+              autoComplete="current-password"
+              required
+              className="w-full rounded-lg border border-sx-border bg-slate-950 px-3 py-2 pr-10 text-sm text-white"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPw((s) => !s)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+              aria-label={showPw ? tAuth('common.hidePassword') : tAuth('common.showPassword')}
+            >
+              {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
           <p className="text-xs leading-relaxed text-sx-gray">{t('passwordHint')}</p>
           {/* Said here, not only in Sign-in methods: this is the moment someone
               assumes the old address has lost its access. It hasn't. */}

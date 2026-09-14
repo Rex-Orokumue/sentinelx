@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useFormState } from 'react-dom'
 import { useTranslations } from 'next-intl'
+import { Eye, EyeOff } from 'lucide-react'
 import { unlinkGoogle, type UnlinkState } from '@/lib/auth/identities'
 import { createClient } from '@/lib/supabase/client'
 import { willGoogleRelink } from '@/lib/auth/relink'
@@ -99,8 +100,11 @@ function UnlinkGoogle({
   willRelink: boolean
 }) {
   const t = useTranslations('signInMethods')
+  // Shared show/hide-password strings, not this namespace's own.
+  const tAuth = useTranslations('auth')
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [showPw, setShowPw] = useState(false)
   const [state, formAction] = useFormState<UnlinkState, FormData>(async (prev, fd) => {
     const result = await unlinkGoogle(prev, fd)
     if (result?.unlinked) {
@@ -141,14 +145,24 @@ function UnlinkGoogle({
       <label className="block text-xs text-sx-gray" htmlFor="unlink-password">
         {t('passwordLabel')}
       </label>
-      <input
-        id="unlink-password"
-        type="password"
-        name="password"
-        autoComplete="current-password"
-        required
-        className="w-full rounded-lg border border-sx-border bg-slate-950 px-3 py-2 text-sm text-white"
-      />
+      <div className="relative">
+        <input
+          id="unlink-password"
+          type={showPw ? 'text' : 'password'}
+          name="password"
+          autoComplete="current-password"
+          required
+          className="w-full rounded-lg border border-sx-border bg-slate-950 px-3 py-2 pr-10 text-sm text-white"
+        />
+        <button
+          type="button"
+          onClick={() => setShowPw((s) => !s)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+          aria-label={showPw ? tAuth('common.hidePassword') : tAuth('common.showPassword')}
+        >
+          {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
       {state?.errorCode && <p className="text-xs text-red-400">{t(`errors.${state.errorCode}`)}</p>}
       <div className="flex flex-col gap-2 sm:flex-row">
         <SubmitButton

@@ -4,6 +4,7 @@ import { useFormState, useFormStatus } from 'react-dom'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { Eye, EyeOff } from 'lucide-react'
 import { login, resendConfirmation, type ActionState } from '@/lib/auth/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,6 +40,7 @@ export function LoginForm() {
   const [state, formAction] = useFormState<ActionState, FormData>(login, undefined)
   const [resendState, resendAction] = useFormState<ActionState, FormData>(resendConfirmation, undefined)
   const [email, setEmail] = useState('')
+  const [showPw, setShowPw] = useState(false)
   const next = useSearchParams().get('next') ?? '/dashboard'
 
   return (
@@ -59,7 +61,24 @@ export function LoginForm() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="password">{t('common.password')}</Label>
-          <Input id="password" name="password" type="password" autoComplete="current-password" required />
+          <div className="relative">
+            <Input
+              id="password"
+              name="password"
+              type={showPw ? 'text' : 'password'}
+              autoComplete="current-password"
+              required
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPw((s) => !s)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+              aria-label={showPw ? t('common.hidePassword') : t('common.showPassword')}
+            >
+              {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
         {state?.errorCode && <p className="text-sm text-red-400">{t(`errors.${state.errorCode}`)}</p>}
         <SubmitButton />
