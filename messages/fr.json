@@ -343,6 +343,7 @@
   },
   "account": {
     "myProfile": "Mon profil",
+    "findPlayers": "Trouver des joueurs",
     "messages": "Messages",
     "dashboard": "Tableau de bord",
     "wallet": "Portefeuille",

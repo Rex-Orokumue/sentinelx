@@ -6,6 +6,18 @@ const config: Config = {
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    // Tailwind's JIT scanner only generates a utility if its literal class
+    // string appears in a scanned file. lib/store/cosmetics.ts's
+    // PROFILE_THEME_CLASSES/USERNAME_COLOUR_CLASSES hold Tailwind classes as
+    // plain data (from-orange-950, via-slate-900, to-slate-950, text-teal-400,
+    // the neon-grid bg-[linear-gradient(...)] arbitrary values) that never
+    // appear in app/components/pages — those four were being silently
+    // dropped from the production CSS bundle, so equipping Lagos Skyline,
+    // Neon Grid, or a teal username rendered no visible change at all even
+    // though the class was correctly present in the HTML. lib/**  wasn't
+    // scanned since this file didn't exist when the content globs above were
+    // set (Phase 1 visual overhaul, before Phase 2's cosmetics store).
+    "./lib/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {

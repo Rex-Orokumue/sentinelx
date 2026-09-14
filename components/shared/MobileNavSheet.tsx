@@ -224,6 +224,14 @@ export function MobileNavSheet({
               >
                 {tAccount('myProfile')}
               </SheetLink>
+              {/* /players (the player directory/search) was previously reachable
+                  on mobile only via the site footer's "expanded" variant, which
+                  only renders on 4 routes and sits below the fold either way —
+                  no tap path existed from anywhere else. Desktop already has
+                  this same link in AccountMenu ("Find Players"). */}
+              <SheetLink href="/players" active={pathname === '/players'} onClose={onClose}>
+                {tAccount('findPlayers')}
+              </SheetLink>
               <SheetLink href="/messages" active={pathname.startsWith('/messages')} onClose={onClose}>
                 <span className="flex items-center justify-between gap-2">
                   {tAccount('messages')}

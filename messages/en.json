@@ -343,6 +343,7 @@
   },
   "account": {
     "myProfile": "My Profile",
+    "findPlayers": "Find Players",
     "messages": "Messages",
     "dashboard": "Dashboard",
     "wallet": "Wallet",
