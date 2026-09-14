@@ -5,7 +5,10 @@ import {
   pairWinners,
   nextRoundName,
   thirdPlacePair,
+  sideAIds,
+  sideBIds,
   type AdvanceMatch,
+  type RosterAwareMatch,
 } from './advancement'
 
 function mk(over: Partial<AdvanceMatch>): AdvanceMatch {
@@ -162,5 +165,34 @@ describe('nextRoundName', () => {
   it('returns null for the final or a non-knockout round', () => {
     expect(nextRoundName('final')).toBeNull()
     expect(nextRoundName('group')).toBeNull()
+  })
+})
+
+describe('sideAIds / sideBIds', () => {
+  it('returns the single player id for a solo match', () => {
+    const m: RosterAwareMatch = { status: 'completed', score_a: 1, score_b: 0, player_a_id: 'a', player_b_id: 'b' }
+    expect(sideAIds(m)).toEqual(['a'])
+    expect(sideBIds(m)).toEqual(['b'])
+  })
+
+  it('returns the roster for a team match', () => {
+    const m: RosterAwareMatch = {
+      status: 'completed', score_a: 1, score_b: 0,
+      player_a_id: null, player_b_id: null,
+      team_a_id: 'sq1', team_b_id: 'sq2',
+      team_a_roster: ['p1', 'p2'], team_b_roster: ['p3', 'p4'],
+    }
+    expect(sideAIds(m)).toEqual(['p1', 'p2'])
+    expect(sideBIds(m)).toEqual(['p3', 'p4'])
+  })
+
+  it('returns an empty roster for a team match whose roster was never attached', () => {
+    const m: RosterAwareMatch = { status: 'completed', score_a: 1, score_b: null, player_a_id: null, player_b_id: null, team_a_id: 'sq1', team_b_id: null }
+    expect(sideAIds(m)).toEqual([])
+  })
+
+  it('returns an empty array for an unpopulated side (an open bye slot)', () => {
+    const m: RosterAwareMatch = { status: 'bye', score_a: null, score_b: null, player_a_id: 'a', player_b_id: null }
+    expect(sideBIds(m)).toEqual([])
   })
 })
