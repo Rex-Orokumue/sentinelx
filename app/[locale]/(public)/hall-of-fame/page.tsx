@@ -25,6 +25,7 @@ import { ChampionsCupCard, ChampionsCupEmptyCard } from '@/components/hall-of-fa
 import { TournamentChampionCard } from '@/components/hall-of-fame/TournamentChampionCard'
 import { HallOfFameGameFilter } from '@/components/hall-of-fame/HallOfFameGameFilter'
 import { fetchChampions, groupByType } from '@/lib/tournaments/champions'
+import { rostersForSquads } from '@/lib/tournaments/squad-roster'
 import { MastersChampionCard, MastersChampionEmptyCard } from '@/components/hall-of-fame/MastersChampionCard'
 import { CommunityClubCard } from '@/components/hall-of-fame/CommunityClubCard'
 import { BronzeCard } from '@/components/hall-of-fame/BronzeCard'
@@ -104,7 +105,7 @@ export default async function HallOfFamePage({
     supabase
       .from('matches')
       .select(
-        'status, score_a, score_b, player_a_id, player_b_id, tournament:tournaments(game:games(id, name, category))',
+        'status, score_a, score_b, player_a_id, player_b_id, team_a_id, team_b_id, tournament:tournaments(game:games(id, name, category))',
       )
       .eq('status', 'completed'),
     // Independent of match data — a category can be "active" even with zero
@@ -120,8 +121,14 @@ export default async function HallOfFamePage({
     score_b: number | null
     player_a_id: string | null
     player_b_id: string | null
+    team_a_id: string | null
+    team_b_id: string | null
     tournament: RawTournamentRef
   }[]
+  const squadIds = Array.from(
+    new Set(rawMatches.flatMap((m) => [m.team_a_id, m.team_b_id]).filter((id): id is string => id != null)),
+  )
+  const rosterBySquad = await rostersForSquads(supabase, squadIds)
   const matches: GameScopedMatch[] = rawMatches.map((m) => {
     const t = firstTournamentRef(m.tournament)
     const g = firstGameRef(t?.game ?? null)
@@ -131,6 +138,10 @@ export default async function HallOfFamePage({
       score_b: m.score_b,
       player_a_id: m.player_a_id,
       player_b_id: m.player_b_id,
+      team_a_id: m.team_a_id,
+      team_b_id: m.team_b_id,
+      team_a_roster: m.team_a_id ? rosterBySquad.get(m.team_a_id) ?? [] : undefined,
+      team_b_roster: m.team_b_id ? rosterBySquad.get(m.team_b_id) ?? [] : undefined,
       game_id: g?.id ?? 'unknown',
       game_name: g?.name ?? 'Unknown',
       game_category: g?.category ?? 'other',
