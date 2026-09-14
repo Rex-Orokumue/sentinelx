@@ -6,6 +6,7 @@ import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
+import { buildSeasonJsonLd } from '@/lib/seo/schema/season'
 import { getSeasonLeaderboard } from '@/lib/seasons/data'
 import { seasonTierLabelsFor } from '@/lib/games/season-tier-labels'
 import { SeasonGameTabs, type SeasonGameSection } from '@/components/seasons/SeasonGameTabs'
@@ -79,6 +80,14 @@ export default async function SeasonPage({ params }: { params: { slug: string } 
           { name: 'Home', path: '/' },
           { name: season.name, path: `/seasons/${season.slug}` },
         ])}
+      />
+      <JsonLd
+        data={buildSeasonJsonLd({
+          name: season.name,
+          slug: season.slug,
+          startDate: season.start_date,
+          endDate: season.end_date,
+        })}
       />
       <SeasonGameTabs
         sections={sections}
