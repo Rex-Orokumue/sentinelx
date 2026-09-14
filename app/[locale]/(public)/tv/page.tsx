@@ -8,18 +8,31 @@ import { youtubeThumbnail } from '@/lib/tv/thumbnail'
 import type { TvCategory } from '@/lib/tv/schema'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
-import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { buildVideoJsonLd } from '@/lib/seo/schema/video'
 import { parseYouTubeId } from '@/lib/matches/youtube'
+import { tvDescription } from '@/lib/seo/tv-description'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params
+  const supabase = createClient()
+  const { data: liveMatch } = await supabase
+    .from('matches')
+    .select(
+      'player_a:profiles!matches_player_a_id_fkey(username, display_name), player_b:profiles!matches_player_b_id_fkey(username, display_name)',
+    )
+    .eq('status', 'live')
+    .not('youtube_stream_url', 'is', null)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const liveTitle = liveMatch ? `${nameOf(liveMatch.player_a)} vs ${nameOf(liveMatch.player_b)}` : null
+
   return buildMetadata({
     title: 'Sentinel X TV — Live, Highlights & Replays',
-    description: 'Watch live mobile esports, highlights, finals, and match replays on Sentinel X TV.',
+    description: tvDescription(liveTitle),
     path: '/tv',
-    image: DEFAULT_OG_IMAGE,
     locale,
   })
 }
