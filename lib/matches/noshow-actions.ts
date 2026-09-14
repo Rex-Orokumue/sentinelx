@@ -163,12 +163,14 @@ export async function declareNoShowWinner(_prev: NoShowState, formData: FormData
   const admin = createAdminClient()
   const { data: m } = await admin
     .from('matches')
-    .select('id, round, group_id, tournament_id, status, resolution, player_a_id, player_b_id, tournament:tournaments(slug)')
+    .select('id, round, group_id, tournament_id, status, resolution, player_a_id, player_b_id, team_a_id, team_b_id, tournament:tournaments(slug)')
     .eq('id', id)
     .maybeSingle()
   if (!m) return { error: 'Match not found.' }
-  if (!m.player_a_id || !m.player_b_id) return { error: 'This match has no opponent assigned yet.' }
-  if (winnerId !== m.player_a_id && winnerId !== m.player_b_id) return { error: 'Winner must be one of the two players.' }
+  const sideAId = m.player_a_id ?? m.team_a_id
+  const sideBId = m.player_b_id ?? m.team_b_id
+  if (!sideAId || !sideBId) return { error: 'This match has no opponent assigned yet.' }
+  if (winnerId !== sideAId && winnerId !== sideBId) return { error: 'Winner must be one of the two sides.' }
 
   const eligible =
     m.status === 'scheduled' ||
@@ -196,8 +198,8 @@ export async function declareNoShowWinner(_prev: NoShowState, formData: FormData
     }
   }
 
-  const scoreA = winnerId === m.player_a_id ? WALKOVER_SCORE : 0
-  const scoreB = winnerId === m.player_b_id ? WALKOVER_SCORE : 0
+  const scoreA = winnerId === sideAId ? WALKOVER_SCORE : 0
+  const scoreB = winnerId === sideBId ? WALKOVER_SCORE : 0
 
   const { error: upErr } = await admin
     .from('matches')
@@ -226,29 +228,37 @@ export async function declareNoShowWinner(_prev: NoShowState, formData: FormData
       score_b: scoreB,
       player_a_id: m.player_a_id,
       player_b_id: m.player_b_id,
+      team_a_id: m.team_a_id,
+      team_b_id: m.team_b_id,
     })
   }
   await syncMatchEvents(admin, id)
   await awardMatchEconomy(admin, id)
 
   const t = Array.isArray(m.tournament) ? m.tournament[0] : m.tournament
-  await notify({
-    type: 'result_confirmed',
-    playerId: winnerId,
-    dedupeKey: resultKey(id, winnerId),
-    playerA: winnerId === m.player_a_id ? 'You' : 'Opponent',
-    playerB: winnerId === m.player_a_id ? 'Opponent' : 'You',
-    scoreA,
-    scoreB,
-    tournament: '',
-  })
-  await notifyInApp({
-    playerId: winnerId,
-    type: 'result_confirmed',
-    title: 'Result confirmed',
-    body: `Your opponent didn't show — you're marked as the winner (${WALKOVER_SCORE}-0).`,
-    link: `/matches/${id}`,
-  })
+  // Winner notification: player-only for now — a squad-winner notify() would
+  // need one call per roster member, deferred to Phase 6 alongside the rest
+  // of team-side notification copy. m.player_a_id being set is what tells us
+  // this was a solo match.
+  if (m.player_a_id || m.player_b_id) {
+    await notify({
+      type: 'result_confirmed',
+      playerId: winnerId,
+      dedupeKey: resultKey(id, winnerId),
+      playerA: winnerId === m.player_a_id ? 'You' : 'Opponent',
+      playerB: winnerId === m.player_a_id ? 'Opponent' : 'You',
+      scoreA,
+      scoreB,
+      tournament: '',
+    })
+    await notifyInApp({
+      playerId: winnerId,
+      type: 'result_confirmed',
+      title: 'Result confirmed',
+      body: `Your opponent didn't show — you're marked as the winner (${WALKOVER_SCORE}-0).`,
+      link: `/matches/${id}`,
+    })
+  }
 
   revalidateAll(m.tournament_id, t?.slug ?? '', id)
   return { success: true }
@@ -270,7 +280,7 @@ export async function markBothNoShow(_prev: NoShowState, formData: FormData): Pr
   const { data: m } = await admin
     .from('matches')
     .select(
-      'id, round, group_id, tournament_id, status, noshow_flagged_at, player_a_id, player_b_id, tournament:tournaments(slug)',
+      'id, round, group_id, tournament_id, status, noshow_flagged_at, player_a_id, player_b_id, team_a_id, team_b_id, tournament:tournaments(slug)',
     )
     .eq('id', id)
     .maybeSingle()
@@ -310,6 +320,8 @@ export async function markBothNoShow(_prev: NoShowState, formData: FormData): Pr
       score_b: null,
       player_a_id: m.player_a_id,
       player_b_id: m.player_b_id,
+      team_a_id: m.team_a_id,
+      team_b_id: m.team_b_id,
     })
   }
   await syncMatchEvents(admin, id)
