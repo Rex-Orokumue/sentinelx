@@ -201,7 +201,7 @@ function sideOf(
   teamId: string | null,
 ): { id: string; name: string; avatarUrl: string | null } {
   const t = one(team)
-  if (t) return { id: t.id, name: t.name, avatarUrl: null }
+  if (t) return { id: t.id ?? teamId ?? '', name: t.name, avatarUrl: null }
   const p = one(player)
   return { id: p?.id ?? playerId ?? '', name: nameOf(p), avatarUrl: p?.avatar_url ?? null }
 }

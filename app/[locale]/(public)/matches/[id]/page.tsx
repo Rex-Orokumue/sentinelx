@@ -25,6 +25,8 @@ import { wagerWindowOpen } from '@/lib/wagers/market'
 import { getCoinBalance } from '@/lib/coins/service'
 import { GameBadge } from '@/components/game/GameBadge'
 import { resolveTournamentImageUrl } from '@/lib/games/icon'
+import { isMatchParticipant } from '@/lib/matches/participant'
+import { matchRosters } from '@/lib/tournaments/squad-roster'
 
 type ProfileRef = {
   username: string | null
@@ -33,6 +35,7 @@ type ProfileRef = {
   membership_tier: string | null
   equipped_avatar_border: string | null
 } | null
+type SquadRef = { id: string; name: string } | { id: string; name: string }[] | null
 
 function nameOf(p: ProfileRef): string {
   return p?.display_name ?? p?.username ?? 'TBD'
@@ -41,6 +44,22 @@ function nameOf(p: ProfileRef): string {
 // player_b's slot, bye-aware: an empty slot on a bye match reads "BYE", not "TBD".
 function opponentName(m: { player_b: ProfileRef; status: string }): string {
   return opponentDisplayName(m.player_b?.display_name ?? m.player_b?.username, m.status)
+}
+
+function firstSquad(s: SquadRef): { id: string; name: string } | null {
+  return Array.isArray(s) ? s[0] ?? null : s
+}
+// A team match's side, in the shape the page's per-side JSX already renders:
+// a display name that falls back to the existing player-based helpers when
+// this isn't a team match.
+function sideAName(m: MatchRow): string {
+  const t = firstSquad(m.team_a)
+  return t ? t.name : nameOf(m.player_a)
+}
+function sideBDisplayName(m: MatchRow): string {
+  const t = firstSquad(m.team_b)
+  if (t) return t.name
+  return opponentName(m)
 }
 
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -53,10 +72,12 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 }
 
 const MATCH_SELECT =
-  'id, round, status, score_a, score_b, scheduled_at, is_full_day, youtube_stream_url, replay_url, player_a_id, player_b_id, ' +
+  'id, round, status, score_a, score_b, scheduled_at, is_full_day, youtube_stream_url, replay_url, player_a_id, player_b_id, team_a_id, team_b_id, ' +
   'tournaments(title, slug, card_image_url, games(name, icon_url, slug, category)), ' +
   'player_a:profiles!matches_player_a_id_fkey(username, display_name, avatar_url, membership_tier, equipped_avatar_border), ' +
-  'player_b:profiles!matches_player_b_id_fkey(username, display_name, avatar_url, membership_tier, equipped_avatar_border)'
+  'player_b:profiles!matches_player_b_id_fkey(username, display_name, avatar_url, membership_tier, equipped_avatar_border), ' +
+  'team_a:squads!matches_team_a_id_fkey(id, name), ' +
+  'team_b:squads!matches_team_b_id_fkey(id, name)'
 
 type MatchRow = {
   id: string
@@ -70,6 +91,8 @@ type MatchRow = {
   replay_url: string | null
   player_a_id: string | null
   player_b_id: string | null
+  team_a_id: string | null
+  team_b_id: string | null
   tournaments:
     | {
         title: string
@@ -80,6 +103,8 @@ type MatchRow = {
     | null
   player_a: ProfileRef
   player_b: ProfileRef
+  team_a: SquadRef
+  team_b: SquadRef
 }
 
 type MatchGameRef = { name: string; icon_url: string | null; slug: string | null; category: string | null } | null
@@ -98,9 +123,52 @@ async function getMatch(id: string): Promise<MatchRow | null> {
 export async function generateMetadata({ params }: { params: { id: string; locale: Locale } }): Promise<Metadata> {
   const m = await getMatch(params.id)
   if (!m) return { title: 'Match — Sentinel X' }
-  const title = `${nameOf(m.player_a)} vs ${opponentName(m)} — Sentinel X`
+  const title = `${sideAName(m)} vs ${sideBDisplayName(m)} — Sentinel X`
   const description = m.tournaments ? `${m.tournaments.title} on Sentinel X.` : 'Mobile esports match on Sentinel X.'
   return buildMetadata({ title, description, path: `/matches/${m.id}`, locale: params.locale })
+}
+
+async function TeamRosters({
+  teamAId,
+  teamBId,
+  teamAName,
+  teamBName,
+}: {
+  teamAId: string | null
+  teamBId: string | null
+  teamAName: string
+  teamBName: string
+}) {
+  const supabase = createClient()
+  const squadIds = [teamAId, teamBId].filter((id): id is string => id != null)
+  const { data: members } = await supabase
+    .from('squad_members')
+    .select('squad_id, profiles(username, display_name)')
+    .in('squad_id', squadIds)
+  const rosterFor = (squadId: string | null) =>
+    (members ?? [])
+      .filter((mem) => mem.squad_id === squadId)
+      .map((mem) => {
+        const p = Array.isArray(mem.profiles) ? mem.profiles[0] : mem.profiles
+        return p?.display_name ?? p?.username ?? 'Player'
+      })
+
+  return (
+    <div className="mb-6 grid grid-cols-2 gap-4 rounded-2xl border border-slate-800 bg-slate-900 p-4 text-sm">
+      <div>
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{teamAName}</p>
+        <ul className="space-y-1 text-slate-300">
+          {rosterFor(teamAId).map((name) => <li key={name}>{name}</li>)}
+        </ul>
+      </div>
+      <div>
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{teamBName}</p>
+        <ul className="space-y-1 text-slate-300">
+          {rosterFor(teamBId).map((name) => <li key={name}>{name}</li>)}
+        </ul>
+      </div>
+    </div>
+  )
 }
 
 export default async function MatchCentrePage({
@@ -120,7 +188,8 @@ export default async function MatchCentrePage({
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  const isParticipant = !!user && (user.id === m.player_a_id || user.id === m.player_b_id)
+  const isParticipant = !!user && (await isMatchParticipant(supabase, user.id, m))
+  const isTeamMatch = !!(m.team_a_id || m.team_b_id)
 
   // Participant's own submission only (never the opponent's).
   let myResult:
@@ -176,8 +245,24 @@ export default async function MatchCentrePage({
     .eq('match_id', m.id)
   const checkedInIds = new Set(((checkInRows ?? []) as { player_id: string }[]).map((r) => r.player_id))
   const iCheckedIn = !!user && checkedInIds.has(user.id)
-  const opponentId = user?.id === m.player_a_id ? m.player_b_id : m.player_a_id
-  const opponentCheckedIn = !!opponentId && checkedInIds.has(opponentId)
+  // Also resolves what CheckInPanel's opponentName prop should read from this
+  // viewer's own perspective (whichever side they are NOT on) — solo already
+  // does this inline at the CheckInPanel call site; a team match needs the
+  // same "which side am I not on" but resolved via roster membership instead
+  // of a single id comparison.
+  let opponentCheckedIn: boolean
+  let myOpponentDisplayName = sideBDisplayName(m)
+  if (isTeamMatch && user) {
+    const { rosterA, rosterB } = await matchRosters(supabase, m.team_a_id, m.team_b_id)
+    const iAmOnSideA = rosterA.includes(user.id)
+    const opponentRoster = iAmOnSideA ? rosterB : rosterA
+    opponentCheckedIn = opponentRoster.some((pid) => checkedInIds.has(pid))
+    myOpponentDisplayName = iAmOnSideA ? sideBDisplayName(m) : sideAName(m)
+  } else {
+    const opponentId = user?.id === m.player_a_id ? m.player_b_id : m.player_a_id
+    opponentCheckedIn = !!opponentId && checkedInIds.has(opponentId)
+    myOpponentDisplayName = user?.id === m.player_a_id ? opponentName(m) : nameOf(m.player_a)
+  }
   // Shown while the match is still open — once it's resolved there's nothing
   // left to be present for.
   const showCheckIn =
@@ -205,7 +290,7 @@ export default async function MatchCentrePage({
       : null
   const wagerCoinBalance = user ? await getCoinBalance(admin, user.id) : 0
 
-  const shareText = `${nameOf(m.player_a)} vs ${opponentName(m)} on Sentinel X 🎮 ${SITE_URL}/matches/${m.id}`
+  const shareText = `${sideAName(m)} vs ${sideBDisplayName(m)} on Sentinel X 🎮 ${SITE_URL}/matches/${m.id}`
 
   // This page is entered from the bracket, the dashboard, a player profile and
   // TV — a single hardcoded back link sent everyone to the tournament page,
@@ -235,8 +320,8 @@ export default async function MatchCentrePage({
       <JsonLd
         data={buildMatchJsonLd({
           id: m.id,
-          playerAName: nameOf(m.player_a),
-          playerBName: opponentName(m),
+          playerAName: sideAName(m),
+          playerBName: sideBDisplayName(m),
           status: m.status,
           scoreA: m.score_a,
           scoreB: m.score_b,
@@ -249,13 +334,13 @@ export default async function MatchCentrePage({
           data={buildBreadcrumbJsonLd([
             { name: 'Tournaments', path: '/tournaments' },
             { name: m.tournaments.title, path: `/tournaments/${m.tournaments.slug}` },
-            { name: `${nameOf(m.player_a)} vs ${opponentName(m)}`, path: `/matches/${m.id}` },
+            { name: `${sideAName(m)} vs ${sideBDisplayName(m)}`, path: `/matches/${m.id}` },
           ])}
         />
       ) : (
         <JsonLd
           data={buildBreadcrumbJsonLd([
-            { name: `${nameOf(m.player_a)} vs ${opponentName(m)}`, path: `/matches/${m.id}` },
+            { name: `${sideAName(m)} vs ${sideBDisplayName(m)}`, path: `/matches/${m.id}` },
           ])}
         />
       )}
@@ -281,30 +366,42 @@ export default async function MatchCentrePage({
         )}
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-1 flex-col items-center gap-2 sm:flex-row sm:justify-end">
-            <HexAvatar
-              src={m.player_a?.avatar_url ?? null}
-              username={nameOf(m.player_a)}
-              tier={(m.player_a?.membership_tier ?? 'recruit') as MembershipTier}
-              size="md"
-              frameUrl={frameUrlFor(m.player_a?.equipped_avatar_border)}
-            />
-            <p className="text-lg font-bold text-white">{nameOf(m.player_a)}</p>
+            {firstSquad(m.team_a) ? (
+              <HexAvatar src={null} username={sideAName(m)} tier="recruit" size="md" />
+            ) : (
+              <HexAvatar
+                src={m.player_a?.avatar_url ?? null}
+                username={nameOf(m.player_a)}
+                tier={(m.player_a?.membership_tier ?? 'recruit') as MembershipTier}
+                size="md"
+                frameUrl={frameUrlFor(m.player_a?.equipped_avatar_border)}
+              />
+            )}
+            <p className="text-lg font-bold text-white">{sideAName(m)}</p>
           </div>
           <p className="shrink-0 text-2xl font-black tabular-nums text-white">
             {showScore ? `${m.score_a} – ${m.score_b}` : 'vs'}
           </p>
           <div className="flex flex-1 flex-col items-center gap-2 sm:flex-row">
-            <HexAvatar
-              src={m.player_b?.avatar_url ?? null}
-              username={opponentName(m)}
-              tier={(m.player_b?.membership_tier ?? 'recruit') as MembershipTier}
-              size="md"
-              frameUrl={frameUrlFor(m.player_b?.equipped_avatar_border)}
-            />
-            <p className="text-lg font-bold text-white">{opponentName(m)}</p>
+            {firstSquad(m.team_b) ? (
+              <HexAvatar src={null} username={sideBDisplayName(m)} tier="recruit" size="md" />
+            ) : (
+              <HexAvatar
+                src={m.player_b?.avatar_url ?? null}
+                username={opponentName(m)}
+                tier={(m.player_b?.membership_tier ?? 'recruit') as MembershipTier}
+                size="md"
+                frameUrl={frameUrlFor(m.player_b?.equipped_avatar_border)}
+              />
+            )}
+            <p className="text-lg font-bold text-white">{sideBDisplayName(m)}</p>
           </div>
         </div>
       </div>
+
+      {isTeamMatch && (
+        <TeamRosters teamAId={m.team_a_id} teamBId={m.team_b_id} teamAName={sideAName(m)} teamBName={sideBDisplayName(m)} />
+      )}
 
       {/* Video */}
       <div className="mb-6">
@@ -321,13 +418,13 @@ export default async function MatchCentrePage({
         </div>
       )}
 
-      {!isParticipant && (
+      {!isParticipant && !isTeamMatch && (
         <WagerWidget
           matchId={m.id}
           playerAId={m.player_a_id ?? ''}
           playerBId={m.player_b_id ?? ''}
-          playerAName={nameOf(m.player_a)}
-          playerBName={opponentName(m)}
+          playerAName={sideAName(m)}
+          playerBName={sideBDisplayName(m)}
           playerAAvatar={m.player_a?.avatar_url ?? null}
           playerBAvatar={m.player_b?.avatar_url ?? null}
           playerATier={(m.player_a?.membership_tier ?? 'recruit') as MembershipTier}
@@ -348,7 +445,7 @@ export default async function MatchCentrePage({
           matchId={m.id}
           alreadyCheckedIn={iCheckedIn}
           opponentCheckedIn={opponentCheckedIn}
-          opponentName={user!.id === m.player_a_id ? opponentName(m) : nameOf(m.player_a)}
+          opponentName={myOpponentDisplayName}
         />
       )}
 
@@ -357,14 +454,14 @@ export default async function MatchCentrePage({
         <div className="mb-6">
           <ResultSubmissionForm
             matchId={m.id}
-            playerAName={nameOf(m.player_a)}
-            playerBName={opponentName(m)}
+            playerAName={sideAName(m)}
+            playerBName={sideBDisplayName(m)}
             recordingWhatsAppUrl={buildRecordingWhatsAppUrl({
               adminWhatsapp: process.env.NEXT_PUBLIC_ADMIN_WHATSAPP ?? null,
               username: myUsername,
               tournamentTitle: m.tournaments?.title ?? 'Sentinel X',
-              playerAName: nameOf(m.player_a),
-              playerBName: opponentName(m),
+              playerAName: sideAName(m),
+              playerBName: sideBDisplayName(m),
             })}
             initial={
               myResult
