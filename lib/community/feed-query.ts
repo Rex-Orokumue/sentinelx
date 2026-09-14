@@ -74,6 +74,22 @@ function toPlayerRef(p: ProfileRow | null): PlayerRef {
     frameUrl: frameUrlFor(p?.equipped_avatar_border),
   }
 }
+type SquadRef = { id: string; name: string } | { id: string; name: string }[] | null
+function firstSquad(s: SquadRef): { id: string; name: string } | null {
+  return Array.isArray(s) ? s[0] ?? null : s
+}
+function toSquadPlayerRef(s: { id: string; name: string } | null): PlayerRef | null {
+  if (!s) return null
+  return {
+    id: s.id,
+    username: null,
+    displayName: s.name,
+    avatarUrl: null,
+    membershipTier: 'recruit',
+    sentinelTier: null,
+    frameUrl: undefined,
+  }
+}
 
 const PROFILE_FIELDS =
   'id, username, display_name, avatar_url, membership_tier, sentinel_tier, equipped_avatar_border'
@@ -154,6 +170,8 @@ async function hydratePosts(rows: RawPost[], viewerId: string | null): Promise<P
         'id, round, score_a, score_b, scheduled_at, ' +
           'player_a:profiles!matches_player_a_id_fkey(' + PROFILE_FIELDS + '), ' +
           'player_b:profiles!matches_player_b_id_fkey(' + PROFILE_FIELDS + '), ' +
+          'team_a:squads!matches_team_a_id_fkey(id, name), ' +
+          'team_b:squads!matches_team_b_id_fkey(id, name), ' +
           'tournament:tournaments(title)',
       )
       .in('id', matchIds)
@@ -166,17 +184,21 @@ async function hydratePosts(rows: RawPost[], viewerId: string | null): Promise<P
       scheduled_at: string | null
       player_a: ProfileRef
       player_b: ProfileRef
+      team_a: SquadRef
+      team_b: SquadRef
       tournament: TournamentRef
     }[]) {
       const t = Array.isArray(m.tournament) ? m.tournament[0] : m.tournament
+      const teamA = firstSquad(m.team_a)
+      const teamB = firstSquad(m.team_b)
       matchDetailById.set(m.id, {
         matchId: m.id,
         tournamentTitle: t?.title ?? 'SentinelX',
         roundLabel: ROUND_LABELS[m.round] ?? m.round,
         scoreA: m.score_a,
         scoreB: m.score_b,
-        playerA: firstProfile(m.player_a) ? toPlayerRef(firstProfile(m.player_a)) : null,
-        playerB: firstProfile(m.player_b) ? toPlayerRef(firstProfile(m.player_b)) : null,
+        playerA: teamA ? toSquadPlayerRef(teamA) : firstProfile(m.player_a) ? toPlayerRef(firstProfile(m.player_a)) : null,
+        playerB: teamB ? toSquadPlayerRef(teamB) : firstProfile(m.player_b) ? toPlayerRef(firstProfile(m.player_b)) : null,
         scheduledAt: m.scheduled_at,
       })
     }
