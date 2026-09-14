@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireStaff, requireAdmin } from '@/lib/admin/auth'
 import { resolveGroupCount, snakeDistribute, roundRobinPairs, knockoutRound1 } from './draw'
 import { nextRoundScheduledAt } from './round-schedule'
-import { seededPaidPlayers } from './seeded-players'
+import { seededPaidPlayers, seededPaidSquads } from './seeded-players'
 import { soloEntrantRows, squadEntrantRows } from './entrants'
 import { autoGroupIntoSquads, squadNameFor } from './squad-lifecycle'
 import { uniqueInviteCode } from './squad-membership'
@@ -166,10 +166,14 @@ async function generate(
   seeded: string[],
   g: number,
   format: string,
+  kind: 'solo' | 'squad' = 'solo',
 ): Promise<void> {
   await clearBracket(admin, tournamentId)
   const roundDate = await nextRoundScheduledAt(admin, tournamentId)
   const schedule = roundDate ? { scheduled_at: roundDate, is_full_day: true } : {}
+  const sideCols = (a: string, b: string | null) =>
+    kind === 'squad' ? { team_a_id: a, team_b_id: b } : { player_a_id: a, player_b_id: b }
+  const memberCol = (id: string) => (kind === 'squad' ? { team_id: id } : { player_id: id })
 
   if (format === 'round_robin') {
     const { data: grp } = await admin
@@ -178,9 +182,7 @@ async function generate(
       .select('id')
       .single()
     if (!grp) return
-    await admin
-      .from('group_memberships')
-      .insert(seeded.map((pid) => ({ group_id: grp.id, player_id: pid })))
+    await admin.from('group_memberships').insert(seeded.map((id) => ({ group_id: grp.id, ...memberCol(id) })))
     const pairs = roundRobinPairs(seeded)
     if (pairs.length > 0) {
       await admin.from('matches').insert(
@@ -188,9 +190,8 @@ async function generate(
           tournament_id: tournamentId,
           round: 'group',
           group_id: grp.id,
-          player_a_id: a,
-          player_b_id: b,
           status: 'scheduled',
+          ...sideCols(a, b),
           ...schedule,
         })),
       )
@@ -205,18 +206,16 @@ async function generate(
         tournament_id: tournamentId,
         round,
         group_id: null,
-        player_a_id: a,
-        player_b_id: b,
         status: 'scheduled',
+        ...sideCols(a, b),
         ...schedule,
       })),
-      ...byePlayerIds.map((pid) => ({
+      ...byePlayerIds.map((id) => ({
         tournament_id: tournamentId,
         round,
         group_id: null,
-        player_a_id: pid,
-        player_b_id: null,
         status: 'bye',
+        ...sideCols(id, null),
         ...schedule,
       })),
     ]
@@ -232,9 +231,7 @@ async function generate(
       .select('id')
       .single()
     if (!grp) continue
-    await admin
-      .from('group_memberships')
-      .insert(groups[i].map((pid) => ({ group_id: grp.id, player_id: pid })))
+    await admin.from('group_memberships').insert(groups[i].map((id) => ({ group_id: grp.id, ...memberCol(id) })))
     const pairs = roundRobinPairs(groups[i])
     if (pairs.length > 0) {
       await admin.from('matches').insert(
@@ -242,9 +239,8 @@ async function generate(
           tournament_id: tournamentId,
           round: 'group',
           group_id: grp.id,
-          player_a_id: a,
-          player_b_id: b,
           status: 'scheduled',
+          ...sideCols(a, b),
           ...schedule,
         })),
       )
@@ -334,8 +330,49 @@ export async function closeRegistration(
     return { success: true }
   }
 
-  // Head-to-head only: a knockout bracket is power-of-two bounded, which a BR
-  // field of 96 across four lobbies is not.
+  // Head-to-head, entry_unit='squad' (team-vs-team): finalize squads exactly
+  // like the points-race squad branch above (refund anyone still forming,
+  // auto-group the leftover paid solo registrants), then seed and generate
+  // the bracket from complete squads instead of individual players. No
+  // tournament_entrants row here — head-to-head references squads directly
+  // via matches.team_a_id/team_b_id (spec §4.4), unlike points-race squads.
+  if (t.entry_unit === 'squad') {
+    await requireAdmin()
+
+    const { data: squadTournament } = await admin.from('tournaments').select('squad_size').eq('id', id).maybeSingle()
+    const teamSize = squadTournament?.squad_size
+    if (!teamSize) return { error: 'This tournament has no squad size configured.' }
+
+    await refundFormingSquads(admin, id)
+    try {
+      await autoGroupRemainingPlayers(admin, id, teamSize)
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : 'Failed to auto-group remaining players into squads.' }
+    }
+
+    const seededSquads = await seededPaidSquads(admin, id)
+    if (seededSquads.length < 2) return { error: 'Need at least 2 complete squads to close registration.' }
+    if (seededSquads.length > 64) return { error: 'At most 64 squads are supported.' }
+
+    const g = resolveGroupCount(parseGroupsField(formData), seededSquads.length)
+    const roundStartDate = parseRoundStartDate(formData)
+    const roundGapDays = parseRoundGapDays(formData)
+    await admin
+      .from('tournaments')
+      .update({ status: 'registration_closed', round_start_date: roundStartDate, round_gap_days: roundGapDays })
+      .eq('id', id)
+    try {
+      await generate(admin, id, seededSquads, g, t.format, 'squad')
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : 'Failed to generate the bracket.' }
+    }
+    revalidateAdmin(id)
+    revalidatePath(`/admin/tournaments/${id}/squads`)
+    return { success: true }
+  }
+
+  // Head-to-head, entry_unit='solo' (unchanged): a knockout bracket is
+  // power-of-two bounded, which a BR field of 96 across four lobbies is not.
   if (seeded.length > 64) return { error: 'At most 64 players are supported.' }
 
   const g = resolveGroupCount(parseGroupsField(formData), seeded.length)
@@ -396,13 +433,33 @@ export async function generateBracket(
   const admin = createAdminClient()
   const { data: t } = await admin
     .from('tournaments')
-    .select('status, format, competition_format')
+    .select('status, format, competition_format, entry_unit')
     .eq('id', id)
     .maybeSingle()
   if (!t) return { error: 'Tournament not found.' }
   if (t.status !== 'registration_closed') return { error: 'The bracket is locked.' }
   if (t.competition_format === 'points_race') {
     return { error: 'This is a points-race tournament — open its stages instead of generating a bracket.' }
+  }
+
+  if (t.entry_unit === 'squad') {
+    const seededSquads = await seededPaidSquads(admin, id)
+    if (seededSquads.length < 2) return { error: 'Need at least 2 complete squads.' }
+    if (seededSquads.length > 64) return { error: 'At most 64 squads are supported.' }
+    const g = resolveGroupCount(parseGroupsField(formData), seededSquads.length)
+    const roundStartDate = parseRoundStartDate(formData)
+    const roundGapDays = parseRoundGapDays(formData)
+    await admin
+      .from('tournaments')
+      .update({ round_start_date: roundStartDate, round_gap_days: roundGapDays })
+      .eq('id', id)
+    try {
+      await generate(admin, id, seededSquads, g, t.format, 'squad')
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : 'Failed to generate the bracket.' }
+    }
+    revalidateAdmin(id)
+    return { success: true }
   }
 
   const seeded = await seededPaidPlayers(admin, id)
