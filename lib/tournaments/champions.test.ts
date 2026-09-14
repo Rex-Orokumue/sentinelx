@@ -213,3 +213,21 @@ describe('reigningChampionByGame', () => {
     expect(map.size).toBe(2)
   })
 })
+
+describe('resolveChampion with squad-shaped ids', () => {
+  it('crowns a squad champion identically to a player champion — ids are opaque', () => {
+    const bracketMatches = [
+      {
+        id: 'm1', round: 'final', group_id: null, groupName: null, status: 'completed',
+        score_a: 3, score_b: 1, scheduled_at: null, is_full_day: false,
+        playerA: { id: 'squad-1', name: 'Lagos Vipers' },
+        playerB: { id: 'squad-2', name: 'Thunder Squad' },
+      },
+    ]
+    const result = resolveChampion({ bracketMatches })
+    expect(result).toEqual({
+      champion: { id: 'squad-1', name: 'Lagos Vipers' },
+      runnerUp: { id: 'squad-2', name: 'Thunder Squad' },
+    })
+  })
+})
