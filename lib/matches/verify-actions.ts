@@ -23,7 +23,7 @@ import { notifyStaff } from '@/lib/admin/staff'
 import { resultNotification } from '@/lib/admin/notification-copy'
 import { creditWallet } from '@/lib/wallet/service'
 import { splitPrizeAcrossRoster } from '@/lib/tournaments/prize-split'
-import { squadRosterIds } from '@/lib/tournaments/squad-roster'
+import { squadRosterIds, matchRosters } from '@/lib/tournaments/squad-roster'
 import { settleMatchWagers, refundMatchWagers } from '@/lib/wagers/settle'
 import { revalidateAll, revalidateThirdPlaceCredit } from './revalidate'
 import { awardSeasonPoints } from './season-points'
@@ -563,19 +563,26 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
     | { display_name: string | null; username: string | null }
     | { display_name: string | null; username: string | null }[]
     | null
+  type SquadRef = { name: string } | { name: string }[] | null
   type NdRow = {
     player_a_id: string | null
     player_b_id: string | null
+    team_a_id: string | null
+    team_b_id: string | null
     player_a: NameRef
     player_b: NameRef
+    team_a: SquadRef
+    team_b: SquadRef
     tournament: { title: string } | { title: string }[] | null
   }
   const { data: ndRaw } = await admin
     .from('matches')
     .select(
-      'player_a_id, player_b_id, ' +
+      'player_a_id, player_b_id, team_a_id, team_b_id, ' +
         'player_a:profiles!matches_player_a_id_fkey(display_name, username), ' +
         'player_b:profiles!matches_player_b_id_fkey(display_name, username), ' +
+        'team_a:squads!matches_team_a_id_fkey(name), ' +
+        'team_b:squads!matches_team_b_id_fkey(name), ' +
         'tournament:tournaments(title)',
     )
     .eq('id', id)
@@ -586,12 +593,25 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
       const r = Array.isArray(x) ? x[0] ?? null : x
       return r?.display_name ?? r?.username ?? 'Player'
     }
+    const squadNameOf = (x: SquadRef) => {
+      const r = Array.isArray(x) ? x[0] ?? null : x
+      return r?.name ?? 'Squad'
+    }
     const tRef = nd.tournament
     const title = (Array.isArray(tRef) ? tRef[0]?.title : tRef?.title) ?? 'the tournament'
-    const a = nameOf(nd.player_a)
-    const b = nameOf(nd.player_b)
-    for (const pid of [nd.player_a_id, nd.player_b_id]) {
-      if (!pid) continue
+    const isTeam = !!(nd.team_a_id || nd.team_b_id)
+    const a = isTeam ? squadNameOf(nd.team_a) : nameOf(nd.player_a)
+    const b = isTeam ? squadNameOf(nd.team_b) : nameOf(nd.player_b)
+
+    let recipients: string[]
+    if (isTeam) {
+      const { rosterA, rosterB } = await matchRosters(admin, nd.team_a_id, nd.team_b_id)
+      recipients = [...rosterA, ...rosterB]
+    } else {
+      recipients = [nd.player_a_id, nd.player_b_id].filter((x): x is string => x != null)
+    }
+
+    for (const pid of recipients) {
       await notify({
         type: 'result_confirmed',
         playerId: pid,
