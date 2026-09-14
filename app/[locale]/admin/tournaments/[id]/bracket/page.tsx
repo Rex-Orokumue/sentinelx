@@ -85,8 +85,19 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
   const profileRows = profileWhatsappRowsRaw as
     | { id: string; whatsapp_number: string | null; country: string | null }[]
     | null
+  // A team fixture's playerA/playerB ids are squad ids, never a phone
+  // contact — buildFixtureContactMap would otherwise render a misleading
+  // "Lagos Vipers · no WhatsApp" chip for every team match. Excluded here at
+  // the source rather than given a team-aware contact concept (spec: no
+  // per-squad phone number exists to build one from).
+  const { data: teamMatchRows } = await supabase
+    .from('matches')
+    .select('id')
+    .eq('tournament_id', t.id)
+    .not('team_a_id', 'is', null)
+  const teamMatchIds = new Set((teamMatchRows ?? []).map((m) => m.id as string))
   const contacts = buildFixtureContactMap({
-    fixtures: groupFixtures,
+    fixtures: groupFixtures.filter((f) => !teamMatchIds.has(f.id)),
     tournamentTitle: t.title,
     regWhatsappByPlayer: new Map(
       ((regWhatsappRows as { player_id: string; reg_whatsapp: string | null }[] | null) ?? []).map(
