@@ -50,6 +50,16 @@ function nameOf(p: ProfileRef): string {
   return p?.display_name ?? p?.username ?? 'TBD'
 }
 
+type SquadRef = { id: string; name: string } | { id: string; name: string }[] | null
+function firstSquad(s: SquadRef): { id: string; name: string } | null {
+  return Array.isArray(s) ? s[0] ?? null : s
+}
+function sideRef(player: ProfileRef, team: SquadRef): { id: string; name: string } {
+  const t = firstSquad(team)
+  if (t) return t
+  return { id: player?.id ?? '', name: nameOf(player) }
+}
+
 // Supabase to-one embeds can arrive as an object or a single-element array; normalize.
 function firstGameName(games: unknown): string | null {
   if (Array.isArray(games)) return (games[0] as { name?: string } | undefined)?.name ?? null
@@ -215,7 +225,9 @@ export default async function HallOfFamePage({
           .select(
             'id, tournament_id, round, status, score_a, score_b, ' +
               'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
-              'player_b:profiles!matches_player_b_id_fkey(id, username, display_name)',
+              'player_b:profiles!matches_player_b_id_fkey(id, username, display_name), ' +
+              'team_a:squads!matches_team_a_id_fkey(id, name), ' +
+              'team_b:squads!matches_team_b_id_fkey(id, name)',
           )
           .in('tournament_id', tournamentIds)
           .eq('round', 'third_place')
@@ -233,7 +245,11 @@ export default async function HallOfFamePage({
       score_b: number | null
       player_a: ProfileRef
       player_b: ProfileRef
+      team_a: SquadRef
+      team_b: SquadRef
     }
+    const a = sideRef(m.player_a, m.team_a)
+    const b = sideRef(m.player_b, m.team_b)
     thirdPlaceByTournament.set(m.tournament_id, {
       id: m.id,
       round: m.round,
@@ -244,8 +260,8 @@ export default async function HallOfFamePage({
       score_b: m.score_b,
       scheduled_at: null,
       is_full_day: false,
-      playerA: { id: m.player_a?.id ?? '', name: nameOf(m.player_a) },
-      playerB: { id: m.player_b?.id ?? '', name: nameOf(m.player_b) },
+      playerA: a,
+      playerB: b,
     })
   }
 
