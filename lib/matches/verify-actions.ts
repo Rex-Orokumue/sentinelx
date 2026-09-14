@@ -22,6 +22,8 @@ import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 import { notifyStaff } from '@/lib/admin/staff'
 import { resultNotification } from '@/lib/admin/notification-copy'
 import { creditWallet } from '@/lib/wallet/service'
+import { splitPrizeAcrossRoster } from '@/lib/tournaments/prize-split'
+import { squadRosterIds } from '@/lib/tournaments/squad-roster'
 import { settleMatchWagers, refundMatchWagers } from '@/lib/wagers/settle'
 import { revalidateAll, revalidateThirdPlaceCredit } from './revalidate'
 import { awardSeasonPoints } from './season-points'
@@ -381,7 +383,28 @@ export async function completeTournamentIfFinal(
   const prizeSecond = claimed[0]?.prize_second ?? 0
   const prizeThird = claimed[0]?.prize_third ?? 0
   const firstPrize = prizePool - prizeSecond - prizeThird
-  if (winnerId) {
+  const isTeamFinal = !!(finalMatch.team_a_id || finalMatch.team_b_id)
+
+  if (winnerId && isTeamFinal) {
+    // Team final: split first (and, if configured, second) prize evenly
+    // across each squad's roster (spec §8) rather than crediting the squad
+    // id directly — squads have no wallet of their own.
+    if (firstPrize > 0) {
+      const winningRoster = await squadRosterIds(admin, winnerId)
+      for (const share of splitPrizeAcrossRoster(firstPrize, winningRoster)) {
+        if (share.amountNaira > 0) await creditWallet(admin, share.playerId, share.amountNaira, 'prize', tournamentId)
+      }
+    }
+    if (prizeSecond > 0) {
+      const loserId = winnerId === finalMatch.team_a_id ? finalMatch.team_b_id : finalMatch.team_a_id
+      if (loserId) {
+        const losingRoster = await squadRosterIds(admin, loserId)
+        for (const share of splitPrizeAcrossRoster(prizeSecond, losingRoster)) {
+          if (share.amountNaira > 0) await creditWallet(admin, share.playerId, share.amountNaira, 'prize', tournamentId)
+        }
+      }
+    }
+  } else if (winnerId) {
     if (firstPrize > 0) await creditWallet(admin, winnerId, firstPrize, 'prize', tournamentId)
     if (prizeSecond > 0) {
       const loserId = winnerId === finalMatch.player_a_id ? finalMatch.player_b_id : finalMatch.player_a_id
@@ -397,7 +420,12 @@ export async function completeTournamentIfFinal(
 // call sites, so the guard is an atomic claim on the tournament row itself
 // (third_place_prize_credited), the same idiom completeTournamentIfFinal
 // uses via tournaments.status, rather than a check-then-update.
-export async function creditThirdPlacePrize(admin: Admin, tournamentId: string, playerId: string): Promise<void> {
+export async function creditThirdPlacePrize(
+  admin: Admin,
+  tournamentId: string,
+  winnerId: string,
+  isTeam = false,
+): Promise<void> {
   const { data: claimed } = await admin
     .from('tournaments')
     .update({ third_place_prize_credited: true })
@@ -406,7 +434,15 @@ export async function creditThirdPlacePrize(admin: Admin, tournamentId: string, 
     .select('id, prize_third')
   if (!claimed || claimed.length === 0) return
   const prizeThird = claimed[0]?.prize_third ?? 0
-  if (prizeThird > 0) await creditWallet(admin, playerId, prizeThird, 'prize', tournamentId)
+  if (prizeThird <= 0) return
+  if (isTeam) {
+    const roster = await squadRosterIds(admin, winnerId)
+    for (const share of splitPrizeAcrossRoster(prizeThird, roster)) {
+      if (share.amountNaira > 0) await creditWallet(admin, share.playerId, share.amountNaira, 'prize', tournamentId)
+    }
+    return
+  }
+  await creditWallet(admin, winnerId, prizeThird, 'prize', tournamentId)
 }
 
 export async function confirmResult(_prev: VerifyState, formData: FormData): Promise<VerifyState> {
@@ -423,7 +459,7 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
   const admin = createAdminClient()
   const { data: m } = await admin
     .from('matches')
-    .select('id, round, group_id, tournament_id, player_a_id, player_b_id, tournament:tournaments(status, slug, prize_pool)')
+    .select('id, round, group_id, tournament_id, player_a_id, player_b_id, team_a_id, team_b_id, tournament:tournaments(status, slug, prize_pool)')
     .eq('id', id)
     .maybeSingle()
   if (!m) return { error: 'Match not found.' }
@@ -479,16 +515,21 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
       score_b: scoreB,
       player_a_id: m.player_a_id,
       player_b_id: m.player_b_id,
+      team_a_id: m.team_a_id,
+      team_b_id: m.team_b_id,
     })
     if (m.round === 'third_place') {
+      const isTeam = !!(m.team_a_id || m.team_b_id)
       const winnerId = matchWinnerId({
         status: 'completed',
         score_a: scoreA,
         score_b: scoreB,
         player_a_id: m.player_a_id,
         player_b_id: m.player_b_id,
+        team_a_id: m.team_a_id,
+        team_b_id: m.team_b_id,
       })
-      if (winnerId) await creditThirdPlacePrize(admin, m.tournament_id, winnerId)
+      if (winnerId) await creditThirdPlacePrize(admin, m.tournament_id, winnerId, isTeam)
     }
   }
 

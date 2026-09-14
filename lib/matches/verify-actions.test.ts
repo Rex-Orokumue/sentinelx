@@ -372,3 +372,61 @@ describe('advanceKnockout — team rounds', () => {
     expect(inserted[0].player_a_id).toBeUndefined()
   })
 })
+
+function fakeAdminForTeamComplete(opts: { prizePool: number; prizeSecond: number | null; roster: Record<string, string[]> }) {
+  let completed = false
+  return {
+    from(table: string) {
+      if (table === 'tournaments') {
+        return {
+          update: () => ({
+            eq: () => ({
+              neq: () => ({
+                select: async () => {
+                  if (completed) return { data: [] }
+                  completed = true
+                  return { data: [{ id: 't1', prize_pool: opts.prizePool, prize_second: opts.prizeSecond, prize_third: null }] }
+                },
+              }),
+            }),
+          }),
+        }
+      }
+      if (table === 'squad_members') {
+        return {
+          select: () => ({
+            eq: async (_col: string, squadId: string) => ({ data: (opts.roster[squadId] ?? []).map((player_id) => ({ player_id })) }),
+          }),
+        }
+      }
+      throw new Error(`unexpected table ${table}`)
+    },
+  }
+}
+
+const teamFinal = { status: 'completed' as const, score_a: 3, score_b: 1, player_a_id: null, player_b_id: null, team_a_id: 'sqWin', team_b_id: 'sqLose' }
+
+describe('completeTournamentIfFinal — team prize split', () => {
+  it('splits the full prize_pool evenly across the winning roster', async () => {
+    const { creditWallet } = await import('@/lib/wallet/service')
+    vi.mocked(creditWallet).mockClear()
+    const admin = fakeAdminForTeamComplete({ prizePool: 4000, prizeSecond: null, roster: { sqWin: ['p1', 'p2', 'p3', 'p4'] } })
+    await completeTournamentIfFinal(admin as never, 't1', 'final', teamFinal)
+    expect(creditWallet).toHaveBeenCalledTimes(4)
+    expect(creditWallet).toHaveBeenCalledWith(admin, 'p1', 1000, 'prize', 't1')
+  })
+
+  it('splits prize_second across the losing roster when configured', async () => {
+    const { creditWallet } = await import('@/lib/wallet/service')
+    vi.mocked(creditWallet).mockClear()
+    const admin = fakeAdminForTeamComplete({
+      prizePool: 6000,
+      prizeSecond: 2000,
+      roster: { sqWin: ['p1', 'p2'], sqLose: ['p3', 'p4'] },
+    })
+    await completeTournamentIfFinal(admin as never, 't1', 'final', teamFinal)
+    expect(creditWallet).toHaveBeenCalledWith(admin, 'p1', 2000, 'prize', 't1')
+    expect(creditWallet).toHaveBeenCalledWith(admin, 'p3', 1000, 'prize', 't1')
+    expect(creditWallet).toHaveBeenCalledTimes(4)
+  })
+})
