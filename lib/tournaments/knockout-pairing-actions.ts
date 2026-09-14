@@ -14,8 +14,21 @@ import { nextRoundScheduledAt } from './round-schedule'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 import { SITE_URL } from '@/lib/seo/site'
 import { notifyBoth } from '@/lib/notifications/send'
+import { rostersForSquads } from './squad-roster'
 
 export type KnockoutPairingState = { error?: string; success?: boolean } | undefined
+
+type EntrantKind = 'solo' | 'squad'
+
+// Mirrors the sideCols/kind pattern in bracket-admin-actions.ts's generate()
+// and group-admin-actions.ts — same "exactly one of player/team columns set"
+// shape the matches_side_a_kind/matches_side_b_kind CHECK constraints
+// enforce. Local to this file (both createKnockoutRound and
+// swapKnockoutPairing use it), not shared across files, matching the
+// existing convention.
+function sideCols(kind: EntrantKind, a: string, b: string | null) {
+  return kind === 'squad' ? { team_a_id: a, team_b_id: b } : { player_a_id: a, player_b_id: b }
+}
 
 const assignmentSchema = z.object({
   byePlayerIds: z.array(z.string().uuid()),
@@ -65,10 +78,11 @@ export async function createKnockoutRound(
   const admin = createAdminClient()
   const { data: t } = await admin
     .from('tournaments')
-    .select('format, slug')
+    .select('format, slug, entry_unit')
     .eq('id', tournamentId)
     .maybeSingle()
   if (!t) return { error: 'Tournament not found.' }
+  const kind: EntrantKind = t.entry_unit === 'squad' ? 'squad' : 'solo'
 
   const view = await loadBracketView(admin, tournamentId, t.format)
   const pending = computePendingKnockoutRound({
@@ -103,18 +117,16 @@ export async function createKnockoutRound(
       tournament_id: tournamentId,
       round,
       group_id: null,
-      player_a_id: a,
-      player_b_id: b,
       status: 'scheduled',
+      ...sideCols(kind, a, b),
       ...schedule,
     })),
     ...assignment.byePlayerIds.map((pid) => ({
       tournament_id: tournamentId,
       round,
       group_id: null,
-      player_a_id: pid,
-      player_b_id: null,
       status: 'bye',
+      ...sideCols(kind, pid, null),
       ...schedule,
     })),
   ]
@@ -122,7 +134,7 @@ export async function createKnockoutRound(
   const { data: insertedRows, error } = await admin
     .from('matches')
     .insert(rows)
-    .select('id, player_a_id, player_b_id, scheduled_at, is_full_day')
+    .select('id, player_a_id, player_b_id, team_a_id, team_b_id, scheduled_at, is_full_day')
   if (error) return { error: 'Could not create the round. Please try again.' }
 
   await notifyNewFixtures(
@@ -132,6 +144,8 @@ export async function createKnockoutRound(
       tournamentId,
       playerAId: m.player_a_id as string,
       playerBId: m.player_b_id,
+      teamAId: m.team_a_id,
+      teamBId: m.team_b_id,
       scheduledAt: m.scheduled_at,
       isFullDay: m.is_full_day,
     })),

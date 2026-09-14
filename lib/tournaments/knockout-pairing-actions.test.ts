@@ -9,6 +9,7 @@ vi.mock('@/lib/notifications/push', () => ({ pushToPlayer: vi.fn() }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('./bracket-view', () => ({ loadBracketView: vi.fn() }))
 vi.mock('./round-schedule', () => ({ nextRoundScheduledAt: vi.fn().mockResolvedValue(null) }))
+vi.mock('./squad-roster', () => ({ rostersForSquads: vi.fn() }))
 
 const W1 = '00000000-0000-4000-8000-000000000001'
 const W2 = '00000000-0000-4000-8000-000000000002'
@@ -67,13 +68,20 @@ function fakeAdmin(opts: {
   roundExistsCount?: number
   updates?: Array<{ id: string; row: Record<string, unknown> }>
   profiles?: Array<{ id: string; username: string | null; display_name: string | null }>
+  squads?: Array<{ id: string; name: string }>
+  entryUnit?: 'solo' | 'squad'
 }) {
+  const isTeam = opts.entryUnit === 'squad'
   return {
     from(table: string) {
       if (table === 'tournaments')
         return {
           select: () => ({
-            eq: () => ({ maybeSingle: async () => ({ data: { format: 'group_knockout', slug: 's' } }) }),
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: { format: 'group_knockout', slug: 's', entry_unit: opts.entryUnit ?? 'solo' },
+              }),
+            }),
           }),
         }
       if (table === 'matches')
@@ -86,10 +94,12 @@ function fakeAdmin(opts: {
             opts.onInsert?.(rows)
             return {
               select: async () => ({
-                data: (rows as unknown[]).map((_, i) => ({
+                data: (rows as Array<Record<string, unknown>>).map((row, i) => ({
                   id: `new${i}`,
-                  player_a_id: 'x',
-                  player_b_id: 'y',
+                  player_a_id: isTeam ? null : 'x',
+                  player_b_id: isTeam ? null : 'y',
+                  team_a_id: isTeam ? (row.team_a_id ?? null) : null,
+                  team_b_id: isTeam ? (row.team_b_id ?? null) : null,
                   scheduled_at: null,
                   is_full_day: true,
                 })),
@@ -106,6 +116,8 @@ function fakeAdmin(opts: {
         }
       if (table === 'profiles')
         return { select: () => ({ in: async () => ({ data: opts.profiles ?? [] }) }) }
+      if (table === 'squads')
+        return { select: () => ({ in: async () => ({ data: opts.squads ?? [] }) }) }
       throw new Error(`unexpected table ${table}`)
     },
   }
@@ -188,6 +200,35 @@ describe('createKnockoutRound', () => {
       }),
     )
     expect(r?.error).toBeTruthy()
+  })
+
+  it('inserts team_a_id/team_b_id rows and passes teamAId/teamBId to notifyNewFixtures for a squad tournament', async () => {
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const { loadBracketView } = await import('./bracket-view')
+    const { notifyNewFixtures } = await import('@/lib/notifications/fixture-created')
+    vi.mocked(notifyNewFixtures).mockClear()
+    vi.mocked(loadBracketView).mockResolvedValue(
+      view([{ round: 'quarter_final', label: 'QF', matches: RESOLVED_QF }]) as never,
+    )
+    let inserted: unknown = null
+    vi.mocked(createAdminClient).mockReturnValue(
+      fakeAdmin({ onInsert: (r) => (inserted = r), entryUnit: 'squad' }) as never,
+    )
+    const { createKnockoutRound } = await import('./knockout-pairing-actions')
+    const r = await createKnockoutRound(
+      undefined,
+      fd({
+        tournamentId: 't1',
+        round: 'semi_final',
+        assignment: JSON.stringify({ byePlayerIds: [], matchPairs: [[W1, W3], [W2, W4]] }),
+      }),
+    )
+    expect(r?.success).toBe(true)
+    const rows = inserted as Array<Record<string, unknown>>
+    expect(rows.every((row) => 'team_a_id' in row && !('player_a_id' in row))).toBe(true)
+    expect(notifyNewFixtures).toHaveBeenCalledTimes(1)
+    const notifyRows = vi.mocked(notifyNewFixtures).mock.calls[0][1]
+    expect(notifyRows.every((row) => row.teamAId != null && row.teamBId != null)).toBe(true)
   })
 })
 
@@ -283,5 +324,57 @@ describe('swapKnockoutPairing', () => {
     )
     expect(r?.success).toBe(true)
     expect(updates).toEqual([])
+  })
+
+  it('notifies every roster member of both affected squads for a squad tournament', async () => {
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const { loadBracketView } = await import('./bracket-view')
+    const { notifyInAppOf } = await import('@/lib/notifications/inbox')
+    vi.mocked(loadBracketView).mockResolvedValue(
+      view([{ round: 'quarter_final', label: 'QF', matches: SCHEDULED_QF }]) as never,
+    )
+    const updates: Array<{ id: string; row: Record<string, unknown> }> = []
+    const inApp: string[] = []
+    vi.mocked(notifyInAppOf).mockImplementation(async (playerId) => {
+      inApp.push(playerId)
+    })
+    const { rostersForSquads } = await import('./squad-roster')
+    vi.mocked(rostersForSquads).mockResolvedValue(
+      new Map([
+        [P1, ['r1a', 'r1b']],
+        [P2, ['r2a', 'r2b']],
+        [P3, ['r3a', 'r3b']],
+        [P4, ['r4a', 'r4b']],
+      ]),
+    )
+    vi.mocked(createAdminClient).mockReturnValue(
+      fakeAdmin({
+        updates,
+        entryUnit: 'squad',
+        squads: [
+          { id: P1, name: 'Squad 1' },
+          { id: P2, name: 'Squad 2' },
+          { id: P3, name: 'Squad 3' },
+          { id: P4, name: 'Squad 4' },
+        ],
+      }) as never,
+    )
+    const { swapKnockoutPairing } = await import('./knockout-pairing-actions')
+    const r = await swapKnockoutPairing(
+      undefined,
+      fd({
+        tournamentId: 't1',
+        round: 'quarter_final',
+        assignment: JSON.stringify({ byePlayerIds: [], matchPairs: [[P1, P3], [P2, P4]] }),
+      }),
+    )
+    expect(r?.success).toBe(true)
+    expect(updates).toHaveLength(2)
+    for (const u of updates) {
+      expect(u.row).toMatchObject({ status: 'scheduled' })
+      expect(u.row.team_a_id).toEqual(expect.any(String))
+      expect(u.row.player_a_id).toBeUndefined()
+    }
+    expect(inApp.sort()).toEqual(['r1a', 'r1b', 'r2a', 'r2b', 'r3a', 'r3b', 'r4a', 'r4b'].sort())
   })
 })
