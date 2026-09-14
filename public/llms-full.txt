@@ -1,0 +1,75 @@
+# Sentinel X — Full Reference
+
+> Nigeria's Home of Mobile Esports — where gamers compete, connect, and transact safely.
+
+Sentinel X is a mobile esports platform for Nigeria, built to support multiple mobile
+games (currently live: Dream League Soccer and EA FC Mobile, alongside Free Fire and
+PUBG Mobile tournament formats) without rebuilding the platform per game. Tournaments,
+rankings, and profiles are all multi-game by design.
+
+## The four pillars
+
+- Compete — Tournaments, brackets, and matches. Players register and pay an entry fee
+  through Paystack; once registration closes, the platform auto-calculates groups
+  (straight knockout for 8 or fewer entrants, otherwise 2/4/8 groups of 4-8 players
+  depending on entrant count, top 2 per group advancing) and then runs single
+  elimination. Match results are submitted by the winner (screenshot + screen
+  recording) and confirmed by an admin before any bracket or standing updates —
+  nothing updates automatically from a player's own submission.
+- Watch — Sentinel X TV: live streams (players stream to the Sentinel X YouTube
+  channel), highlights, finals, and replays, embedded directly on Match Centre pages.
+- Community — Posts, discussions, and announcements from Nigerian mobile esports
+  players.
+- Trade — The Gaming Exchange: buying and selling gaming accounts, coins, and gear,
+  protected by Zolarux escrow.
+
+## Key pages
+
+- /tournaments — browse live, open, and upcoming tournaments
+- /tournaments/{slug} — a tournament's prize pool, format, and registration
+- /tournaments/{slug}/bracket — the interactive bracket
+- /matches/{id} — Match Centre: live stream, replay, and stats for one match
+- /rankings — the Sentinel X leaderboard, overall and per-game
+- /hall-of-fame — season champions, MVP, Golden Boot, Best Goal
+- /tv — live streams, highlights, finals, and replays
+- /exchange — the Gaming Exchange marketplace
+- /store — spend SX Coins on avatar borders, profile themes, username colours, and
+  mascot skins
+- /community — player discussions and announcements
+- /players/{username} — a player's stats, achievements, SX Score, and match history
+- /seasons/{slug} — a season's tournaments and leaderboards across every game
+- /about — the Sentinel X story, mission, and partners
+
+## Player reputation: SX Score
+
+Every player starts at 700. There is no upper cap; the score is floored at 0.
+
+Points earned: completing a match (+10), winning without a dispute (+90, stacking
+with completion for +100 total on a clean win), a 5-star opponent rating (+20), a
+4-star rating (+10).
+
+Points lost: a no-show (-100), abandoning/rage-quitting (-80), losing a dispute over
+a false result (-150), a 1-2 star rating (-20), an admin conduct flag (-50), an admin
+cheating flag (-200 plus suspension).
+
+Tiers shown on a player's profile:
+- 900 and above — Elite
+- 750-899 — Trusted
+- 600-749 — Developing
+- below 600 — At Risk
+
+## Tournaments and payments
+
+- Registration fee: 500 Naira per tournament, paid via Paystack at registration.
+- Prize withdrawal: players request a payout from their Dashboard once their bank
+  account is Paystack-verified; payouts are currently processed manually by a Sentinel
+  X admin (Paystack's Transfer API is not yet enabled for the account).
+- KYC for withdrawals is payout-account-only today — BVN identification is disabled
+  because most competitive players are minors without a BVN and Paystack's
+  identification API has no NIN alternative yet.
+
+## Contact
+
+Sentinel X is based in Nigeria. A link to the Sentinel X WhatsApp community is in the
+site header, and every tournament, match, and bracket page has a "Share on WhatsApp"
+button.
