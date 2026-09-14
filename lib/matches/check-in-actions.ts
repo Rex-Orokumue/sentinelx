@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { canCheckIn } from './check-in'
+import { isMatchParticipant } from './participant'
 
 export type CheckInState = { error?: string; success?: boolean } | undefined
 
@@ -23,12 +24,12 @@ export async function checkInToMatch(_prev: CheckInState, formData: FormData): P
   // Re-read server-side; never trust the client for participation or state.
   const { data: match } = await supabase
     .from('matches')
-    .select('id, status, scheduled_at, player_a_id, player_b_id')
+    .select('id, status, scheduled_at, player_a_id, player_b_id, team_a_id, team_b_id')
     .eq('id', matchId)
     .maybeSingle()
   if (!match) return { error: 'Match not found.' }
 
-  const isParticipant = user.id === match.player_a_id || user.id === match.player_b_id
+  const isParticipant = await isMatchParticipant(supabase, user.id, match)
   // Mirrors lib/dashboard/fixtures.ts's matchDayReached — an unscheduled match
   // has nothing to compare against yet.
   const dayReached =

@@ -6,6 +6,7 @@ import { submitResultSchema } from './schema'
 import { notifyStaff } from '@/lib/admin/staff'
 import { resultNotification } from '@/lib/admin/notification-copy'
 import { opponentSubmissionNotice } from './submission-notice'
+import { isMatchParticipant } from './participant'
 import { notifyBoth } from '@/lib/notifications/send'
 
 export type SubmitResultState = { error?: string; success?: boolean } | undefined
@@ -33,12 +34,12 @@ export async function submitMatchResult(
 
   const { data: match } = await supabase
     .from('matches')
-    .select('id, player_a_id, player_b_id, status')
+    .select('id, player_a_id, player_b_id, team_a_id, team_b_id, status')
     .eq('id', matchId)
     .maybeSingle()
   if (!match) return { error: 'Match not found.' }
   if (match.status === 'bye') return { error: 'This is a bye — there is no result to submit.' }
-  if (user.id !== match.player_a_id && user.id !== match.player_b_id) {
+  if (!(await isMatchParticipant(supabase, user.id, match))) {
     return { error: 'Only the players in this match can submit a result.' }
   }
   if (match.status === 'cancelled') return { error: 'This match was cancelled.' }
