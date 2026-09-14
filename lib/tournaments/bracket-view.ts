@@ -14,8 +14,16 @@ import { projectBracketRounds, type ProjectedRound } from './bracket-tree'
 const ADVANCE_PER_GROUP = 2
 
 type ProfileRef = { id?: string; username: string | null; display_name: string | null } | null
+type SquadRef = { id?: string; name: string } | null
 function nameOf(p: ProfileRef): string {
   return p?.display_name ?? p?.username ?? 'TBD'
+}
+// Exactly one of the player/squad refs is populated (matches_side_a_kind /
+// matches_side_b_kind, group_memberships_kind CHECK constraints) — this
+// never has to guess which.
+function sideRef(player: ProfileRef, playerId: string | null, squad: SquadRef, squadId: string | null): { id: string; name: string } {
+  if (squad) return { id: squad.id ?? squadId ?? '', name: squad.name }
+  return { id: player?.id ?? playerId ?? '', name: nameOf(player) }
 }
 
 export interface BracketView {
@@ -55,7 +63,8 @@ export async function loadBracketView(
       ? supabase
           .from('group_memberships')
           .select(
-            'group_id, player_id, wins, draws, losses, goals_for, goals_against, points, profiles(username, display_name)',
+            'group_id, player_id, team_id, wins, draws, losses, goals_for, goals_against, points, ' +
+              'profiles(username, display_name), squads(name)',
           )
           .in('group_id', groupIds)
       : Promise.resolve({ data: [] as unknown[] }),
@@ -63,8 +72,11 @@ export async function loadBracketView(
       .from('matches')
       .select(
         'id, round, group_id, status, score_a, score_b, scheduled_at, is_full_day, ' +
+          'player_a_id, player_b_id, team_a_id, team_b_id, ' +
           'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
-          'player_b:profiles!matches_player_b_id_fkey(id, username, display_name)',
+          'player_b:profiles!matches_player_b_id_fkey(id, username, display_name), ' +
+          'team_a:squads!matches_team_a_id_fkey(id, name), ' +
+          'team_b:squads!matches_team_b_id_fkey(id, name)',
       )
       .eq('tournament_id', tournamentId),
     supabase.from('tournament_registrations').select('player_id, reg_club_name').eq('tournament_id', tournamentId),
@@ -87,8 +99,14 @@ export async function loadBracketView(
       score_b: number | null
       scheduled_at: string | null
       is_full_day: boolean
+      player_a_id: string | null
+      player_b_id: string | null
+      team_a_id: string | null
+      team_b_id: string | null
       player_a: ProfileRef
       player_b: ProfileRef
+      team_a: SquadRef
+      team_b: SquadRef
     }
     return {
       id: m.id,
@@ -100,8 +118,8 @@ export async function loadBracketView(
       score_b: m.score_b,
       scheduled_at: m.scheduled_at,
       is_full_day: m.is_full_day,
-      playerA: { id: m.player_a?.id ?? '', name: nameOf(m.player_a) },
-      playerB: { id: m.player_b?.id ?? '', name: nameOf(m.player_b) },
+      playerA: sideRef(m.player_a, m.player_a_id, m.team_a, m.team_a_id),
+      playerB: sideRef(m.player_b, m.player_b_id, m.team_b, m.team_b_id),
     }
   })
 
@@ -110,7 +128,8 @@ export async function loadBracketView(
       .filter((raw) => (raw as { group_id: string }).group_id === g.id)
       .map((raw): MembershipInput => {
         const gm = raw as {
-          player_id: string
+          player_id: string | null
+          team_id: string | null
           wins: number
           draws: number
           losses: number
@@ -118,11 +137,13 @@ export async function loadBracketView(
           goals_against: number
           points: number
           profiles: ProfileRef
+          squads: SquadRef
         }
+        const side = sideRef(gm.profiles, gm.player_id, gm.squads, gm.team_id)
         return {
-          playerId: gm.player_id,
-          name: nameOf(gm.profiles),
-          clubName: clubNameByPlayer.get(gm.player_id) ?? null,
+          playerId: side.id,
+          name: side.name,
+          clubName: gm.team_id ? null : clubNameByPlayer.get(gm.player_id ?? '') ?? null,
           wins: gm.wins,
           draws: gm.draws,
           losses: gm.losses,
