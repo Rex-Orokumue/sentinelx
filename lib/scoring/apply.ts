@@ -1,9 +1,10 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getChampion, type BracketMatch } from '@/lib/tournaments/bracket'
-import { AUTO_MATCH_EVENT_TYPES, matchEventsFor } from './events'
+import { AUTO_MATCH_EVENT_TYPES, matchEventsFor, teamMatchEventsFor, type NewMatchEvent } from './events'
 import { computeAggregates, type CompletedMatch } from './stats'
 import { computeScore } from './score'
 import { checkAndUnlockAchievements } from '@/lib/achievements/unlock'
+import { matchRosters } from '@/lib/tournaments/squad-roster'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -11,6 +12,8 @@ interface MatchRow {
   id: string
   player_a_id: string | null
   player_b_id: string | null
+  team_a_id: string | null
+  team_b_id: string | null
   score_a: number | null
   score_b: number | null
   status: string
@@ -23,7 +26,7 @@ interface MatchRow {
 }
 
 const MATCH_COLS =
-  'id, player_a_id, player_b_id, score_a, score_b, status, resolution, tournament_id, tournament:tournaments(tournament_type, season_id)'
+  'id, player_a_id, player_b_id, team_a_id, team_b_id, score_a, score_b, status, resolution, tournament_id, tournament:tournaments(tournament_type, season_id)'
 
 // Reuse getChampion's winner rule by shaping a raw final row into a BracketMatch.
 // Only ids are compared, so names are irrelevant.
@@ -59,6 +62,29 @@ function isSeasonNoShowEligible(
 
 const SEASON_NO_SHOW_PENALTY = -15
 
+// Computes both the events to write AND the full set of players a match
+// touches — needed even when events is empty (a disputed/reopened match must
+// still refresh both sides' cached totals down to zero contribution from it,
+// per regenerateMatchEvents' own doc comment below). Team detection is
+// per-match (team_a_id/team_b_id set), not per-tournament, so this works
+// uniformly whether the caller is processing one match (regenerateMatchEvents)
+// or every completed match in the system (recomputeAllScoring).
+async function eventsAndAffected(
+  admin: Admin,
+  match: MatchRow,
+): Promise<{ events: NewMatchEvent[]; affectedPlayerIds: string[] }> {
+  if (match.team_a_id || match.team_b_id) {
+    const { rosterA, rosterB } = await matchRosters(admin, match.team_a_id, match.team_b_id)
+    const { data: checkIns } = await admin.from('match_check_ins').select('player_id').eq('match_id', match.id)
+    const checkedIn = new Set((checkIns ?? []).map((c) => c.player_id as string))
+    return { events: teamMatchEventsFor(match, rosterA, rosterB, checkedIn), affectedPlayerIds: [...rosterA, ...rosterB] }
+  }
+  return {
+    events: matchEventsFor(match),
+    affectedPlayerIds: [match.player_a_id, match.player_b_id].filter((x): x is string => !!x),
+  }
+}
+
 // Delete this match's AUTO events (only) and reinsert from the current
 // result, and do the same for its season_noshow_penalties row(s). Returns
 // the ids of players whose scoring is affected. No refresh here.
@@ -68,7 +94,7 @@ async function regenerateMatchEvents(admin: Admin, match: MatchRow): Promise<str
     .delete()
     .eq('match_id', match.id)
     .in('event_type', [...AUTO_MATCH_EVENT_TYPES])
-  const events = matchEventsFor(match)
+  const { events, affectedPlayerIds } = await eventsAndAffected(admin, match)
   if (events.length > 0) await admin.from('sx_score_events').insert(events)
 
   // Regenerate season_noshow_penalties for this match the same way — delete
@@ -89,7 +115,7 @@ async function regenerateMatchEvents(admin: Admin, match: MatchRow): Promise<str
     }
   }
 
-  return [match.player_a_id, match.player_b_id].filter((x): x is string => !!x)
+  return affectedPlayerIds
 }
 
 // Recompute aggregates + score for one player and write both caches to
@@ -162,7 +188,7 @@ export async function recomputeAllScoring(admin: Admin): Promise<{ players: numb
     .select(MATCH_COLS)
     .in('status', ['completed', 'forfeited'])
   for (const m of matches ?? []) {
-    const events = matchEventsFor(m)
+    const { events } = await eventsAndAffected(admin, m)
     if (events.length > 0) await admin.from('sx_score_events').insert(events)
   }
 
