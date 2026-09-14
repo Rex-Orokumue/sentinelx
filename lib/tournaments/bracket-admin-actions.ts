@@ -510,7 +510,7 @@ export async function publishBracket(
 
   const { data: publishedMatches } = await admin
     .from('matches')
-    .select('id, player_a_id, player_b_id, scheduled_at, is_full_day')
+    .select('id, player_a_id, player_b_id, team_a_id, team_b_id, scheduled_at, is_full_day')
     .eq('tournament_id', id)
   await notifyNewFixtures(
     admin,
@@ -519,6 +519,8 @@ export async function publishBracket(
       tournamentId: id,
       playerAId: m.player_a_id as string,
       playerBId: m.player_b_id,
+      teamAId: m.team_a_id,
+      teamBId: m.team_b_id,
       scheduledAt: m.scheduled_at,
       isFullDay: m.is_full_day,
     })),

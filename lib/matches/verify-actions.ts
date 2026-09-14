@@ -198,12 +198,10 @@ export async function recomputeGroupAndMaybeAdvance(
     const { data: inserted } = await admin
       .from('matches')
       .insert(rows)
-      .select('id, player_a_id, player_b_id, scheduled_at, is_full_day')
-    // notifyNewFixtures already filters out any row whose playerBId is null
-    // (its own doc comment: "null => bye, skipped") — a team row has both
-    // player_a_id and player_b_id null, so it is excluded the same way a bye
-    // already is. No fixture notification for team matches yet, deferred to
-    // Phase 6 alongside the rest of team-side notification copy.
+      .select('id, player_a_id, player_b_id, team_a_id, team_b_id, scheduled_at, is_full_day')
+    // A player row and a team row are mutually exclusive per match (the DB's
+    // matches_side_a_kind/matches_side_b_kind CHECK) — notifyNewFixtures
+    // branches on whichever pair is populated.
     await notifyNewFixtures(
       admin,
       (inserted ?? []).map((m) => ({
@@ -211,6 +209,8 @@ export async function recomputeGroupAndMaybeAdvance(
         tournamentId,
         playerAId: m.player_a_id as string,
         playerBId: m.player_b_id,
+        teamAId: m.team_a_id,
+        teamBId: m.team_b_id,
         scheduledAt: m.scheduled_at,
         isFullDay: m.is_full_day,
       })),
@@ -284,7 +284,7 @@ export async function advanceKnockout(admin: Admin, tournamentId: string, round:
           ]
         : []),
     ])
-    .select('id, player_a_id, player_b_id, scheduled_at, is_full_day')
+    .select('id, player_a_id, player_b_id, team_a_id, team_b_id, scheduled_at, is_full_day')
   await notifyNewFixtures(
     admin,
     (inserted ?? []).map((m) => ({
@@ -292,6 +292,8 @@ export async function advanceKnockout(admin: Admin, tournamentId: string, round:
       tournamentId,
       playerAId: m.player_a_id as string,
       playerBId: m.player_b_id,
+      teamAId: m.team_a_id,
+      teamBId: m.team_b_id,
       scheduledAt: m.scheduled_at,
       isFullDay: m.is_full_day,
     })),
@@ -333,7 +335,7 @@ async function createThirdPlaceMatch(admin: Admin, tournamentId: string): Promis
       ...sideCols,
       ...schedule,
     })
-    .select('id, player_a_id, player_b_id, scheduled_at, is_full_day')
+    .select('id, player_a_id, player_b_id, team_a_id, team_b_id, scheduled_at, is_full_day')
   await notifyNewFixtures(
     admin,
     (inserted ?? []).map((m) => ({
@@ -341,6 +343,8 @@ async function createThirdPlaceMatch(admin: Admin, tournamentId: string): Promis
       tournamentId,
       playerAId: m.player_a_id as string,
       playerBId: m.player_b_id,
+      teamAId: m.team_a_id,
+      teamBId: m.team_b_id,
       scheduledAt: m.scheduled_at,
       isFullDay: m.is_full_day,
     })),
