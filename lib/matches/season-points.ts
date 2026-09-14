@@ -12,6 +12,7 @@ import { awardXP } from '@/lib/membership/xp'
 import { checkAndUnlockAchievements } from '@/lib/achievements/unlock'
 import { pointsForRoundRobinRank, coinsForRoundRobinRank, xpForRoundRobinRank } from '@/lib/tournaments/round-robin-placement'
 import { sortStandings, type MembershipInput } from '@/lib/tournaments/standings'
+import { squadRosterIds, squadIdByPlayerForTournament } from '@/lib/tournaments/squad-roster'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -62,7 +63,7 @@ const CHAMPIONS_CUP_XP: Record<number, number> = { 1: 3000, 2: 2000, 3: 1200, 5:
 export async function awardSeasonPoints(admin: Admin, tournamentId: string): Promise<void> {
   const { data: tournament } = await admin
     .from('tournaments')
-    .select('id, tournament_type, season_id, format')
+    .select('id, tournament_type, season_id, format, entry_unit')
     .eq('id', tournamentId)
     .maybeSingle()
   if (!tournament) return
@@ -84,27 +85,45 @@ export async function awardSeasonPoints(admin: Admin, tournamentId: string): Pro
     if (!groupRow) return
     const { data: memberships } = await admin
       .from('group_memberships')
-      .select('player_id, wins, draws, losses, goals_for, goals_against, points')
+      .select('player_id, team_id, wins, draws, losses, goals_for, goals_against, points')
       .eq('group_id', groupRow.id)
+    const memberRows = memberships ?? []
+    const isTeamLeague = memberRows.some((r) => r.team_id != null)
     const standings = sortStandings(
-      (memberships ?? [])
-        .filter((m) => m.player_id != null)
+      memberRows
+        .map((r) => ({ id: isTeamLeague ? r.team_id : r.player_id, r }))
+        .filter((x): x is { id: string; r: (typeof memberRows)[number] } => x.id != null)
         .map(
-          (m): MembershipInput => ({
-            playerId: m.player_id as string,
+          ({ id, r }): MembershipInput => ({
+            playerId: id,
             name: '',
-            wins: m.wins,
-            draws: m.draws,
-            losses: m.losses,
-            goalsFor: m.goals_for,
-            goalsAgainst: m.goals_against,
-            points: m.points,
+            wins: r.wins,
+            draws: r.draws,
+            losses: r.losses,
+            goalsFor: r.goals_for,
+            goalsAgainst: r.goals_against,
+            points: r.points,
           }),
         ),
     )
 
+    // Expand a team standing row into one row per roster member, sharing
+    // their squad's rank — season points/coins/XP/achievements are always
+    // credited per player, never per squad (mirroring spec §8's "prize
+    // splits across the roster" pattern, applied here to season rewards).
+    let expanded: { playerId: string; rank: number }[]
+    if (isTeamLeague) {
+      expanded = []
+      for (const s of standings) {
+        const roster = await squadRosterIds(admin, s.playerId)
+        for (const pid of roster) expanded.push({ playerId: pid, rank: s.rank })
+      }
+    } else {
+      expanded = standings.map((s) => ({ playerId: s.playerId, rank: s.rank }))
+    }
+
     if (tournament.season_id) {
-      const rows = standings.map((s) => ({
+      const rows = expanded.map((s) => ({
         season_id: tournament.season_id as string,
         player_id: s.playerId,
         tournament_id: tournamentId,
@@ -114,7 +133,7 @@ export async function awardSeasonPoints(admin: Admin, tournamentId: string): Pro
       await admin.from('season_ranking_points').upsert(rows, { onConflict: 'season_id,player_id,tournament_id' })
     }
 
-    for (const s of standings) {
+    for (const s of expanded) {
       const coins = coinsForRoundRobinRank(s.rank)
       if (coins) await recordCoinTransaction(admin, s.playerId, coins, 'tournament_placement', tournamentId)
       const xp = xpForRoundRobinRank(s.rank)
@@ -131,10 +150,15 @@ export async function awardSeasonPoints(admin: Admin, tournamentId: string): Pro
 
   const { data: matches } = await admin
     .from('matches')
-    .select('round, status, player_a_id, player_b_id, score_a, score_b')
+    .select('round, status, player_a_id, player_b_id, team_a_id, team_b_id, score_a, score_b')
     .eq('tournament_id', tournamentId)
 
-  const placements = bandsForPlacements((matches ?? []) as PlacementMatch[], activePlayerIds)
+  // awardSeasonPoints only ever runs for head-to-head matches (points-race
+  // tournaments never write to `matches` at all) — so entry_unit='squad'
+  // here can only mean a team-vs-team tournament.
+  const playerToEntityId =
+    tournament.entry_unit === 'squad' ? await squadIdByPlayerForTournament(admin, tournamentId) : undefined
+  const placements = bandsForPlacements((matches ?? []) as PlacementMatch[], activePlayerIds, playerToEntityId)
 
   if (tournament.season_id && isSeasonTournamentType(tournament.tournament_type)) {
     const tournamentType = tournament.tournament_type

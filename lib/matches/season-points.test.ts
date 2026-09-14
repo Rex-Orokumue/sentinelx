@@ -127,3 +127,66 @@ describe('awardSeasonPoints', () => {
     expect(recordCoinTransaction).toHaveBeenCalledWith(client, 'c', 150, 'tournament_placement', 't6')
   })
 })
+
+describe('awardSeasonPoints — team-vs-team (knockout) tournaments', () => {
+  it('expands a squad champion band to every roster member', async () => {
+    const { recordCoinTransaction } = await import('@/lib/coins/service')
+    vi.mocked(recordCoinTransaction).mockClear()
+    const upserts: Record<string, unknown>[] = []
+    const client = {
+      from(table: string) {
+        if (table === 'tournaments') {
+          return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 't1', tournament_type: 'community_club', season_id: 's1', entry_unit: 'squad', format: 'group_knockout' } }) }) }) }
+        }
+        if (table === 'tournament_registrations') {
+          return { select: () => ({ eq: () => ({ eq: async () => ({ data: [{ player_id: 'a1' }, { player_id: 'a2' }, { player_id: 'b1' }] }) }) }) }
+        }
+        if (table === 'squad_members') {
+          return { select: () => ({ eq: async () => ({ data: [{ player_id: 'a1', squad_id: 'sqA' }, { player_id: 'a2', squad_id: 'sqA' }, { player_id: 'b1', squad_id: 'sqB' }] }) }) }
+        }
+        if (table === 'matches') {
+          return { select: () => ({ eq: async () => ({ data: [{ round: 'final', status: 'completed', player_a_id: null, player_b_id: null, team_a_id: 'sqA', team_b_id: 'sqB', score_a: 2, score_b: 1 }] }) }) }
+        }
+        if (table === 'season_ranking_points') {
+          return { upsert: async (rows: Record<string, unknown>[]) => { upserts.push(...rows); return { data: null, error: null } } }
+        }
+        throw new Error(`unexpected table ${table}`)
+      },
+    }
+    await awardSeasonPoints(client as never, 't1')
+    expect(upserts.filter((u) => u.player_id === 'a1' || u.player_id === 'a2')).toHaveLength(2)
+    expect(upserts.find((u) => u.player_id === 'a1')).toMatchObject({ points: 100, placement: 1 }) // champion, community_club
+    expect(recordCoinTransaction).toHaveBeenCalledWith(client, 'a1', 500, 'tournament_placement', 't1')
+    expect(recordCoinTransaction).toHaveBeenCalledWith(client, 'a2', 500, 'tournament_placement', 't1')
+  })
+})
+
+describe('awardSeasonPoints — team-vs-team (round_robin) tournaments', () => {
+  it('expands a squad standing row to every roster member', async () => {
+    const { recordCoinTransaction } = await import('@/lib/coins/service')
+    vi.mocked(recordCoinTransaction).mockClear()
+    const client = {
+      from(table: string) {
+        if (table === 'tournaments') {
+          return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 't1', tournament_type: 'community_club', season_id: null, entry_unit: 'squad', format: 'round_robin' } }) }) }) }
+        }
+        if (table === 'tournament_registrations') {
+          return { select: () => ({ eq: () => ({ eq: async () => ({ data: [{ player_id: 'a1' }, { player_id: 'a2' }] }) }) }) }
+        }
+        if (table === 'groups') {
+          return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: 'g1' } }) }) }) }
+        }
+        if (table === 'group_memberships') {
+          return { select: () => ({ eq: async () => ({ data: [{ player_id: null, team_id: 'sqA', wins: 3, draws: 0, losses: 0, goals_for: 9, goals_against: 2, points: 9 }] }) }) }
+        }
+        if (table === 'squad_members') {
+          return { select: () => ({ eq: async () => ({ data: [{ player_id: 'a1' }, { player_id: 'a2' }] }) }) }
+        }
+        throw new Error(`unexpected table ${table}`)
+      },
+    }
+    await awardSeasonPoints(client as never, 't1')
+    expect(recordCoinTransaction).toHaveBeenCalledTimes(2)
+    expect(recordCoinTransaction.mock.calls.map((c) => c[1]).sort()).toEqual(['a1', 'a2'])
+  })
+})
