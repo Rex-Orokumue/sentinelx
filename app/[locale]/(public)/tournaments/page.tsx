@@ -11,6 +11,8 @@ import { SITE_URL, DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { formatNaira } from '@/lib/format'
 import { TOURNAMENT_FAQS } from '@/lib/seo/faq-content'
 import { SortSelect } from '@/components/tournament/SortSelect'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildFaqJsonLd } from '@/lib/seo/schema/faq'
 
 const PAGE_SIZE = 4
 
@@ -109,6 +111,7 @@ export default async function TournamentsPage({ searchParams }: { searchParams: 
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
+      <JsonLd data={buildFaqJsonLd(TOURNAMENT_FAQS)} />
       {/* ── Hero ──────────────────────────────────────────────── */}
       <section className="relative mb-10 overflow-hidden rounded-2xl border border-sx-border bg-sx-surface">
         <div
