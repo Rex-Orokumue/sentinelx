@@ -53,8 +53,21 @@ export function SiteHeader({
               logo + 5 links + More + full account cluster is ~1132px, which
               still overflows in the 1024-1279px band even at 5 links —
               `xl` matches this header's own max-w-7xl (1280px) cap, so the
-              full row only ever renders where it's guaranteed to fit. */}
-          <div className="hidden min-w-0 items-center gap-1 xl:flex">
+              full row only ever renders where it's guaranteed to fit for
+              that ~1132px estimate.
+
+              `shrink-0` (not `min-w-0`) is load-bearing: that estimate used
+              placeholder balances/usernames. A real signed-in account with a
+              6-digit coin balance and a long username pushes past 1280px, so
+              at exactly `xl` this row can be the one flex child asked to give
+              up width. Its own children (each Link, the More button) are all
+              `shrink-0` and refuse to shrink themselves — so without this,
+              the container's box shrinks under them while they don't, and
+              they spill out of it and render on top of the account cluster
+              next to it (see the WhatsApp CTA's `xl:` compacting below,
+              which exists to keep that from being needed in the first
+              place). */}
+          <div className="hidden shrink-0 items-center gap-1 xl:flex">
             {NAVBAR_PRIMARY_LINKS.map((item) => {
               const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
               return (
@@ -80,15 +93,21 @@ export function SiteHeader({
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <LanguageSwitcher />
 
-            {/* WhatsApp community CTA — all breakpoints */}
+            {/* WhatsApp community CTA — all breakpoints. Icon-only between
+                `xl` and `2xl`: that's exactly the band where the primary
+                links row (now `shrink-0`, see above) is fighting this
+                cluster for space on a real signed-in account, so the label
+                collapses here to give that row room instead of overlapping
+                it. Below `xl` the links row is hidden (hamburger instead),
+                so there's no fight and the full label is safe to show. */}
             <a
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden items-center gap-1.5 rounded-full bg-sx-green px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 sm:flex"
+              className="hidden items-center gap-1.5 rounded-full bg-sx-green px-3 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 sm:flex xl:px-2.5 2xl:px-4"
             >
               <WhatsAppIcon className="h-3.5 w-3.5" />
-              <span>Community</span>
+              <span className="xl:hidden 2xl:inline">Community</span>
             </a>
 
             {/* Notifications + Messages — every breakpoint, never in the
