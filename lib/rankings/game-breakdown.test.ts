@@ -188,3 +188,52 @@ describe('categoryStat', () => {
     expect(categoryStat([], 'fighting')).toEqual({ category: 'fighting', scored: 0, conceded: 0 })
   })
 })
+
+function teamMatch(over: Partial<GameScopedMatch>): GameScopedMatch {
+  return {
+    status: 'completed',
+    score_a: 2,
+    score_b: 1,
+    player_a_id: null,
+    player_b_id: null,
+    team_a_id: 'sq1',
+    team_b_id: 'sq2',
+    team_a_roster: ['p1', 'p2'],
+    team_b_roster: ['p3', 'p4'],
+    game_id: 'dls-id',
+    game_name: 'DLS',
+    game_category: 'football',
+    ...over,
+  }
+}
+
+describe('winsByPlayerAndGame with a team match', () => {
+  it('credits every roster member of the winning squad, not the squad id', () => {
+    const r = winsByPlayerAndGame([teamMatch({})])
+    expect(r.get('p1')).toEqual([{ game: 'DLS', wins: 1 }])
+    expect(r.get('p2')).toEqual([{ game: 'DLS', wins: 1 }])
+    expect(r.get('p3')).toBeUndefined()
+    expect(r.get('sq1')).toBeUndefined()
+  })
+})
+
+describe('scoreStatsByPlayerAndCategory with a team match', () => {
+  it('credits every roster member on both sides with their side\'s scored/conceded', () => {
+    const r = scoreStatsByPlayerAndCategory([teamMatch({})], 'football')
+    expect(r.get('p1')).toEqual({ scored: 2, conceded: 1 })
+    expect(r.get('p3')).toEqual({ scored: 1, conceded: 2 })
+  })
+
+  it('skips a team match whose roster was never attached, rather than crediting the squad id', () => {
+    const r = scoreStatsByPlayerAndCategory([teamMatch({ team_a_roster: undefined, team_b_roster: undefined })], 'football')
+    expect(r.size).toBe(0)
+  })
+})
+
+describe('scoreStatsByPlayerAndGame with a team match', () => {
+  it('credits every roster member', () => {
+    const r = scoreStatsByPlayerAndGame([teamMatch({})], 'dls-id')
+    expect(r.get('p2')).toEqual({ scored: 2, conceded: 1 })
+    expect(r.get('p4')).toEqual({ scored: 1, conceded: 2 })
+  })
+})

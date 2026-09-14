@@ -1,6 +1,6 @@
-import { matchWinnerId, type AdvanceMatch } from '@/lib/tournaments/advancement'
+import { matchWinnerId, sideAId, sideAIds, sideBIds, type RosterAwareMatch } from '@/lib/tournaments/advancement'
 
-export interface GameScopedMatch extends AdvanceMatch {
+export interface GameScopedMatch extends RosterAwareMatch {
   game_id: string
   game_name: string
   game_category: string
@@ -13,15 +13,19 @@ export interface GameWinCount {
 
 // Groups completed-match wins by (player, game). Draws and undecided matches
 // (matchWinnerId returns null) are skipped, not counted for anyone — reuses
-// the single "who won" implementation rather than reimplementing it.
+// the single "who won" implementation rather than reimplementing it. A team
+// match's win credits every roster member of the winning squad.
 export function winsByPlayerAndGame(matches: GameScopedMatch[]): Map<string, GameWinCount[]> {
   const counts = new Map<string, Map<string, number>>()
   for (const match of matches) {
     const winnerId = matchWinnerId(match)
     if (!winnerId) continue
-    const byGame = counts.get(winnerId) ?? new Map<string, number>()
-    byGame.set(match.game_name, (byGame.get(match.game_name) ?? 0) + 1)
-    counts.set(winnerId, byGame)
+    const winnerIds = winnerId === sideAId(match) ? sideAIds(match) : sideBIds(match)
+    for (const id of winnerIds) {
+      const byGame = counts.get(id) ?? new Map<string, number>()
+      byGame.set(match.game_name, (byGame.get(match.game_name) ?? 0) + 1)
+      counts.set(id, byGame)
+    }
   }
   // .forEach() rather than for...of / Array.from(map.entries()) — this
   // project's tsconfig has no explicit `target`, which defaults low enough
@@ -57,17 +61,22 @@ export function scoreStatsByPlayerAndCategory(
     if (match.game_category !== category) continue
     if (match.status !== 'completed') continue
     if (match.score_a == null || match.score_b == null) continue
-    if (!match.player_a_id || !match.player_b_id) continue
+    const aIds = sideAIds(match)
+    const bIds = sideBIds(match)
+    if (aIds.length === 0 || bIds.length === 0) continue
 
-    const a = result.get(match.player_a_id) ?? { scored: 0, conceded: 0 }
-    a.scored += match.score_a
-    a.conceded += match.score_b
-    result.set(match.player_a_id, a)
-
-    const b = result.get(match.player_b_id) ?? { scored: 0, conceded: 0 }
-    b.scored += match.score_b
-    b.conceded += match.score_a
-    result.set(match.player_b_id, b)
+    for (const id of aIds) {
+      const s = result.get(id) ?? { scored: 0, conceded: 0 }
+      s.scored += match.score_a
+      s.conceded += match.score_b
+      result.set(id, s)
+    }
+    for (const id of bIds) {
+      const s = result.get(id) ?? { scored: 0, conceded: 0 }
+      s.scored += match.score_b
+      s.conceded += match.score_a
+      result.set(id, s)
+    }
   }
   return result
 }
@@ -95,17 +104,22 @@ export function scoreStatsByPlayerAndGame(
     if (match.game_id !== gameId) continue
     if (match.status !== 'completed') continue
     if (match.score_a == null || match.score_b == null) continue
-    if (!match.player_a_id || !match.player_b_id) continue
+    const aIds = sideAIds(match)
+    const bIds = sideBIds(match)
+    if (aIds.length === 0 || bIds.length === 0) continue
 
-    const a = result.get(match.player_a_id) ?? { scored: 0, conceded: 0 }
-    a.scored += match.score_a
-    a.conceded += match.score_b
-    result.set(match.player_a_id, a)
-
-    const b = result.get(match.player_b_id) ?? { scored: 0, conceded: 0 }
-    b.scored += match.score_b
-    b.conceded += match.score_a
-    result.set(match.player_b_id, b)
+    for (const id of aIds) {
+      const s = result.get(id) ?? { scored: 0, conceded: 0 }
+      s.scored += match.score_a
+      s.conceded += match.score_b
+      result.set(id, s)
+    }
+    for (const id of bIds) {
+      const s = result.get(id) ?? { scored: 0, conceded: 0 }
+      s.scored += match.score_b
+      s.conceded += match.score_a
+      result.set(id, s)
+    }
   }
   return result
 }
