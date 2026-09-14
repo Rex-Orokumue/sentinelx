@@ -5,6 +5,7 @@ import { formatDate } from '@/lib/format'
 import type { MembershipTier } from '@/lib/membership/tiers'
 import type { PlayerRef, PostView } from '@/lib/community/feed-query'
 import { ReactionBar } from './ReactionBar'
+import { CommentButton } from './CommentButton'
 import { ShareButton } from './ShareButton'
 import { PostOverflowMenu } from './PostOverflowMenu'
 
@@ -75,6 +76,7 @@ export function MatchResultCard({ post, loggedIn }: { post: PostView; loggedIn: 
 
       <div className="mt-3 flex items-center gap-4">
         <ReactionBar postId={post.id} counts={post.reactionCounts} myReaction={post.myReaction} loggedIn={loggedIn} />
+        <CommentButton postId={post.id} />
         <ShareButton post={post} />
       </div>
       {post.commentCount > 0 && (
