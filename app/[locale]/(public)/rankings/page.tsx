@@ -12,6 +12,7 @@ import { LeaderboardPagination } from '@/components/rankings/LeaderboardPaginati
 import { LeaderboardFilters } from '@/components/rankings/LeaderboardFilters'
 import { paginate } from '@/lib/rankings/pagination'
 import { longestWinStreakByPlayer, type StreakMatch } from '@/lib/rankings/streak'
+import { rostersForSquads } from '@/lib/tournaments/squad-roster'
 import { previousRankFor, trendFor, type RankSnapshot, type Trend } from '@/lib/rankings/trend'
 import { rankPlayersBy } from '@/lib/rankings/leaderboard'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -74,7 +75,7 @@ export default async function RankingsPage({
     supabase
       .from('matches')
       .select(
-        'status, score_a, score_b, player_a_id, player_b_id, completed_at, tournament:tournaments(game:games(id, name, category))',
+        'status, score_a, score_b, player_a_id, player_b_id, team_a_id, team_b_id, completed_at, tournament:tournaments(game:games(id, name, category))',
       )
       .eq('status', 'completed'),
     // Independent of match data — a category can be "active" (a tab should
@@ -93,9 +94,16 @@ export default async function RankingsPage({
     score_b: number | null
     player_a_id: string | null
     player_b_id: string | null
+    team_a_id: string | null
+    team_b_id: string | null
+    completed_at: string | null
     tournament: RawTournamentRef
   }[]
-  const matches: GameScopedMatch[] = rawMatches.map((m) => {
+  const squadIds = Array.from(
+    new Set(rawMatches.flatMap((m) => [m.team_a_id, m.team_b_id]).filter((id): id is string => id != null)),
+  )
+  const rosterBySquad = await rostersForSquads(supabase, squadIds)
+  const matches: (GameScopedMatch & { completed_at: string | null })[] = rawMatches.map((m) => {
     const t = firstTournamentRef(m.tournament)
     const g = firstGameRef(t?.game ?? null)
     return {
@@ -104,6 +112,11 @@ export default async function RankingsPage({
       score_b: m.score_b,
       player_a_id: m.player_a_id,
       player_b_id: m.player_b_id,
+      team_a_id: m.team_a_id,
+      team_b_id: m.team_b_id,
+      team_a_roster: m.team_a_id ? rosterBySquad.get(m.team_a_id) ?? [] : undefined,
+      team_b_roster: m.team_b_id ? rosterBySquad.get(m.team_b_id) ?? [] : undefined,
+      completed_at: m.completed_at,
       game_id: g?.id ?? 'unknown',
       game_name: g?.name ?? 'Unknown',
       game_category: g?.category ?? 'other',
