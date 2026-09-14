@@ -187,6 +187,6 @@ describe('awardSeasonPoints — team-vs-team (round_robin) tournaments', () => {
     }
     await awardSeasonPoints(client as never, 't1')
     expect(recordCoinTransaction).toHaveBeenCalledTimes(2)
-    expect(recordCoinTransaction.mock.calls.map((c) => c[1]).sort()).toEqual(['a1', 'a2'])
+    expect(vi.mocked(recordCoinTransaction).mock.calls.map((c) => c[1]).sort()).toEqual(['a1', 'a2'])
   })
 })

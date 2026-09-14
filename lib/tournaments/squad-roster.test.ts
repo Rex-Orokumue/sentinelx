@@ -13,7 +13,7 @@ describe('matchRosters', () => {
   it('fetches both sides in one call, an empty array for a null side', async () => {
     const from = vi.fn((_table: string) => ({
       select: () => ({
-        eq: async ({ }: unknown) => ({ data: [{ player_id: 'a1' }, { player_id: 'a2' }] }),
+        eq: async () => ({ data: [{ player_id: 'a1' }, { player_id: 'a2' }] }),
       }),
     }))
     const { matchRosters } = await import('./squad-roster')
