@@ -362,6 +362,38 @@ export type Database = {
         }
         Relationships: []
       }
+      community_post_images: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          image_url: string
+          post_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url: string
+          post_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_post_images_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "community_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_posts: {
         Row: {
           author_id: string | null
@@ -487,6 +519,7 @@ export type Database = {
           body: string | null
           created_at: string
           deleted_at: string | null
+          delivered_at: string | null
           edited_at: string | null
           forwarded: boolean
           id: string
@@ -503,6 +536,7 @@ export type Database = {
           body?: string | null
           created_at?: string
           deleted_at?: string | null
+          delivered_at?: string | null
           edited_at?: string | null
           forwarded?: boolean
           id?: string
@@ -519,6 +553,7 @@ export type Database = {
           body?: string | null
           created_at?: string
           deleted_at?: string | null
+          delivered_at?: string | null
           edited_at?: string | null
           forwarded?: boolean
           id?: string
@@ -2133,6 +2168,39 @@ export type Database = {
           {
             foreignKeyName: "player_challenge_progress_player_id_fkey"
             columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_follows_following_id_fkey"
+            columns: ["following_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

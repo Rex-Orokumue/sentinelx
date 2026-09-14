@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { unreadCount, isBlockedBetween, countNewContactsSince, canEditOrUnsend, resolveParticipantContent, canForward } from './predicates'
+import { unreadCount, isBlockedBetween, countNewContactsSince, canEditOrUnsend, resolveParticipantContent, canForward, tickState } from './predicates'
 
 describe('unreadCount', () => {
   const rows = [
@@ -106,5 +106,20 @@ describe('canForward', () => {
   })
   it('is false once the message has been unsent', () => {
     expect(canForward('2026-09-12T12:00:00Z')).toBe(false)
+  })
+})
+
+describe('tickState', () => {
+  it('is sent when neither timestamp is set', () => {
+    expect(tickState({ deliveredAt: null, readAt: null })).toBe('sent')
+  })
+  it('is delivered once delivered_at is set but not read_at', () => {
+    expect(tickState({ deliveredAt: '2026-09-13T12:00:00Z', readAt: null })).toBe('delivered')
+  })
+  it('is read once read_at is set, regardless of delivered_at', () => {
+    expect(tickState({ deliveredAt: '2026-09-13T12:00:00Z', readAt: '2026-09-13T12:01:00Z' })).toBe('read')
+  })
+  it('is read even if delivered_at is somehow still null', () => {
+    expect(tickState({ deliveredAt: null, readAt: '2026-09-13T12:01:00Z' })).toBe('read')
   })
 })

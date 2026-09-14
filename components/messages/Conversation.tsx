@@ -69,6 +69,8 @@ export function Conversation({
                 image_url: string | null
                 sticker_id: string | null
                 audio_url: string | null
+                delivered_at: string | null
+                read_at: string | null
                 edited_at: string | null
                 deleted_at: string | null
               }
@@ -88,6 +90,11 @@ export function Conversation({
                         imageUrl: content.removed ? null : m.imageUrl,
                         stickerId: content.removed ? null : m.stickerId,
                         audioUrl: content.removed ? null : m.audioUrl,
+                        // Picks up the other party's markThreadDelivered/
+                        // markThreadRead UPDATEs too, so a sender watching
+                        // this thread sees their own ticks flip live.
+                        deliveredAt: r.delivered_at,
+                        readAt: r.read_at,
                         editedAt: r.edited_at,
                         deletedAt: r.deleted_at,
                       }
@@ -108,6 +115,7 @@ export function Conversation({
               sticker_id: string | null
               audio_url: string | null
               created_at: string
+              delivered_at: string | null
               read_at: string | null
               reply_to_id: string | null
               forwarded: boolean
@@ -132,6 +140,7 @@ export function Conversation({
                       audioDurationSeconds: null,
                       forwarded: r.forwarded,
                       createdAt: r.created_at,
+                      deliveredAt: r.delivered_at,
                       readAt: r.read_at,
                       editedAt: null,
                       deletedAt: null,

@@ -14,6 +14,7 @@ export function Avatar({
   size = 28,
   className = '',
   frameUrl,
+  online,
 }: {
   avatarUrl: string | null
   displayName: string | null
@@ -23,6 +24,9 @@ export function Avatar({
   /** Equipped `avatar_border` store cosmetic — an illustrated frame image from
    *  AVATAR_BORDER_FRAMES (lib/store/cosmetics.ts), drawn around the avatar. */
   frameUrl?: string
+  /** DM online presence dot (see PresenceProvider). Omit or pass false where
+   *  presence isn't tracked — no dot renders either way. */
+  online?: boolean
 }) {
   const inner = avatarUrl ? (
     // eslint-disable-next-line @next/next/no-img-element
@@ -42,24 +46,34 @@ export function Avatar({
     </span>
   )
 
-  // No frame equipped: return the bare avatar rather than wrapping it, so every
-  // existing layout that positions this element keeps behaving identically.
-  if (!frameUrl) return inner
+  // Nothing to overlay: return the bare avatar rather than wrapping it, so
+  // every existing layout that positions this element keeps behaving
+  // identically.
+  if (!frameUrl && !online) return inner
 
   return (
     <span className="relative inline-flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
       {inner}
-      {/* Deliberately unclipped and larger than the avatar — these frames have
-          crowns and banners that break the circle. Decorative only, so it is
-          hidden from assistive tech and ignores pointer events. */}
-      {/* eslint-disable-next-line @next/next/no-img-element -- static public asset, no loader needed */}
-      <img
-        src={frameUrl}
-        alt=""
-        aria-hidden
-        className="pointer-events-none absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 select-none"
-        style={{ width: size * FRAME_SCALE, height: size * FRAME_SCALE }}
-      />
+      {frameUrl && (
+        // Deliberately unclipped and larger than the avatar — these frames
+        // have crowns and banners that break the circle. Decorative only, so
+        // it is hidden from assistive tech and ignores pointer events.
+        // eslint-disable-next-line @next/next/no-img-element -- static public asset, no loader needed
+        <img
+          src={frameUrl}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 select-none"
+          style={{ width: size * FRAME_SCALE, height: size * FRAME_SCALE }}
+        />
+      )}
+      {online && (
+        <span
+          aria-hidden
+          className="absolute rounded-full border-2 border-sx-bg bg-emerald-400"
+          style={{ width: size * 0.28, height: size * 0.28, right: 0, bottom: 0 }}
+        />
+      )}
     </span>
   )
 }

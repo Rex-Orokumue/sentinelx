@@ -116,6 +116,7 @@ export type ConversationMessage = {
   audioDurationSeconds: number | null
   forwarded: boolean
   createdAt: string
+  deliveredAt: string | null
   readAt: string | null
   editedAt: string | null
   deletedAt: string | null
@@ -147,7 +148,7 @@ export async function fetchThread(threadId: string, viewerId: string): Promise<T
     supabase
       .from('dm_messages')
       .select(
-        'id, sender_id, body, image_url, created_at, read_at, edited_at, deleted_at, reply_to_id, sticker_id, audio_url, audio_duration_seconds, forwarded',
+        'id, sender_id, body, image_url, created_at, delivered_at, read_at, edited_at, deleted_at, reply_to_id, sticker_id, audio_url, audio_duration_seconds, forwarded',
       )
       .eq('thread_id', threadId)
       .order('created_at', { ascending: true }),
@@ -228,6 +229,7 @@ export async function fetchThread(threadId: string, viewerId: string): Promise<T
         audioDurationSeconds: content.removed ? null : m.audio_duration_seconds,
         forwarded: m.forwarded,
         createdAt: m.created_at,
+        deliveredAt: m.delivered_at,
         readAt: m.read_at,
         editedAt: m.edited_at,
         deletedAt: m.deleted_at,

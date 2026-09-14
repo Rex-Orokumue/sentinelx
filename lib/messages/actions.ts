@@ -189,13 +189,38 @@ export async function sendMessage(input: {
   return { threadId }
 }
 
-export async function markThreadRead(threadId: string): Promise<void> {
+// No thread_id filter needed: the recipient-mark-read RLS policy (which this
+// reuses — it's not read-specific despite the name) already restricts the
+// update to rows on threads the caller is a participant of, across all of
+// their threads at once. Called from MessagesRealtime, which only knows
+// "a message arrived somewhere," not which thread — unlike markThreadRead,
+// which the open Conversation calls for its one specific thread.
+export async function markAllThreadsDelivered(): Promise<void> {
   try {
     const { supabase, userId } = await authed()
     if (!userId) return
     await supabase
       .from('dm_messages')
-      .update({ read_at: new Date().toISOString() })
+      .update({ delivered_at: new Date().toISOString() })
+      .neq('sender_id', userId)
+      .is('delivered_at', null)
+  } catch {
+    // best-effort
+  }
+}
+
+export async function markThreadRead(threadId: string): Promise<void> {
+  try {
+    const { supabase, userId } = await authed()
+    if (!userId) return
+    // Reading implies delivered — someone who opened the thread obviously
+    // received it. Stamping both here covers the deep-link case (opening a
+    // thread straight from a push notification, say) where the list-page
+    // realtime subscription that normally marks delivered_at never mounted.
+    const now = new Date().toISOString()
+    await supabase
+      .from('dm_messages')
+      .update({ read_at: now, delivered_at: now })
       .eq('thread_id', threadId)
       .neq('sender_id', userId)
       .is('read_at', null)

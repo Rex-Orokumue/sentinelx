@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { Reply, MoreVertical, Pencil, Trash2, Forward, Check, CheckCheck } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/format'
-import { canEditOrUnsend, canForward } from '@/lib/messages/predicates'
+import { canEditOrUnsend, canForward, tickState } from '@/lib/messages/predicates'
 import { unsendMessage } from '@/lib/messages/actions'
 import { stickerById } from '@/lib/messages/stickers'
 import type { ConversationMessage } from '@/lib/messages/query'
@@ -77,10 +77,16 @@ export function MessageBubble({
   const showMenu = editable || forwardable
   const isSticker = !!m.stickerId && !removed
 
+  // sent (single check) -> delivered (double check, gray) -> read (double
+  // check, blue). Delivered/read are both set by markThreadDelivered /
+  // markThreadRead (lib/messages/actions.ts) and arrive live via the same
+  // postgres_changes UPDATE this bubble already re-renders on.
   const ticks =
     mine && !removed ? (
-      m.readAt ? (
+      tickState(m) === 'read' ? (
         <CheckCheck className="h-3 w-3 text-sky-300" aria-label="Read" />
+      ) : tickState(m) === 'delivered' ? (
+        <CheckCheck className="h-3 w-3" aria-label="Delivered" />
       ) : (
         <Check className="h-3 w-3" aria-label="Sent" />
       )

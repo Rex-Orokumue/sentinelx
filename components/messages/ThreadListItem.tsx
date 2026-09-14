@@ -1,10 +1,13 @@
+'use client'
 import Link from 'next/link'
 import { Avatar } from '@/components/shared/Avatar'
 import { formatRelativeTime } from '@/lib/format'
 import { stickerById } from '@/lib/messages/stickers'
+import { useIsOnline } from '@/components/messages/PresenceProvider'
 import type { ThreadSummary } from '@/lib/messages/query'
 
 export function ThreadListItem({ thread }: { thread: ThreadSummary }) {
+  const online = useIsOnline(thread.otherId)
   const preview =
     thread.lastMessage ??
     (thread.lastStickerId
@@ -19,7 +22,7 @@ export function ThreadListItem({ thread }: { thread: ThreadSummary }) {
       href={`/messages/${thread.threadId}`}
       className="flex items-center gap-3 rounded-xl border border-sx-border bg-sx-surface px-3 py-3 transition-colors hover:border-sx-purple/40"
     >
-      <Avatar avatarUrl={thread.otherAvatarUrl} displayName={thread.otherName} username={thread.otherUsername} size={44} />
+      <Avatar avatarUrl={thread.otherAvatarUrl} displayName={thread.otherName} username={thread.otherUsername} size={44} online={online} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="truncate text-sm font-bold text-white">{thread.otherName}</p>

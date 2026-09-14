@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { fetchThread, fetchThreadList } from '@/lib/messages/query'
-import { Avatar } from '@/components/shared/Avatar'
+import { ThreadHeaderAvatar } from '@/components/messages/ThreadHeaderAvatar'
 import { Conversation } from '@/components/messages/Conversation'
 import { ThreadMenu } from '@/components/messages/ThreadMenu'
 
@@ -32,7 +32,7 @@ export default async function ThreadPage({ params }: { params: { threadId: strin
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <Link href={detail.other.username ? `/players/${detail.other.username}` : '#'} className="flex min-w-0 items-center gap-2">
-          <Avatar avatarUrl={detail.other.avatarUrl} displayName={detail.other.name} username={detail.other.username} size={32} />
+          <ThreadHeaderAvatar otherId={detail.other.id} avatarUrl={detail.other.avatarUrl} displayName={detail.other.name} username={detail.other.username} />
           <span className="truncate text-sm font-bold text-white">{detail.other.name}</span>
         </Link>
         <div className="ml-auto">

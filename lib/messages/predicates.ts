@@ -67,3 +67,14 @@ export function resolveParticipantContent(input: MessageContentInput): Participa
 export function canForward(deletedAt: string | null): boolean {
   return !deletedAt
 }
+
+export type TickState = 'sent' | 'delivered' | 'read'
+export type TickInput = { deliveredAt: string | null; readAt: string | null }
+
+// Reading implies delivered (markThreadRead stamps both), so read_at alone
+// is enough to resolve 'read' even if delivered_at is somehow still unset.
+export function tickState(m: TickInput): TickState {
+  if (m.readAt) return 'read'
+  if (m.deliveredAt) return 'delivered'
+  return 'sent'
+}
