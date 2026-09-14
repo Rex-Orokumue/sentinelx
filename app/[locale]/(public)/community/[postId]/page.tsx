@@ -28,6 +28,12 @@ export async function generateMetadata({ params }: { params: { postId: string; l
     description: post?.content.slice(0, 160) ?? 'A post from the SentinelX community feed.',
     path: `/community/${params.postId}`,
     locale: params.locale,
+    ...(post
+      ? {
+          type: 'article' as const,
+          article: { publishedTime: post.createdAt, author: post.author.displayName ?? post.author.username ?? undefined },
+        }
+      : {}),
   })
 }
 

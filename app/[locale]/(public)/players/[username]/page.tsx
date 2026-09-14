@@ -157,7 +157,14 @@ export async function generateMetadata({ params }: { params: { username: string;
   const name = p.display_name ?? p.username
   const title = `${name} (@${p.username}) — SentinelX Esports`
   const description = `SX Score ${p.sx_score} · ${p.wins}W–${p.losses}L · ${p.total_titles} titles on Sentinel X.`
-  return buildMetadata({ title, description, path: `/players/${p.username}`, locale: params.locale })
+  return buildMetadata({
+    title,
+    description,
+    path: `/players/${p.username}`,
+    locale: params.locale,
+    type: 'profile',
+    profileUsername: p.username,
+  })
 }
 
 function toBracketFinal(
