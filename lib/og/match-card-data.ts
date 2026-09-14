@@ -48,6 +48,15 @@ function toCardPlayer(p: Ref<ProfileRef>): CardPlayer {
   const r = firstOf(p)
   return { displayName: r?.display_name ?? null, username: r?.username ?? null, avatarUrl: r?.avatar_url ?? null }
 }
+type SquadRef = { name: string }
+function firstSquad(s: Ref<SquadRef>): SquadRef | null {
+  return firstOf(s)
+}
+function toCardSide(player: Ref<ProfileRef>, team: Ref<SquadRef>): CardPlayer {
+  const t = firstSquad(team)
+  if (t) return { displayName: t.name, username: null, avatarUrl: null }
+  return toCardPlayer(player)
+}
 
 export async function loadMatchCardInput(
   supabase: SupabaseClient<Database>,
@@ -59,7 +68,9 @@ export async function loadMatchCardInput(
       'status, score_a, score_b, scheduled_at, is_full_day, ' +
         'tournaments(title), ' +
         'player_a:profiles!matches_player_a_id_fkey(username, display_name, avatar_url), ' +
-        'player_b:profiles!matches_player_b_id_fkey(username, display_name, avatar_url)',
+        'player_b:profiles!matches_player_b_id_fkey(username, display_name, avatar_url), ' +
+        'team_a:squads!matches_team_a_id_fkey(name), ' +
+        'team_b:squads!matches_team_b_id_fkey(name)',
     )
     .eq('id', matchId)
     .maybeSingle()
@@ -73,10 +84,12 @@ export async function loadMatchCardInput(
     tournaments: Ref<{ title: string }>
     player_a: Ref<ProfileRef>
     player_b: Ref<ProfileRef>
+    team_a: Ref<SquadRef>
+    team_b: Ref<SquadRef>
   }
 
-  const playerA = toCardPlayer(m.player_a)
-  const playerB = toCardPlayer(m.player_b)
+  const playerA = toCardSide(m.player_a, m.team_a)
+  const playerB = toCardSide(m.player_b, m.team_b)
   const tournamentTitle = firstOf(m.tournaments)?.title ?? 'Sentinel X'
 
   if (selectCardVariant(m.status) === 'result') {
