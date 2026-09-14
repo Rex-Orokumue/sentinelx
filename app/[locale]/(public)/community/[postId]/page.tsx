@@ -9,6 +9,8 @@ import { CommentList } from '@/components/community/CommentList'
 import { CommentInput } from '@/components/community/CommentInput'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 
 // Every post shares via this segment's own opengraph-image.tsx (branded
 // card, author avatar + content) rather than the generic site-wide default.
@@ -42,6 +44,12 @@ export default async function PostDetailPage({ params }: { params: { postId: str
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-20">
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: 'Community', path: '/community' },
+          { name: post.content.slice(0, 60), path: `/community/${params.postId}` },
+        ])}
+      />
       {/* Scoped to this post, so an unrelated reaction elsewhere does not
           refresh a thread someone is reading. */}
       <CommunityRealtime postId={params.postId} />
