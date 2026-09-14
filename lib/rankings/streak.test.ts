@@ -70,3 +70,40 @@ describe('longestWinStreakByPlayer', () => {
     expect(map.get('y')).toBe(1)
   })
 })
+
+const teamM = (over: Partial<StreakMatch>): StreakMatch => ({
+  status: 'completed',
+  score_a: 1,
+  score_b: 0,
+  player_a_id: null,
+  player_b_id: null,
+  team_a_id: 'sq1',
+  team_b_id: 'sq2',
+  team_a_roster: ['p1', 'p2'],
+  team_b_roster: ['p3', 'p4'],
+  completed_at: '2026-01-01',
+  ...over,
+})
+
+describe('longestWinStreakByPlayer with team matches', () => {
+  it('credits every roster member of the winning squad with the streak', () => {
+    const map = longestWinStreakByPlayer([
+      teamM({ completed_at: '2026-01-01' }),
+      teamM({ completed_at: '2026-01-02' }),
+    ])
+    expect(map.get('p1')).toBe(2)
+    expect(map.get('p2')).toBe(2)
+    // A player who never wins gets no entry at all — matches this
+    // function's existing solo-match contract (best only ever gets set on
+    // a new personal-best streak, so 0 never gets written).
+    expect(map.get('p3')).toBeUndefined()
+  })
+
+  it('breaks a roster member\'s streak on their squad losing', () => {
+    const map = longestWinStreakByPlayer([
+      teamM({ completed_at: '2026-01-01' }),
+      teamM({ completed_at: '2026-01-02', score_a: 0, score_b: 1 }),
+    ])
+    expect(map.get('p1')).toBe(1)
+  })
+})
