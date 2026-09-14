@@ -136,6 +136,7 @@ export default async function LocaleLayout({
             username={navSession.username}
             avatarUrl={navSession.avatarUrl}
             frameUrl={navSession.frameUrl}
+            bubbleSkinUrl={navSession.bubbleSkinUrl}
           />
 
           <Analytics />

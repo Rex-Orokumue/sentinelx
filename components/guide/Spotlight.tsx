@@ -13,11 +13,13 @@ export function Spotlight({
   targetId,
   title,
   body,
+  bubbleSkinUrl,
   onDismiss,
 }: {
   targetId: string
   title: string
   body: string
+  bubbleSkinUrl?: string
   onDismiss: () => void
 }) {
   const [rect, setRect] = useState<DOMRect | null>(null)
@@ -78,7 +80,7 @@ export function Spotlight({
       >
         <div className="mb-2 flex items-center gap-2">
           <div className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full border-2 border-sx-purple/50 bg-sx-bg">
-            <Image src="/mascot/mascot-bubble.png" alt="Sentinel" fill sizes="28px" className="object-cover object-top" />
+            <Image src={bubbleSkinUrl ?? '/mascot/mascot-bubble.png'} alt="Sentinel" fill sizes="28px" className="object-cover object-top" />
           </div>
           <p className="text-sm font-bold text-white">{title}</p>
         </div>

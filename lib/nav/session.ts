@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { frameUrlFor } from '@/lib/store/cosmetics'
+import { frameUrlFor, bubbleSkinUrlFor } from '@/lib/store/cosmetics'
 import { getStaffContext } from '@/lib/admin/auth'
 
 export interface NotificationItem {
@@ -21,6 +21,7 @@ export interface NavSession {
   displayName: string | null
   avatarUrl: string | null
   frameUrl: string | undefined
+  bubbleSkinUrl: string | undefined
   unreadNotificationCount: number
   unreadMessageCount: number
   recentNotifications: NotificationItem[]
@@ -38,6 +39,7 @@ const LOGGED_OUT: NavSession = {
   displayName: null,
   avatarUrl: null,
   frameUrl: undefined,
+  bubbleSkinUrl: undefined,
   unreadNotificationCount: 0,
   unreadMessageCount: 0,
   recentNotifications: [],
@@ -55,7 +57,11 @@ export async function getNavSession(): Promise<NavSession> {
 
   const [{ data: profile }, staff, { count: unreadCount }, { count: unreadMessageCount }, { data: notifRows }, { data: walletRow }, { data: coinsRow }] =
     await Promise.all([
-      supabase.from('profiles').select('username, display_name, avatar_url, deletion_requested_at, equipped_avatar_border').eq('id', user.id).maybeSingle(),
+      supabase
+        .from('profiles')
+        .select('username, display_name, avatar_url, deletion_requested_at, equipped_avatar_border, equipped_bubble_skin')
+        .eq('id', user.id)
+        .maybeSingle(),
       getStaffContext(),
       supabase
         .from('player_notifications')
@@ -100,6 +106,7 @@ export async function getNavSession(): Promise<NavSession> {
     displayName: profile?.display_name ?? null,
     avatarUrl: profile?.avatar_url ?? null,
     frameUrl: frameUrlFor(profile?.equipped_avatar_border),
+    bubbleSkinUrl: bubbleSkinUrlFor(profile?.equipped_bubble_skin),
     unreadNotificationCount: unreadCount ?? 0,
     unreadMessageCount: unreadMessageCount ?? 0,
     recentNotifications,

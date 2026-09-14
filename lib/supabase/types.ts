@@ -2544,6 +2544,7 @@ export type Database = {
           deletion_requested_at: string | null
           display_name: string | null
           equipped_avatar_border: string | null
+          equipped_bubble_skin: string | null
           goals_conceded: number
           goals_scored: number
           id: string
@@ -2577,6 +2578,7 @@ export type Database = {
           deletion_requested_at?: string | null
           display_name?: string | null
           equipped_avatar_border?: string | null
+          equipped_bubble_skin?: string | null
           goals_conceded?: number
           goals_scored?: number
           id: string
@@ -2610,6 +2612,7 @@ export type Database = {
           deletion_requested_at?: string | null
           display_name?: string | null
           equipped_avatar_border?: string | null
+          equipped_bubble_skin?: string | null
           goals_conceded?: number
           goals_scored?: number
           id?: string
@@ -3942,6 +3945,10 @@ export type Database = {
       }
       player_rank: { Args: { uname: string }; Returns: number }
       sync_equipped_avatar_border: {
+        Args: { target: string }
+        Returns: undefined
+      }
+      sync_equipped_bubble_skin: {
         Args: { target: string }
         Returns: undefined
       }

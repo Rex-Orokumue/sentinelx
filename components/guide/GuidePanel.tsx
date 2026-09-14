@@ -44,12 +44,14 @@ export function GuidePanel({
   username,
   avatarUrl,
   frameUrl,
+  bubbleSkinUrl,
   onClose,
 }: {
   isLoggedIn: boolean
   username: string | null
   avatarUrl: string | null
   frameUrl?: string
+  bubbleSkinUrl?: string
   onClose: () => void
 }) {
   const router = useRouter()
@@ -106,7 +108,7 @@ export function GuidePanel({
         <div className="flex items-center justify-between border-b border-sx-border px-4 py-3">
           <div className="flex items-center gap-2.5">
             <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border-2 border-sx-purple/50 bg-sx-bg">
-              <Image src="/mascot/mascot-bubble.png" alt="Sentinel" fill sizes="32px" className="object-cover object-top" />
+              <Image src={bubbleSkinUrl ?? '/mascot/mascot-bubble.png'} alt="Sentinel" fill sizes="32px" className="object-cover object-top" />
             </div>
             <p className="text-sm font-bold text-white">Sentinel Guide</p>
           </div>
@@ -248,6 +250,7 @@ export function GuidePanel({
           targetId={spotlightStep.targetId}
           title={spotlightStep.label}
           body={spotlightStep.spotlightBody}
+          bubbleSkinUrl={bubbleSkinUrl}
           onDismiss={() => setSpotlightStep(null)}
         />
       )}

@@ -14,11 +14,13 @@ export function GuideLauncher({
   username,
   avatarUrl,
   frameUrl,
+  bubbleSkinUrl,
 }: {
   isLoggedIn: boolean
   username: string | null
   avatarUrl: string | null
   frameUrl?: string
+  bubbleSkinUrl?: string
 }) {
   const [open, setOpen] = useState(false)
   // Defaults to "seen" so the pulse never flashes for one frame before the
@@ -60,7 +62,7 @@ export function GuideLauncher({
       >
         <div className="relative h-10 w-10 overflow-hidden rounded-full">
           <Image
-            src="/mascot/mascot-bubble.png"
+            src={bubbleSkinUrl ?? '/mascot/mascot-bubble.png'}
             alt="Sentinel guide"
             fill
             sizes="40px"
@@ -73,6 +75,7 @@ export function GuideLauncher({
           username={username}
           avatarUrl={avatarUrl}
           frameUrl={frameUrl}
+          bubbleSkinUrl={bubbleSkinUrl}
           onClose={() => setOpen(false)}
         />}
     </>

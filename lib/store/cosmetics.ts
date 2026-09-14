@@ -1,6 +1,8 @@
 // Visual mapping for each of the 13 seeded store items (supabase/migrations/052_sx_coins_store.sql).
-// bubble_skin is deliberately excluded — out of scope, see plan
-// docs/superpowers/plans/2026-08-15-phase2-postship-fixes.md Task 4.1.
+// bubble_skin was originally excluded — out of scope, see plan
+// docs/superpowers/plans/2026-08-15-phase2-postship-fixes.md Task 4.1 — but
+// shipped 2026-09-14 (supabase/migrations/20260914194555_finish_store_items.sql)
+// once art existed for it. See BUBBLE_SKIN_FRAMES below.
 // Avatar borders are illustrated frames (public/coin-items/*.webp), not CSS
 // rings. They replaced ring classes once real artwork existed — a ring cannot
 // represent a crown, a banner or flames, and the shop preview would then have
@@ -33,6 +35,22 @@ export function frameUrlFor(slug: string | null | undefined): string | undefined
   return slug ? AVATAR_BORDER_FRAMES[slug] : undefined
 }
 
+// Slugs for the three bubble_skin store items -> mascot artwork
+// (public/coin-items/bubble-mascot-*.webp), derived from the same source
+// character as public/mascot/mascot-bubble.png. Resolved via
+// bubbleSkinUrlFor(), consumed by GuideLauncher/GuidePanel/Spotlight through
+// lib/nav/session.ts's equipped_bubble_skin column (mirrors frameUrlFor's
+// equipped_avatar_border pattern one category over).
+export const BUBBLE_SKIN_FRAMES: Record<string, string> = {
+  bubble_classic_mascot: '/coin-items/bubble-mascot-classic.webp',
+  bubble_neon_mascot: '/coin-items/bubble-mascot-neon.webp',
+  bubble_gold_mascot: '/coin-items/bubble-mascot-gold.webp',
+}
+
+export function bubbleSkinUrlFor(slug: string | null | undefined): string | undefined {
+  return slug ? BUBBLE_SKIN_FRAMES[slug] : undefined
+}
+
 export const PROFILE_THEME_CLASSES: Record<string, string> = {
   theme_dark_void: 'bg-black',
   theme_neon_grid:
@@ -60,11 +78,15 @@ export interface EquippedCosmetics {
 }
 
 // Pure — unit tested directly. Resolves the *slug* of the one equipped item
-// per relevant category (bubble_skin excluded, see plan). Callers look the
-// slug up in the maps above (AVATAR_BORDER_FRAMES for a frame image, the
-// *_CLASSES maps for Tailwind classes) to get the actual visual;
-// an equipped slug with no map entry (e.g. a future item added to the store
-// without a matching visual yet) resolves to no visual change, not a crash.
+// per category rendered on the profile/dashboard cards (avatar_border,
+// profile_theme, username_colour). bubble_skin isn't one of them — it has no
+// presence on those pages, it's the global mascot bubble instead, resolved
+// separately via the profiles.equipped_bubble_skin column in lib/nav/session.ts
+// and bubbleSkinUrlFor() above. Callers look the slug up in the maps above
+// (AVATAR_BORDER_FRAMES for a frame image, the *_CLASSES maps for Tailwind
+// classes) to get the actual visual; an equipped slug with no map entry (e.g.
+// a future item added to the store without a matching visual yet) resolves
+// to no visual change, not a crash.
 export function equippedCosmeticsBySlug(rows: EquippedRow[]): EquippedCosmetics {
   const result: EquippedCosmetics = { avatarBorder: null, profileTheme: null, usernameColour: null }
   for (const row of rows) {
