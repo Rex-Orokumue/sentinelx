@@ -219,6 +219,20 @@ export function Conversation({
     }
   }, [detail.threadId, viewerId, router])
 
+  // Backstop, independent of the channel above: no client-side code can
+  // guarantee a WebSocket never dies silently (a zombie TCP connection with
+  // no close frame is a real thing, not just a backgrounded-tab problem),
+  // so this bounds the worst case instead of trusting the socket to always
+  // self-report. Every 20s while the tab is actually visible, pull fresh
+  // server state regardless of what the channel thinks its status is — the
+  // same recovery a manual reload gives, just automatic and capped in time.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') router.refresh()
+    }, 20_000)
+    return () => clearInterval(interval)
+  }, [router])
+
   useEffect(() => {
     setMessages((prev) => mergeLocalMessages(detail.messages, prev))
   }, [detail.messages])
