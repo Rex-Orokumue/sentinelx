@@ -14,8 +14,21 @@ import { nextRoundScheduledAt } from './round-schedule'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
 import { SITE_URL } from '@/lib/seo/site'
 import { notifyBoth } from '@/lib/notifications/send'
+import { rostersForSquads } from './squad-roster'
 
 export type KnockoutPairingState = { error?: string; success?: boolean } | undefined
+
+type EntrantKind = 'solo' | 'squad'
+
+// Mirrors the sideCols/kind pattern in bracket-admin-actions.ts's generate()
+// and group-admin-actions.ts — same "exactly one of player/team columns set"
+// shape the matches_side_a_kind/matches_side_b_kind CHECK constraints
+// enforce. Local to this file (both createKnockoutRound and
+// swapKnockoutPairing use it), not shared across files, matching the
+// existing convention.
+function sideCols(kind: EntrantKind, a: string, b: string | null) {
+  return kind === 'squad' ? { team_a_id: a, team_b_id: b } : { player_a_id: a, player_b_id: b }
+}
 
 const assignmentSchema = z.object({
   byePlayerIds: z.array(z.string().uuid()),
@@ -65,10 +78,11 @@ export async function createKnockoutRound(
   const admin = createAdminClient()
   const { data: t } = await admin
     .from('tournaments')
-    .select('format, slug')
+    .select('format, slug, entry_unit')
     .eq('id', tournamentId)
     .maybeSingle()
   if (!t) return { error: 'Tournament not found.' }
+  const kind: EntrantKind = t.entry_unit === 'squad' ? 'squad' : 'solo'
 
   const view = await loadBracketView(admin, tournamentId, t.format)
   const pending = computePendingKnockoutRound({
@@ -103,18 +117,16 @@ export async function createKnockoutRound(
       tournament_id: tournamentId,
       round,
       group_id: null,
-      player_a_id: a,
-      player_b_id: b,
       status: 'scheduled',
+      ...sideCols(kind, a, b),
       ...schedule,
     })),
     ...assignment.byePlayerIds.map((pid) => ({
       tournament_id: tournamentId,
       round,
       group_id: null,
-      player_a_id: pid,
-      player_b_id: null,
       status: 'bye',
+      ...sideCols(kind, pid, null),
       ...schedule,
     })),
   ]
@@ -122,7 +134,7 @@ export async function createKnockoutRound(
   const { data: insertedRows, error } = await admin
     .from('matches')
     .insert(rows)
-    .select('id, player_a_id, player_b_id, scheduled_at, is_full_day')
+    .select('id, player_a_id, player_b_id, team_a_id, team_b_id, scheduled_at, is_full_day')
   if (error) return { error: 'Could not create the round. Please try again.' }
 
   await notifyNewFixtures(
@@ -132,6 +144,8 @@ export async function createKnockoutRound(
       tournamentId,
       playerAId: m.player_a_id as string,
       playerBId: m.player_b_id,
+      teamAId: m.team_a_id,
+      teamBId: m.team_b_id,
       scheduledAt: m.scheduled_at,
       isFullDay: m.is_full_day,
     })),
@@ -155,10 +169,11 @@ export async function swapKnockoutPairing(
   const admin = createAdminClient()
   const { data: t } = await admin
     .from('tournaments')
-    .select('format, slug')
+    .select('format, slug, entry_unit')
     .eq('id', tournamentId)
     .maybeSingle()
   if (!t) return { error: 'Tournament not found.' }
+  const kind: EntrantKind = t.entry_unit === 'squad' ? 'squad' : 'solo'
 
   const view = await loadBracketView(admin, tournamentId, t.format)
   const rearrangeable = computeRearrangeableKnockoutRound({
@@ -177,18 +192,18 @@ export async function swapKnockoutPairing(
   // Slot -> existing match row id. Pair slots first (matchIdByPairIndex), then
   // bye slots (byeMatchIdByIndex); the pooled ids let a slot flip pair<->bye.
   const rowIds = [...rearrangeable.matchIdByPairIndex, ...rearrangeable.byeMatchIdByIndex]
-  type Desired = { id: string; player_a_id: string; player_b_id: string | null; status: string }
+  type Desired = { id: string; a: string; b: string | null; status: string }
   const desired: Desired[] = [
     ...assignment.matchPairs.map((pair, i) => ({
       id: rowIds[i],
-      player_a_id: pair[0],
-      player_b_id: pair[1] as string | null,
+      a: pair[0],
+      b: pair[1] as string | null,
       status: 'scheduled',
     })),
     ...assignment.byePlayerIds.map((pid, i) => ({
       id: rowIds[assignment.matchPairs.length + i],
-      player_a_id: pid,
-      player_b_id: null as string | null,
+      a: pid,
+      b: null as string | null,
       status: 'bye',
     })),
   ]
@@ -204,47 +219,67 @@ export async function swapKnockoutPairing(
     ),
   ])
 
-  const changedPlayerIds = new Set<string>()
+  const changedIds = new Set<string>()
   for (const d of desired) {
     const prev = before.get(d.id)
-    if (prev && prev.a === d.player_a_id && prev.b === d.player_b_id && prev.status === d.status) continue
+    if (prev && prev.a === d.a && prev.b === d.b && prev.status === d.status) continue
     const { error } = await admin
       .from('matches')
-      .update({ player_a_id: d.player_a_id, player_b_id: d.player_b_id, status: d.status })
+      .update({ ...sideCols(kind, d.a, d.b), status: d.status })
       .eq('id', d.id)
     if (error) return { error: 'Could not save the new pairing. Please try again.' }
-    for (const pid of [d.player_a_id, d.player_b_id, prev?.a, prev?.b]) if (pid) changedPlayerIds.add(pid)
+    for (const pid of [d.a, d.b, prev?.a, prev?.b]) if (pid) changedIds.add(pid)
   }
 
-  if (changedPlayerIds.size > 0) {
-    const ids = Array.from(changedPlayerIds)
-    const { data: profiles } = await admin
-      .from('profiles')
-      .select('id, username, display_name')
-      .in('id', ids)
-    const nameById = new Map(
-      (profiles ?? []).map((p) => [p.id, p.display_name ?? p.username ?? 'Player']),
-    )
-    const opponentOf = (pid: string): string | null => {
+  if (changedIds.size > 0) {
+    const ids = Array.from(changedIds)
+    const opponentOf = (id: string): string | null => {
       for (const d of desired) {
-        if (d.player_a_id === pid) return d.player_b_id
-        if (d.player_b_id === pid) return d.player_a_id
+        if (d.a === id) return d.b
+        if (d.b === id) return d.a
       }
       return null
     }
     const link = `/tournaments/${t.slug}/bracket`
-    for (const pid of ids) {
-      const opp = opponentOf(pid)
-      await notifyBoth(
-        pid,
-        {
-          type: 'fixture_updated',
-          round: rearrangeable.label,
-          opponent: opp ? nameById.get(opp) ?? null : null,
-        },
-        'fixture_assigned',
-        { link, url: `${SITE_URL}${link}` },
-      )
+
+    if (kind === 'squad') {
+      const { data: squads } = await admin.from('squads').select('id, name').in('id', ids)
+      const nameBySquad = new Map((squads ?? []).map((s) => [s.id, s.name]))
+      const rosterBySquad = await rostersForSquads(admin, ids)
+      for (const sid of ids) {
+        const opp = opponentOf(sid)
+        for (const pid of rosterBySquad.get(sid) ?? []) {
+          await notifyBoth(
+            pid,
+            {
+              type: 'fixture_updated',
+              round: rearrangeable.label,
+              opponent: opp ? nameBySquad.get(opp) ?? null : null,
+            },
+            'fixture_assigned',
+            { link, url: `${SITE_URL}${link}` },
+          )
+        }
+      }
+    } else {
+      const { data: profiles } = await admin
+        .from('profiles')
+        .select('id, username, display_name')
+        .in('id', ids)
+      const nameById = new Map((profiles ?? []).map((p) => [p.id, p.display_name ?? p.username ?? 'Player']))
+      for (const pid of ids) {
+        const opp = opponentOf(pid)
+        await notifyBoth(
+          pid,
+          {
+            type: 'fixture_updated',
+            round: rearrangeable.label,
+            opponent: opp ? nameById.get(opp) ?? null : null,
+          },
+          'fixture_assigned',
+          { link, url: `${SITE_URL}${link}` },
+        )
+      }
     }
   }
 

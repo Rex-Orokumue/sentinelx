@@ -20,6 +20,7 @@ export function GroupStage({
   contacts,
   tournamentId,
   groups,
+  entryUnit,
 }: {
   standings: { groupId: string; groupName: string; rows: StandingRow[] }[]
   fixtures: Buckets
@@ -31,6 +32,9 @@ export function GroupStage({
   // control in the standings table. The public bracket page passes neither.
   tournamentId?: string
   groups?: { id: string; name: string }[]
+  // Admin-only, optional: 'squad' relabels the standings header "Squad"
+  // instead of "Player". The public bracket page doesn't pass this yet.
+  entryUnit?: string
 }) {
   const [tab, setTab] = useState<'table' | 'fixtures'>('table')
   const [showCompleted, setShowCompleted] = useState(false)
@@ -60,6 +64,7 @@ export function GroupStage({
             tournamentId={tournamentId}
             currentGroupId={g.groupId}
             groups={groups}
+            entryUnit={entryUnit}
           />
         ))
       ) : totalFixtures === 0 ? (

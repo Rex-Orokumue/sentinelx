@@ -20,7 +20,7 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
   const supabase = createClient()
   const { data: t } = await supabase
     .from('tournaments')
-    .select('id, title, status, round_start_date, round_gap_days, format, manual_knockout_pairing')
+    .select('id, title, status, round_start_date, round_gap_days, format, manual_knockout_pairing, entry_unit')
     .eq('id', params.id)
     .maybeSingle()
   if (!t) notFound()
@@ -150,6 +150,7 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
         <AdminBracketView
           tournamentId={t.id}
           status={t.status}
+          entryUnit={t.entry_unit}
           standings={view.standings}
           fixtures={view.fixtures}
           rounds={view.rounds}
