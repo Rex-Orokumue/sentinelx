@@ -10,6 +10,8 @@ import { friendshipStatus, type FriendshipStatus } from '@/lib/friends/list'
 import { fetchProfileMessagingState } from '@/lib/messages/query'
 import { fetchFollowCounts, fetchIsFollowing } from '@/lib/follows/query'
 import { scoreStatsByPlayerAndCategory, winsByPlayerAndGame, type GameScopedMatch, type CategoryStat } from '@/lib/rankings/game-breakdown'
+import { sideAIds, sideBIds } from '@/lib/tournaments/advancement'
+import { rostersForSquads } from '@/lib/tournaments/squad-roster'
 import { CATEGORY_META } from '@/lib/games/categories'
 import { RANKING_MIN_MATCHES } from '@/lib/rankings/leaderboard'
 import { getSeasonLeaderboard, getMonthlyLeaderboard } from '@/lib/seasons/data'
@@ -93,6 +95,11 @@ function firstTitleName(x: TitleRef): string | null {
   return r?.title ?? null
 }
 
+type SquadRef = { id: string; name: string } | { id: string; name: string }[] | null
+function firstSquad(s: SquadRef): { id: string; name: string } | null {
+  return Array.isArray(s) ? s[0] ?? null : s
+}
+
 type CategoryGameRef = { id: string; name: string; category: string } | { id: string; name: string; category: string }[] | null
 type CategoryTournamentRef = { game: CategoryGameRef } | { game: CategoryGameRef }[] | null
 function firstCategoryGameRef(g: CategoryGameRef): { id: string; name: string; category: string } | null {
@@ -112,9 +119,13 @@ type RecentRow = {
   completed_at: string | null
   player_a_id: string | null
   player_b_id: string | null
+  team_a_id: string | null
+  team_b_id: string | null
   tournament: TitleRef
   player_a: NameRef
   player_b: NameRef
+  team_a: SquadRef
+  team_b: SquadRef
 }
 type FinalRow = {
   round: string
@@ -123,6 +134,8 @@ type FinalRow = {
   score_b: number | null
   player_a_id: string | null
   player_b_id: string | null
+  team_a_id: string | null
+  team_b_id: string | null
   tournament: TitleTournamentRef
 }
 
@@ -147,14 +160,23 @@ export async function generateMetadata({ params }: { params: { username: string;
   return buildMetadata({ title, description, path: `/players/${p.username}`, locale: params.locale })
 }
 
-function toBracketFinal(f: {
-  round: string
-  status: string
-  score_a: number | null
-  score_b: number | null
-  player_a_id: string | null
-  player_b_id: string | null
-}): BracketMatch {
+function toBracketFinal(
+  f: {
+    round: string
+    status: string
+    score_a: number | null
+    score_b: number | null
+    player_a_id: string | null
+    player_b_id: string | null
+    team_a_id: string | null
+    team_b_id: string | null
+  },
+  viewerId: string,
+  viewerSquadIds: string[],
+): BracketMatch {
+  const isTeam = !!(f.team_a_id || f.team_b_id)
+  const aId = isTeam ? (viewerSquadIds.includes(f.team_a_id as string) ? viewerId : 'opponent') : (f.player_a_id ?? '')
+  const bId = isTeam ? (viewerSquadIds.includes(f.team_b_id as string) ? viewerId : 'opponent') : (f.player_b_id ?? '')
   return {
     id: '',
     round: f.round,
@@ -165,8 +187,8 @@ function toBracketFinal(f: {
     score_b: f.score_b,
     scheduled_at: null,
     is_full_day: false,
-    playerA: { id: f.player_a_id ?? '', name: '' },
-    playerB: { id: f.player_b_id ?? '', name: '' },
+    playerA: { id: aId, name: '' },
+    playerB: { id: bId, name: '' },
   }
 }
 
@@ -201,6 +223,14 @@ export default async function PlayerProfilePage({ params }: { params: { username
   const isFollowingProfile = user && user.id !== p.id ? await fetchIsFollowing(user.id, p.id) : false
   const theyFollowMe = user && user.id !== p.id ? await fetchIsFollowing(p.id, user.id) : false
 
+  // Every squad this player has ever belonged to — the .or() filters below
+  // OR this in alongside player_a_id/player_b_id.eq so a team match where
+  // this player is only a roster member (never the row's own player_a_id/
+  // player_b_id, both null on a team row) is still returned.
+  const { data: mySquadRows } = await supabase.from('squad_members').select('squad_id').eq('player_id', p.id)
+  const mySquadIds = (mySquadRows ?? []).map((r) => r.squad_id as string)
+  const squadOrClause = mySquadIds.length > 0 ? `,team_a_id.in.(${mySquadIds.join(',')}),team_b_id.in.(${mySquadIds.join(',')})` : ''
+
   const [
     { data: rankData },
     { data: rawMatches },
@@ -220,31 +250,33 @@ export default async function PlayerProfilePage({ params }: { params: { username
     supabase
       .from('matches')
       .select(
-        'id, score_a, score_b, completed_at, player_a_id, player_b_id, ' +
+        'id, score_a, score_b, completed_at, player_a_id, player_b_id, team_a_id, team_b_id, ' +
           'tournament:tournaments(title), ' +
           'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
-          'player_b:profiles!matches_player_b_id_fkey(username, display_name)',
+          'player_b:profiles!matches_player_b_id_fkey(username, display_name), ' +
+          'team_a:squads!matches_team_a_id_fkey(id, name), ' +
+          'team_b:squads!matches_team_b_id_fkey(id, name)',
       )
       .eq('status', 'completed')
-      .or(`player_a_id.eq.${p.id},player_b_id.eq.${p.id}`)
+      .or(`player_a_id.eq.${p.id},player_b_id.eq.${p.id}${squadOrClause}`)
       .order('completed_at', { ascending: false })
       .limit(10),
     supabase
       .from('matches')
       .select(
-        'round, status, score_a, score_b, player_a_id, player_b_id, ' +
+        'round, status, score_a, score_b, player_a_id, player_b_id, team_a_id, team_b_id, ' +
           'tournament:tournaments(title, slug, tournament_end, game:games(name))',
       )
       .eq('round', 'final')
       .eq('status', 'completed')
-      .or(`player_a_id.eq.${p.id},player_b_id.eq.${p.id}`),
+      .or(`player_a_id.eq.${p.id},player_b_id.eq.${p.id}${squadOrClause}`),
     supabase
       .from('matches')
       .select(
-        'score_a, score_b, player_a_id, player_b_id, status, tournament:tournaments(game:games(id, name, category))',
+        'score_a, score_b, player_a_id, player_b_id, team_a_id, team_b_id, status, tournament:tournaments(game:games(id, name, category))',
       )
       .eq('status', 'completed')
-      .or(`player_a_id.eq.${p.id},player_b_id.eq.${p.id}`),
+      .or(`player_a_id.eq.${p.id},player_b_id.eq.${p.id}${squadOrClause}`),
     supabase
       .from('tournament_registrations')
       .select('id', { count: 'exact', head: true })
@@ -285,15 +317,21 @@ export default async function PlayerProfilePage({ params }: { params: { username
 
   const cosmetics = equippedCosmeticsBySlug(rawEquippedItems ?? [])
 
-  const categoryMatches: GameScopedMatch[] = ((rawCategoryMatches as unknown[] | null) ?? []).map((raw) => {
-    const m = raw as {
-      score_a: number | null
-      score_b: number | null
-      player_a_id: string | null
-      player_b_id: string | null
-      status: string
-      tournament: CategoryTournamentRef
-    }
+  const rawCategoryRows = ((rawCategoryMatches as unknown[] | null) ?? []) as {
+    score_a: number | null
+    score_b: number | null
+    player_a_id: string | null
+    player_b_id: string | null
+    team_a_id: string | null
+    team_b_id: string | null
+    status: string
+    tournament: CategoryTournamentRef
+  }[]
+  const categorySquadIds = Array.from(
+    new Set(rawCategoryRows.flatMap((m) => [m.team_a_id, m.team_b_id]).filter((id): id is string => id != null)),
+  )
+  const rosterBySquad = await rostersForSquads(supabase, categorySquadIds)
+  const categoryMatches: GameScopedMatch[] = rawCategoryRows.map((m) => {
     const t = firstCategoryTournamentRef(m.tournament)
     const g = firstCategoryGameRef(t?.game ?? null)
     return {
@@ -302,6 +340,10 @@ export default async function PlayerProfilePage({ params }: { params: { username
       score_b: m.score_b,
       player_a_id: m.player_a_id,
       player_b_id: m.player_b_id,
+      team_a_id: m.team_a_id,
+      team_b_id: m.team_b_id,
+      team_a_roster: m.team_a_id ? rosterBySquad.get(m.team_a_id) ?? [] : undefined,
+      team_b_roster: m.team_b_id ? rosterBySquad.get(m.team_b_id) ?? [] : undefined,
       game_id: g?.id ?? 'unknown',
       game_name: g?.name ?? 'Unknown',
       game_category: g?.category ?? 'other',
@@ -314,7 +356,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
 
   // "Games You Play" — every distinct game this player has a completed match
   // in, with real wins/matches counts (not fabricated per-game ranks/scores).
-  const playedMatches = categoryMatches.filter((m) => m.player_a_id === p.id || m.player_b_id === p.id)
+  const playedMatches = categoryMatches.filter((m) => sideAIds(m).includes(p.id) || sideBIds(m).includes(p.id))
   const winsByGameMap = new Map((winsByPlayerAndGame(categoryMatches).get(p.id) ?? []).map((g) => [g.game, g.wins]))
   const gamesPlayed = Array.from(new Set(playedMatches.map((m) => m.game_name))).map((name) => ({
     name,
@@ -324,8 +366,32 @@ export default async function PlayerProfilePage({ params }: { params: { username
 
   const recentRows = (rawMatches ?? []) as unknown as RecentRow[]
   const matches: ProfileMatch[] = recentRows
-    .filter((m) => m.player_a_id && m.player_b_id && m.score_a != null && m.score_b != null)
+    .filter((m) => {
+      const isTeam = !!(m.team_a_id || m.team_b_id)
+      if (isTeam) return m.team_a_id != null && m.team_b_id != null && m.score_a != null && m.score_b != null
+      return m.player_a_id && m.player_b_id && m.score_a != null && m.score_b != null
+    })
     .map((m) => {
+      const isTeam = !!(m.team_a_id || m.team_b_id)
+      if (isTeam) {
+        const teamA = firstSquad(m.team_a)
+        const teamB = firstSquad(m.team_b)
+        const isA = mySquadIds.includes(m.team_a_id as string)
+        return {
+          id: m.id,
+          opponentName: isA ? teamB?.name ?? 'Squad' : teamA?.name ?? 'Squad',
+          playerScore: (isA ? m.score_a : m.score_b) as number,
+          opponentScore: (isA ? m.score_b : m.score_a) as number,
+          outcome: matchOutcome(isA ? (teamA?.id ?? '') : (teamB?.id ?? ''), {
+            player_a_id: teamA?.id ?? '',
+            player_b_id: teamB?.id ?? '',
+            score_a: m.score_a as number,
+            score_b: m.score_b as number,
+          }),
+          tournamentTitle: firstTitleName(m.tournament),
+          completedAt: m.completed_at,
+        }
+      }
       const isA = m.player_a_id === p.id
       return {
         id: m.id,
@@ -446,7 +512,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
 
   const finalRows = (rawFinals ?? []) as unknown as FinalRow[]
   const titles: ProfileTitle[] = finalRows
-    .filter((f) => getChampion([toBracketFinal(f)])?.id === p.id)
+    .filter((f) => getChampion([toBracketFinal(f, p.id, mySquadIds)])?.id === p.id)
     .map((f) => {
       const t = firstTitleTournament(f.tournament)
       return {
