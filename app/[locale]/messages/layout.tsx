@@ -1,10 +1,9 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { PresenceProvider } from '@/components/messages/PresenceProvider'
 
-// Wraps both the thread list and thread detail pages so presence tracking
-// (who's online) starts the moment either is mounted and survives
-// navigating between them, instead of resetting per-page.
+// Auth guard only — presence tracking (PresenceProvider) now mounts once,
+// site-wide, in the root [locale] layout so the DM online dot stays
+// accurate anywhere on the site, not just while a Messages page is open.
 export default async function MessagesLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
   const {
@@ -12,5 +11,5 @@ export default async function MessagesLayout({ children }: { children: React.Rea
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/messages')
 
-  return <PresenceProvider viewerId={user.id}>{children}</PresenceProvider>
+  return children
 }

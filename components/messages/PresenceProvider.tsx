@@ -11,13 +11,16 @@ export function useIsOnline(userId: string | null | undefined): boolean {
   return !!userId && online.has(userId)
 }
 
-// Tracks the viewer's own presence on a single shared channel while any
-// Messages page is mounted, and exposes who else is currently on it —
-// consumed via useIsOnline() for the green dot on Avatar. Scoped to the
-// Messages feature, not the whole app: "online" means "has a Messages page
-// open right now," not "is logged in somewhere on the site." Mount this
-// once, in app/[locale]/messages/layout.tsx, above both the thread-list and
-// thread-detail pages.
+// Tracks the viewer's own presence on a single shared channel for as long as
+// they have any page on the site open, and exposes who else is currently on
+// it — consumed via useIsOnline() for the green dot on Avatar. "Online"
+// means "has a tab on the site open right now," not "logged in at some
+// point today" — backgrounding a mobile browser/PWA suspends the socket
+// within moments, so the dot tracks foreground use, matching the accuracy
+// the DM thread view always wanted. Mounted once, site-wide, in
+// app/[locale]/layout.tsx (only when navSession.isLoggedIn) — it used to be
+// scoped to just the Messages pages, which meant the dot went stale for
+// anyone browsing elsewhere on the site.
 //
 // The channel is private — Realtime Authorization requires that for
 // presence — authorized by the dm_presence_* policies on realtime.messages

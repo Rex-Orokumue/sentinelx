@@ -12,6 +12,7 @@ import { SiteFooter } from '@/components/shared/SiteFooter'
 import { NavTransitionProvider } from '@/components/transitions/NavTransitionProvider'
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
 import { GuideLauncher } from '@/components/guide/GuideLauncher'
+import { PresenceProvider } from '@/components/messages/PresenceProvider'
 import { getNavSession } from '@/lib/nav/session'
 import { ADMIN_NAV, visibleNav, type AdminSheetData } from '@/lib/admin/nav'
 import { getAdminNotificationQueue } from '@/lib/admin/notification-queue'
@@ -102,6 +103,17 @@ export default async function LocaleLayout({
       }
     : null
 
+  const appShell = (
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader session={navSession} whatsappUrl={WHATSAPP_COMMUNITY} adminNav={adminNav} />
+      {navSession.deletionRequestedAt && <PendingDeletionBanner requestedAt={navSession.deletionRequestedAt} />}
+
+      <main className="flex-1">{children}</main>
+
+      <SiteFooter />
+    </div>
+  )
+
   return (
     <html lang={locale} className="dark">
       <body
@@ -112,16 +124,11 @@ export default async function LocaleLayout({
             <NavTransitionProvider />
           </Suspense>
           <ServiceWorkerRegistration isLoggedIn={navSession.isLoggedIn} />
-          <div className="flex min-h-screen flex-col">
-            <SiteHeader session={navSession} whatsappUrl={WHATSAPP_COMMUNITY} adminNav={adminNav} />
-            {navSession.deletionRequestedAt && (
-              <PendingDeletionBanner requestedAt={navSession.deletionRequestedAt} />
-            )}
-
-            <main className="flex-1">{children}</main>
-
-            <SiteFooter />
-          </div>
+          {navSession.isLoggedIn && navSession.id ? (
+            <PresenceProvider viewerId={navSession.id}>{appShell}</PresenceProvider>
+          ) : (
+            appShell
+          )}
 
           <GuideLauncher
             isLoggedIn={navSession.isLoggedIn}
