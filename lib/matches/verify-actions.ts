@@ -42,30 +42,35 @@ function firstStr<T>(x: T | T[] | null): T | null {
 // a substitution — cannot accidentally trigger knockout generation as a side
 // effect. Safe to run at any time: it is a pure function of the matches.
 export async function recomputeGroupStats(admin: Admin, groupId: string): Promise<void> {
-  const { data: members } = await admin
-    .from('group_memberships')
-    .select('player_id')
-    .eq('group_id', groupId)
-  // group_memberships.player_id is nullable as of the team-vs-team schema
-  // (a team row carries team_id instead) — this recompute path is solo-group
-  // only until Phase 3 adds team standings, so a null here would mean a data
-  // bug, not a team row it should silently include.
-  const playerIds = (members ?? []).map((r) => r.player_id).filter((id): id is string => id != null)
+  const { data: members } = await admin.from('group_memberships').select('player_id, team_id').eq('group_id', groupId)
+  const rows = members ?? []
+  // A group is either all-player or all-team rows, never mixed
+  // (group_memberships_kind, Phase 1 schema) — one row's team_id tells us
+  // which this group is.
+  const isTeamGroup = rows.some((r) => r.team_id != null)
+  const entityIds = isTeamGroup
+    ? rows.map((r) => r.team_id).filter((id): id is string => id != null)
+    : rows.map((r) => r.player_id).filter((id): id is string => id != null)
+
   const { data: gm } = await admin
     .from('matches')
-    .select('player_a_id, player_b_id, score_a, score_b')
+    .select('player_a_id, player_b_id, team_a_id, team_b_id, score_a, score_b')
     .eq('group_id', groupId)
     .eq('status', 'completed')
   const results: GroupMatchResult[] = (gm ?? [])
-    .filter((r) => r.player_a_id && r.player_b_id && r.score_a != null && r.score_b != null)
     .map((r) => ({
-      playerAId: r.player_a_id as string,
-      playerBId: r.player_b_id as string,
-      scoreA: r.score_a as number,
-      scoreB: r.score_b as number,
+      playerAId: isTeamGroup ? r.team_a_id : r.player_a_id,
+      playerBId: isTeamGroup ? r.team_b_id : r.player_b_id,
+      scoreA: r.score_a,
+      scoreB: r.score_b,
     }))
-  for (const s of computeGroupStats(playerIds, results)) {
-    await admin
+    .filter(
+      (r): r is { playerAId: string; playerBId: string; scoreA: number; scoreB: number } =>
+        r.playerAId != null && r.playerBId != null && r.scoreA != null && r.scoreB != null,
+    )
+
+  for (const s of computeGroupStats(entityIds, results)) {
+    const query = admin
       .from('group_memberships')
       .update({
         points: s.points,
@@ -76,7 +81,7 @@ export async function recomputeGroupStats(admin: Admin, groupId: string): Promis
         goals_against: s.goalsAgainst,
       })
       .eq('group_id', groupId)
-      .eq('player_id', s.playerId)
+    await (isTeamGroup ? query.eq('team_id', s.playerId) : query.eq('player_id', s.playerId))
   }
 }
 
@@ -90,7 +95,7 @@ export async function recomputeGroupAndMaybeAdvance(
 
   const { data: tour } = await admin
     .from('tournaments')
-    .select('format, manual_knockout_pairing')
+    .select('format, manual_knockout_pairing, entry_unit')
     .eq('id', tournamentId)
     .maybeSingle()
   if (tour?.format === 'round_robin') {
@@ -131,6 +136,11 @@ export async function recomputeGroupAndMaybeAdvance(
     .neq('round', 'group')
   if (knockout && knockout > 0) return
 
+  // recomputeGroupAndMaybeAdvance only ever runs for head-to-head matches
+  // (points-race tournaments never write to `matches` at all) — so
+  // entry_unit='squad' here can only mean a team-vs-team tournament.
+  const isTeamTournament = tour?.entry_unit === 'squad'
+
   const { data: groups } = await admin
     .from('groups')
     .select('id')
@@ -140,15 +150,13 @@ export async function recomputeGroupAndMaybeAdvance(
   for (const g of groups ?? []) {
     const { data: mem } = await admin
       .from('group_memberships')
-      .select('player_id, wins, draws, losses, goals_for, goals_against, points')
+      .select('player_id, team_id, wins, draws, losses, goals_for, goals_against, points')
       .eq('group_id', g.id)
-    // Solo-group knockout advancement only, same as recomputeGroupStats above
-    // — a team standings row (player_id null) has no place in this path until
-    // Phase 3.
     const rows: MembershipInput[] = (mem ?? [])
-      .filter((r): r is typeof r & { player_id: string } => r.player_id != null)
-      .map((r) => ({
-        playerId: r.player_id,
+      .map((r) => ({ id: isTeamTournament ? r.team_id : r.player_id, r }))
+      .filter((x): x is { id: string; r: NonNullable<typeof mem>[number] } => x.id != null)
+      .map(({ id, r }) => ({
+        playerId: id,
         name: '',
         wins: r.wins,
         draws: r.draws,
@@ -164,23 +172,23 @@ export async function recomputeGroupAndMaybeAdvance(
   const { round, matches, byePlayerIds } = knockoutRound1(advancers)
   const roundDate = await nextRoundScheduledAt(admin, tournamentId)
   const schedule = roundDate ? { scheduled_at: roundDate, is_full_day: true } : {}
+  const sideCols = (a: string, b: string | null) =>
+    isTeamTournament ? { team_a_id: a, team_b_id: b } : { player_a_id: a, player_b_id: b }
   const rows = [
     ...matches.map(([a, b]) => ({
       tournament_id: tournamentId,
       round,
       group_id: null,
-      player_a_id: a,
-      player_b_id: b,
       status: 'scheduled',
+      ...sideCols(a, b),
       ...schedule,
     })),
-    ...byePlayerIds.map((pid) => ({
+    ...byePlayerIds.map((id) => ({
       tournament_id: tournamentId,
       round,
       group_id: null,
-      player_a_id: pid,
-      player_b_id: null,
       status: 'bye',
+      ...sideCols(id, null),
       ...schedule,
     })),
   ]
@@ -189,6 +197,11 @@ export async function recomputeGroupAndMaybeAdvance(
       .from('matches')
       .insert(rows)
       .select('id, player_a_id, player_b_id, scheduled_at, is_full_day')
+    // notifyNewFixtures already filters out any row whose playerBId is null
+    // (its own doc comment: "null => bye, skipped") — a team row has both
+    // player_a_id and player_b_id null, so it is excluded the same way a bye
+    // already is. No fixture notification for team matches yet, deferred to
+    // Phase 6 alongside the rest of team-side notification copy.
     await notifyNewFixtures(
       admin,
       (inserted ?? []).map((m) => ({
@@ -216,7 +229,7 @@ export async function advanceKnockout(admin: Admin, tournamentId: string, round:
 
   const { data: roundMatches } = await admin
     .from('matches')
-    .select('status, score_a, score_b, player_a_id, player_b_id')
+    .select('status, score_a, score_b, player_a_id, player_b_id, team_a_id, team_b_id')
     .eq('tournament_id', tournamentId)
     .eq('round', round)
   const rm = (roundMatches ?? []) as AdvanceMatch[]
@@ -230,9 +243,10 @@ export async function advanceKnockout(admin: Admin, tournamentId: string, round:
     .eq('round', nr)
   if (existing && existing > 0) return
 
+  const isTeamRound = rm.some((m) => m.team_a_id || m.team_b_id)
   const byeWinners = rm
     .filter((m) => m.status === 'bye')
-    .map((m) => m.player_a_id)
+    .map((m) => matchWinnerId(m))
     .filter(Boolean) as string[]
   const matchWinners = rm
     .filter((m) => m.status === 'completed')
@@ -242,34 +256,32 @@ export async function advanceKnockout(admin: Admin, tournamentId: string, round:
   if (pairs.length === 0 && !leftover) return
   const roundDate = await nextRoundScheduledAt(admin, tournamentId)
   const schedule = roundDate ? { scheduled_at: roundDate, is_full_day: true } : {}
+  const sideCols = (a: string, b: string | null) =>
+    isTeamRound ? { team_a_id: a, team_b_id: b } : { player_a_id: a, player_b_id: b }
   const { data: inserted } = await admin
     .from('matches')
-    .insert(
-      [
-        ...pairs.map(([a, b]) => ({
-          tournament_id: tournamentId,
-          round: nr,
-          group_id: null,
-          player_a_id: a,
-          player_b_id: b,
-          status: 'scheduled',
-          ...schedule,
-        })),
-        ...(leftover
-          ? [
-              {
-                tournament_id: tournamentId,
-                round: nr,
-                group_id: null,
-                player_a_id: leftover,
-                player_b_id: null,
-                status: 'bye',
-                ...schedule,
-              },
-            ]
-          : []),
-      ],
-    )
+    .insert([
+      ...pairs.map(([a, b]) => ({
+        tournament_id: tournamentId,
+        round: nr,
+        group_id: null,
+        status: 'scheduled',
+        ...sideCols(a, b),
+        ...schedule,
+      })),
+      ...(leftover
+        ? [
+            {
+              tournament_id: tournamentId,
+              round: nr,
+              group_id: null,
+              status: 'bye',
+              ...sideCols(leftover, null),
+              ...schedule,
+            },
+          ]
+        : []),
+    ])
     .select('id, player_a_id, player_b_id, scheduled_at, is_full_day')
   await notifyNewFixtures(
     admin,
@@ -291,10 +303,11 @@ export async function advanceKnockout(admin: Admin, tournamentId: string, round:
 async function createThirdPlaceMatch(admin: Admin, tournamentId: string): Promise<void> {
   const { data: semis } = await admin
     .from('matches')
-    .select('status, score_a, score_b, player_a_id, player_b_id')
+    .select('status, score_a, score_b, player_a_id, player_b_id, team_a_id, team_b_id')
     .eq('tournament_id', tournamentId)
     .eq('round', 'semi_final')
-  const pair = thirdPlacePair((semis ?? []) as AdvanceMatch[])
+  const semiRows = (semis ?? []) as AdvanceMatch[]
+  const pair = thirdPlacePair(semiRows)
   if (!pair) return
 
   const { count: existing } = await admin
@@ -304,6 +317,8 @@ async function createThirdPlaceMatch(admin: Admin, tournamentId: string): Promis
     .eq('round', 'third_place')
   if (existing && existing > 0) return
 
+  const isTeamRound = semiRows.some((m) => m.team_a_id || m.team_b_id)
+  const sideCols = isTeamRound ? { team_a_id: pair[0], team_b_id: pair[1] } : { player_a_id: pair[0], player_b_id: pair[1] }
   const roundDate = await nextRoundScheduledAt(admin, tournamentId)
   const schedule = roundDate ? { scheduled_at: roundDate, is_full_day: true } : {}
   const { data: inserted } = await admin
@@ -312,9 +327,8 @@ async function createThirdPlaceMatch(admin: Admin, tournamentId: string): Promis
       tournament_id: tournamentId,
       round: 'third_place',
       group_id: null,
-      player_a_id: pair[0],
-      player_b_id: pair[1],
       status: 'scheduled',
+      ...sideCols,
       ...schedule,
     })
     .select('id, player_a_id, player_b_id, scheduled_at, is_full_day')

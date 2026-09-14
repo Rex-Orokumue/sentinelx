@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { advanceKnockout, completeTournamentIfFinal, creditThirdPlacePrize, recomputeGroupAndMaybeAdvance } from './verify-actions'
+import { advanceKnockout, completeTournamentIfFinal, creditThirdPlacePrize, recomputeGroupAndMaybeAdvance, recomputeGroupStats } from './verify-actions'
 
 vi.mock('@/lib/wallet/service', () => ({ creditWallet: vi.fn() }))
 vi.mock('./season-points', () => ({ awardSeasonPoints: vi.fn() }))
@@ -275,5 +275,100 @@ describe('creditThirdPlacePrize', () => {
     const admin = fakeAdminForThirdPlace({ prizeThird: null })
     await creditThirdPlacePrize(admin as never, 't1', 'bronze-winner')
     expect(creditWallet).not.toHaveBeenCalled()
+  })
+})
+
+function fakeAdminForTeamGroupStats(opts: {
+  memberships: { player_id: string | null; team_id: string | null }[]
+  matches: { player_a_id: string | null; player_b_id: string | null; team_a_id: string | null; team_b_id: string | null; score_a: number | null; score_b: number | null }[]
+}) {
+  const updates: { teamId?: string; playerId?: string; data: Record<string, unknown> }[] = []
+  return {
+    admin: {
+      from(table: string) {
+        if (table === 'group_memberships') {
+          return {
+            select: () => ({ eq: async () => ({ data: opts.memberships }) }),
+            update: (data: Record<string, unknown>) => ({
+              eq: () => ({
+                eq: async (col: string, val: string) => {
+                  updates.push({ [col === 'team_id' ? 'teamId' : 'playerId']: val, data })
+                  return { data: null, error: null }
+                },
+              }),
+            }),
+          }
+        }
+        if (table === 'matches') {
+          return { select: () => ({ eq: () => ({ eq: async () => ({ data: opts.matches }) }) }) }
+        }
+        throw new Error(`unexpected table ${table}`)
+      },
+    },
+    updates,
+  }
+}
+
+describe('recomputeGroupStats — team groups', () => {
+  it('credits wins/points to the winning squad, keyed by team_id not player_id', async () => {
+    const { admin, updates } = fakeAdminForTeamGroupStats({
+      memberships: [
+        { player_id: null, team_id: 'sqA' },
+        { player_id: null, team_id: 'sqB' },
+      ],
+      matches: [
+        { player_a_id: null, player_b_id: null, team_a_id: 'sqA', team_b_id: 'sqB', score_a: 4, score_b: 2 },
+      ],
+    })
+    await recomputeGroupStats(admin as never, 'g1')
+    const sqAUpdate = updates.find((u) => u.teamId === 'sqA')
+    expect(sqAUpdate?.data).toMatchObject({ wins: 1, points: 3, goals_for: 4, goals_against: 2 })
+    expect(updates.every((u) => u.playerId === undefined)).toBe(true)
+  })
+})
+
+function fakeAdminForTeamAdvance() {
+  const inserted: Record<string, unknown>[] = []
+  return {
+    admin: {
+      from(table: string) {
+        if (table === 'tournaments') {
+          return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { manual_knockout_pairing: false } }) }) }) }
+        }
+        if (table === 'matches') {
+          return {
+            select: (_c: unknown, opts?: unknown) => {
+              if (opts) return { eq: () => ({ eq: async () => ({ count: 0 }) }) } // "existing next-round" count check
+              return {
+                eq: () => ({
+                  eq: async () => ({
+                    data: [
+                      { status: 'completed', score_a: 3, score_b: 1, player_a_id: null, player_b_id: null, team_a_id: 'sqA', team_b_id: 'sqB' },
+                      { status: 'completed', score_a: 0, score_b: 2, player_a_id: null, player_b_id: null, team_a_id: 'sqC', team_b_id: 'sqD' },
+                    ],
+                  }),
+                }),
+              }
+            },
+            insert: (rows: Record<string, unknown>[]) => {
+              inserted.push(...rows)
+              return { select: async () => ({ data: [] }) }
+            },
+          }
+        }
+        throw new Error(`unexpected table ${table}`)
+      },
+    },
+    inserted,
+  }
+}
+
+describe('advanceKnockout — team rounds', () => {
+  it('pairs advancing squads into team_a_id/team_b_id, not player_a_id/player_b_id', async () => {
+    const { admin, inserted } = fakeAdminForTeamAdvance()
+    await advanceKnockout(admin as never, 't1', 'quarter_final')
+    expect(inserted).toHaveLength(1)
+    expect(inserted[0]).toMatchObject({ team_a_id: 'sqA', team_b_id: 'sqD' })
+    expect(inserted[0].player_a_id).toBeUndefined()
   })
 })
