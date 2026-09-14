@@ -5,6 +5,7 @@ import {
   playerSitemapEntry,
   matchSitemapEntry,
   listingSitemapEntry,
+  seasonSitemapEntry,
   expandToLocales,
 } from './sitemap-entries'
 import { SITE_URL } from './site'
@@ -24,6 +25,18 @@ describe('staticSitemapEntries', () => {
       `${SITE_URL}/games`,
       `${SITE_URL}/about`,
       `${SITE_URL}/store`,
+      `${SITE_URL}/privacy`,
+      `${SITE_URL}/terms`,
+      `${SITE_URL}/refund-policy`,
+      `${SITE_URL}/rules`,
+      `${SITE_URL}/safety`,
+      `${SITE_URL}/escrow`,
+      `${SITE_URL}/community-rules`,
+      `${SITE_URL}/how-it-works`,
+      `${SITE_URL}/help`,
+      `${SITE_URL}/contact`,
+      `${SITE_URL}/tournament-guide`,
+      `${SITE_URL}/tournament-faqs`,
     ])
   })
 })
@@ -55,6 +68,13 @@ describe('listingSitemapEntry', () => {
   it('builds a url from a listing row', () => {
     const entry = listingSitemapEntry({ id: 'listing-1', updated_at: '2026-07-03T00:00:00.000Z' })
     expect(entry.url).toBe(`${SITE_URL}/exchange/listing-1`)
+  })
+})
+
+describe('seasonSitemapEntry', () => {
+  it('builds a url from a season row', () => {
+    const entry = seasonSitemapEntry({ slug: 'season-3' })
+    expect(entry.url).toBe(`${SITE_URL}/seasons/season-3`)
   })
 })
 

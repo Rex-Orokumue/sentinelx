@@ -32,6 +32,22 @@ export function staticSitemapEntries(): MetadataRoute.Sitemap {
     '/games',
     '/about',
     '/store',
+    // Legal/support pages — real, indexable content with their own
+    // generateMetadata, just missing from the sitemap until now. '/coming-soon'
+    // is deliberately excluded: it's a shared placeholder shell reused across
+    // many footer links via a query param, not a distinct page of content.
+    '/privacy',
+    '/terms',
+    '/refund-policy',
+    '/rules',
+    '/safety',
+    '/escrow',
+    '/community-rules',
+    '/how-it-works',
+    '/help',
+    '/contact',
+    '/tournament-guide',
+    '/tournament-faqs',
   ]
   return paths.map((path) => ({ url: `${SITE_URL}${path === '/' ? '/' : path}` }))
 }
@@ -69,5 +85,16 @@ export function listingSitemapEntry(row: { id: string; updated_at: string | null
     lastModified: row.updated_at ?? undefined,
     changeFrequency: 'daily',
     priority: 0.4,
+  }
+}
+
+// No lastModified: the seasons table has no updated_at (only created_at, which
+// would misleadingly imply the page rarely changes — its leaderboards actually
+// update constantly as matches complete).
+export function seasonSitemapEntry(row: { slug: string }): MetadataRoute.Sitemap[number] {
+  return {
+    url: `${SITE_URL}/seasons/${row.slug}`,
+    changeFrequency: 'daily',
+    priority: 0.5,
   }
 }
