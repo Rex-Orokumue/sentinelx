@@ -13,7 +13,7 @@ import { MatchResultCard } from './MatchResultCard'
 import { AnnouncementCard } from './AnnouncementCard'
 import { ReactionBar } from './ReactionBar'
 import { ShareButton } from './ShareButton'
-import { MutePostButton } from './MutePostButton'
+import { PostOverflowMenu } from './PostOverflowMenu'
 import { PostMediaCarousel } from './PostMediaCarousel'
 
 // Handles all 4 post types (spec §13). match_result and announcement get a
@@ -56,40 +56,43 @@ function ManualOrAchievementCard({ post, loggedIn }: { post: PostView; loggedIn:
   }
 
   return (
-    <div className={`rounded-2xl border bg-sx-surface p-4 sm:p-5 ${isAchievement ? 'border-amber-500/30' : isBoosted ? 'border-amber-400/50' : 'border-sx-border'}`}>
-      {isAchievement && <p className="mb-2 text-xs font-black uppercase tracking-widest text-amber-400">🏅 Achievement Unlocked</p>}
-      {isBoosted && <p className="mb-2 text-xs font-black uppercase tracking-widest text-amber-400">🚀 Boosted</p>}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <HexAvatar src={post.author.avatarUrl} username={name} tier={post.author.membershipTier as MembershipTier} size="xs" frameUrl={post.author.frameUrl} />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-sx-white">
-              {post.author.username ? (
-                <Link href={`/players/${post.author.username}`} className="hover:text-sx-purple-text">
-                  {name}
-                </Link>
-              ) : (
-                name
-              )}
-            </p>
-            <div className="flex items-center gap-1.5">
-              <TierBadge tier={post.author.sentinelTier} />
-              <span className="text-[11px] text-sx-gray">· {formatRelativeTime(post.createdAt)}</span>
+    <div className={`overflow-hidden rounded-2xl border bg-sx-surface ${isAchievement ? 'border-amber-500/30' : isBoosted ? 'border-amber-400/50' : 'border-sx-border'}`}>
+      <div className="p-4 pb-0 sm:p-5 sm:pb-0">
+        {isAchievement && <p className="mb-2 text-xs font-black uppercase tracking-widest text-amber-400">🏅 Achievement Unlocked</p>}
+        {isBoosted && <p className="mb-2 text-xs font-black uppercase tracking-widest text-amber-400">🚀 Boosted</p>}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <HexAvatar src={post.author.avatarUrl} username={name} tier={post.author.membershipTier as MembershipTier} size="xs" frameUrl={post.author.frameUrl} />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-sx-white">
+                {post.author.username ? (
+                  <Link href={`/players/${post.author.username}`} className="hover:text-sx-purple-text">
+                    {name}
+                  </Link>
+                ) : (
+                  name
+                )}
+              </p>
+              <div className="flex items-center gap-1.5">
+                <TierBadge tier={post.author.sentinelTier} />
+                <span className="text-[11px] text-sx-gray">· {formatRelativeTime(post.createdAt)}</span>
+              </div>
             </div>
           </div>
+          <PostOverflowMenu
+            postId={post.id}
+            canBoost={post.canBoost}
+            canDelete={post.canDelete}
+            loggedIn={loggedIn}
+            muted={post.mutedByViewer}
+            pending={pending}
+            onBoost={onBoost}
+            onDelete={onDelete}
+          />
         </div>
-        <div className="flex shrink-0 items-center gap-3">
-          {post.canBoost && (
-            <button type="button" onClick={onBoost} disabled={pending} className="text-xs font-semibold text-amber-400 hover:text-amber-300 disabled:opacity-50">
-              🚀 Boost (200 coins)
-            </button>
-          )}
-          {post.canDelete && (
-            <button type="button" onClick={onDelete} disabled={pending} className="text-xs font-semibold text-red-400 hover:text-red-300 disabled:opacity-50">
-              Delete
-            </button>
-          )}
-        </div>
+
+        <p className="mt-3 whitespace-pre-line text-sm text-sx-white/90">{post.content}</p>
+        {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
       </div>
 
       {/* Media-first: image(s) bleed to the card's full width, no padding or
@@ -102,18 +105,16 @@ function ManualOrAchievementCard({ post, loggedIn }: { post: PostView; loggedIn:
         </div>
       )}
 
-      <p className="mt-3 whitespace-pre-line text-sm text-sx-white/90">{post.content}</p>
-      {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
-
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <ReactionBar postId={post.id} counts={post.reactionCounts} myReaction={post.myReaction} loggedIn={loggedIn} />
-        <div className="flex items-center gap-3">
-          <Link href={`/community/${post.id}`} className="text-xs font-semibold text-sx-gray hover:text-sx-white">
-            💬 {post.commentCount}
-          </Link>
-          {loggedIn && <MutePostButton postId={post.id} muted={post.mutedByViewer} />}
+      <div className="p-4 pt-3 sm:p-5 sm:pt-3">
+        <div className="flex items-center gap-4">
+          <ReactionBar postId={post.id} counts={post.reactionCounts} myReaction={post.myReaction} loggedIn={loggedIn} />
           <ShareButton post={post} />
         </div>
+        {post.commentCount > 0 && (
+          <Link href={`/community/${post.id}`} className="mt-2 block text-xs font-semibold text-sx-gray hover:text-white">
+            View all {post.commentCount} comment{post.commentCount === 1 ? '' : 's'}
+          </Link>
+        )}
       </div>
     </div>
   )

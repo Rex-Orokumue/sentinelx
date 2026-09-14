@@ -6,7 +6,7 @@ import type { MembershipTier } from '@/lib/membership/tiers'
 import type { PlayerRef, PostView } from '@/lib/community/feed-query'
 import { ReactionBar } from './ReactionBar'
 import { ShareButton } from './ShareButton'
-import { MutePostButton } from './MutePostButton'
+import { PostOverflowMenu } from './PostOverflowMenu'
 
 function PlayerColumn({ player, isWinner }: { player: PlayerRef | null; isWinner: boolean }) {
   const name = player?.displayName ?? player?.username ?? 'Player'
@@ -40,7 +40,19 @@ export function MatchResultCard({ post, loggedIn }: { post: PostView; loggedIn: 
     <div className="rounded-2xl border border-sx-purple/40 bg-sx-surface p-4 shadow-[0_0_24px_-8px_rgba(124,58,237,0.5)]">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-black uppercase tracking-widest text-sx-purple-text">🏆 Match Result</p>
-        <p className="truncate text-xs text-sx-gray">{m?.tournamentTitle}</p>
+        <div className="flex shrink-0 items-center gap-2">
+          <p className="truncate text-xs text-sx-gray">{m?.tournamentTitle}</p>
+          <PostOverflowMenu
+            postId={post.id}
+            canBoost={false}
+            canDelete={false}
+            loggedIn={loggedIn}
+            muted={post.mutedByViewer}
+            pending={false}
+            onBoost={() => {}}
+            onDelete={() => {}}
+          />
+        </div>
       </div>
 
       {m ? (
@@ -61,18 +73,15 @@ export function MatchResultCard({ post, loggedIn }: { post: PostView; loggedIn: 
         <p className="mt-3 whitespace-pre-line text-sm text-sx-gray">{post.content}</p>
       )}
 
-      <div className="mt-3 flex items-center justify-between gap-3">
+      <div className="mt-3 flex items-center gap-4">
         <ReactionBar postId={post.id} counts={post.reactionCounts} myReaction={post.myReaction} loggedIn={loggedIn} />
-        <div className="flex items-center gap-3">
-          <Link href={`/community/${post.id}`} className="text-xs font-semibold text-sx-gray hover:text-sx-white">
-            💬 {post.commentCount}
-          </Link>
-          {/* Match results are the busiest threads on the platform and now
-              notify both players, so this is where a mute is most needed. */}
-          {loggedIn && <MutePostButton postId={post.id} muted={post.mutedByViewer} />}
-          <ShareButton post={post} />
-        </div>
+        <ShareButton post={post} />
       </div>
+      {post.commentCount > 0 && (
+        <Link href={`/community/${post.id}`} className="mt-2 block text-xs font-semibold text-sx-gray hover:text-white">
+          View all {post.commentCount} comment{post.commentCount === 1 ? '' : 's'}
+        </Link>
+      )}
       {m && (
         <Link href={`/matches/${m.matchId}`} className="mt-2 block text-right text-xs font-bold text-sx-purple-text hover:text-sx-purple-light">
           View Match →
