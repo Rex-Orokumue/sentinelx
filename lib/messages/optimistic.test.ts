@@ -13,6 +13,7 @@ function msg(overrides: Partial<ConversationMessage> = {}): ConversationMessage 
     audioDurationSeconds: null,
     forwarded: false,
     createdAt: '2026-09-14T00:00:00Z',
+    deliveredAt: null,
     readAt: null,
     editedAt: null,
     deletedAt: null,
