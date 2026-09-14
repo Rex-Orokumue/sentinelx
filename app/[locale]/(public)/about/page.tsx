@@ -3,7 +3,6 @@ import { getTranslations } from 'next-intl/server'
 import { ShieldCheck, Target, Eye, Gem, Flag, Trophy, Users, Rocket, Handshake, BookOpen, Gift } from 'lucide-react'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
-import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { findOptionalPublicImage } from '@/lib/media/optional-image'
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder'
 
@@ -14,7 +13,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
     title: t('metaTitle'),
     description: t('metaDescription'),
     path: '/about',
-    image: DEFAULT_OG_IMAGE,
     locale,
   })
 }

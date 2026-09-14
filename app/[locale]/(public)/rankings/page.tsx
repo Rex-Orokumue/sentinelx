@@ -18,7 +18,6 @@ import { rankPlayersBy } from '@/lib/rankings/leaderboard'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
-import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { formatNaira } from '@/lib/format'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
@@ -27,7 +26,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
     title: 'Leaderboards — Sentinel X',
     description: "Nigeria's top mobile esports players on Sentinel X, ranked by SX Score.",
     path: '/rankings',
-    image: DEFAULT_OG_IMAGE,
     locale,
   })
 }

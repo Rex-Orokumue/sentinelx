@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/server'
 import { dedupeGamesByName } from '@/lib/games/dedupe'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
-import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import { GameGenreTabs } from '@/components/games/GameGenreTabs'
 import { NotifyMeButton } from '@/components/games/NotifyMeButton'
 import { findOptionalPublicImage } from '@/lib/media/optional-image'
@@ -19,7 +18,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
     description:
       "Every game Sentinel X Esports supports — active tournaments today, and what's coming next.",
     path: '/games',
-    image: DEFAULT_OG_IMAGE,
     locale,
   })
 }

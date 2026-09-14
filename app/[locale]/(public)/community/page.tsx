@@ -27,7 +27,6 @@ import { CommunityGallery } from '@/components/community/CommunityGallery'
 import { CommunityFooterCta } from '@/components/community/CommunityFooterCta'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
-import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 
 const PAGE_SIZE = 20
 const WHATSAPP_COMMUNITY = process.env.NEXT_PUBLIC_WHATSAPP_COMMUNITY_URL ?? '#'
@@ -48,7 +47,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
     description:
       "The heartbeat of SentinelX — match results, achievements, and banter from Nigeria's mobile esports community.",
     path: '/community',
-    image: DEFAULT_OG_IMAGE,
     locale,
   })
 }
