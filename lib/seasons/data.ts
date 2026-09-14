@@ -6,6 +6,7 @@ import {
   type PlacementMatch,
   type SeasonTournamentType,
 } from '@/lib/tournaments/season-placement'
+import { squadIdByPlayerForTournament } from '@/lib/tournaments/squad-roster'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -83,7 +84,7 @@ function toRows(
 export async function getSeasonLeaderboard(admin: Admin, seasonId: string, gameId: string): Promise<SeasonLeaderboardRow[]> {
   const { data: seasonTournamentsData } = await admin
     .from('tournaments')
-    .select('id, status, tournament_type')
+    .select('id, status, tournament_type, entry_unit')
     .eq('season_id', seasonId)
     .eq('game_id', gameId)
     .in('tournament_type', ['community_club', 'masters'])
@@ -114,12 +115,16 @@ export async function getSeasonLeaderboard(admin: Admin, seasonId: string, gameI
       : Promise.resolve({ data: [] as { player_id: string; points: number }[] }),
     Promise.all(
       activeTournaments.map(async (t) => {
-        const [{ data: activeRegs }, { data: matches }] = await Promise.all([
+        const [{ data: activeRegs }, { data: matches }, playerToEntityId] = await Promise.all([
           admin.from('tournament_registrations').select('player_id').eq('tournament_id', t.id).eq('status', 'active'),
-          admin.from('matches').select('round, status, player_a_id, player_b_id, score_a, score_b').eq('tournament_id', t.id),
+          admin
+            .from('matches')
+            .select('round, status, player_a_id, player_b_id, team_a_id, team_b_id, score_a, score_b')
+            .eq('tournament_id', t.id),
+          t.entry_unit === 'squad' ? squadIdByPlayerForTournament(admin, t.id) : Promise.resolve(undefined),
         ])
         const activePlayerIds = (activeRegs ?? []).map((r) => r.player_id)
-        const placements = guaranteedBandsForPlacements((matches ?? []) as PlacementMatch[], activePlayerIds)
+        const placements = guaranteedBandsForPlacements((matches ?? []) as PlacementMatch[], activePlayerIds, playerToEntityId)
         const tournamentType = t.tournament_type as SeasonTournamentType
         return placements.map(({ playerId, band }) => ({
           playerId,
