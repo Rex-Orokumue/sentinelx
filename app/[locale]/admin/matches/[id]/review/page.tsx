@@ -11,6 +11,7 @@ import { MarkBothNoShowForm } from '@/components/admin/MarkBothNoShowForm'
 import { canMarkBothNoShow } from '@/lib/matches/noshow-eligibility'
 import { resolveBackLink } from '@/lib/nav/back-link'
 import { checkInVerdict, soleAttendee } from '@/lib/matches/check-in'
+import { RosterAttendanceGrid, type SideInfo } from '@/components/admin/RosterAttendanceGrid'
 
 export const metadata: Metadata = { title: 'Review · Admin · SentinelX' }
 
@@ -31,7 +32,7 @@ export default async function ReviewMatchPage({
   const { data: mRaw } = await supabase
     .from('matches')
     .select(
-      'id, status, resolution, admin_note, noshow_flagged_at, tournament_id, ' +
+      'id, status, resolution, admin_note, noshow_flagged_at, tournament_id, team_a_id, team_b_id, ' +
         'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
         'player_b:profiles!matches_player_b_id_fkey(id, username, display_name)',
     )
@@ -45,6 +46,8 @@ export default async function ReviewMatchPage({
     admin_note: string | null
     noshow_flagged_at: string | null
     tournament_id: string
+    team_a_id: string | null
+    team_b_id: string | null
     player_a: ProfileRef
     player_b: ProfileRef
   }
@@ -99,24 +102,60 @@ export default async function ReviewMatchPage({
   const prefill = prefillScore(s0, s1)
   const mismatch = hasScoreMismatch(submissions.map((s) => ({ scoreA: s.score_a, scoreB: s.score_b })))
 
-  const playerA = nameOf(m.player_a)
-  const playerB = nameOf(m.player_b)
-
   // Who marked themselves present. The decisive evidence when exactly one
-  // player turned up — the case that used to be indistinguishable from a
+  // side turned up — the case that used to be indistinguishable from a
   // mutual no-show.
   const { data: checkInRows } = await supabase
     .from('match_check_ins')
     .select('player_id, checked_in_at')
     .eq('match_id', params.id)
   const checkIns = (checkInRows ?? []) as { player_id: string; checked_in_at: string }[]
+  const checkedInIds = new Set(checkIns.map((c) => c.player_id))
+
+  const isTeamMatch = !!(m.team_a_id || m.team_b_id)
+  let playerA = nameOf(m.player_a)
+  let playerB = nameOf(m.player_b)
+  let sideA: SideInfo | null = null
+  let sideB: SideInfo | null = null
+
+  if (isTeamMatch) {
+    const squadIds = [m.team_a_id, m.team_b_id].filter((id): id is string => id != null)
+    const { data: squads } = await supabase.from('squads').select('id, name').in('id', squadIds)
+    const nameBySquad = new Map((squads ?? []).map((s) => [s.id as string, s.name as string]))
+    const { data: members } = await supabase
+      .from('squad_members')
+      .select('squad_id, player_id, profiles(username, display_name)')
+      .in('squad_id', squadIds)
+
+    const buildSide = (squadId: string | null): SideInfo | null => {
+      if (!squadId) return null
+      const roster = (members ?? [])
+        .filter((mem) => mem.squad_id === squadId)
+        .map((mem) => {
+          const p = Array.isArray(mem.profiles) ? mem.profiles[0] : mem.profiles
+          return {
+            id: mem.player_id as string,
+            name: p?.display_name ?? p?.username ?? 'Player',
+            checkedIn: checkedInIds.has(mem.player_id as string),
+          }
+        })
+      return { id: squadId, name: nameBySquad.get(squadId) ?? 'Squad', roster, anyCheckedIn: roster.some((r) => r.checkedIn) }
+    }
+    sideA = buildSide(m.team_a_id)
+    sideB = buildSide(m.team_b_id)
+    playerA = sideA?.name ?? 'TBD'
+    playerB = sideB?.name ?? 'TBD'
+  }
+
   const checkInState = {
-    playerACheckedIn: checkIns.some((c) => c.player_id === m.player_a?.id),
-    playerBCheckedIn: checkIns.some((c) => c.player_id === m.player_b?.id),
+    playerACheckedIn: isTeamMatch ? (sideA?.anyCheckedIn ?? false) : checkedInIds.has(m.player_a?.id ?? ''),
+    playerBCheckedIn: isTeamMatch ? (sideB?.anyCheckedIn ?? false) : checkedInIds.has(m.player_b?.id ?? ''),
   }
   const verdict = checkInVerdict(checkInState)
-  const attendee = soleAttendee(checkInState, m.player_a?.id ?? null, m.player_b?.id ?? null)
-  const attendeeName = attendee === m.player_a?.id ? playerA : attendee === m.player_b?.id ? playerB : null
+  const sideAId = isTeamMatch ? m.team_a_id : (m.player_a?.id ?? null)
+  const sideBId = isTeamMatch ? m.team_b_id : (m.player_b?.id ?? null)
+  const attendee = soleAttendee(checkInState, sideAId, sideBId)
+  const attendeeName = attendee === sideAId ? playerA : attendee === sideBId ? playerB : null
   const eligibleForMutualNoShow = canMarkBothNoShow({
     status: m.status,
     noshowFlaggedAt: m.noshow_flagged_at,
@@ -201,13 +240,15 @@ export default async function ReviewMatchPage({
 
       <ResultReviewForms matchId={m.id} playerAName={playerA} playerBName={playerB} prefill={prefill} />
 
+      <RosterAttendanceGrid sideA={sideA} sideB={sideB} />
+
       {!(m.status === 'completed' && m.resolution === null) && (
         <div className="mt-4 space-y-4">
           <DeclareNoShowWinnerForm
             matchId={m.id}
-            playerAId={m.player_a?.id ?? ''}
+            playerAId={sideAId ?? ''}
             playerAName={playerA}
-            playerBId={m.player_b?.id ?? ''}
+            playerBId={sideBId ?? ''}
             playerBName={playerB}
           />
           {eligibleForMutualNoShow && <MarkBothNoShowForm matchId={m.id} />}
