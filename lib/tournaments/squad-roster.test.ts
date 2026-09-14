@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { rostersForSquads } from './squad-roster'
 
 describe('squadRosterIds', () => {
   it('returns every current member of a squad', async () => {
@@ -42,5 +43,33 @@ describe('squadIdByPlayerForTournament', () => {
     const map = await squadIdByPlayerForTournament(admin, 't1')
     expect(map.get('p1')).toBe('sqA')
     expect(map.get('p3')).toBe('sqB')
+  })
+})
+
+function fakeClient(rows: { squad_id: string; player_id: string }[]) {
+  return {
+    from(table: string) {
+      if (table !== 'squad_members') throw new Error(`unexpected table ${table}`)
+      return { select: () => ({ in: async () => ({ data: rows }) }) }
+    },
+  }
+}
+
+describe('rostersForSquads', () => {
+  it('returns an empty map for no squad ids, with no query', async () => {
+    const client = { from: () => { throw new Error('should not query') } }
+    const result = await rostersForSquads(client as never, [])
+    expect(result.size).toBe(0)
+  })
+
+  it('groups member player ids by squad id', async () => {
+    const client = fakeClient([
+      { squad_id: 's1', player_id: 'p1' },
+      { squad_id: 's1', player_id: 'p2' },
+      { squad_id: 's2', player_id: 'p3' },
+    ])
+    const result = await rostersForSquads(client as never, ['s1', 's2'])
+    expect(result.get('s1')).toEqual(['p1', 'p2'])
+    expect(result.get('s2')).toEqual(['p3'])
   })
 })
