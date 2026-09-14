@@ -119,6 +119,41 @@ describe('thirdPlacePair', () => {
   })
 })
 
+describe('matchWinnerId — team matches', () => {
+  const tm = (over: Partial<AdvanceMatch>): AdvanceMatch => ({
+    status: 'completed',
+    score_a: 1,
+    score_b: 0,
+    player_a_id: null,
+    player_b_id: null,
+    team_a_id: 'sqA',
+    team_b_id: 'sqB',
+    ...over,
+  })
+
+  it('falls back to team ids when player ids are null', () => {
+    expect(matchWinnerId(tm({ score_a: 3, score_b: 1 }))).toBe('sqA')
+    expect(matchWinnerId(tm({ score_a: 0, score_b: 2 }))).toBe('sqB')
+  })
+  it('returns team_a_id for a team bye', () => {
+    expect(matchWinnerId(tm({ status: 'bye', team_b_id: null, score_a: null, score_b: null }))).toBe('sqA')
+  })
+  it('still returns null for a draw or undecided team match', () => {
+    expect(matchWinnerId(tm({ score_a: 1, score_b: 1 }))).toBeNull()
+    expect(matchWinnerId(tm({ status: 'scheduled' }))).toBeNull()
+  })
+})
+
+describe('thirdPlacePair — team matches', () => {
+  it('returns the two semifinal-losing squads', () => {
+    const semis: AdvanceMatch[] = [
+      { status: 'completed', score_a: 3, score_b: 1, player_a_id: null, player_b_id: null, team_a_id: 'w1', team_b_id: 'l1' },
+      { status: 'completed', score_a: 0, score_b: 2, player_a_id: null, player_b_id: null, team_a_id: 'l2', team_b_id: 'w2' },
+    ]
+    expect(thirdPlacePair(semis)).toEqual(['l1', 'l2'])
+  })
+})
+
 describe('nextRoundName', () => {
   it('advances through the canonical order', () => {
     expect(nextRoundName('quarter_final')).toBe('semi_final')

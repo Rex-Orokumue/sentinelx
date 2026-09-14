@@ -6,14 +6,28 @@ export interface AdvanceMatch {
   score_b: number | null
   player_a_id: string | null
   player_b_id: string | null
+  team_a_id?: string | null
+  team_b_id?: string | null
 }
 
-// The advancing player, or null if the match is not yet decided.
+// A match's two sides as opaque ids — a player id for a solo match, a squad
+// id for a team match. Never both: matches_side_a_kind/matches_side_b_kind
+// (Phase 1 schema) guarantee exactly one of the pair is set per populated
+// side. Exported (not just used internally) because season placement needs
+// the exact same resolution for its own bands.
+export function sideAId(m: AdvanceMatch): string | null {
+  return m.player_a_id ?? m.team_a_id ?? null
+}
+export function sideBId(m: AdvanceMatch): string | null {
+  return m.player_b_id ?? m.team_b_id ?? null
+}
+
+// The advancing side (player or squad id), or null if the match is not yet decided.
 export function matchWinnerId(m: AdvanceMatch): string | null {
-  if (m.status === 'bye') return m.player_a_id
+  if (m.status === 'bye') return sideAId(m)
   if (m.status !== 'completed') return null
   if (m.score_a == null || m.score_b == null || m.score_a === m.score_b) return null
-  return m.score_a > m.score_b ? m.player_a_id : m.player_b_id
+  return m.score_a > m.score_b ? sideAId(m) : sideBId(m)
 }
 
 // True only when every match in the round is completed, bye, or forfeited
@@ -57,7 +71,7 @@ export function thirdPlacePair(semiFinalMatches: AdvanceMatch[]): [string, strin
     if (m.status !== 'completed') return null
     const winnerId = matchWinnerId(m)
     if (!winnerId) return null
-    return winnerId === m.player_a_id ? m.player_b_id : m.player_a_id
+    return winnerId === sideAId(m) ? sideBId(m) : sideAId(m)
   })
   const [a, b] = losers
   if (!a || !b) return null
