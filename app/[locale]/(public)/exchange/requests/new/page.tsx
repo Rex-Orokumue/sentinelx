@@ -2,8 +2,18 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { BuyRequestForm } from '@/components/exchange/BuyRequestForm'
+import { buildMetadata } from '@/lib/seo/metadata'
+import type { Locale } from '@/i18n/locales'
 
-export const metadata: Metadata = { title: 'Request an item — Gaming Exchange' }
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+  const { locale } = await params
+  return buildMetadata({
+    title: 'Request an item — Gaming Exchange',
+    description: "Tell Sentinel X what you're looking for on the Gaming Exchange.",
+    path: '/exchange/requests/new',
+    locale,
+  })
+}
 
 export default async function NewBuyRequestPage() {
   const supabase = createClient()
