@@ -7,7 +7,8 @@ import {
   type GameWinEntry,
   type SnapshotRow,
 } from '@/lib/rankings/snapshot'
-import { matchWinnerId } from '@/lib/tournaments/advancement'
+import { matchWinnerId, sideAId, sideAIds, sideBIds } from '@/lib/tournaments/advancement'
+import { rostersForSquads } from '@/lib/tournaments/squad-roster'
 
 type RawGameRef = { id: string; name: string } | { id: string; name: string }[] | null
 type RawTournamentRef = { game: RawGameRef } | { game: RawGameRef }[] | null
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
     admin
       .from('matches')
       .select(
-        'status, score_a, score_b, player_a_id, player_b_id, ' +
+        'status, score_a, score_b, player_a_id, player_b_id, team_a_id, team_b_id, ' +
           'tournament:tournaments(game:games(id, name))',
       )
       .eq('status', 'completed'),
@@ -77,23 +78,39 @@ export async function POST(req: Request) {
   const sxScoreById = new Map(players.map((p) => [p.id, p.sxScore]))
 
   // Wins per (player, game) keyed by game **id** — winsByPlayerAndGame groups
-  // by game name, which cannot address a game_id column.
+  // by game name, which cannot address a game_id column. A team match's win
+  // credits every roster member of the winning squad.
+  const rawTeamRows = ((matchRows as unknown[] | null) ?? []) as {
+    status: string
+    score_a: number | null
+    score_b: number | null
+    player_a_id: string | null
+    player_b_id: string | null
+    team_a_id: string | null
+    team_b_id: string | null
+    tournament: RawTournamentRef
+  }[]
+  const squadIds = Array.from(
+    new Set(rawTeamRows.flatMap((m) => [m.team_a_id, m.team_b_id]).filter((id): id is string => id != null)),
+  )
+  const rosterBySquad = await rostersForSquads(admin, squadIds)
+
   const winsByGameId = new Map<string, Map<string, number>>()
-  for (const raw of (matchRows as unknown[] | null) ?? []) {
-    const m = raw as {
-      status: string
-      score_a: number | null
-      score_b: number | null
-      player_a_id: string | null
-      player_b_id: string | null
-      tournament: RawTournamentRef
-    }
+  for (const m of rawTeamRows) {
     const gameId = one(one(m.tournament)?.game ?? null)?.id
     if (!gameId) continue
-    const winner = matchWinnerId(m)
+    const rosterAware = {
+      ...m,
+      team_a_roster: m.team_a_id ? rosterBySquad.get(m.team_a_id) ?? [] : undefined,
+      team_b_roster: m.team_b_id ? rosterBySquad.get(m.team_b_id) ?? [] : undefined,
+    }
+    const winner = matchWinnerId(rosterAware)
     if (!winner) continue
+    const winnerIds = winner === sideAId(rosterAware) ? sideAIds(rosterAware) : sideBIds(rosterAware)
     const byPlayer = winsByGameId.get(gameId) ?? new Map<string, number>()
-    byPlayer.set(winner, (byPlayer.get(winner) ?? 0) + 1)
+    for (const winnerId of winnerIds) {
+      byPlayer.set(winnerId, (byPlayer.get(winnerId) ?? 0) + 1)
+    }
     winsByGameId.set(gameId, byPlayer)
   }
 
