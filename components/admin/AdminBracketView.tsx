@@ -15,6 +15,7 @@ import { BracketTree } from '@/components/bracket/BracketTree'
 export function AdminBracketView({
   tournamentId,
   status,
+  entryUnit,
   standings,
   fixtures,
   rounds,
@@ -31,11 +32,13 @@ export function AdminBracketView({
 > & {
   tournamentId: string
   status: string
+  entryUnit: string
   contacts: FixtureContacts
   pendingRound: PendingKnockoutRound | null
   rearrangeableRound: RearrangeableKnockoutRound | null
 }) {
   const [query, setQuery] = useState('')
+  const isTeam = entryUnit === 'squad'
   const filteredStandings = standings.map((g) => ({
     groupId: g.groupId,
     groupName: g.groupName,
@@ -51,7 +54,11 @@ export function AdminBracketView({
   return (
     <>
       {hasGroups && (
-        <PlayerSearch value={query} onChange={setQuery} placeholder="Search players by name or club…" />
+        <PlayerSearch
+          value={query}
+          onChange={setQuery}
+          placeholder={isTeam ? 'Search squads by name…' : 'Search players by name or club…'}
+        />
       )}
       {hasGroups && (
         <GroupStage
@@ -60,6 +67,7 @@ export function AdminBracketView({
           contacts={contacts}
           tournamentId={tournamentId}
           groups={editable ? groupOptions : undefined}
+          entryUnit={entryUnit}
         />
       )}
       {pendingRound && (
@@ -72,6 +80,7 @@ export function AdminBracketView({
             participants={pendingRound.participants}
             shape={pendingRound.shape}
             defaultAssignment={pendingRound.defaultAssignment}
+            entryUnit={entryUnit}
           />
         </div>
       )}
@@ -90,6 +99,7 @@ export function AdminBracketView({
               participants={rearrangeableRound.participants}
               shape={rearrangeableRound.shape}
               defaultAssignment={rearrangeableRound.currentAssignment}
+              entryUnit={entryUnit}
             />
           </div>
         </details>

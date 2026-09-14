@@ -7,6 +7,7 @@ export function StandingsTable({
   tournamentId,
   currentGroupId,
   groups,
+  entryUnit,
 }: {
   groupName: string
   rows: StandingRow[]
@@ -16,6 +17,9 @@ export function StandingsTable({
   tournamentId?: string
   currentGroupId?: string
   groups?: { id: string; name: string }[]
+  // Admin-only, optional: 'squad' relabels the header "Squad" instead of
+  // "Player". The public bracket page doesn't pass this yet.
+  entryUnit?: string
 }) {
   const movable = Boolean(tournamentId && currentGroupId && groups && groups.length > 1)
   return (
@@ -26,7 +30,7 @@ export function StandingsTable({
           <thead>
             <tr className="border-b border-slate-800 text-[11px] uppercase tracking-widest text-slate-500">
               <th className="whitespace-nowrap px-3 py-2.5 text-left">#</th>
-              <th className="whitespace-nowrap px-2 py-2.5 text-left">Player</th>
+              <th className="whitespace-nowrap px-2 py-2.5 text-left">{entryUnit === 'squad' ? 'Squad' : 'Player'}</th>
               <th className="whitespace-nowrap px-2 py-2.5 text-center">P</th>
               <th className="whitespace-nowrap px-2 py-2.5 text-center">W</th>
               <th className="whitespace-nowrap px-2 py-2.5 text-center">D</th>

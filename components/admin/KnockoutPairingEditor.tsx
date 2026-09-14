@@ -50,6 +50,7 @@ export function KnockoutPairingEditor({
   participants,
   shape,
   defaultAssignment,
+  entryUnit,
 }: {
   mode: 'create' | 'rearrange'
   tournamentId: string
@@ -58,10 +59,13 @@ export function KnockoutPairingEditor({
   participants: Participant[]
   shape: { byeCount: number; matchCount: number }
   defaultAssignment: Assignment
+  entryUnit?: string
 }) {
   const action = mode === 'create' ? createKnockoutRound : swapKnockoutPairing
   const [state, formAction] = useFormState<KnockoutPairingState, FormData>(action, undefined)
   const [flat, setFlat] = useState<string[]>(() => flatten(defaultAssignment))
+  const noun = entryUnit === 'squad' ? 'squad' : 'player'
+  const nounPlural = `${noun}s`
 
   const nameById = useMemo(() => new Map(participants.map((p) => [p.id, p.name])), [participants])
   const slotCount = shape.byeCount + shape.matchCount * 2
@@ -93,8 +97,8 @@ export function KnockoutPairingEditor({
       </p>
       <p className="mt-0.5 text-xs text-slate-400">
         {mode === 'create'
-          ? 'Set who plays whom, then create the round. Players are notified once you create it.'
-          : 'Change the pairings for this unplayed round. Affected players are re-notified.'}
+          ? `Set who plays whom, then create the round. ${nounPlural[0].toUpperCase()}${nounPlural.slice(1)} are notified once you create it.`
+          : `Change the pairings for this unplayed round. Affected ${nounPlural} are re-notified.`}
       </p>
 
       <form action={formAction} className="mt-3 space-y-2">
@@ -123,7 +127,7 @@ export function KnockoutPairingEditor({
         {!valid && (
           <p className="text-xs text-amber-400">
             {dupes.length > 0
-              ? `${nameById.get(dupes[0]) ?? 'A player'} is in more than one slot.`
+              ? `${nameById.get(dupes[0]) ?? (noun === 'squad' ? 'A squad' : 'A player')} is in more than one slot.`
               : missing.length > 0
                 ? `Not placed yet: ${missing.map((m) => m.name).join(', ')}.`
                 : 'Fill every slot.'}
@@ -132,7 +136,7 @@ export function KnockoutPairingEditor({
         {state?.error && <p className="text-xs text-red-400">{state.error}</p>}
         {state?.success && (
           <p className="text-xs text-emerald-400">
-            {mode === 'create' ? 'Round created and players notified.' : 'Pairings updated.'}
+            {mode === 'create' ? `Round created and ${nounPlural} notified.` : 'Pairings updated.'}
           </p>
         )}
 
