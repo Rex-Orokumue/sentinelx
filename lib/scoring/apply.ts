@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getChampion, type BracketMatch } from '@/lib/tournaments/bracket'
 import { AUTO_MATCH_EVENT_TYPES, matchEventsFor, teamMatchEventsFor, type NewMatchEvent } from './events'
-import { computeAggregates, type CompletedMatch } from './stats'
+import { computeAggregates, completedMatchesForSquadPlayer, teamTitlesWon, type CompletedMatch } from './stats'
 import { computeScore } from './score'
 import { checkAndUnlockAchievements } from '@/lib/achievements/unlock'
 import { matchRosters } from '@/lib/tournaments/squad-roster'
@@ -139,12 +139,33 @@ export async function refreshPlayer(admin: Admin, playerId: string): Promise<voi
       score_b: m.score_b as number,
     }))
 
-  const titlesWon = rows
+  const soloTitles = rows
     .filter((m) => m.round === 'final')
     .map((m) => getChampion([toBracketFinal(m)]))
     .filter((champ) => champ?.id === playerId).length
 
-  const aggregates = computeAggregates(playerId, completed, titlesWon)
+  // Team matches: find every squad this player has ever belonged to, then
+  // every completed team match either squad played, and translate each to
+  // this player's own perspective (same substitution season-placement.ts
+  // already established for season points).
+  const { data: squadRows } = await admin.from('squad_members').select('squad_id').eq('player_id', playerId)
+  const squadIds = new Set((squadRows ?? []).map((r) => r.squad_id as string))
+
+  let teamCompleted: CompletedMatch[] = []
+  let teamTitles = 0
+  if (squadIds.size > 0) {
+    const idList = Array.from(squadIds).join(',')
+    const { data: teamRows } = await admin
+      .from('matches')
+      .select('round, status, score_a, score_b, team_a_id, team_b_id')
+      .eq('status', 'completed')
+      .or(`team_a_id.in.(${idList}),team_b_id.in.(${idList})`)
+    const rows2 = teamRows ?? []
+    teamCompleted = completedMatchesForSquadPlayer(playerId, squadIds, rows2)
+    teamTitles = teamTitlesWon(playerId, squadIds, rows2.filter((m) => m.round === 'final'))
+  }
+
+  const aggregates = computeAggregates(playerId, [...completed, ...teamCompleted], soloTitles + teamTitles)
 
   const { data: events } = await admin
     .from('sx_score_events')
