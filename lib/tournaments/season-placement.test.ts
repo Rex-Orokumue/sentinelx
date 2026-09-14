@@ -122,6 +122,42 @@ describe('guaranteedBandsForPlacements', () => {
   })
 })
 
+describe('bandsForPlacements — team matches', () => {
+  it('translates a player id to their squad id before the band lookup', () => {
+    const matches = [m({ round: 'final', player_a_id: null, player_b_id: null, team_a_id: 'sqA', team_b_id: 'sqB', score_a: 2, score_b: 1 })]
+    const playerToEntityId = new Map([
+      ['a1', 'sqA'],
+      ['a2', 'sqA'],
+      ['b1', 'sqB'],
+    ])
+    const result = bandsForPlacements(matches, ['a1', 'a2', 'b1'], playerToEntityId)
+    expect(result).toEqual(
+      expect.arrayContaining([
+        { playerId: 'a1', band: 'champion' },
+        { playerId: 'a2', band: 'champion' },
+        { playerId: 'b1', band: 'runner_up' },
+      ]),
+    )
+  })
+
+  it('is byte-identical to the untranslated call when no map is given (solo, unchanged)', () => {
+    const matches = [m({ round: 'final', player_a_id: 'a', player_b_id: 'b', score_a: 2, score_b: 1 })]
+    expect(bandsForPlacements(matches, ['a', 'b'])).toEqual(bandsForPlacements(matches, ['a', 'b'], undefined))
+  })
+})
+
+describe('guaranteedBandsForPlacements — team matches', () => {
+  it('translates a still-competing roster member to their squad id', () => {
+    const matches = [
+      m({ round: 'quarter_final', player_a_id: null, player_b_id: null, team_a_id: 'sqA', team_b_id: 'sqC', score_a: 3, score_b: 1 }),
+      m({ round: 'semi_final', status: 'scheduled', score_a: null, score_b: null, player_a_id: null, player_b_id: null, team_a_id: 'sqA', team_b_id: 'sqD' }),
+    ]
+    const playerToEntityId = new Map([['a1', 'sqA']])
+    const result = guaranteedBandsForPlacements(matches, ['a1'], playerToEntityId)
+    expect(result).toEqual([{ playerId: 'a1', band: 'semi_final' }])
+  })
+})
+
 describe('pointsForBand', () => {
   it('community_club matches the spec table', () => {
     expect(pointsForBand('community_club', 'champion')).toBe(100)
