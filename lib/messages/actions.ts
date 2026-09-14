@@ -6,7 +6,7 @@ import { orderedPair } from './thread-key'
 import { messageBodySchema, reportReasonSchema, audioDurationSchema } from './schema'
 import { canEditOrUnsend, canForward } from './predicates'
 import { isValidStickerId, stickerById } from './stickers'
-import { notifyInApp } from '@/lib/notifications/inbox'
+import { notifyBoth } from '@/lib/notifications/send'
 
 async function authed() {
   const supabase = createClient()
@@ -70,7 +70,7 @@ export async function sendMessage(input: {
   audioUrl?: string
   audioDurationSeconds?: number
   forwarded?: boolean
-}): Promise<{ threadId?: string; error?: string }> {
+}): Promise<{ threadId?: string; messageId?: string; error?: string }> {
   const { supabase, userId } = await authed()
   if (!userId) return { error: 'Please log in.' }
 
@@ -146,18 +146,26 @@ export async function sendMessage(input: {
   }
 
   // Insert via the SESSION client so the RLS sender-insert policy applies (defence
-  // in depth) — dm_can_message() re-checks block + mute server-side.
-  const { error: insErr } = await supabase.from('dm_messages').insert({
-    thread_id: threadId,
-    sender_id: userId,
-    body,
-    image_url: imageUrl,
-    reply_to_id: replyToId,
-    sticker_id: stickerId,
-    audio_url: audioUrl,
-    audio_duration_seconds: audioDurationSeconds,
-    forwarded: input.forwarded ?? false,
-  })
+  // in depth) — dm_can_message() re-checks block + mute server-side. Returns
+  // the new row's id so the caller can swap it into an optimistic local
+  // entry — without that, the realtime echo of this same insert (Supabase
+  // broadcasts INSERTs back to the writer too) would dedupe against nothing
+  // and show up as a second, duplicate bubble.
+  const { data: inserted, error: insErr } = await supabase
+    .from('dm_messages')
+    .insert({
+      thread_id: threadId,
+      sender_id: userId,
+      body,
+      image_url: imageUrl,
+      reply_to_id: replyToId,
+      sticker_id: stickerId,
+      audio_url: audioUrl,
+      audio_duration_seconds: audioDurationSeconds,
+      forwarded: input.forwarded ?? false,
+    })
+    .select('id')
+    .single()
   if (insErr) {
     console.error('[sendMessage] insert failed', { userId, threadId, code: insErr.code, message: insErr.message })
     return { error: 'Could not send your message. Please try again.' }
@@ -167,26 +175,20 @@ export async function sendMessage(input: {
 
   const { data: me } = await admin.from('profiles').select('display_name, username').eq('id', userId).maybeSingle()
   const fromName = me?.display_name ?? me?.username ?? 'Someone'
-  const preview = body
-    ? body.length > 80
-      ? `${body.slice(0, 80)}…`
-      : body
-    : stickerId
-      ? `${stickerById(stickerId)?.emoji ?? '🙂'} Sticker`
-      : audioUrl
-        ? '🎤 Voice note'
-        : '📷 Photo'
-  void notifyInApp({
-    playerId: otherId,
-    type: 'direct_message',
-    title: `New message from ${fromName}`,
-    body: preview,
+  // notifyBoth renders bell + push from one NotificationInput (lib/notifications/copy.ts),
+  // so both channels agree and both are localized — this used to be a bare
+  // notifyInApp() bell-only insert, which meant a DM never triggered a push
+  // notification at all.
+  const kind: 'text' | 'sticker' | 'voice' | 'photo' = body ? 'text' : stickerId ? 'sticker' : audioUrl ? 'voice' : 'photo'
+  const excerpt = body ? (body.length > 80 ? `${body.slice(0, 80)}…` : body) : undefined
+  const emoji = stickerId ? (stickerById(stickerId)?.emoji ?? '🙂') : undefined
+  void notifyBoth(otherId, { type: 'direct_message', fromName, kind, excerpt, emoji }, 'direct_message', {
     link: `/messages/${threadId}`,
   })
 
   revalidatePath('/messages')
   revalidatePath(`/messages/${threadId}`)
-  return { threadId }
+  return { threadId, messageId: inserted.id }
 }
 
 // No thread_id filter needed: the recipient-mark-read RLS policy (which this
@@ -245,6 +247,17 @@ export async function blockUser(otherId: string): Promise<{ error?: string }> {
     .from('dm_blocks')
     .upsert({ blocker_id: userId, blocked_id: otherId }, { onConflict: 'blocker_id,blocked_id', ignoreDuplicates: true })
   if (error) return { error: 'Could not block this player.' }
+
+  // A block severs any existing follow in either direction (follows spec
+  // §"Blocking interaction"). The request-scoped client's RLS delete policy
+  // only lets userId delete rows where THEY are follower_id, so the reverse
+  // direction (otherId was following userId) needs the admin client.
+  const admin = createAdminClient()
+  await admin
+    .from('player_follows')
+    .delete()
+    .or(`and(follower_id.eq.${userId},following_id.eq.${otherId}),and(follower_id.eq.${otherId},following_id.eq.${userId})`)
+
   revalidatePath('/messages')
   return {}
 }

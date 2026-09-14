@@ -63,3 +63,60 @@ cards today, where a fixed height cropped a quarter of the artwork away.
 Layout is verified at 360px and desktop with real posts of varied aspect ratios,
 confirming no horizontal overflow — the failure mode this codebase has hit
 repeatedly today.
+
+---
+
+## Addendum — 2026-09-13: multi-image is not actually wired up
+
+The "What exists" section above is wrong, and wronger than first thought.
+`community_post_images` was never wired up (`PostComposer` / `createPost` /
+`feed-query.ts` only ever handled a single `image_url` column on
+`community_posts`) — but it also no longer exists at all. It was created in
+`017_community_login_gate_and_images.sql`, then **dropped** by
+`056_phase3_social_feed.sql` (the Phase 3 Social Feed rebuild, which replaced
+the whole v3.6 community schema with today's `community_posts` / post_type /
+reactions / comments model) along with `community_reply_images`; only each
+post's first image was migrated forward into the new single `image_url`
+column. Nothing since has recreated it. Decided to build real multi-image
+support now rather than cut it to a "+N" badge on one image.
+
+**A new migration is needed** — `community_post_images` must be recreated
+(same shape 017 used: `id`, `post_id` FK `ON DELETE CASCADE`, `image_url`,
+`display_order`, `created_at`, RLS scoped to the post's `author_id` or
+`is_staff()`), named with a UTC timestamp per CLAUDE.md. Replies are out of
+scope for this piece — `community_reply_images` is not recreated.
+
+**Write path**
+- `createPost` takes `imageUrls: string[]` (cap 5, server-validated). The
+  first URL still writes to legacy `community_posts.image_url` (keeps
+  `CommunityGallery` and anything else reading that column unchanged); the
+  rest bulk-insert into `community_post_images`.
+- `PostComposer`: `<input multiple>`, cap 5, thumbnail strip. Upload stays
+  deferred to submit (existing anti-orphan reasoning is unchanged).
+
+**Read path**
+- `hydratePosts` — shared by the feed list *and* post-detail, so this is one
+  fix for both surfaces — gains a batched `community_post_images` query and a
+  new `PostView.imageUrls: string[]`, falling back to `[imageUrl]` for
+  pre-existing single-image posts.
+
+**Display**
+- `PostCard` / `ManualOrAchievementCard` get the media-first restructure
+  described above: image(s) full-width right under the header, no
+  padding/rounding on the image, caption + reactions below.
+- New `PostMediaCarousel.tsx` (scroll-snap + dots, no library) for 2+ images.
+  Single image is full-width letterboxed (`object-contain`), never cropped —
+  the same class of bug that hit the game cards from a fixed-height crop.
+  `match_result` / `announcement` cards are untouched.
+- Profile grid: new query added to the existing `Promise.all` in
+  `app/[locale]/(public)/players/[username]/page.tsx` — posts by that player
+  with a non-null image, newest first, cap 18 — feeding a new
+  `ProfileImageGrid.tsx` (3-col, square-cropped, fine for a grid), tapping
+  through to `/community/{id}`. Placed as its own section near the existing
+  `ProfileCommunityPosts`.
+
+**Deliberately not touched:** `FeedList.tsx`, `FeedFilters.tsx`,
+`CommunityGallery.tsx`, `ProfileHeader.tsx` — the files the concurrent
+Follows session (piece 3) most likely owns.
+
+Confirmed with the user 2026-09-13; next step is `writing-plans`.

@@ -7,6 +7,18 @@ import { z } from 'zod'
 export const postContentSchema = z.string().trim().max(500, 'Keep it under 500 characters')
 export type PostContentInput = z.infer<typeof postContentSchema>
 
+// A post carries at most this many images (addendum, spec §"Changes"). The
+// server-side twin of the composer's own cap — never trust a client-sent
+// count.
+export const MAX_POST_IMAGES = 5
+
+export function clampImageUrls(urls: string[]): string[] {
+  return urls
+    .map((u) => u.trim())
+    .filter((u) => u.length > 0)
+    .slice(0, MAX_POST_IMAGES)
+}
+
 // Spec §7: comment content <= 280.
 export const commentContentSchema = z
   .string()

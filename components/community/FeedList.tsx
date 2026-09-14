@@ -1,13 +1,14 @@
 'use client'
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import type { PostView } from '@/lib/community/feed-query'
 import { loadMorePosts } from '@/lib/community/load-more-action'
 import { PostCard } from './PostCard'
 import { FeedFilters, type FeedFilter } from './FeedFilters'
 import { EmptyState } from '@/components/shared/EmptyState'
 
-function matchesFilter(post: PostView, filter: FeedFilter): boolean {
+function matchesFilter(post: PostView, filter: FeedFilter, followingIds: Set<string>): boolean {
   if (filter === 'all') return true
+  if (filter === 'following') return post.author.id != null && followingIds.has(post.author.id)
   if (filter === 'results') return post.postType === 'match_result'
   if (filter === 'announcements') return post.postType === 'announcement'
   if (filter === 'achievements') return post.postType === 'achievement'
@@ -19,16 +20,20 @@ export function FeedList({
   initialPosts,
   initialHasMore,
   loggedIn,
+  followingIds = [],
 }: {
   pinned: PostView[]
   initialPosts: PostView[]
   initialHasMore: boolean
   loggedIn: boolean
+  /** Ids the viewer follows — drives the Following tab. Empty/omitted when logged out. */
+  followingIds?: string[]
 }) {
   const [filter, setFilter] = useState<FeedFilter>('all')
   const [posts, setPosts] = useState(initialPosts)
   const [hasMore, setHasMore] = useState(initialHasMore)
   const [pending, startTransition] = useTransition()
+  const followingIdSet = useMemo(() => new Set(followingIds), [followingIds])
 
   // A fresh initialPosts identity means the server re-fetched page 1 (e.g.
   // after creating a post triggers router.refresh()) — resync, collapsing
@@ -46,15 +51,24 @@ export function FeedList({
     })
   }
 
-  const visiblePinned = pinned.filter((p) => matchesFilter(p, filter))
-  const visiblePosts = posts.filter((p) => matchesFilter(p, filter))
+  const visiblePinned = pinned.filter((p) => matchesFilter(p, filter, followingIdSet))
+  const visiblePosts = posts.filter((p) => matchesFilter(p, filter, followingIdSet))
+  const noPosts = visiblePinned.length === 0 && visiblePosts.length === 0
 
   return (
     <div>
-      <FeedFilters active={filter} onChange={setFilter} />
+      <FeedFilters active={filter} onChange={setFilter} showFollowing={loggedIn} />
 
-      {visiblePinned.length === 0 && visiblePosts.length === 0 ? (
-        <EmptyState icon="💬" title="No posts yet" body="Be the first to say something." />
+      {noPosts ? (
+        filter === 'following' ? (
+          <EmptyState
+            icon="👋"
+            title="Follow players to see their posts here"
+            body="Visit a player's profile and tap Follow — their posts will show up in this tab."
+          />
+        ) : (
+          <EmptyState icon="💬" title="No posts yet" body="Be the first to say something." />
+        )
       ) : (
         <div className="space-y-3">
           {visiblePinned.map((p) => (

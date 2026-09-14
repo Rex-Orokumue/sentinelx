@@ -34,6 +34,7 @@ export interface PostView {
   postType: PostType
   content: string
   imageUrl: string | null
+  imageUrls: string[]
   referenceId: string | null
   isPinned: boolean
   boostedUntil: string | null
@@ -99,10 +100,24 @@ async function hydratePosts(rows: RawPost[], viewerId: string | null): Promise<P
   const postIds = rows.map((r) => r.id)
   if (postIds.length === 0) return []
 
-  const [{ data: reactions }, { data: comments }] = await Promise.all([
+  const [{ data: reactions }, { data: comments }, { data: extraImages }] = await Promise.all([
     supabase.from('post_reactions').select('post_id, player_id, reaction').in('post_id', postIds),
     supabase.from('post_comments').select('post_id').in('post_id', postIds).eq('is_deleted', false),
+    // Images 2-5 only — a post's first image lives on community_posts.image_url
+    // itself (createPost, lib/community/post-actions.ts).
+    supabase
+      .from('community_post_images')
+      .select('post_id, image_url, display_order')
+      .in('post_id', postIds)
+      .order('display_order', { ascending: true }),
   ])
+
+  const extraImagesByPost = new Map<string, string[]>()
+  for (const img of extraImages ?? []) {
+    const list = extraImagesByPost.get(img.post_id) ?? []
+    list.push(img.image_url)
+    extraImagesByPost.set(img.post_id, list)
+  }
 
   const reactionCountsByPost = new Map<string, Record<ReactionType, number>>()
   const myReactionByPost = new Map<string, ReactionType>()
@@ -172,6 +187,7 @@ async function hydratePosts(rows: RawPost[], viewerId: string | null): Promise<P
     postType: r.post_type,
     content: r.content,
     imageUrl: r.image_url,
+    imageUrls: r.image_url ? [r.image_url, ...(extraImagesByPost.get(r.id) ?? [])] : (extraImagesByPost.get(r.id) ?? []),
     referenceId: r.reference_id,
     isPinned: r.is_pinned,
     boostedUntil: r.boosted_until,

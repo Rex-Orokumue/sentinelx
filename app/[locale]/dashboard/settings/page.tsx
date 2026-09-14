@@ -121,6 +121,8 @@ export default async function DashboardSettingsPage({
             prize_credited: prefs.push?.prize_credited ?? true,
             status_from_friend: prefs.push?.status_from_friend ?? true,
             status_viewed: prefs.push?.status_viewed ?? true,
+            new_follower: prefs.push?.new_follower ?? true,
+            direct_message: prefs.push?.direct_message ?? true,
           }}
           enabled={(fcmTokenCount ?? 0) > 0}
           mutedTypes={mutedTypes}

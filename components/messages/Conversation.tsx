@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { markThreadRead } from '@/lib/messages/actions'
 import { resolveParticipantContent } from '@/lib/messages/predicates'
+import { mergeLocalMessages, type DisplayMessage } from '@/lib/messages/optimistic'
 import { dayKeyWAT, formatDateDivider } from '@/lib/format'
 import type { ThreadDetail, ConversationMessage, ThreadSummary } from '@/lib/messages/query'
 import { MessageComposer } from './MessageComposer'
@@ -30,10 +31,25 @@ export function Conversation({
   threads: ThreadSummary[]
 }) {
   const router = useRouter()
-  const [messages, setMessages] = useState<ConversationMessage[]>(detail.messages)
+  const [messages, setMessages] = useState<DisplayMessage[]>(detail.messages)
   const [composerMode, setComposerMode] = useState<{ type: 'reply' | 'edit'; target: ConversationMessage } | null>(null)
   const [forwardTarget, setForwardTarget] = useState<ConversationMessage | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  // Passed to MessageComposer so it can render a message the instant it's
+  // sent (a clock icon until the server confirms) and update that same
+  // entry in place afterwards — see lib/messages/optimistic.ts.
+  function addPending(message: DisplayMessage) {
+    setMessages((prev) => [...prev, message])
+  }
+  function updateLocal(tempId: string, patch: Partial<DisplayMessage>) {
+    setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, ...patch } : m)))
+  }
+  // A failed local send has nothing server-side to unsend — this just drops
+  // the bubble (see MessageBubble's failed-tick discard button).
+  function removeLocal(tempId: string) {
+    setMessages((prev) => prev.filter((m) => m.id !== tempId))
+  }
 
   // Realtime append. RLS scopes the stream; the filter is a second guard. The
   // payload has the storage PATH in image_url/audio_url, not a signed URL —
@@ -103,10 +119,16 @@ export function Conversation({
               )
               return
             }
-            // INSERT. An image/voice note needs a fresh signed URL and a
-            // reply needs its target's content resolved — all server-only
-            // work, so those cases refresh instead of appending the raw
-            // payload. A plain text message or a sticker needs neither.
+            // INSERT. Supabase echoes a writer's own insert back to them over
+            // this same realtime channel — independently of, and often faster
+            // than, the HTTP response their own sendMessage() call is still
+            // waiting on. Handling that echo here raced against the
+            // composer's own optimistic-entry id swap: whichever won, a
+            // duplicate bubble could flash before the composer's own
+            // post-send router.refresh() cleaned it up. The composer already
+            // renders and reconciles everything it sends by itself, so the
+            // echo needs no handling at all — this only exists to deliver the
+            // OTHER participant's new messages live.
             const r = payload.new as {
               id: string
               sender_id: string
@@ -120,9 +142,14 @@ export function Conversation({
               reply_to_id: string | null
               forwarded: boolean
             }
+            if (r.sender_id === viewerId) return
+            // An image/voice note needs a fresh signed URL and a reply needs
+            // its target's content resolved — all server-only work, so those
+            // cases refresh instead of appending the raw payload. A plain
+            // text message or a sticker needs neither.
             if (r.image_url || r.audio_url || r.reply_to_id) {
               router.refresh()
-              if (r.sender_id !== viewerId) void markThreadRead(detail.threadId)
+              void markThreadRead(detail.threadId)
               return
             }
             setMessages((prev) =>
@@ -148,7 +175,7 @@ export function Conversation({
                     },
                   ],
             )
-            if (r.sender_id !== viewerId) void markThreadRead(detail.threadId)
+            void markThreadRead(detail.threadId)
           },
         )
         .subscribe((status) => {
@@ -169,7 +196,7 @@ export function Conversation({
   }, [detail.threadId, viewerId, router])
 
   useEffect(() => {
-    setMessages(detail.messages)
+    setMessages((prev) => mergeLocalMessages(detail.messages, prev))
   }, [detail.messages])
 
   useEffect(() => {
@@ -217,10 +244,15 @@ export function Conversation({
       </div>
       <MessageComposer
         threadId={detail.threadId}
+        viewerId={viewerId}
+        otherName={detail.other.name}
         disabled={disabled}
         disabledReason={disabledReason}
         mode={composerMode}
         onClearMode={() => setComposerMode(null)}
+        onAddPending={addPending}
+        onUpdateLocal={updateLocal}
+        onRemoveLocal={removeLocal}
       />
       {forwardTarget && (
         <ForwardSheet messageId={forwardTarget.id} threads={threads} onClose={() => setForwardTarget(null)} />

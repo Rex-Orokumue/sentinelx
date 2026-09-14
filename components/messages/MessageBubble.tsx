@@ -1,12 +1,14 @@
 'use client'
 import { useEffect, useRef, useState, useTransition } from 'react'
-import { Reply, MoreVertical, Pencil, Trash2, Forward, Check, CheckCheck } from 'lucide-react'
+import { Reply, MoreVertical, Pencil, Trash2, Forward, Check, CheckCheck, Clock, AlertCircle, X } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/format'
 import { canEditOrUnsend, canForward, tickState } from '@/lib/messages/predicates'
 import { unsendMessage } from '@/lib/messages/actions'
 import { stickerById } from '@/lib/messages/stickers'
+import { isLocalId, type DisplayMessage } from '@/lib/messages/optimistic'
 import type { ConversationMessage } from '@/lib/messages/query'
 import { VoiceNoteBubble } from './VoiceNoteBubble'
+import { ImageLightbox } from '@/components/community/ImageLightbox'
 
 // Swipe-right reveals a reply icon behind the bubble, matching WhatsApp's
 // gesture. Desktop has no swipe — hovering reveals the same icon instead
@@ -23,7 +25,7 @@ export function MessageBubble({
   onEdit,
   onForward,
 }: {
-  m: ConversationMessage
+  m: DisplayMessage
   mine: boolean
   onReply: (m: ConversationMessage) => void
   onEdit: (m: ConversationMessage) => void
@@ -37,6 +39,7 @@ export function MessageBubble({
   const menuRef = useRef<HTMLDivElement>(null)
   const [pending, start] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   useEffect(() => {
     function onDoc(e: MouseEvent) {
@@ -58,7 +61,7 @@ export function MessageBubble({
   function onTouchEnd() {
     draggingRef.current = false
     startXRef.current = null
-    if (dragX >= SWIPE_TRIGGER_PX) onReply(m)
+    if (dragX >= SWIPE_TRIGGER_PX && !isLocalId(m.id)) onReply(m)
     setDragX(0)
   }
 
@@ -71,9 +74,13 @@ export function MessageBubble({
     })
   }
 
-  const editable = mine && !m.deletedAt && canEditOrUnsend(m.createdAt, new Date().toISOString())
+  // A locally-pending/failed message has no real id yet — reply/edit/unsend/
+  // forward all need one server-side, so none of them make sense until this
+  // flips to a real id (which happens the moment the send succeeds).
+  const isLocal = isLocalId(m.id)
+  const editable = mine && !isLocal && !m.deletedAt && canEditOrUnsend(m.createdAt, new Date().toISOString())
   const removed = !!m.deletedAt
-  const forwardable = canForward(m.deletedAt)
+  const forwardable = !isLocal && canForward(m.deletedAt)
   const showMenu = editable || forwardable
   const isSticker = !!m.stickerId && !removed
 
@@ -83,7 +90,33 @@ export function MessageBubble({
   // postgres_changes UPDATE this bubble already re-renders on.
   const ticks =
     mine && !removed ? (
-      tickState(m) === 'read' ? (
+      m.status === 'pending' ? (
+        <Clock className="h-3 w-3 opacity-70" aria-label="Sending…" />
+      ) : m.status === 'failed' ? (
+        <span className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => m.retry?.()}
+            aria-label="Failed to send — tap to retry"
+            title="Failed to send — tap to retry"
+            className="flex items-center text-red-400 hover:text-red-300"
+          >
+            <AlertCircle className="h-3 w-3" />
+          </button>
+          {/* Nothing was ever saved server-side, so this just drops the
+              bubble locally — there's no "unsend" for a message that never
+              sent, and the "..." menu is hidden for local ids regardless. */}
+          <button
+            type="button"
+            onClick={() => m.discard?.()}
+            aria-label="Discard this message"
+            title="Discard"
+            className="flex items-center text-sx-gray hover:text-white"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </span>
+      ) : tickState(m) === 'read' ? (
         <CheckCheck className="h-3 w-3 text-sky-300" aria-label="Read" />
       ) : tickState(m) === 'delivered' ? (
         <CheckCheck className="h-3 w-3" aria-label="Delivered" />
@@ -100,16 +133,20 @@ export function MessageBubble({
       onTouchEnd={onTouchEnd}
       style={{ transform: dragX ? `translateX(${dragX}px)` : undefined }}
     >
-      {/* Reply reveal — visible while dragging (mobile) or on hover (desktop, no swipe). */}
-      <button
-        type="button"
-        onClick={() => onReply(m)}
-        aria-label="Reply"
-        className={`absolute top-1/2 -translate-y-1/2 ${mine ? '-right-9' : '-left-9'} hidden h-7 w-7 items-center justify-center rounded-full text-sx-gray transition-opacity hover:text-white sm:flex sm:opacity-0 sm:group-hover:opacity-100`}
-        style={dragX ? { opacity: dragX / SWIPE_REVEAL_PX } : undefined}
-      >
-        <Reply className="h-4 w-4" />
-      </button>
+      {/* Reply reveal — visible while dragging (mobile) or on hover (desktop, no
+          swipe). Hidden on a still-local message: replying needs a real
+          message id to quote, which this doesn't have until the send succeeds. */}
+      {!isLocal && (
+        <button
+          type="button"
+          onClick={() => onReply(m)}
+          aria-label="Reply"
+          className={`absolute top-1/2 -translate-y-1/2 ${mine ? '-right-9' : '-left-9'} hidden h-7 w-7 items-center justify-center rounded-full text-sx-gray transition-opacity hover:text-white sm:flex sm:opacity-0 sm:group-hover:opacity-100`}
+          style={dragX ? { opacity: dragX / SWIPE_REVEAL_PX } : undefined}
+        >
+          <Reply className="h-4 w-4" />
+        </button>
+      )}
 
       {isSticker ? (
         // Stickers float with no bubble background, WhatsApp/Telegram-style —
@@ -125,7 +162,9 @@ export function MessageBubble({
         </div>
       ) : (
         <div className="relative max-w-[80%]">
-          <div className={`overflow-hidden rounded-2xl text-sm ${mine ? 'bg-sx-purple text-white' : 'bg-sx-surface text-white'}`}>
+          <div
+            className={`overflow-hidden rounded-2xl text-sm ${mine ? 'rounded-br-none bg-sx-purple text-white' : 'rounded-bl-none bg-sx-surface text-white'}`}
+          >
             {m.forwarded && !removed && (
               <p className={`mx-2 mt-2 flex items-center gap-1 text-[10px] italic ${mine ? 'text-white/60' : 'text-sx-gray'}`}>
                 <Forward className="h-3 w-3" /> Forwarded
@@ -145,7 +184,12 @@ export function MessageBubble({
               <>
                 {m.imageUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={m.imageUrl} alt="" className="max-h-72 w-full object-cover" />
+                  <img
+                    src={m.imageUrl}
+                    alt=""
+                    onClick={() => setLightboxOpen(true)}
+                    className="max-h-72 w-full cursor-pointer object-cover"
+                  />
                 )}
                 {m.audioUrl && <VoiceNoteBubble src={m.audioUrl} durationSeconds={m.audioDurationSeconds} mine={mine} />}
                 {m.body && <p className="whitespace-pre-wrap break-words px-3 py-2">{m.body}</p>}
@@ -158,13 +202,21 @@ export function MessageBubble({
               {ticks}
             </p>
           </div>
-          {/* Bubble tail — a small triangular nub on the outer bottom corner,
-              same colour as the bubble it's attached to. Lives on this outer
-              (non-clipping) wrapper, not the rounded/overflow-hidden div
-              above, so it isn't clipped by that div's own rounded corners. */}
+          {/* Bubble tail — a small triangular nub, same colour as the bubble
+              it's attached to. Lives on this outer (non-clipping) wrapper,
+              not the rounded/overflow-hidden div above, so it isn't clipped
+              by that div's own rounded corners. The bubble's corner on this
+              side is squared off above (rounded-br-none/rounded-bl-none) so
+              the tail sits flush against a straight edge instead of trying
+              to fill a rounded notch — that mismatch is what made it look
+              like a disconnected floating triangle. `right-0`/`left-0` plus
+              a translate pushes it fully outside the bubble, pulled back by
+              1px so the shared edge doesn't show a subpixel seam. */}
           <span
             aria-hidden
-            className={`absolute bottom-0 h-3 w-3 ${mine ? '-right-1 bg-sx-purple' : '-left-1 bg-sx-surface'}`}
+            className={`absolute bottom-0 h-3 w-3 ${
+              mine ? 'right-0 translate-x-[calc(100%-1px)] bg-sx-purple' : 'left-0 -translate-x-[calc(100%-1px)] bg-sx-surface'
+            }`}
             style={{ clipPath: mine ? 'polygon(0 0, 0% 100%, 100% 100%)' : 'polygon(100% 0, 0% 100%, 100% 100%)' }}
           />
         </div>
@@ -220,6 +272,9 @@ export function MessageBubble({
           )}
           {error && <p className="absolute right-0 top-9 z-20 w-40 text-[10px] text-red-400">{error}</p>}
         </div>
+      )}
+      {lightboxOpen && m.imageUrl && (
+        <ImageLightbox urls={[m.imageUrl]} index={0} onClose={() => setLightboxOpen(false)} onIndexChange={() => {}} />
       )}
     </div>
   )

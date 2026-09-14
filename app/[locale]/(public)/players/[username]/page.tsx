@@ -8,6 +8,7 @@ import { getChampion, type BracketMatch } from '@/lib/tournaments/bracket'
 import { matchOutcome, type ProfileView, type ProfileMatch, type ProfileTitle } from '@/lib/players/profile'
 import { friendshipStatus, type FriendshipStatus } from '@/lib/friends/list'
 import { fetchProfileMessagingState } from '@/lib/messages/query'
+import { fetchFollowCounts, fetchIsFollowing } from '@/lib/follows/query'
 import { scoreStatsByPlayerAndCategory, winsByPlayerAndGame, type GameScopedMatch, type CategoryStat } from '@/lib/rankings/game-breakdown'
 import { CATEGORY_META } from '@/lib/games/categories'
 import { RANKING_MIN_MATCHES } from '@/lib/rankings/leaderboard'
@@ -31,6 +32,7 @@ import { AchievementShowcase } from '@/components/player/AchievementShowcase'
 import { XPProgressPanel } from '@/components/dashboard/XPProgressPanel'
 import { SeasonStandingCard } from '@/components/dashboard/SeasonStandingCard'
 import { ProfileCommunityPosts } from '@/components/player/ProfileCommunityPosts'
+import { ProfileImageGrid } from '@/components/player/ProfileImageGrid'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
 import { JsonLd } from '@/components/seo/JsonLd'
@@ -196,6 +198,9 @@ export default async function PlayerProfilePage({ params }: { params: { username
   const messagingState =
     user && user.id !== p.id ? await fetchProfileMessagingState(user.id, p.id) : undefined
 
+  const isFollowingProfile = user && user.id !== p.id ? await fetchIsFollowing(user.id, p.id) : false
+  const theyFollowMe = user && user.id !== p.id ? await fetchIsFollowing(p.id, user.id) : false
+
   const [
     { data: rankData },
     { data: rawMatches },
@@ -208,6 +213,8 @@ export default async function PlayerProfilePage({ params }: { params: { username
     { data: rawEquippedItems },
     { data: rawAllUnlocks },
     { data: rawProfilePosts },
+    { data: rawGalleryPosts },
+    followCounts,
   ] = await Promise.all([
     supabase.rpc('player_rank', { uname: p.username }),
     supabase
@@ -265,6 +272,15 @@ export default async function PlayerProfilePage({ params }: { params: { username
       .eq('is_deleted', false)
       .order('created_at', { ascending: false })
       .limit(5),
+    supabase
+      .from('community_posts')
+      .select('id, image_url')
+      .eq('author_id', p.id)
+      .eq('is_deleted', false)
+      .not('image_url', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(18),
+    fetchFollowCounts(p.id),
   ])
 
   const cosmetics = equippedCosmeticsBySlug(rawEquippedItems ?? [])
@@ -363,6 +379,12 @@ export default async function PlayerProfilePage({ params }: { params: { username
     createdAt: r.created_at,
   }))
 
+  const galleryItems = (
+    (rawGalleryPosts ?? []) as { id: string; image_url: string | null }[]
+  )
+    .filter((r): r is { id: string; image_url: string } => r.image_url != null)
+    .map((r) => ({ id: r.id, imageUrl: r.image_url }))
+
   // Owner-only (design doc §8) — never show another player's coin balance.
   const coinBalance = isOwner ? await getCoinBalance(createAdminClient(), p.id) : null
 
@@ -418,6 +440,8 @@ export default async function PlayerProfilePage({ params }: { params: { username
     tournamentsPlayed: tournamentsPlayed ?? 0,
     currentStreak,
     totalRankedPlayers: totalRankedPlayers ?? null,
+    followerCount: followCounts.followers,
+    followingCount: followCounts.following,
   }
 
   const finalRows = (rawFinals ?? []) as unknown as FinalRow[]
@@ -475,6 +499,8 @@ export default async function PlayerProfilePage({ params }: { params: { username
             profile={profile}
             viewerId={user?.id ?? null}
             friendshipStatus={friendship}
+            isFollowing={isFollowingProfile}
+            followsViewer={theyFollowMe}
             coinBalance={coinBalance ?? undefined}
             achievements={unlockedSlugs}
             avatarFrameUrl={cosmetics.avatarBorder ? AVATAR_BORDER_FRAMES[cosmetics.avatarBorder] : undefined}
@@ -497,6 +523,7 @@ export default async function PlayerProfilePage({ params }: { params: { username
           <ProfileMatchHistory matches={matches} username={params.username} />
 
           <ProfileCommunityPosts posts={profilePosts} username={params.username} />
+          <ProfileImageGrid items={galleryItems} />
 
           {isOwner && (
             <SeasonStandingCard

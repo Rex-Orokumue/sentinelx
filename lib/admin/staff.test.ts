@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from 'vitest'
 
 const notifyInApp = vi.fn().mockResolvedValue(undefined)
 vi.mock('@/lib/notifications/inbox', () => ({ notifyInApp }))
-const pushToPlayer = vi.fn().mockResolvedValue(undefined)
-vi.mock('@/lib/notifications/push', () => ({ pushToPlayer }))
+const pushPrerendered = vi.fn().mockResolvedValue(undefined)
+vi.mock('@/lib/notifications/push', () => ({ pushPrerendered }))
 
 describe('notifyStaff', () => {
   it('notifies every admin/moderator in-app and via push', async () => {
@@ -17,13 +17,13 @@ describe('notifyStaff', () => {
 
     expect(notifyInApp).toHaveBeenCalledWith({ playerId: 'staff-1', type: 'withdrawal_pending', title: 'T', body: 'B', link: '/admin/wallet' })
     expect(notifyInApp).toHaveBeenCalledWith({ playerId: 'staff-2', type: 'withdrawal_pending', title: 'T', body: 'B', link: '/admin/wallet' })
-    expect(pushToPlayer).toHaveBeenCalledWith('staff-1', 'withdrawal_pending', { title: 'T', body: 'B' }, { url: '/admin/wallet' })
-    expect(pushToPlayer).toHaveBeenCalledWith('staff-2', 'withdrawal_pending', { title: 'T', body: 'B' }, { url: '/admin/wallet' })
+    expect(pushPrerendered).toHaveBeenCalledWith('staff-1', 'withdrawal_pending', { title: 'T', body: 'B' }, { url: '/admin/wallet' })
+    expect(pushPrerendered).toHaveBeenCalledWith('staff-2', 'withdrawal_pending', { title: 'T', body: 'B' }, { url: '/admin/wallet' })
   })
 
   it('excludes the acting staff member when excludePlayerId is passed', async () => {
     notifyInApp.mockClear()
-    pushToPlayer.mockClear()
+    pushPrerendered.mockClear()
     const inRoles = vi.fn().mockResolvedValue({ data: [{ user_id: 'staff-1' }, { user_id: 'staff-2' }] })
     const selectRoles = vi.fn(() => ({ in: inRoles }))
     const from = vi.fn(() => ({ select: selectRoles }))

@@ -6,6 +6,7 @@ import { HexAvatar } from '@/components/shared/HexAvatar'
 import { createClient } from '@/lib/supabase/client'
 import { createPost } from '@/lib/community/post-actions'
 import { resizeImageToMaxWidth } from '@/lib/media/resize-image'
+import { MAX_POST_IMAGES } from '@/lib/community/schema'
 import type { MembershipTier } from '@/lib/membership/tiers'
 
 const MAX_CHARS = 500
@@ -18,14 +19,16 @@ export interface ViewerProfile {
   frameUrl?: string
 }
 
-// Bottom sheet on mobile, modal on desktop (spec §6). Image is only uploaded
-// on submit, not on selection — avoids orphaning storage objects for a post
-// the player never actually publishes.
+// Bottom sheet on mobile, modal on desktop (spec §6). Images are only
+// uploaded on submit, not on selection — avoids orphaning storage objects
+// for a post the player never actually publishes. Up to MAX_POST_IMAGES
+// files; clampImageUrls (lib/community/schema.ts) re-enforces the cap
+// server-side so this client cap is a UX nicety, not the real gate.
 export function PostComposer({ viewer, onClose }: { viewer: ViewerProfile; onClose: () => void }) {
   const router = useRouter()
   const [content, setContent] = useState('')
-  const [file, setFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [files, setFiles] = useState<File[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -44,21 +47,28 @@ export function PostComposer({ viewer, onClose }: { viewer: ViewerProfile; onClo
     }
   }, [onClose])
 
-  function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
+  // Object URLs are only ever derived from `files` — recompute and revoke the
+  // previous batch whenever the file list changes, so nothing leaks.
+  useEffect(() => {
+    const urls = files.map((f) => URL.createObjectURL(f))
+    setPreviews(urls)
+    return () => {
+      urls.forEach((u) => URL.revokeObjectURL(u))
+    }
+  }, [files])
+
+  function onPickFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(e.target.files ?? [])
     e.target.value = ''
-    if (!f) return
-    setFile(f)
-    setPreviewUrl(URL.createObjectURL(f))
+    if (picked.length === 0) return
+    setFiles((prev) => [...prev, ...picked].slice(0, MAX_POST_IMAGES))
   }
 
-  function removeImage() {
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
-    setFile(null)
-    setPreviewUrl(null)
+  function removeImage(i: number) {
+    setFiles((prev) => prev.filter((_, idx) => idx !== i))
   }
 
-  const canPost = (content.trim().length > 0 || file != null) && content.length <= MAX_CHARS
+  const canPost = (content.trim().length > 0 || files.length > 0) && content.length <= MAX_CHARS
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -66,8 +76,8 @@ export function PostComposer({ viewer, onClose }: { viewer: ViewerProfile; onClo
     setError(null)
 
     startTransition(async () => {
-      let imageUrl: string | null = null
-      if (file) {
+      const imageUrls: string[] = []
+      if (files.length > 0) {
         const supabase = createClient()
         const {
           data: { user },
@@ -77,18 +87,20 @@ export function PostComposer({ viewer, onClose }: { viewer: ViewerProfile; onClo
           return
         }
         try {
-          const resized = await resizeImageToMaxWidth(file, 800)
-          const path = `${user.id}/${crypto.randomUUID()}.jpg`
-          const { error: upErr } = await supabase.storage.from('community-images').upload(path, resized, { upsert: false, contentType: 'image/jpeg' })
-          if (upErr) throw upErr
-          imageUrl = supabase.storage.from('community-images').getPublicUrl(path).data.publicUrl
+          for (const file of files) {
+            const resized = await resizeImageToMaxWidth(file, 800)
+            const path = `${user.id}/${crypto.randomUUID()}.jpg`
+            const { error: upErr } = await supabase.storage.from('community-images').upload(path, resized, { upsert: false, contentType: 'image/jpeg' })
+            if (upErr) throw upErr
+            imageUrls.push(supabase.storage.from('community-images').getPublicUrl(path).data.publicUrl)
+          }
         } catch {
           setError('An image failed to upload. Please try again.')
           return
         }
       }
 
-      const res = await createPost({ content, imageUrl })
+      const res = await createPost({ content, imageUrls })
       if (res.error) {
         setError(res.error)
         return
@@ -131,26 +143,38 @@ export function PostComposer({ viewer, onClose }: { viewer: ViewerProfile; onClo
             </div>
           </div>
 
-          {previewUrl && (
-            <div className="relative mt-1 inline-block">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={previewUrl} alt="" className="max-h-48 rounded-lg border border-sx-border object-cover" />
-              <button
-                type="button"
-                onClick={removeImage}
-                aria-label="Remove image"
-                className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+          {previews.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-2">
+              {previews.map((url, i) => (
+                <div key={url} className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={url} alt="" className="h-20 w-20 rounded-lg border border-sx-border object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    aria-label="Remove image"
+                    className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
           <div className="mt-3 flex items-center justify-between gap-3">
             <label className="flex cursor-pointer items-center gap-1.5 text-xs font-bold text-sx-gray hover:text-sx-purple-text">
               <ImagePlus className="h-4 w-4" />
-              Add Screenshot
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={onPickFile} className="hidden" disabled={!!file} />
+              {files.length > 0 ? `Add Screenshot (${files.length}/${MAX_POST_IMAGES})` : 'Add Screenshot'}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={onPickFiles}
+                className="hidden"
+                disabled={files.length >= MAX_POST_IMAGES}
+              />
             </label>
             <div className="flex items-center gap-2">
               <button type="button" onClick={onClose} className="rounded-lg px-4 py-2 text-xs font-bold text-sx-gray hover:text-sx-white">
