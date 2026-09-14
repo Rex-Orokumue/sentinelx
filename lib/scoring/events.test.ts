@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { matchEventsFor } from './events'
+import { matchEventsFor, teamMatchEventsFor } from './events'
 
 const base = {
   id: 'm1',
@@ -86,5 +86,76 @@ describe('matchEventsFor — no-show resolutions', () => {
 
   it('returns nothing for a forfeit missing a player (defensive)', () => {
     expect(matchEventsFor({ ...base, status: 'forfeited', player_b_id: null })).toEqual([])
+  })
+})
+
+const teamBase = {
+  id: 'm1',
+  team_a_id: 'sqA',
+  team_b_id: 'sqB',
+  score_a: 4,
+  score_b: 2,
+  status: 'completed',
+  resolution: null,
+}
+const rosterA = ['a1', 'a2']
+const rosterB = ['b1', 'b2']
+const allCheckedIn = new Set([...rosterA, ...rosterB])
+
+describe('teamMatchEventsFor — normal completion', () => {
+  it('gives every checked-in roster member match_completed, and the winning side win_no_dispute too', () => {
+    const events = teamMatchEventsFor(teamBase, rosterA, rosterB, allCheckedIn)
+    expect(events).toHaveLength(6) // 4x match_completed + 2x win_no_dispute
+    for (const pid of rosterA) {
+      expect(events).toContainEqual({ player_id: pid, match_id: 'm1', event_type: 'match_completed', points_delta: 10, note: null })
+      expect(events).toContainEqual({ player_id: pid, match_id: 'm1', event_type: 'win_no_dispute', points_delta: 90, note: null })
+    }
+    for (const pid of rosterB) {
+      expect(events).toContainEqual({ player_id: pid, match_id: 'm1', event_type: 'match_completed', points_delta: 10, note: null })
+      expect(events.filter((e) => e.player_id === pid && e.event_type === 'win_no_dispute')).toHaveLength(0)
+    }
+  })
+
+  it('no-shows a roster member individually who never checked in, even though their team completed the match', () => {
+    const checkedIn = new Set(['a1', 'a2', 'b1']) // b2 never checked in
+    const events = teamMatchEventsFor(teamBase, rosterA, rosterB, checkedIn)
+    expect(events).toContainEqual({ player_id: 'b2', match_id: 'm1', event_type: 'no_show', points_delta: -100, note: null })
+    expect(events.filter((e) => e.player_id === 'b2')).toHaveLength(1) // no_show only, no match_completed
+    expect(events).toContainEqual({ player_id: 'b1', match_id: 'm1', event_type: 'match_completed', points_delta: 10, note: null })
+  })
+
+  it('gives no win bonus on a draw, still gates match_completed on check-in', () => {
+    const events = teamMatchEventsFor({ ...teamBase, score_a: 2, score_b: 2 }, rosterA, rosterB, allCheckedIn)
+    expect(events).toHaveLength(4)
+    expect(events.every((e) => e.event_type === 'match_completed')).toBe(true)
+  })
+})
+
+describe('teamMatchEventsFor — no-show resolutions', () => {
+  it('credits every present-side member and no-shows every absent-side member on a walkover', () => {
+    const events = teamMatchEventsFor({ ...teamBase, resolution: 'walkover', score_a: 1, score_b: 0 }, rosterA, rosterB, new Set())
+    expect(events).toHaveLength(4)
+    for (const pid of rosterA) expect(events).toContainEqual({ player_id: pid, match_id: 'm1', event_type: 'match_completed', points_delta: 10, note: null })
+    for (const pid of rosterB) expect(events).toContainEqual({ player_id: pid, match_id: 'm1', event_type: 'no_show', points_delta: -100, note: null })
+  })
+
+  it('no-shows every roster member on both sides for a mutual no_show_draw', () => {
+    const events = teamMatchEventsFor({ ...teamBase, resolution: 'no_show_draw', score_a: 0, score_b: 0 }, rosterA, rosterB, new Set())
+    expect(events).toHaveLength(4)
+    expect(events.every((e) => e.event_type === 'no_show')).toBe(true)
+  })
+
+  it('no-shows every roster member on both sides for a knockout forfeit, with no score required', () => {
+    const events = teamMatchEventsFor({ ...teamBase, status: 'forfeited', score_a: null, score_b: null }, rosterA, rosterB, new Set())
+    expect(events).toHaveLength(4)
+    expect(events.every((e) => e.event_type === 'no_show')).toBe(true)
+  })
+
+  it('returns nothing for a non-completed, non-forfeited match', () => {
+    expect(teamMatchEventsFor({ ...teamBase, status: 'scheduled' }, rosterA, rosterB, allCheckedIn)).toEqual([])
+  })
+
+  it('returns nothing for a bye or missing team ids/scores', () => {
+    expect(teamMatchEventsFor({ ...teamBase, team_b_id: null, score_b: null }, rosterA, [], allCheckedIn)).toEqual([])
   })
 })

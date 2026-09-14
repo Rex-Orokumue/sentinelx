@@ -87,3 +87,74 @@ function noShowEvent(playerId: string, matchId: string): NewMatchEvent {
     note: null,
   }
 }
+
+interface TeamMatchInput {
+  id: string
+  team_a_id: string | null
+  team_b_id: string | null
+  score_a: number | null
+  score_b: number | null
+  status: string
+  resolution: string | null
+}
+
+// Team-vs-team sibling of matchEventsFor (spec §7.4). Solo matches never
+// reach here — regenerateMatchEvents (lib/scoring/apply.ts) branches on
+// team_a_id/team_b_id before choosing which of the two to call. The one rule
+// this function adds beyond matchEventsFor's shape: for a match that
+// completed normally (no walkover/no_show_draw resolution), a roster member
+// is credited only if they personally checked in — their team can win 3
+// rounds to 4 while one teammate who never showed up is individually
+// no-showed, not carried along on the team's result.
+export function teamMatchEventsFor(
+  match: TeamMatchInput,
+  rosterA: string[],
+  rosterB: string[],
+  checkedInPlayerIds: Set<string>,
+): NewMatchEvent[] {
+  const { id, team_a_id, team_b_id, score_a, score_b, status, resolution } = match
+
+  // Whole-team double no-show: identical to matchEventsFor's forfeited
+  // branch, applied to every roster member on both sides.
+  if (status === 'forfeited') {
+    if (!team_a_id || !team_b_id) return []
+    return [...rosterA, ...rosterB].map((pid) => noShowEvent(pid, id))
+  }
+
+  if (status !== 'completed') return []
+  if (!team_a_id || !team_b_id || score_a == null || score_b == null) return []
+
+  // Single-side no-show, admin-declared: every present-side member credited,
+  // every absent-side member penalized — matchEventsFor's walkover branch,
+  // applied per roster member.
+  if (resolution === 'walkover') {
+    if (score_a === score_b) return []
+    const winningRoster = score_a > score_b ? rosterA : rosterB
+    const losingRoster = score_a > score_b ? rosterB : rosterA
+    return [...winningRoster.map((pid) => completedEvent(pid, id)), ...losingRoster.map((pid) => noShowEvent(pid, id))]
+  }
+
+  // Mutual no-show (group stage only): both rosters penalized, matching
+  // matchEventsFor's no_show_draw branch.
+  if (resolution === 'no_show_draw') {
+    return [...rosterA, ...rosterB].map((pid) => noShowEvent(pid, id))
+  }
+
+  // Normal completion — the new per-player rule (spec §7.4): a checked-in
+  // roster member is credited (plus the win bonus if their side won and the
+  // scores differ); one who never checked in is no-showed individually, even
+  // though their team's match proceeded and completed normally.
+  const winningRoster = score_a === score_b ? null : score_a > score_b ? rosterA : rosterB
+  const events: NewMatchEvent[] = []
+  for (const pid of [...rosterA, ...rosterB]) {
+    if (checkedInPlayerIds.has(pid)) {
+      events.push(completedEvent(pid, id))
+      if (winningRoster?.includes(pid)) {
+        events.push({ player_id: pid, match_id: id, event_type: 'win_no_dispute', points_delta: WIN_DELTA, note: null })
+      }
+    } else {
+      events.push(noShowEvent(pid, id))
+    }
+  }
+  return events
+}
