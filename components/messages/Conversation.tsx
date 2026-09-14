@@ -65,6 +65,16 @@ export function Conversation({
   // TIMED_OUT / CLOSED when that happens; without handling it the page is
   // stuck until a manual reload opens a fresh connection. Resubscribing after
   // a short backoff recovers without one.
+  //
+  // That error callback relies on the socket's own heartbeat to notice it's
+  // dead — and backgrounding the tab (screen lock, app switch) freezes JS
+  // timers, which pauses that same heartbeat. The socket can die while
+  // hidden and nothing proactively notices on return: a push notification
+  // still arrives (that's server-side, independent of this socket), but the
+  // conversation looks frozen until either the next heartbeat cycle catches
+  // up or a manual reload opens a fresh connection. Don't wait for either —
+  // on regaining visibility, force a fresh subscribe and pull current server
+  // state, same recovery a reload gives, done automatically.
   useEffect(() => {
     const supabase = createClient()
     let cancelled = false
@@ -188,8 +198,22 @@ export function Conversation({
     }
     subscribe()
 
+    function onVisible() {
+      if (document.visibilityState !== 'visible') return
+      if (retryTimer) {
+        clearTimeout(retryTimer)
+        retryTimer = null
+      }
+      if (currentChannel) supabase.removeChannel(currentChannel)
+      subscribe()
+      router.refresh()
+      void markThreadRead(detail.threadId)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
     return () => {
       cancelled = true
+      document.removeEventListener('visibilitychange', onVisible)
       if (retryTimer) clearTimeout(retryTimer)
       if (currentChannel) supabase.removeChannel(currentChannel)
     }

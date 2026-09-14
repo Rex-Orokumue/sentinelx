@@ -25,7 +25,10 @@ export function useIsOnline(userId: string | null | undefined): boolean {
 //
 // Supabase Realtime's socket can drop silently (see the same note in
 // Conversation.tsx); without resubscribing, everyone would look frozen
-// offline/online until a manual reload.
+// offline/online until a manual reload. That error callback itself depends
+// on a heartbeat that a backgrounded tab freezes, so it can lag well past
+// "the user just came back" — a visibilitychange listener forces a fresh
+// subscribe right then instead of waiting for it.
 export function PresenceProvider({ viewerId, children }: { viewerId: string; children: React.ReactNode }) {
   const [online, setOnline] = useState<Set<string>>(new Set())
 
@@ -59,8 +62,20 @@ export function PresenceProvider({ viewerId, children }: { viewerId: string; chi
     }
     subscribe()
 
+    function onVisible() {
+      if (document.visibilityState !== 'visible') return
+      if (retryTimer) {
+        clearTimeout(retryTimer)
+        retryTimer = null
+      }
+      if (currentChannel) supabase.removeChannel(currentChannel)
+      subscribe()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+
     return () => {
       cancelled = true
+      document.removeEventListener('visibilitychange', onVisible)
       if (retryTimer) clearTimeout(retryTimer)
       if (currentChannel) supabase.removeChannel(currentChannel)
     }
