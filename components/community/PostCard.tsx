@@ -12,6 +12,7 @@ import { deletePost, boostPost } from '@/lib/community/post-actions'
 import { MatchResultCard } from './MatchResultCard'
 import { AnnouncementCard } from './AnnouncementCard'
 import { ReactionBar } from './ReactionBar'
+import { CommentButton } from './CommentButton'
 import { ShareButton } from './ShareButton'
 import { PostOverflowMenu } from './PostOverflowMenu'
 import { PostMediaCarousel } from './PostMediaCarousel'
@@ -108,6 +109,7 @@ function ManualOrAchievementCard({ post, loggedIn }: { post: PostView; loggedIn:
       <div className="p-4 pt-3 sm:p-5 sm:pt-3">
         <div className="flex items-center gap-4">
           <ReactionBar postId={post.id} counts={post.reactionCounts} myReaction={post.myReaction} loggedIn={loggedIn} />
+          <CommentButton postId={post.id} />
           <ShareButton post={post} />
         </div>
         {post.commentCount > 0 && (
