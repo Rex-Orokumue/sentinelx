@@ -30,15 +30,17 @@ function linkify(content: string) {
 
 export function AnnouncementCard({ post }: { post: PostView }) {
   return (
-    <div className="rounded-2xl border-l-4 border-l-sx-purple border-y border-r border-sx-border bg-sx-surface p-4">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-black uppercase tracking-widest text-sx-purple-text">📌 Announcement</p>
-        <p className="text-xs text-sx-gray">{formatRelativeTime(post.createdAt)}</p>
+    <div className="overflow-hidden rounded-2xl border-l-4 border-l-sx-purple border-y border-r border-sx-border bg-sx-surface">
+      <div className="p-4">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-black uppercase tracking-widest text-sx-purple-text">📌 Announcement</p>
+          <p className="text-xs text-sx-gray">{formatRelativeTime(post.createdAt)}</p>
+        </div>
+        <div className="mt-2 whitespace-pre-line text-sm text-sx-white">{linkify(post.content)}</div>
       </div>
-      <div className="mt-2 whitespace-pre-line text-sm text-sx-white">{linkify(post.content)}</div>
       {post.imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={post.imageUrl} alt="" className="mt-3 max-h-72 w-full rounded-lg object-cover" />
+        <img src={post.imageUrl} alt="" className="max-h-96 w-full object-cover" />
       )}
     </div>
   )

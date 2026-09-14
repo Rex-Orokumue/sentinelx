@@ -11,6 +11,7 @@ import { fetchCommunityGallery } from '@/lib/community/gallery-query'
 import { fetchStatusRings } from '@/lib/community/status-query'
 import { fetchFollowingIds } from '@/lib/follows/query'
 import { NewPostLauncher } from '@/components/community/NewPostLauncher'
+import { CommunityLeftNav } from '@/components/community/CommunityLeftNav'
 import { StatusTray, type TrayViewer } from '@/components/community/StatusTray'
 import type { ViewerProfile as ComposerViewer } from '@/components/community/PostComposer'
 import { FeedList } from '@/components/community/FeedList'
@@ -93,7 +94,7 @@ export default async function CommunityPage() {
     : null
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-20">
+    <div className="mx-auto max-w-7xl px-4 pb-20">
       {/* Unscoped: any post's comments or reactions are relevant on the feed. */}
       <CommunityRealtime />
 
@@ -110,7 +111,8 @@ export default async function CommunityPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px] xl:grid-cols-[240px_1fr_320px]">
+        <CommunityLeftNav viewer={viewerProfile} />
         <div id="feed" className="min-w-0">
           <StatusTray rings={statusRings} viewer={trayViewer} />
           <div id="new-post-launcher" className="mb-4">
