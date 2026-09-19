@@ -210,6 +210,7 @@ Elite Cup reuses the existing Masters invitation/cascade flow (`lib/seasons/invi
   from the count of distinct rounds already generated (never from any match's own `scheduled_at`),
   so a manually-overridden individual match can't skew later auto-scheduled rounds.
 - ✅ **Profile & write-path lock-down (S1–S3):** profiles PII no longer publicly readable, profiles/money/result tables write-locked to the service role, `friendly_matches` participant-UPDATE hole closed. Plan: `docs/superpowers/plans/2026-09-18-mobile-phase0a-security-hardening.md`. Verified with a rolled-back role-switching script; rollback script kept in `supabase/rollbacks/`.
+- ✅ **Mobile app — API layer & security prerequisites (Phase 0):** `/api/mobile/v1` scaffold (`defineEndpoint`: bearer auth via network-verified `getUser`, `{data}`/`{error}` envelope, min-app-version gate) plus its first four endpoints — `GET /config`, `GET /me`, `POST /errors`, `POST|DELETE /devices` — and `assetlinks.json` for Android App Links. Generated OpenAPI 3.1 contract committed at `openapi/mobile-v1.json`, the interface the separate Flutter mobile repo (`sentinelx_mobile`) builds against. Conventions for adding future endpoints: `docs/superpowers/specs/2026-09-18-mobile-api-v1-conventions.md`. Plan: `docs/superpowers/plans/2026-09-18-mobile-phase0b-api-foundation.md`. Builds on the S1–S3 lock-down above (`/me` reads private profile columns via the service role only). The additive `fcm_tokens` platform/app_version migration ships separately once approved.
 
 ---
 
