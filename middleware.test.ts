@@ -60,3 +60,12 @@ describe('middleware matcher', () => {
     },
   )
 })
+
+describe('middleware matcher', () => {
+  it('does not run on .well-known files (next-intl would rewrite them to /en/… and 404 App Links)', async () => {
+    const { config } = await import('./middleware')
+    const re = new RegExp(`^${config.matcher[0]}$`)
+    expect(re.test('/.well-known/assetlinks.json')).toBe(false)
+    expect(re.test('/tournaments')).toBe(true)
+  })
+})

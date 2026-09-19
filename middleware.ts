@@ -43,7 +43,8 @@ export const config = {
   // blank page mid-login. No user-facing auth page lives at /auth/* (they're
   // /login, /signup, etc. under app/[locale]/(auth)), so excluding the whole
   // prefix is safe and covers any future callback route.
+  // `.well-known/` (Android App Links assetlinks.json, app/.well-known/) is the same problem: not a page, must not be locale-rewritten.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|auth/|api|offline|sw\\.js|manifest\\.webmanifest|robots\\.txt|sitemap\\.xml|opengraph-image|apple-icon|icon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|auth/|\\.well-known/|api|offline|sw\\.js|manifest\\.webmanifest|robots\\.txt|sitemap\\.xml|opengraph-image|apple-icon|icon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)',
   ],
 }
