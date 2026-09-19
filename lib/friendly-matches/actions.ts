@@ -2,7 +2,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { notifyInApp } from '@/lib/notifications/inbox'
-import { challengeSchema } from './schema'
+import { challengeSchema, gameCodeSchema } from './schema'
 import { assertNotPendingDeletion } from '@/lib/settings/restriction'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -129,4 +129,31 @@ export async function declineChallenge(
 
   revalidatePath('/dashboard')
   return { success: true }
+}
+
+export async function setGameCode(matchId: string, gameCode: string): Promise<{ error?: string }> {
+  const parsed = gameCodeSchema.safeParse(gameCode)
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'Please log in.' }
+
+  const { data: fm } = await supabase
+    .from('friendly_matches')
+    .select('challenger_id, status')
+    .eq('id', matchId)
+    .maybeSingle()
+  if (!fm) return { error: 'Match not found.' }
+  // Matches the existing UI: only the challenger drops the game room code.
+  if (fm.challenger_id !== user.id) return { error: 'Only the challenger can set the game code.' }
+  if (fm.status !== 'active') return { error: 'This match is not active.' }
+
+  const { error } = await createAdminClient().from('friendly_matches').update({ game_code: parsed.data }).eq('id', matchId)
+  if (error) return { error: 'Could not save. Please try again.' }
+
+  revalidatePath(`/dashboard/friendlies/${matchId}`)
+  return {}
 }

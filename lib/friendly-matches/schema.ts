@@ -24,3 +24,5 @@ export const challengeSchema = z
   )
 
 export type ChallengeInput = z.infer<typeof challengeSchema>
+
+export const gameCodeSchema = z.string().trim().max(100)

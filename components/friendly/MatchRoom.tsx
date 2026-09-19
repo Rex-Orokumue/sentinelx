@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import { payStake, type PayStakeState } from '@/lib/friendly-matches/pay-actions'
 import { submitFriendlyResult } from '@/lib/friendly-matches/result-actions'
-import { acceptChallenge, declineChallenge, type FriendlyActionState } from '@/lib/friendly-matches/actions'
+import { acceptChallenge, declineChallenge, setGameCode, type FriendlyActionState } from '@/lib/friendly-matches/actions'
 import { createClient } from '@/lib/supabase/client'
 import { SITE_URL } from '@/lib/seo/site'
 
@@ -196,8 +196,7 @@ function GameCodeField({
   async function save() {
     setSaving(true)
     setSaved(false)
-    const supabase = createClient()
-    const { error } = await supabase.from('friendly_matches').update({ game_code: code }).eq('id', matchId)
+    const { error } = await setGameCode(matchId, code)
     setSaving(false)
     if (!error) {
       setSaved(true)
