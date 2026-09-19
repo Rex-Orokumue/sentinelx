@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { requireStaff } from '@/lib/admin/auth'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { BuyRequestRow, type AdminBuyRequest } from '@/components/admin/BuyRequestRow'
 import { buildBuyerWhatsAppUrl } from '@/lib/exchange/requests-whatsapp'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -29,14 +29,14 @@ export default async function AdminBuyRequestsPage({
   searchParams: { status?: string }
 }) {
   await requireStaff()
-  const supabase = createClient()
+  const admin = createAdminClient()
 
   const VALID_STATUSES = ['open', 'in_progress', 'fulfilled', 'closed'] as const
   const statusFilter = VALID_STATUSES.includes(searchParams.status as (typeof VALID_STATUSES)[number])
     ? searchParams.status
     : undefined
 
-  let q = supabase
+  let q = admin
     .from('buy_requests')
     .select(
       'id, title, budget, category, status, ' +

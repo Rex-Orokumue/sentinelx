@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { requireStaff } from '@/lib/admin/auth'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { ExchangeQueueRow, type PendingListing } from '@/components/admin/ExchangeQueueRow'
 import { AdminOrderRow, type AdminOrderRow as AdminOrderRowType } from '@/components/admin/AdminOrderRow'
 import { ExchangeListingRow, type AdminListing } from '@/components/admin/ExchangeListingRow'
@@ -37,6 +38,7 @@ export default async function AdminExchangePage({
 }) {
   await requireStaff()
   const supabase = createClient()
+  const admin = createAdminClient()
   let ordersQuery = supabase
     .from('marketplace_orders')
     .select(
@@ -53,7 +55,7 @@ export default async function AdminExchangePage({
     ? searchParams.status
     : undefined
 
-  let allListingsQuery = supabase
+  let allListingsQuery = admin
     .from('marketplace_listings')
     .select(
       'id, title, price, category, status, badge, original_price, ' +

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireStaff } from '@/lib/admin/auth'
 import { loadBracketView } from '@/lib/tournaments/bracket-view'
 import {
@@ -18,6 +19,7 @@ export const metadata: Metadata = { title: 'Bracket · Admin · SentinelX' }
 export default async function AdminBracketPage({ params }: { params: { id: string } }) {
   await requireStaff()
   const supabase = createClient()
+  const admin = createAdminClient()
   const { data: t } = await supabase
     .from('tournaments')
     .select('id, title, status, round_start_date, round_gap_days, format, manual_knockout_pairing, entry_unit')
@@ -77,7 +79,7 @@ export default async function AdminBracketPage({ params }: { params: { id: strin
           .eq('tournament_id', t.id)
       : Promise.resolve({ data: [] as { player_id: string; reg_whatsapp: string | null }[] }),
     fixturePlayerIds.length > 0
-      ? supabase.from('profiles').select('id, whatsapp_number, country').in('id', fixturePlayerIds)
+      ? admin.from('profiles').select('id, whatsapp_number, country').in('id', fixturePlayerIds)
       : Promise.resolve({
           data: [] as { id: string; whatsapp_number: string | null; country: string | null }[],
         }),

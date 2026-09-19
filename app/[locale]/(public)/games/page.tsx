@@ -71,7 +71,7 @@ export default async function GamesPage({
   const [{ data: rawGames }, { count: tournamentCount }, { count: playerCount }] = await Promise.all([
     supabase.from('games').select('id, name, slug, icon_url, active, category, created_at').order('created_at'),
     supabase.from('tournaments').select('*', { count: 'exact', head: true }).neq('status', 'draft'),
-    supabase.from('profiles').select('*', { count: 'exact', head: true }),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }),
   ])
 
   // Reigning champion per game — the winner of that game's most recently

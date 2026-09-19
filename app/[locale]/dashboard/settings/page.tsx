@@ -36,7 +36,7 @@ export default async function DashboardSettingsPage({
   }))
 
   const [{ data: row }, { data: kyc }, { count: fcmTokenCount }] = await Promise.all([
-    supabase
+    createAdminClient()
       .from('profiles')
       .select(
         'display_name, username, avatar_url, membership_tier, whatsapp_number, country, bio, kyc_verified, username_changed_at, notification_prefs, deletion_requested_at, equipped_avatar_border',

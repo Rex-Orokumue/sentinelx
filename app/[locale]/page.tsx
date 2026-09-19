@@ -82,7 +82,7 @@ export default async function HomePage() {
     // one row per completed tournament) rather than a DB aggregate/RPC, matching
     // this file's existing style of plain selects + counts.
     supabase.from('tournaments').select('prize_pool').eq('status', 'completed'),
-    supabase.from('profiles').select('*', { count: 'exact', head: true }),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }),
     supabase.from('tournaments').select('*', { count: 'exact', head: true }).neq('status', 'draft'),
   ])
 

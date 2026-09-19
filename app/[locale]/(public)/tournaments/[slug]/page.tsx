@@ -98,7 +98,7 @@ export default async function TournamentDetailPage({
         .eq('tournament_id', t.id)
         .eq('player_id', user.id)
         .maybeSingle(),
-      supabase
+      admin
         .from('profiles')
         .select('display_name, whatsapp_number, username')
         .eq('id', user.id)

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { requireStaff } from '@/lib/admin/auth'
 import { ROUND_ORDER, ROUND_LABELS } from '@/lib/tournaments/bracket'
 import { MatchRow, type AdminMatchRow } from '@/components/admin/MatchRow'
@@ -30,6 +31,7 @@ function groupNameOf(g: GroupRef): string | null {
 export default async function AdminMatchesPage({ params }: { params: { id: string } }) {
   await requireStaff()
   const supabase = createClient()
+  const admin = createAdminClient()
   const { data: t } = await supabase
     .from('tournaments')
     .select('id, title')
@@ -38,7 +40,7 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
   if (!t) notFound()
 
   const [{ data }, { data: regRows }, { data: paidRegs }] = await Promise.all([
-    supabase
+    admin
       .from('matches')
       .select(
         'id, round, group_id, status, scheduled_at, is_full_day, youtube_stream_url, replay_url, ' +

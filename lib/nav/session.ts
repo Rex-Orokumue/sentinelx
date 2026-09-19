@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { frameUrlFor, bubbleSkinUrlFor } from '@/lib/store/cosmetics'
 import { getStaffContext } from '@/lib/admin/auth'
 
@@ -57,7 +58,7 @@ export async function getNavSession(): Promise<NavSession> {
 
   const [{ data: profile }, staff, { count: unreadCount }, { count: unreadMessageCount }, { data: notifRows }, { data: walletRow }, { data: coinsRow }] =
     await Promise.all([
-      supabase
+      createAdminClient()
         .from('profiles')
         .select('username, display_name, avatar_url, deletion_requested_at, equipped_avatar_border, equipped_bubble_skin')
         .eq('id', user.id)
