@@ -16,6 +16,7 @@ const pub = defineEndpoint({
 })
 
 describe('buildOpenApi', () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const doc = buildOpenApi([ep, pub]) as any
 
   it('declares OpenAPI 3.1 and bearer auth', () => {
@@ -42,7 +43,9 @@ describe('buildOpenApi', () => {
     expect(body.$schema).toBeUndefined()
   })
   it('has unique operation ids', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ids = buildOpenApi(ALL_ENDPOINTS) as any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const seen = Object.values(ids.paths).flatMap((p: any) => Object.values(p).map((o: any) => o.operationId))
     expect(new Set(seen).size).toBe(seen.length)
   })
