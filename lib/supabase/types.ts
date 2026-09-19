@@ -780,23 +780,29 @@ export type Database = {
       }
       fcm_tokens: {
         Row: {
+          app_version: string | null
           created_at: string
           id: string
           last_active: string
+          platform: string
           player_id: string
           token: string
         }
         Insert: {
+          app_version?: string | null
           created_at?: string
           id?: string
           last_active?: string
+          platform?: string
           player_id: string
           token: string
         }
         Update: {
+          app_version?: string | null
           created_at?: string
           id?: string
           last_active?: string
+          platform?: string
           player_id?: string
           token?: string
         }
