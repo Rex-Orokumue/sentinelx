@@ -48,7 +48,7 @@ export async function updateProfile(
     }
   }
 
-  const { error } = await supabase
+  const { error } = await createAdminClient()
     .from('profiles')
     .update({
       display_name: d.displayName,

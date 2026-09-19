@@ -48,7 +48,7 @@ export async function claimUsername(
     return { errorCode: 'username_taken' }
   }
 
-  const { error } = await supabase
+  const { error } = await createAdminClient()
     .from('profiles')
     .update({ username: parsed.data, display_name: parsed.data })
     .eq('id', user.id)

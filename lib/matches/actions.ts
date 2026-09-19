@@ -67,7 +67,7 @@ export async function submitMatchResult(
   const recordingUrl =
     parsed.data.recordingUrl && parsed.data.recordingUrl !== '' ? parsed.data.recordingUrl : null
 
-  const { error } = await supabase.from('match_results').upsert(
+  const { error } = await createAdminClient().from('match_results').upsert(
     {
       match_id: matchId,
       submitted_by: user.id,

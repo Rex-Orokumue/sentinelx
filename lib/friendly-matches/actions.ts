@@ -35,7 +35,7 @@ export async function sendChallenge(
   const stakeCurrency = parsed.data.stakeCurrency === '' ? null : parsed.data.stakeCurrency
   const gameCode = parsed.data.gameCode === '' ? null : parsed.data.gameCode
 
-  const { data: created, error } = await supabase
+  const { data: created, error } = await createAdminClient()
     .from('friendly_matches')
     .insert({
       challenger_id: user.id,
@@ -92,7 +92,7 @@ export async function acceptChallenge(
   if (fm.status !== 'pending') return { error: 'This challenge was already resolved.' }
 
   const nextStatus = fm.stake_amount ? 'awaiting_payment' : 'active'
-  const { error } = await supabase
+  const { error } = await createAdminClient()
     .from('friendly_matches')
     .update({ status: nextStatus })
     .eq('id', id)
@@ -124,7 +124,7 @@ export async function declineChallenge(
   if (fm.opponent_id !== user.id) return { error: 'Only the challenged player can decline.' }
   if (fm.status !== 'pending') return { error: 'This challenge was already resolved.' }
 
-  const { error } = await supabase.from('friendly_matches').update({ status: 'declined' }).eq('id', id)
+  const { error } = await createAdminClient().from('friendly_matches').update({ status: 'declined' }).eq('id', id)
   if (error) return { error: 'Could not decline. Please try again.' }
 
   revalidatePath('/dashboard')

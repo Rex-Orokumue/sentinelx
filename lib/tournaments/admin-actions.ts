@@ -249,11 +249,11 @@ export async function refundRegistration(
   if (!Number.isInteger(amount) || amount <= 0) return { error: 'Invalid refund amount.' }
   if (!reason.trim()) return { error: 'Missing refund reason.' }
 
-  const supabase = createClient()
+  const admin = createAdminClient()
 
   // Atomic conditional update — same non-race pattern as waiver redemption.
   // If no row comes back, someone already refunded this registration.
-  const { data: claimed } = await supabase
+  const { data: claimed } = await admin
     .from('tournament_registrations')
     .update({ payment_status: 'refunded' })
     .eq('id', registrationId)
@@ -267,7 +267,7 @@ export async function refundRegistration(
   if ('error' in result) {
     // Roll back the claim so the row is refundable again — a failed wallet
     // credit must never leave a registration marked refunded with no credit.
-    await supabase.from('tournament_registrations').update({ payment_status: 'paid' }).eq('id', registrationId)
+    await admin.from('tournament_registrations').update({ payment_status: 'paid' }).eq('id', registrationId)
     return { error: `Refund could not be completed: ${result.error}` }
   }
 

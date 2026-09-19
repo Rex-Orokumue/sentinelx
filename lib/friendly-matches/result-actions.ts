@@ -1,6 +1,7 @@
 'use server'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { friendlyResultSchema } from './result-schema'
 import type { FriendlyActionState } from './actions'
 
@@ -41,7 +42,7 @@ export async function submitFriendlyResult(
     return { error: 'A staked friendly match cannot end in a draw.' }
   }
 
-  const { error } = await supabase.from('friendly_match_results').upsert(
+  const { error } = await createAdminClient().from('friendly_match_results').upsert(
     {
       friendly_match_id: id,
       submitted_by: user.id,
@@ -58,7 +59,7 @@ export async function submitFriendlyResult(
     .select('id', { count: 'exact', head: true })
     .eq('friendly_match_id', id)
   if ((count ?? 0) >= 2) {
-    await supabase.from('friendly_matches').update({ status: 'awaiting_admin_confirmation' }).eq('id', id)
+    await createAdminClient().from('friendly_matches').update({ status: 'awaiting_admin_confirmation' }).eq('id', id)
   }
 
   revalidatePath(`/dashboard/friendlies/${id}`)

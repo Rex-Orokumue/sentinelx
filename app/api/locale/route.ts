@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { LOCALES } from '@/i18n/locales'
 
 export async function POST(req: Request) {
@@ -11,7 +12,7 @@ export async function POST(req: Request) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (user) {
-    await supabase.from('profiles').update({ locale }).eq('id', user.id)
+    await createAdminClient().from('profiles').update({ locale }).eq('id', user.id)
   }
 
   const res = NextResponse.json({ ok: true })

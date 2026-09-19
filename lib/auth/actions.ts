@@ -137,7 +137,7 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
   const cookieLocale = cookies().get('NEXT_LOCALE')?.value
   const locale = LOCALES.includes(cookieLocale as (typeof LOCALES)[number]) ? cookieLocale : 'en'
   if (data.user) {
-    await supabase.from('profiles').update({ locale }).eq('id', data.user.id)
+    await admin.from('profiles').update({ locale }).eq('id', data.user.id)
   }
 
   return { noticeCode: 'check_email' }

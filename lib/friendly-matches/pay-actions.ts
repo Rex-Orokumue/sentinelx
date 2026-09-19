@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { initializeTransaction, buildFriendlyStakeReference } from '@/lib/paystack/server'
 import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
-import { SITE_URL } from '@/lib/seo/site'
+import { SITE_URL } from '@/lib/seo/site'
 import { assertNotPendingDeletion } from '@/lib/settings/restriction'
 
 export type PayStakeState = { error?: string } | undefined
@@ -59,9 +59,9 @@ export async function payStake(_prev: PayStakeState, formData: FormData): Promis
 
   const reference = buildFriendlyStakeReference(id, user.id)
   if (isChallenger) {
-    await supabase.from('friendly_matches').update({ challenger_paystack_reference: reference }).eq('id', id)
+    await createAdminClient().from('friendly_matches').update({ challenger_paystack_reference: reference }).eq('id', id)
   } else {
-    await supabase.from('friendly_matches').update({ opponent_paystack_reference: reference }).eq('id', id)
+    await createAdminClient().from('friendly_matches').update({ opponent_paystack_reference: reference }).eq('id', id)
   }
 
   let authorizationUrl: string

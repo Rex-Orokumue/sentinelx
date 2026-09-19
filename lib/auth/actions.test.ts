@@ -34,8 +34,10 @@ vi.mock('./reauth', async (importOriginal) => ({
 // service-role client, which is a different client from the request-scoped one
 // above — hence a separate mock. Default: nothing retired, nothing banned.
 const adminMaybeSingle = vi.fn().mockResolvedValue({ data: null })
+const adminUpdate = vi.fn(() => ({ eq: vi.fn().mockResolvedValue({ error: null }) }))
 const adminFrom = vi.fn(() => ({
   select: () => ({ eq: () => ({ maybeSingle: adminMaybeSingle }) }),
+  update: adminUpdate,
 }))
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: () => ({ from: adminFrom }),
@@ -79,6 +81,7 @@ beforeEach(() => {
   resend.mockResolvedValue({ error: null })
   adminMaybeSingle.mockReset()
   adminMaybeSingle.mockResolvedValue({ data: null })
+  adminUpdate.mockClear()
   getUser.mockReset()
   getUser.mockResolvedValue({
     data: { user: { id: 'u1', email: 'old@x.com', identities: [{ provider: 'email' }] } },
@@ -137,7 +140,9 @@ describe('signup locale seeding', () => {
     signUp.mockResolvedValueOnce({ data: { user: { id: 'user-1' } }, error: null })
     const { signup } = await import('./actions')
     await signup(undefined, formData({ username: 'playerone', email: 'x@x.com', password: 'password123' }))
-    expect(update).toHaveBeenCalledWith({ locale: 'fr' })
+    // The locale write goes through the service-role client (S2 lock-down),
+    // not the request-scoped one.
+    expect(adminUpdate).toHaveBeenCalledWith({ locale: 'fr' })
   })
 
   it('defaults to en when the cookie is absent or invalid', async () => {
@@ -145,7 +150,7 @@ describe('signup locale seeding', () => {
     signUp.mockResolvedValueOnce({ data: { user: { id: 'user-2' } }, error: null })
     const { signup } = await import('./actions')
     await signup(undefined, formData({ username: 'playertwo', email: 'y@y.com', password: 'password123' }))
-    expect(update).toHaveBeenCalledWith({ locale: 'en' })
+    expect(adminUpdate).toHaveBeenCalledWith({ locale: 'en' })
   })
 })
 

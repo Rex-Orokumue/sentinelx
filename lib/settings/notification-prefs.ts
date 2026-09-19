@@ -2,6 +2,7 @@
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const whatsappPrefsSchema = z.object({
   match_reminder: z.boolean(),
@@ -47,7 +48,7 @@ export async function updateWhatsappPrefs(_prev: PrefsState, formData: FormData)
   })
   if (!parsed.success) return { error: 'Invalid preferences.' }
 
-  const { error } = await supabase.rpc('jsonb_merge_notification_prefs', {
+  const { error } = await createAdminClient().rpc('jsonb_merge_notification_prefs', {
     p_id: user.id,
     p_key: 'whatsapp',
     p_patch: parsed.data,
@@ -91,7 +92,7 @@ export async function updatePushPrefs(_prev: PrefsState, formData: FormData): Pr
   const parsed = pushPrefsSchema.safeParse(Object.fromEntries(keys.map((k) => [k, boolFromForm(formData, k)])))
   if (!parsed.success) return { error: 'Invalid preferences.' }
 
-  const { error } = await supabase.rpc('jsonb_merge_notification_prefs', {
+  const { error } = await createAdminClient().rpc('jsonb_merge_notification_prefs', {
     p_id: user.id,
     p_key: 'push',
     p_patch: parsed.data,
@@ -120,7 +121,7 @@ export async function updateAchievementSharingPrefs(_prev: PrefsState, formData:
   })
   if (!parsed.success) return { error: 'Invalid preferences.' }
 
-  const { error } = await supabase.rpc('jsonb_merge_notification_prefs', {
+  const { error } = await createAdminClient().rpc('jsonb_merge_notification_prefs', {
     p_id: user.id,
     p_key: 'achievement_sharing',
     p_patch: parsed.data,
