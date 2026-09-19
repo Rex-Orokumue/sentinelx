@@ -48,7 +48,7 @@ describe('server-only tables and private profile columns', () => {
       'g',
     )
     const violations: string[] = []
-    for (const f of files) for (const m of f.text.matchAll(re)) violations.push(`${f.path}:${lineOf(f.text, m.index!)} ${m[1]}.${m[2]}`)
+    for (const f of files) for (const m of Array.from(f.text.matchAll(re))) violations.push(`${f.path}:${lineOf(f.text, m.index!)} ${m[1]}.${m[2]}`)
     expect(violations).toEqual([])
   })
 
@@ -56,7 +56,7 @@ describe('server-only tables and private profile columns', () => {
     const re = /\bsupabase\s*\.from\(\s*['"]profiles['"]\s*\)\s*\.select\(\s*(['"`])([\s\S]*?)\1/g
     const violations: string[] = []
     for (const f of files)
-      for (const m of f.text.matchAll(re)) if (hasPrivate(m[2])) violations.push(`${f.path}:${lineOf(f.text, m.index!)}`)
+      for (const m of Array.from(f.text.matchAll(re))) if (hasPrivate(m[2])) violations.push(`${f.path}:${lineOf(f.text, m.index!)}`)
     expect(violations).toEqual([])
   })
 
@@ -64,12 +64,12 @@ describe('server-only tables and private profile columns', () => {
     const start = /\bsupabase\s*\.from\(\s*['"][a-z_]+['"]\s*\)\s*\.select\(/g
     const violations: string[] = []
     for (const f of files) {
-      for (const m of f.text.matchAll(start)) {
+      for (const m of Array.from(f.text.matchAll(start))) {
         const from = m.index! + m[0].length
         const rest = f.text.slice(from, from + 1200)
         const end = rest.search(/\n\s*\.(eq|in|is|neq|not|order|limit|range|lt|lte|gt|gte|maybeSingle|single)\(/)
         const window = end === -1 ? rest : rest.slice(0, end)
-        for (const emb of window.matchAll(/profiles(?:!\w+)?\(([^)]*)\)/g))
+        for (const emb of Array.from(window.matchAll(/profiles(?:!\w+)?\(([^)]*)\)/g)))
           if (hasPrivate(emb[1])) violations.push(`${f.path}:${lineOf(f.text, m.index!)}`)
       }
     }
@@ -79,7 +79,7 @@ describe('server-only tables and private profile columns', () => {
   it("never uses select('*') on profiles (breaks once column-level SELECT applies)", () => {
     const re = /from\(\s*['"]profiles['"]\s*\)\s*\.select\(\s*['"]\*['"]/g
     const violations: string[] = []
-    for (const f of files) for (const m of f.text.matchAll(re)) violations.push(`${f.path}:${lineOf(f.text, m.index!)}`)
+    for (const f of files) for (const m of Array.from(f.text.matchAll(re))) violations.push(`${f.path}:${lineOf(f.text, m.index!)}`)
     expect(violations).toEqual([])
   })
 })
