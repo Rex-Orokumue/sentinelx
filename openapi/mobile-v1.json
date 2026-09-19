@@ -9,7 +9,137 @@
       "url": "https://sentinelxesports.com.ng"
     }
   ],
-  "paths": {},
+  "paths": {
+    "/api/mobile/v1/config": {
+      "get": {
+        "operationId": "getConfig",
+        "summary": "Runtime configuration, kill-switch and feature flags (unauthenticated, cacheable).",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "minSupportedAppVersion": {
+                          "type": "string"
+                        },
+                        "latestAppVersion": {
+                          "type": "string"
+                        },
+                        "maintenance": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "message": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "message"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "siteUrl": {
+                          "type": "string"
+                        },
+                        "coins": {
+                          "type": "object",
+                          "properties": {
+                            "coinsPerNaira": {
+                              "type": "number"
+                            },
+                            "nairaPerCoin": {
+                              "type": "number"
+                            },
+                            "coinsPerEntry": {
+                              "type": "number"
+                            },
+                            "coinsHalfEntry": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "coinsPerNaira",
+                            "nairaPerCoin",
+                            "coinsPerEntry",
+                            "coinsHalfEntry"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "enforcePhoneVerification": {
+                          "type": "boolean"
+                        },
+                        "whatsappCommunityUrl": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "features": {
+                          "type": "object",
+                          "propertyNames": {
+                            "type": "string"
+                          },
+                          "additionalProperties": {
+                            "type": "boolean"
+                          }
+                        }
+                      },
+                      "required": [
+                        "minSupportedAppVersion",
+                        "latestAppVersion",
+                        "maintenance",
+                        "siteUrl",
+                        "coins",
+                        "enforcePhoneVerification",
+                        "whatsappCommunityUrl",
+                        "features"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    }
+  },
   "components": {
     "securitySchemes": {
       "bearerAuth": {
