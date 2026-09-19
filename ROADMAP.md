@@ -209,6 +209,7 @@ Elite Cup reuses the existing Masters invitation/cascade flow (`lib/seasons/invi
   `lib/tournaments/round-schedule.ts`, instead of requiring every match to be hand-dated. Computed
   from the count of distinct rounds already generated (never from any match's own `scheduled_at`),
   so a manually-overridden individual match can't skew later auto-scheduled rounds.
+- ✅ **Profile & write-path lock-down (S1–S3):** profiles PII no longer publicly readable, profiles/money/result tables write-locked to the service role, `friendly_matches` participant-UPDATE hole closed. Plan: `docs/superpowers/plans/2026-09-18-mobile-phase0a-security-hardening.md`. Verified with a rolled-back role-switching script; rollback script kept in `supabase/rollbacks/`.
 
 ---
 
