@@ -18,7 +18,9 @@ import { getCoinBalance } from '@/lib/coins/service'
 import { GameBadge } from '@/components/game/GameBadge'
 import { resolveGameIconUrl } from '@/lib/games/icon'
 import { ChampionBanner } from '@/components/tournaments/ChampionBanner'
+import { NoWinnerBanner } from '@/components/tournaments/NoWinnerBanner'
 import { fetchChampions } from '@/lib/tournaments/champions'
+import { isClosedWithoutWinner } from '@/lib/tournaments/no-winner'
 import { gameGenreEmoji } from '@/lib/games/genre-emoji'
 import { splitRules } from '@/lib/tournaments/split-rules'
 
@@ -166,10 +168,22 @@ export default async function TournamentDetailPage({
   // to nothing and keep the plain presentation.
   const championEntry =
     t.status === 'completed' ? (await fetchChampions(supabase, { tournamentId: t.id }))[0] ?? null : null
+  // A completed tournament with no champion may have been closed with its
+  // final left disputed — say so rather than leaving the top of the page bare.
+  let noWinner = false
+  if (t.status === 'completed' && !championEntry) {
+    const { data: finalRows } = await supabase
+      .from('matches')
+      .select('round, status')
+      .eq('tournament_id', t.id)
+      .eq('round', 'final')
+    noWinner = isClosedWithoutWinner(t.status, finalRows ?? [])
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-20">
       {championEntry && <ChampionBanner entry={championEntry} />}
+      {noWinner && <NoWinnerBanner />}
       <JsonLd
         data={buildTournamentJsonLd({
           title: t.title,
