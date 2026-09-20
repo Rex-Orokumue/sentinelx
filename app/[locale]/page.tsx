@@ -2,7 +2,6 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import { TournamentCard } from '@/components/tournament/TournamentCard'
-import type { TournamentCardData } from '@/components/tournament/TournamentCard'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { PromoBanner } from '@/components/home/PromoBanner'
 import { Hero } from '@/components/home/Hero'
@@ -12,8 +11,7 @@ import { LeaderboardRow } from '@/components/home/LeaderboardRow'
 import { HallOfFameTeaser } from '@/components/home/HallOfFameTeaser'
 import { HowItWorks } from '@/components/home/HowItWorks'
 import { HomeFinalCta } from '@/components/home/HomeFinalCta'
-import type { HallOfFameTeaserData } from '@/lib/home/hall-of-fame-teaser'
-import { fetchChampions, latestChampion } from '@/lib/tournaments/champions'
+import { buildHomeSummary } from '@/lib/home/summary'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
 import { getTranslations } from 'next-intl/server'
@@ -47,77 +45,12 @@ export default async function HomePage() {
   const common = await getTranslations('common')
   const supabase = createClient()
 
-  const [
-    { data: rawTournaments },
-    { data: players },
-    { data: rawBanner },
-    { data: completedTournaments },
-    { count: playerCount },
-    { count: tournamentCount },
-  ] = await Promise.all([
-    supabase
-      .from('tournaments')
-      .select(
-        'id, title, slug, prize_pool, registration_fee, status, tournament_start, registration_end, tournament_end, max_players, format, tournament_type, card_image_url, games(name, icon_url, slug, category)'
-      )
-      .in('status', ['active', 'registration_open'])
-      .order('created_at', { ascending: false })
-      .limit(4),
-    supabase
-      .from('profiles')
-      .select(
-        'id, username, display_name, avatar_url, wins, total_matches, sx_score, sentinel_tier, membership_tier, equipped_avatar_border',
-      )
-      .order('wins', { ascending: false })
-      .gt('total_matches', 0)
-      .limit(5),
-    supabase
-      .from('homepage_banners')
-      .select('title, image_url, link_url')
-      .eq('active', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    // Hero's "Prizes Paid Out" stat. Summed client-side (not a huge dataset —
-    // one row per completed tournament) rather than a DB aggregate/RPC, matching
-    // this file's existing style of plain selects + counts.
-    supabase.from('tournaments').select('prize_pool').eq('status', 'completed'),
-    supabase.from('profiles').select('id', { count: 'exact', head: true }),
-    supabase.from('tournaments').select('*', { count: 'exact', head: true }).neq('status', 'draft'),
-  ])
-
-  const prizesPaidOut = (completedTournaments ?? []).reduce((sum, t) => sum + (t.prize_pool ?? 0), 0)
-
-  // The homepage used to feature the latest Champions Cup only — the same
-  // DLS-structure assumption that hid the FC Mobile winner from the Hall of
-  // Fame. It now features the latest champion from any game and any tournament
-  // type, resolved by the shared lib/tournaments/champions.ts.
-  const latest = latestChampion(await fetchChampions(supabase))
-  const hallOfFameTeaserData: HallOfFameTeaserData | null = latest
-    ? {
-        slug: latest.slug,
-        title: latest.title,
-        prizePool: latest.prizePool ?? 0,
-        gameName: latest.gameName || null,
-        championName: latest.champion.name,
-      }
-    : null
-
-
-  const banner = rawBanner
-    ? { title: rawBanner.title, imageUrl: rawBanner.image_url, linkUrl: rawBanner.link_url }
-    : null
-
-  // Ensure any 'active' tournament shows first as featured
-  const tournaments = [...(rawTournaments ?? [])].sort((a, b) =>
-    a.status === 'active' && b.status !== 'active' ? -1
-    : b.status === 'active' && a.status !== 'active' ? 1
-    : 0
-  ) as TournamentCardData[]
-
-  const featured  = tournaments[0] ?? null
-  const upcoming  = tournaments.slice(1)
-  const leaderboard = players ?? []
+  const summary = await buildHomeSummary(supabase)
+  const { banner, hallOfFame: hallOfFameTeaserData, stats } = summary
+  const featured = summary.featuredTournament
+  const upcoming = summary.upcomingTournaments
+  const leaderboard = summary.leaderboardTeaser
+  const { playerCount, tournamentCount, prizesPaidOut } = stats
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
