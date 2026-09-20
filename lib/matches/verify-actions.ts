@@ -463,12 +463,20 @@ export async function confirmResult(_prev: VerifyState, formData: FormData): Pro
   const admin = createAdminClient()
   const { data: m } = await admin
     .from('matches')
-    .select('id, round, group_id, tournament_id, player_a_id, player_b_id, team_a_id, team_b_id, tournament:tournaments(status, slug, prize_pool)')
+    .select('id, status, round, group_id, tournament_id, player_a_id, player_b_id, team_a_id, team_b_id, tournament:tournaments(status, slug, prize_pool)')
     .eq('id', id)
     .maybeSingle()
   if (!m) return { error: 'Match not found.' }
   const isKnockout = m.round !== 'group'
   if (isKnockout && scoreA === scoreB) return { error: 'A knockout match cannot end in a draw.' }
+  // closeTournamentWithoutWinner leaves the final 'disputed' on a completed
+  // tournament. Confirming it now would crown a champion the prize/reward run
+  // already skipped, so refuse. Re-confirming an already-'completed' final
+  // (a score correction) is unaffected — only a still-disputed one is blocked.
+  const tourn = firstStr(m.tournament as { status: string } | { status: string }[] | null)
+  if (m.round === 'final' && m.status === 'disputed' && tourn?.status === 'completed') {
+    return { error: 'This tournament was closed without a winner, so its final can no longer be confirmed.' }
+  }
 
   const { error: upErr } = await admin
     .from('matches')
