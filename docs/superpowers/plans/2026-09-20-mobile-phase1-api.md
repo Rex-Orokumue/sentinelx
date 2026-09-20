@@ -906,7 +906,7 @@ git commit -m "feat(mobile-api): POST /onboarding/username"
 `lib/home/summary.test.ts`
 ```ts
 import { describe, it, expect, vi } from 'vitest'
-import { sortFeaturedFirst, sumPrizePool, mapBanner, mapLeaderboardRow, buildHomeSummary } from './summary'
+import { sortFeaturedFirst, sumPrizePool, mapBanner, mapLeaderboardRow, mapTournamentCard, buildHomeSummary } from './summary'
 
 vi.mock('@/lib/tournaments/champions', () => ({
   fetchChampions: vi.fn().mockResolvedValue([]),
@@ -956,6 +956,29 @@ describe('mapLeaderboardRow', () => {
       id: 'p1', username: 'ada', displayName: 'Ada', avatarUrl: null, wins: 10, totalMatches: 15,
       sxScore: 900, sentinelTier: 'elite', membershipTier: 'guardian', equippedAvatarBorder: 'gold',
     })
+  })
+})
+
+describe('mapTournamentCard', () => {
+  it('maps a TournamentCardData row to camelCase for the wire response (buildHomeSummary itself stays snake_case for the web page’s <TournamentCard> component)', () => {
+    expect(mapTournamentCard({
+      id: 't1', title: 'FC Mobile Cup', slug: 'fc-mobile-cup', prize_pool: 8000, registration_fee: 500,
+      status: 'active', tournament_start: '2026-09-25T18:00:00Z', registration_end: '2026-09-24T18:00:00Z',
+      tournament_end: null, max_players: 16, format: 'knockout', tournament_type: 'masters', card_image_url: null,
+      games: { name: 'EA FC Mobile', icon_url: '/icons/fc.png', slug: 'ea-fc-mobile', category: 'football' },
+    })).toEqual({
+      id: 't1', title: 'FC Mobile Cup', slug: 'fc-mobile-cup', prizePool: 8000, registrationFee: 500,
+      status: 'active', tournamentStart: '2026-09-25T18:00:00Z', registrationEnd: '2026-09-24T18:00:00Z',
+      tournamentEnd: null, maxPlayers: 16, format: 'knockout', tournamentType: 'masters', cardImageUrl: null,
+      game: { name: 'EA FC Mobile', iconUrl: '/icons/fc.png', slug: 'ea-fc-mobile', category: 'football' },
+    })
+  })
+
+  it('maps a null games relation to a null game', () => {
+    expect(mapTournamentCard({
+      id: 't2', title: 'x', slug: 'x', prize_pool: 0, registration_fee: 0, status: 'draft',
+      tournament_start: null, registration_end: null, tournament_end: null, max_players: null, games: null,
+    }).game).toBeNull()
   })
 })
 
@@ -1029,6 +1052,13 @@ export interface HomeBanner {
   linkUrl: string | null
 }
 
+// buildHomeSummary() stays in TournamentCardData's native snake_case, because
+// the web page passes featuredTournament/upcomingTournaments straight into
+// the existing <TournamentCard> component, which is typed against that exact
+// shape. The API layer (lib/mobile-api/endpoints/home.ts) maps each card
+// through mapTournamentCard() below for its camelCase wire response — the
+// same "raw internally, camelCase on the wire" split mapLeaderboardRow
+// already does for players, just applied consistently to tournaments too.
 export interface HomeSummary {
   banner: HomeBanner | null
   featuredTournament: TournamentCardData | null
@@ -1036,6 +1066,42 @@ export interface HomeSummary {
   leaderboardTeaser: LeaderboardPlayer[]
   hallOfFame: HallOfFameTeaserData | null
   stats: { playerCount: number; tournamentCount: number; prizesPaidOut: number }
+}
+
+export interface TournamentCardSummary {
+  id: string
+  title: string
+  slug: string
+  prizePool: number
+  registrationFee: number
+  status: string
+  tournamentStart: string | null
+  registrationEnd: string | null
+  tournamentEnd: string | null
+  maxPlayers: number | null
+  format: string | null
+  tournamentType: string | null
+  cardImageUrl: string | null
+  game: { name: string; iconUrl: string | null; slug: string | null; category: string | null } | null
+}
+
+export function mapTournamentCard(t: TournamentCardData): TournamentCardSummary {
+  return {
+    id: t.id,
+    title: t.title,
+    slug: t.slug,
+    prizePool: t.prize_pool,
+    registrationFee: t.registration_fee,
+    status: t.status,
+    tournamentStart: t.tournament_start,
+    registrationEnd: t.registration_end,
+    tournamentEnd: t.tournament_end ?? null,
+    maxPlayers: t.max_players,
+    format: t.format ?? null,
+    tournamentType: t.tournament_type ?? null,
+    cardImageUrl: t.card_image_url ?? null,
+    game: t.games ? { name: t.games.name, iconUrl: t.games.icon_url, slug: t.games.slug ?? null, category: t.games.category ?? null } : null,
+  }
 }
 
 // Ensures any 'active' tournament shows first as featured — matches the
@@ -1136,14 +1202,14 @@ export async function buildHomeSummary(supabase: SupabaseClient<Database>): Prom
 import { z } from 'zod'
 import { defineEndpoint } from '../define-endpoint'
 import { createAnonClient } from '../anon-client'
-import { buildHomeSummary } from '@/lib/home/summary'
+import { buildHomeSummary, mapTournamentCard } from '@/lib/home/summary'
 
 const tournamentCard = z.object({
-  id: z.string(), title: z.string(), slug: z.string(), prize_pool: z.number(), registration_fee: z.number(),
-  status: z.string(), tournament_start: z.string().nullable(), registration_end: z.string().nullable(),
-  tournament_end: z.string().nullable().optional(), max_players: z.number().nullable(), format: z.string().nullable().optional(),
-  tournament_type: z.string().nullable().optional(), card_image_url: z.string().nullable().optional(),
-  games: z.object({ name: z.string(), icon_url: z.string().nullable(), slug: z.string().nullable().optional(), category: z.string().nullable().optional() }).nullable(),
+  id: z.string(), title: z.string(), slug: z.string(), prizePool: z.number(), registrationFee: z.number(),
+  status: z.string(), tournamentStart: z.string().nullable(), registrationEnd: z.string().nullable(),
+  tournamentEnd: z.string().nullable(), maxPlayers: z.number().nullable(), format: z.string().nullable(),
+  tournamentType: z.string().nullable(), cardImageUrl: z.string().nullable(),
+  game: z.object({ name: z.string(), iconUrl: z.string().nullable(), slug: z.string().nullable(), category: z.string().nullable() }).nullable(),
 })
 
 const leaderboardPlayer = z.object({
@@ -1171,7 +1237,14 @@ export const homeEndpoint = defineEndpoint({
   auth: 'public',
   cacheControl: 'public, s-maxage=30, stale-while-revalidate=120',
   response: homeResponse,
-  handler: async () => buildHomeSummary(createAnonClient()),
+  handler: async () => {
+    const summary = await buildHomeSummary(createAnonClient())
+    return {
+      ...summary,
+      featuredTournament: summary.featuredTournament ? mapTournamentCard(summary.featuredTournament) : null,
+      upcomingTournaments: summary.upcomingTournaments.map(mapTournamentCard),
+    }
+  },
 })
 ```
 
@@ -1195,7 +1268,7 @@ Add `import { buildHomeSummary } from '@/lib/home/summary'` and remove the now-u
 
 - [ ] **Step 4: Verify**
 
-Run: `npx vitest run lib/home/summary.test.ts` → Expected: 8 passed.
+Run: `npx vitest run lib/home/summary.test.ts` → Expected: 10 passed.
 Run: `npm run test` → Expected: all green (no existing test targets `app/[locale]/page.tsx` directly, so this only catches import breakage).
 Run: `npx tsc --noEmit` → clean — this is the real check that `page.tsx`'s refactor didn't drop a variable the JSX still references.
 Run: `npm run build` → Expected: succeeds (a page-level refactor is worth a real Next.js build, not just `tsc`, since `tsc --noEmit` doesn't catch every SSR-only issue). **Do not run this while another session's `next dev` is active in this checkout** (memory: shared-checkout merge race) — check `git worktree list` / ask first if unsure.
