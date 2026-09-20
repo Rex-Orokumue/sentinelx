@@ -592,6 +592,108 @@
           }
         }
       }
+    },
+    "/api/mobile/v1/session/start": {
+      "post": {
+        "operationId": "postSessionStart",
+        "summary": "Runs login()'s server-side side-effects (daily login coins/XP/streak) and reports deletion-pending status. Call once per app process after a session exists — not on every screen visit.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "dailyLogin": {
+                          "type": "object",
+                          "properties": {
+                            "awardedToday": {
+                              "type": "boolean"
+                            },
+                            "coinsAwarded": {
+                              "type": "number"
+                            },
+                            "xpAwarded": {
+                              "type": "number"
+                            },
+                            "streak": {
+                              "type": "number"
+                            },
+                            "milestone": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "enum": [
+                                    "week",
+                                    "month"
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "awardedToday",
+                            "coinsAwarded",
+                            "xpAwarded",
+                            "streak",
+                            "milestone"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "deletionRequestedAt": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "dailyLogin",
+                        "deletionRequestedAt"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
     }
   },
   "components": {

@@ -3,6 +3,7 @@ import { configEndpoint } from './config'
 import { meEndpoint } from './me'
 import { errorsEndpoint } from './client-errors'
 import { registerDeviceEndpoint, unregisterDeviceEndpoint } from './devices'
+import { sessionStartEndpoint } from './session'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -11,4 +12,5 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   errorsEndpoint,
   registerDeviceEndpoint,
   unregisterDeviceEndpoint,
+  sessionStartEndpoint,
 ]
