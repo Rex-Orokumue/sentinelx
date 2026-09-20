@@ -13,6 +13,7 @@ import { checkAndUnlockAchievements } from '@/lib/achievements/unlock'
 import { pointsForRoundRobinRank, coinsForRoundRobinRank, xpForRoundRobinRank } from '@/lib/tournaments/round-robin-placement'
 import { sortStandings, type MembershipInput } from '@/lib/tournaments/standings'
 import { squadRosterIds, squadIdByPlayerForTournament } from '@/lib/tournaments/squad-roster'
+import { withoutEntities } from '@/lib/tournaments/no-winner'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -60,7 +61,11 @@ const CHAMPIONS_CUP_XP: Record<number, number> = { 1: 3000, 2: 2000, 3: 1200, 5:
 // season_ranking_points write is (Global Constraints #3: Champions Cup
 // deliberately doesn't join the season leaderboard, but its players still
 // earn coins/XP and can unlock champions_cup_* achievements).
-export async function awardSeasonPoints(admin: Admin, tournamentId: string): Promise<void> {
+export async function awardSeasonPoints(
+  admin: Admin,
+  tournamentId: string,
+  opts: { excludeEntityIds?: string[] } = {},
+): Promise<void> {
   const { data: tournament } = await admin
     .from('tournaments')
     .select('id, tournament_type, season_id, format, entry_unit')
@@ -158,7 +163,10 @@ export async function awardSeasonPoints(admin: Admin, tournamentId: string): Pro
   // here can only mean a team-vs-team tournament.
   const playerToEntityId =
     tournament.entry_unit === 'squad' ? await squadIdByPlayerForTournament(admin, tournamentId) : undefined
-  const placements = bandsForPlacements((matches ?? []) as PlacementMatch[], activePlayerIds, playerToEntityId)
+  // A tournament closed without a winner excludes its two finalists entirely
+  // (no season row, no coins/XP, no achievement check) — see no-winner.ts.
+  const rewardedPlayerIds = withoutEntities(activePlayerIds, opts.excludeEntityIds ?? [], playerToEntityId)
+  const placements = bandsForPlacements((matches ?? []) as PlacementMatch[], rewardedPlayerIds, playerToEntityId)
 
   if (tournament.season_id && isSeasonTournamentType(tournament.tournament_type)) {
     const tournamentType = tournament.tournament_type
