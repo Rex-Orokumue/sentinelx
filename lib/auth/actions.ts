@@ -4,7 +4,6 @@ import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { LOCALES } from '@/i18n/locales'
 import {
   loginSchema,
   signupSchema,
@@ -12,11 +11,11 @@ import {
   resetPasswordSchema,
   changeEmailSchema,
 } from './schema'
-import { mapSignupError } from './errors'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { isIdentifierBanned, isUsernameRetired } from './signup-blocks'
+import { isIdentifierBanned } from './signup-blocks'
 import { verifyPassword, hasPasswordIdentity } from './reauth'
 import { DEVICE_TOKEN_COOKIE } from '@/lib/notifications/device-cookie'
+import { performSignup } from './signup-service'
 
 // Codes, not prose — the auth forms translate them under `auth.errors` /
 // `auth.notices`, so a form rendered in Pidgin cannot answer in English. Same
@@ -86,60 +85,11 @@ export async function signup(_prev: ActionState, formData: FormData): Promise<Ac
   })
   if (!parsed.success) return { errorCode: firstIssueCode(parsed.error) }
 
-  const { username, email, password, ref } = parsed.data
-  const supabase = createClient()
-
-  // Ban evasion: only ever populated for accounts deleted while flagged for
-  // cheating. The message is the same generic one used for other signup
-  // failures — a distinct one would let anyone probe the blocklist for a
-  // given address.
-  const admin = createAdminClient()
-  if (await isIdentifierBanned(admin, email)) {
-    return { errorCode: 'blocked_details' }
-  }
-  // Checked here as well as at claim time: rejecting at the wizard is a far
-  // better experience than accepting the signup and refusing the handle after
-  // the user has confirmed their email.
-  if (await isUsernameRetired(admin, username)) {
-    return { errorCode: 'username_taken' }
-  }
-
-  // The username is NOT claimed here — see migration 073. It rides along as
-  // signup metadata and is claimed after email confirmation at
-  // /onboarding/username (which pre-fills from this value). Claiming it up
-  // front meant an undelivered confirmation email locked the handle forever.
-  // The wizard still shows a live availability hint, but it's advisory.
-
-  // The email link format (token_hash + type + next) is controlled by the
-  // Supabase "Confirm signup" template, which routes to /auth/confirm.
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: ref ? { username, ref } : { username },
-    },
-  })
-  if (error) {
-    // Surface the real cause in Vercel logs — the user-facing message is
-    // intentionally generic, so without this the root cause (e.g. an SMTP
-    // send failure returning 500) is invisible outside the Supabase dashboard.
-    console.error('[signup] supabase.auth.signUp failed', {
-      email,
-      code: (error as { code?: string }).code,
-      status: (error as { status?: number }).status,
-      message: error.message,
-    })
-    return { errorCode: mapSignupError(error) }
-  }
-
   // Seeds the new player's language from whatever they were browsing in —
   // see docs/superpowers/specs/2026-08-23-multi-language-support-design.md §5.
   const cookieLocale = cookies().get('NEXT_LOCALE')?.value
-  const locale = LOCALES.includes(cookieLocale as (typeof LOCALES)[number]) ? cookieLocale : 'en'
-  if (data.user) {
-    await admin.from('profiles').update({ locale }).eq('id', data.user.id)
-  }
-
+  const result = await performSignup(createClient(), createAdminClient(), { ...parsed.data, locale: cookieLocale })
+  if (!result.ok) return { errorCode: result.errorCode }
   return { noticeCode: 'check_email' }
 }
 
