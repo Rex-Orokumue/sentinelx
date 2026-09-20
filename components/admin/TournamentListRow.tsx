@@ -8,6 +8,7 @@ import {
   type PublishState,
 } from '@/lib/tournaments/admin-actions'
 import { CancelTournamentButton } from './CancelTournamentButton'
+import { CloseWithoutWinnerButton } from './CloseWithoutWinnerButton'
 import { GameBadge } from '@/components/game/GameBadge'
 import { SubmitButton } from '@/components/ui/submit-button'
 
@@ -34,6 +35,7 @@ export interface AdminTournamentRow {
   gameCategory: string | null
   publishBlockers: string[] // from missingForPublish; only meaningful when status === 'draft'
   paidRegistrations: number
+  hasDisputedFinal: boolean // true when this tournament's final match is status 'disputed'
 }
 
 const STATUS: Record<string, string> = {
@@ -53,6 +55,7 @@ export function TournamentListRow({ t, isAdmin }: { t: AdminTournamentRow; isAdm
   const isDraft = t.status === 'draft'
   const canPublish = isDraft && t.publishBlockers.length === 0
   const canCancel = isAdmin && ['registration_open', 'registration_closed', 'active'].includes(t.status)
+  const canCloseWithoutWinner = isAdmin && t.status === 'active' && t.hasDisputedFinal
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
@@ -123,6 +126,7 @@ export function TournamentListRow({ t, isAdmin }: { t: AdminTournamentRow; isAdm
               </SubmitButton>
             </form>
           )}
+          {canCloseWithoutWinner && <CloseWithoutWinnerButton id={t.id} title={t.title} />}
           {canCancel && (
             <CancelTournamentButton id={t.id} title={t.title} paidRegistrations={t.paidRegistrations} />
           )}

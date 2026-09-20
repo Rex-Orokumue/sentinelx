@@ -53,10 +53,15 @@ export default async function AdminTournamentsPage({ searchParams }: { searchPar
   if (statuses) query = query.in('status', statuses)
   if (selectedGame) query = query.eq('game_id', selectedGame.id)
 
-  const [{ data }, { data: paidRegs }] = await Promise.all([
+  const [{ data }, { data: paidRegs }, { data: disputedFinals }] = await Promise.all([
     query,
     supabase.from('tournament_registrations').select('tournament_id').eq('payment_status', 'paid'),
+    supabase.from('matches').select('tournament_id').eq('round', 'final').eq('status', 'disputed'),
   ])
+
+  const disputedFinalTournaments = new Set(
+    ((disputedFinals as { tournament_id: string }[] | null) ?? []).map((r) => r.tournament_id),
+  )
 
   const paidCountByTournament = new Map<string, number>()
   for (const r of (paidRegs as { tournament_id: string }[] | null) ?? []) {
@@ -102,6 +107,7 @@ export default async function AdminTournamentsPage({ searchParams }: { searchPar
         ],
       }),
       paidRegistrations: paidCountByTournament.get(t.id) ?? 0,
+      hasDisputedFinal: disputedFinalTournaments.has(t.id),
     }
   })
 
