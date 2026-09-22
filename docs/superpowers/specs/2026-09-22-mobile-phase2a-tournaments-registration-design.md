@@ -259,21 +259,32 @@ as of `main@5dcbda6e`.
   mutation in §7.2's sense.
 
 ### 5.2 `GET /tournaments/{id}/registration-state`
-- **Auth:** optional. Logged out: `{ feeNaira, agreementRequired, canRegister: {ok:
-  false, reason: 'not_authenticated'} }` — a sentinel not produced by `checkCanRegister()`
-  itself (that function assumes a known player), added at the route level since the web
-  equivalent (logged-out visitors see a "log in to register" CTA, not a guard-reason
-  message) has no single existing function to extract from.
-- **Auth present:** composes `checkCanRegister()` (`lib/tournaments/guard.ts` — status,
-  paid count vs `max_players`, existing registration status, `invitation_only`) with a
-  waiver lookup (`tournament_fee_waivers`, unredeemed, this player) and coin-discount
-  eligibility (`registration_fee >= 500`, no active waiver — the discount UI is dead if a
-  waiver already zeroes the fee). This is a **new composition**, not an extraction of one
-  existing function — documented as such.
-- **Response:** `{ canRegister: {ok: true} | {ok: false, reason: 'not_open'|'full'|
-  'already_registered'|'invitation_only'|'not_authenticated'}, feeNaira, hasWaiver:
-  boolean, coinDiscountEligible: boolean, agreementRequired: boolean, waitlistOpen:
-  boolean (status is 'registration_closed' or 'active') }`.
+- **Corrected source (was miscited as `readiness.ts`/`entrants.ts`/`stage-entry.ts`/
+  `season-placement.ts` — none of those are it; read directly, `readiness.ts` is an
+  *admin* bracket-publish gate, `entrants.ts`/`stage-entry.ts` are draw-time seeding
+  helpers, `season-placement.ts` is post-tournament prize-band math, none of them
+  player-facing registration state).
+- **This endpoint is a hybrid, not a pure extraction or pure new composition — precise
+  breakdown:** the view-state machine genuinely **extracts** from
+  `resolveRegistrationView()` (`lib/tournaments/view.ts`) — a pure function, already
+  unit-tested (`lib/tournaments/view.test.ts`), already the real consumer in
+  `app/[locale]/(public)/tournaments/[slug]/page.tsx`. It resolves one of nine states
+  (`guest`, `can_register`, `complete_payment`, `registered`, `waitlisted`, `full`,
+  `closed`, `ended`, `invitation_only`) from `{status, loggedIn, paidCount, maxPlayers,
+  existingStatus, registrationStatus, invitationOnly}` — richer than `checkCanRegister()`
+  (used elsewhere in this spec, §5.3, as `registerForTournament`'s *write-time* guard; a
+  different call site for a different purpose, only 4 outcomes). **Waiver detection and
+  coin-discount eligibility are genuinely new composition** — `resolveRegistrationView()`
+  touches neither; the route adds a `tournament_fee_waivers` lookup (unredeemed, this
+  player) and a `registration_fee >= 500`-with-no-active-waiver check on top of the
+  extracted view state.
+- **Auth:** optional. Logged out: `loggedIn: false` is a real, already-handled input to
+  `resolveRegistrationView()` (`loggedIn` is one of its named args) — it returns `'guest'`
+  directly, not an invented sentinel. No route-level special-casing needed.
+- **Response:** `{ view: RegView, feeNaira, hasWaiver: boolean, coinDiscountEligible:
+  boolean, agreementRequired: boolean }`. `waitlistOpen` is redundant with `view ===
+  'closed'` (the function's `'closed'` state already covers `registration_closed`/
+  `active`) — dropped from the earlier draft rather than carried as a duplicate signal.
 - No `Idempotency-Key` (GET).
 
 ### 5.3 `POST /tournaments/{id}/register`
@@ -288,10 +299,23 @@ as of `main@5dcbda6e`.
   `recordCoinTransaction`), and the Paystack path (`initializeTransaction`,
   `buildReference`).
 - **`squadId` is accepted in the contract but rejected server-side in 2a** (`400
-  squads_not_available`) — no squad tournament is offered for registration in the app
-  yet; squads stay blocked until web team-vs-team phases 6/7 land (confirmed unbuilt:
-  `ROADMAP.md` #21b is ⬜). The field exists now so 2b/later phases don't need a breaking
-  contract change.
+  squads_not_available`) — **deliberately deferred, not blocked.** Correcting an earlier
+  mistake in this spec's drafting: squads (`SquadEntryFlow`, `lib/tournaments/
+  squad-actions.ts` — `createSquad`, `lookupSquadByCode`, `removeSquadMember`,
+  `moveSquadMember`) are real, shipped, and live on web today — verified directly against
+  `components/tournament/RegistrationPanel.tsx`. The earlier "blocked on web phase 6/7"
+  claim conflated `ROADMAP.md` #21b ("Team/school/state leagues" — persistent
+  organizational entities representing a school/state, still genuinely unbuilt) with
+  *tournament-scoped* squads (form/join a squad per tournament via invite code), which is
+  a separate, already-shipped feature (team-vs-team match phases 6/7 — public bracket/
+  Match Centre rendering and the catalogue flip — are also both on `main`). Deferred from
+  2a anyway, as a scope choice: squads add a parallel registration vertical (create,
+  lookup-by-code, roster, member moves) plus a squad-aware wizard branch, and 2a's own
+  goal (§1: ship "browse and pay" as a working milestone) doesn't need them to be true.
+  **The cost of deferring is genuinely near-zero, not just declared so:** the `squadId`
+  field already sits in this contract and is already rejected server-side rather than
+  omitted, so turning squads on later means relaxing one guard and adding the squad
+  endpoints/UI — it does not mean reopening `/register`'s contract.
 - **Response replaces `redirect()`:** waiver / zero-fee / coin-discount-to-zero paths →
   `{ status: 'confirmed' }`. Fee remaining after any discount → `{ status: 'pending',
   authorizationUrl, reference }` (§6.4 of the master spec: app opens this in a WebView,
@@ -385,13 +409,36 @@ client-side URL build (§6.6 of the master spec) — no endpoint.
 6. `username_required` → route to onboarding-username, then resubmit the same wizard
    state (same idempotency key — the original attempt never reached the payment step).
 
-### 6.4 States surfaced on the detail page
-Full → waitlist CTA (`POST /waitlist`, same field wizard minus the payment step);
-already registered (`already_registered`); registration closed (`not_open`);
-invitation-only (`invitation_only` — directs to the dashboard invitations list, not this
-form, matching the server's own rejection); fee-waived (auto-detected by
-`registration-state.hasWaiver`, skips both the coin-discount step and Paystack, shown as
-"Free entry — waiver applied").
+### 6.4 States surfaced on the detail page, by `registration-state.view`
+Driven directly by `resolveRegistrationView()`'s nine real states (§5.2) — no reason to
+invent a parallel state model when the server already has one, tested:
+
+- `can_register` → normal registration CTA, opens the wizard (§6.3).
+- `complete_payment` → an existing **pending** registration (a prior Paystack attempt
+  never confirmed) — CTA is "Resume payment," not a fresh registration; re-opens the
+  Paystack WebView against the *stored* reference via `GET /payments/{reference}` first
+  (it may have already confirmed since the player last looked — the poll, not a fresh
+  `/register` call, is the correct first step).
+- `registered` → already registered/paid, no action.
+- `waitlisted` → already on the waitlist, no action.
+- `full` → capacity reached **while registration is still open** — this is *not* the
+  same as registration having closed. **Do not offer a waitlist CTA here**:
+  `joinWaitlist()`'s own server-side gate only accepts `registration_closed`/`active`
+  status (exactly the `closed` state below), and would reject a call made during `full`.
+  Show a plain "Tournament full" state; the waitlist becomes available once the view
+  transitions to `closed`.
+- `closed` → registration window itself has ended (covers both `registration_closed` and
+  `active` tournament status — the same condition `joinWaitlist()` checks) → **this** is
+  where the waitlist CTA belongs (`POST /waitlist`, same field wizard minus the payment
+  step).
+- `ended` → tournament completed; link to results, no registration action.
+- `invitation_only` → directs to the dashboard invitations list, not this form, matching
+  the server's own rejection.
+- `guest` → logged out; CTA is "Log in to register," not a guard-reason message.
+
+**Fee-waived** is layered independently of `view` (`registration-state.hasWaiver`) —
+applies whenever `view === 'can_register'`, skipping both the coin-discount step and
+Paystack, shown as "Free entry — waiver applied."
 
 ### 6.5 Invitations (dashboard, not tournament-detail — matches web placement)
 List of pending invitations with expiry. Accept → same confirm-or-Paystack branch as
@@ -414,8 +461,10 @@ notification prefs, no security section — those are Phase 5/6.
 
 ### 6.8 Explicitly out of scope for 2a
 Bracket/standings, Match Centre, check-in, result submission, dashboard fixtures → 2b.
-Squad creation/join-by-code UI → blocked on web phase 6/7 (§5.3 above). Full Settings →
-Phase 6.
+Squad creation/join-by-code UI → **deliberately deferred**, not blocked — real and shipped
+on web, cut from 2a purely to keep this slice's scope to "browse and pay" (§5.3 above has
+the full correction and the near-zero-cost reasoning for deferring it here). Full Settings
+→ Phase 6.
 
 ---
 
