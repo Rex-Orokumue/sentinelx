@@ -155,7 +155,15 @@ read/written directly by a client.
 ### 4.2 Claim → fill → reclaim helper
 
 A shared helper (alongside Phase 0B's `defineEndpoint` scaffolding), used by any T3 POST
-that declares itself idempotency-required:
+that declares itself idempotency-required. **Stripe-style semantics: the same key always
+replays the same stored response — success or error, no exceptions.** The alternative
+(cache successes only, let errors always re-run) sounds appealing but requires the server
+to classify which errors are "safe to retry fresh," which is exactly the kind of judgment
+the client already has for free (it knows whether it's retrying an unanswered request or
+submitting materially new information) and the server can only guess at. Consequence: any
+client-side retry that represents new input (e.g. resubmitting after resolving a
+`username_required` error, §6.3 step 6) **must mint a new key**, not reuse the one that
+produced the error — reusing it would replay the stored error forever.
 
 1. **Claim:** `INSERT ... ON CONFLICT (key, user_id, route) DO NOTHING RETURNING
    created_at`. The returned (or observed) `created_at` is this request's **generation
@@ -407,7 +415,17 @@ client-side URL build (§6.6 of the master spec) — no endpoint.
    reference}` → Paystack WebView, then poll `GET /payments/{reference}` with backoff up
    to ~60s (§6.4).
 6. `username_required` → route to onboarding-username, then resubmit the same wizard
-   state (same idempotency key — the original attempt never reached the payment step).
+   state — **with a freshly-generated `Idempotency-Key`, not the original one.**
+   (Correction: an earlier draft of this step said to reuse the same key, reasoning that
+   "the original attempt never reached the payment step." That reasoning doesn't hold once
+   §4.2's mechanism is Stripe-style — same key always replays the same *stored* response,
+   error or success, by design, so it can't be told "this one's safe to retry" after the
+   fact. Reusing the key here would replay the stale `username_required` error forever
+   instead of re-evaluating now that a username exists. The client is the one that knows
+   this is materially new input, not a network-drop retry of the identical request — so
+   the client, not the server, is responsible for minting a new key whenever it's
+   resubmitting after resolving an error, as opposed to blindly retrying an unanswered
+   request.)
 
 ### 6.4 States surfaced on the detail page, by `registration-state.view`
 Driven directly by `resolveRegistrationView()`'s nine real states (§5.2) — no reason to
