@@ -1,6 +1,9 @@
 import { z } from 'zod'
 import { defineEndpoint } from '../define-endpoint'
 import type { MobileCtx } from '../auth'
+import { profileEditSchema } from '@/lib/profile/schema'
+import { performUpdateProfile, type UpdateProfileErrorCode } from '@/lib/profile/update-profile-service'
+import { ApiError } from '../errors'
 
 const meResponse = z.object({
   id: z.string(),
@@ -72,5 +75,32 @@ export const meEndpoint = defineEndpoint({
       .eq('id', ctx.userId)
       .maybeSingle()
     return toMeResponse(ctx, data)
+  },
+})
+
+const updateProfileBody = profileEditSchema.extend({ avatarUrl: z.string().url().optional() })
+const updateProfileResponse = z.object({ ok: z.literal(true) })
+
+export function updateProfileErrorMessage(code: UpdateProfileErrorCode): string {
+  const messages: Record<UpdateProfileErrorCode, string> = {
+    username_taken: 'That username is already taken.',
+    username_locked: 'Username has already been changed once.',
+    save_failed: 'Could not save your profile. Please try again.',
+  }
+  return messages[code]
+}
+
+export const updateProfileEndpoint = defineEndpoint({
+  operationId: 'patchMeProfile',
+  method: 'PATCH',
+  path: '/me/profile',
+  summary: "Update the signed-in player's own profile (display name, bio, country, one-time username change, avatar).",
+  auth: 'user',
+  body: updateProfileBody,
+  response: updateProfileResponse,
+  handler: async ({ ctx, body }) => {
+    const result = await performUpdateProfile(ctx.userClient, ctx.admin, ctx.userId, body)
+    if (!result.ok) throw new ApiError(400, result.errorCode, updateProfileErrorMessage(result.errorCode))
+    return { ok: true as const }
   },
 })

@@ -1,6 +1,6 @@
 import type { Endpoint } from '../define-endpoint'
 import { configEndpoint } from './config'
-import { meEndpoint } from './me'
+import { meEndpoint, updateProfileEndpoint } from './me'
 import { errorsEndpoint } from './client-errors'
 import { registerDeviceEndpoint, unregisterDeviceEndpoint } from './devices'
 import { sessionStartEndpoint } from './session'
@@ -12,6 +12,7 @@ import { homeEndpoint } from './home'
 export const ALL_ENDPOINTS: Endpoint[] = [
   configEndpoint,
   meEndpoint,
+  updateProfileEndpoint,
   errorsEndpoint,
   registerDeviceEndpoint,
   unregisterDeviceEndpoint,
