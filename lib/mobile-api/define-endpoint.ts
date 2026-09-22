@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { authenticate, optionalAuth, type MobileCtx } from './auth'
 import { ApiError, Errors, errorBody } from './errors'
 import { compareVersions } from './version'
+import { runIdempotent } from './idempotency'
 
 export type AuthLevel = 'public' | 'user' | 'staff' | 'admin'
 
@@ -53,6 +54,7 @@ export function defineEndpoint<
   response: TRes
   cacheControl?: string
   skipVersionGate?: boolean
+  idempotent?: boolean
   handler: (input: {
     ctx: A extends 'public' ? MobileCtx | null : MobileCtx
     body: z.infer<TBody>
@@ -96,10 +98,34 @@ export function defineEndpoint<
         body = parsed.data
       }
 
-      const result = await def.handler({ ctx: ctx as never, body: body as never, req, params: context?.params ?? {} })
-      // Enforces the published contract at runtime: a drifting handler 500s in dev/CI, not in a user's hand.
-      const data = def.response.parse(result)
-      return json(200, { data }, def.cacheControl)
+      const runOnce = async (): Promise<{ status: number; body: unknown }> => {
+        try {
+          const result = await def.handler({ ctx: ctx as never, body: body as never, req, params: context?.params ?? {} })
+          // Enforces the published contract at runtime: a drifting handler 500s in dev/CI, not in a user's hand.
+          const data = def.response.parse(result)
+          return { status: 200, body: { data } }
+        } catch (e) {
+          if (e instanceof ApiError) return { status: e.status, body: errorBody(e) }
+          console.error('[mobile-api] unhandled', { path: def.path, message: e instanceof Error ? e.message : String(e) })
+          return { status: 500, body: { error: { code: 'internal', message: 'Something went wrong.' } } }
+        }
+      }
+
+      if (def.idempotent) {
+        const key = req.headers.get('idempotency-key')
+        if (!key) throw Errors.idempotencyKeyRequired()
+        const userId = (ctx as MobileCtx).userId
+        const outcome = await runIdempotent(
+          (ctx as MobileCtx).admin,
+          { key, userId, route: new URL(req.url).pathname },
+          runOnce,
+        )
+        if ('conflict' in outcome) throw Errors.idempotencyInProgress()
+        return json(outcome.status, outcome.body, def.cacheControl)
+      }
+
+      const outcome = await runOnce()
+      return json(outcome.status, outcome.body, def.cacheControl)
     } catch (e) {
       if (e instanceof ApiError) return json(e.status, errorBody(e))
       console.error('[mobile-api] unhandled', { path: def.path, message: e instanceof Error ? e.message : String(e) })

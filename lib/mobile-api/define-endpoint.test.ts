@@ -3,6 +3,8 @@ import { z } from 'zod'
 
 const { authenticate, optionalAuth } = vi.hoisted(() => ({ authenticate: vi.fn(), optionalAuth: vi.fn() }))
 vi.mock('./auth', () => ({ authenticate, optionalAuth }))
+const { runIdempotent } = vi.hoisted(() => ({ runIdempotent: vi.fn() }))
+vi.mock('./idempotency', () => ({ runIdempotent }))
 
 import { defineEndpoint } from './define-endpoint'
 import { Errors } from './errors'
@@ -14,6 +16,7 @@ const call = (ep: { handler: (r: Request) => Promise<Response> }, init?: Request
 beforeEach(() => {
   authenticate.mockReset()
   optionalAuth.mockReset()
+  runIdempotent.mockReset()
   vi.unstubAllEnvs()
 })
 
@@ -168,5 +171,63 @@ describe('defineEndpoint', () => {
     })
     const res = await call(noParams)
     expect(await res.json()).toEqual({ data: { count: 0 } })
+  })
+
+  it('requires an Idempotency-Key header on an idempotent endpoint', async () => {
+    authenticate.mockResolvedValue(ctx())
+    const idem = defineEndpoint({
+      operationId: 'postIdem', method: 'POST', path: '/idem', summary: 'i', auth: 'user', idempotent: true,
+      response: z.object({ ok: z.boolean() }), handler: async () => ({ ok: true }),
+    })
+    const res = await call(idem, { method: 'POST', body: '{}' })
+    expect(res.status).toBe(400)
+    expect((await res.json()).error.code).toBe('idempotency_key_required')
+    expect(runIdempotent).not.toHaveBeenCalled()
+  })
+
+  it('runs through runIdempotent, scoped by the concrete request path and userId', async () => {
+    authenticate.mockResolvedValue(ctx({ userId: 'u9', admin: {} }))
+    runIdempotent.mockImplementation(async (_admin, _args, run) => run())
+    const idem = defineEndpoint({
+      operationId: 'postIdem2', method: 'POST', path: '/tournaments/{id}/register', summary: 'i', auth: 'user', idempotent: true,
+      response: z.object({ ok: z.boolean() }), handler: async () => ({ ok: true }),
+    })
+    const req = new Request('https://x.test/api/mobile/v1/tournaments/t42/register', {
+      method: 'POST', body: '{}', headers: { 'content-type': 'application/json', 'idempotency-key': 'key-1' },
+    })
+    const res = await idem.handler(req)
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ data: { ok: true } })
+    expect(runIdempotent).toHaveBeenCalledWith(
+      expect.anything(),
+      { key: 'key-1', userId: 'u9', route: '/api/mobile/v1/tournaments/t42/register' },
+      expect.any(Function),
+    )
+  })
+
+  it('returns 409 idempotency_in_progress on an unresolved conflict', async () => {
+    authenticate.mockResolvedValue(ctx())
+    runIdempotent.mockResolvedValue({ conflict: true })
+    const idem = defineEndpoint({
+      operationId: 'postIdem3', method: 'POST', path: '/idem3', summary: 'i', auth: 'user', idempotent: true,
+      response: z.object({ ok: z.boolean() }), handler: async () => ({ ok: true }),
+    })
+    const res = await call(idem, { method: 'POST', body: '{}' }, { 'idempotency-key': 'k' })
+    expect(res.status).toBe(409)
+    expect((await res.json()).error.code).toBe('idempotency_in_progress')
+  })
+
+  it('replays a stored ERROR response verbatim on a replayed key, without re-running the handler', async () => {
+    authenticate.mockResolvedValue(ctx())
+    runIdempotent.mockResolvedValue({ status: 422, body: { error: { code: 'tournament_full', message: 'Full.' } } })
+    const handlerFn = vi.fn()
+    const idem = defineEndpoint({
+      operationId: 'postIdem4', method: 'POST', path: '/idem4', summary: 'i', auth: 'user', idempotent: true,
+      response: z.object({ ok: z.boolean() }), handler: handlerFn,
+    })
+    const res = await call(idem, { method: 'POST', body: '{}' }, { 'idempotency-key': 'k' })
+    expect(res.status).toBe(422)
+    expect(await res.json()).toEqual({ error: { code: 'tournament_full', message: 'Full.' } })
+    expect(handlerFn).not.toHaveBeenCalled()
   })
 })
