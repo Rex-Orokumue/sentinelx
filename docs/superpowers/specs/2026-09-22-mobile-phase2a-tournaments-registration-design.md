@@ -140,10 +140,20 @@ read/written directly by a client.
 A shared helper (alongside Phase 0B's `defineEndpoint` scaffolding), used by any T3 POST
 that declares itself idempotency-required:
 
-1. **Claim:** `INSERT ... ON CONFLICT (key, user_id, route) DO NOTHING RETURNING *`.
-   - Row returned → this request holds the claim → run the service function → `UPDATE
-     ... SET response = $1, status_code = $2, completed_at = now()` → return the
-     response.
+1. **Claim:** `INSERT ... ON CONFLICT (key, user_id, route) DO NOTHING RETURNING
+   created_at`. The returned (or observed) `created_at` is this request's **generation
+   token** — carried through to the fill step below, which is what makes the fill safe
+   against a concurrent reclaim.
+   - Row returned → this request holds the claim, generation = the `created_at` it was
+     just given → run the service function → **generation-gated fill**: `UPDATE
+     api_idempotency_keys SET response = $1, status_code = $2, completed_at = now()
+     WHERE key = $3 AND user_id = $4 AND route = $5 AND created_at = $ownedGeneration`.
+     If this returns a row, return the response normally. **If it returns zero rows,
+     this request has been superseded by a reclaim (§ below) — do not return this
+     response to the caller; log it loudly instead** (the side-effecting work already
+     happened for nothing — concretely, a live Paystack transaction now exists that
+     nothing points at — and a rising rate of this log is the signal that the staleness
+     threshold is too tight, see below).
    - No row returned → the key already exists → re-`SELECT` it and branch:
      - `completed_at IS NOT NULL` → **replay**: return the stored `response`/
        `status_code` verbatim, do not re-run the service function.
@@ -156,11 +166,27 @@ that declares itself idempotency-required:
        **reclaim** via compare-and-swap: `UPDATE api_idempotency_keys SET created_at =
        now(), response = null, completed_at = null WHERE key = $1 AND user_id = $2 AND
        route = $3 AND completed_at IS NULL AND created_at = $4 (the stale value just
-       read) RETURNING *`. A returned row means this request now owns the claim — run
-       the service function as in the first branch. Zero rows means another request
-       reclaimed it first (a rare double-reclaim race) — re-`SELECT` once more and either
-       replay a completed response or return `409 idempotency_in_progress` (client
-       retries shortly, **with the same key**, not a new one).
+       read) RETURNING created_at`. A returned row means this request now owns the
+       claim — its generation token is the **new** `created_at` just written — run the
+       service function and fill exactly as in the first branch, gated on that new
+       generation. Zero rows means another request reclaimed it first (a rare
+       double-reclaim race) — re-`SELECT` once more and either replay a completed
+       response or return `409 idempotency_in_progress` (client retries shortly, **with
+       the same key**, not a new one).
+
+**Why the generation gate matters:** without it, a slow original holder (A) can finish
+*after* a reclaiming request (B) has already completed and returned its own response to
+the caller — A's unconditional `UPDATE ... WHERE key/user_id/route` would then silently
+overwrite B's already-delivered response with A's own, stale one. Traced against the
+actual `registerForTournament` code: the write to `tournament_registrations
+.paystack_reference` happens *before* the call to `initializeTransaction`, and a reclaim
+can only occur ≥30s after the original claim — so A's registration-row write always
+lands chronologically before B's, and the live registration row itself never ends up
+pointing at a dead reference. The exposure is narrower than a double payment: it's a
+**stale cache entry** in `api_idempotency_keys` that would mislead a *future* replay of
+the same key (or a reconciliation job) into returning A's abandoned reference instead of
+the one the client actually holds and is paying through. Narrower blast radius still
+means real inconsistency — hence the gate, not a shrug.
 
 Two independent clocks, not to be conflated: the **24h TTL** (§7.2, cleanup only —
 bounds table growth and the replay window) and the **30s staleness threshold** (bounds
@@ -168,6 +194,16 @@ how long a request can sit "in progress" before another attempt is allowed to ta
 TTL cleanup reuses whatever periodic-cleanup pattern the existing
 `refund-abandoned-coin-discounts` cron already uses — an implementation-plan detail, not
 a spec-level design fork.
+
+**The 30s threshold is a provisional default, not a measured number.** No latency
+instrumentation exists around `initializeTransaction` today (checked — no
+`console.time`/timing logs in `lib/paystack/server.ts` or its callers), so there's no
+real p99 to set this against yet. Before this ships: pull `initializeTransaction`'s
+actual latency distribution from production (Paystack's own dashboard, or add timing to
+the existing `console.error` failure-path logging so success-path timing starts
+accumulating too), and **log any completion that lands within 5s of the 30s mark** —
+that log firing is the early warning that the threshold is cutting it too close, visible
+well before it starts manifesting as the generation-mismatch case above.
 
 ### 4.3 Where it's required in 2a
 
@@ -377,7 +413,12 @@ Phase 6.
 - **Idempotency proven, not just implemented:** firing an identical `POST /register`
   request twice with the same `Idempotency-Key` returns the byte-identical stored
   response the second time — verified by asserting the returned `reference` is the same
-  string both times, not merely that no error occurred.
+  string both times, not merely that no error occurred. Additionally: a request held past
+  the 30s staleness mark is reclaimed by a second request, and the *first* request's
+  late-arriving fill is provably discarded (its generation-gated `UPDATE` affects zero
+  rows) rather than silently overwriting the reclaiming request's already-delivered
+  response — this is the concurrency case §4.2's design fix addresses, and it needs its
+  own test, not just the sequential-replay case above.
 - `flutter analyze && flutter test` clean; `npx tsc --noEmit` and `npm run test` clean on
   the web side; `openapi/mobile-v1.json` regenerated (now including the 2a endpoints) and
   the mobile repo's pinned copy updated.
@@ -391,6 +432,7 @@ Phase 6.
 | Risk | Mitigation |
 |---|---|
 | `registerForTournament` extraction is the largest single service-function split so far (four completion branches, waiver/zero-fee/coin-discount/Paystack) | Existing unit tests (`actions.test.ts` if present, else added) stay the safety net per §7.1's extraction discipline; each branch gets its own contract test |
-| Idempotency claim/reclaim logic is new, shared infrastructure with a financial blast radius | Concurrency-tested explicitly in the implementation plan (two simultaneous requests, same key; one request past the 30s staleness mark) before any other 2a endpoint depends on it |
+| Idempotency claim/reclaim logic is new, shared infrastructure with a financial blast radius | Generation-gated fill (§4.2) closes the found race where a slow original holder overwrites a reclaiming request's already-delivered response; concurrency-tested explicitly in the implementation plan (two simultaneous requests, same key; one request past the 30s staleness mark, asserting the superseded one's write is discarded, not just that no error occurs) before any other 2a endpoint depends on it |
+| 30s staleness threshold is a provisional default, not measured against real `initializeTransaction` latency (§4.2 — no existing instrumentation to pull a p99 from) | Near-threshold completions (within 5s of 30s) logged from day one; threshold revisited against real production latency data before this infrastructure gets a second caller (deposit, withdraw, etc. in later phases) |
 | Dart SDK bump (§3) is a one-time but blocking prerequisite | Sequenced as the first implementation-plan task, before any codegen work |
 | `dev` flavor misconfiguration pointing at prod | Explicit exit-criteria check (§7), not assumed from "we created a staging project" |
