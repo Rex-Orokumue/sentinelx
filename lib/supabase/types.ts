@@ -130,6 +130,44 @@ export type Database = {
           },
         ]
       }
+      api_idempotency_keys: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          key: string
+          response: Json | null
+          route: string
+          status_code: number | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          key: string
+          response?: Json | null
+          route: string
+          status_code?: number | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          key?: string
+          response?: Json | null
+          route?: string
+          status_code?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_idempotency_keys_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       banned_identifiers: {
         Row: {
           created_at: string
