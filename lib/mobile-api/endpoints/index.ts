@@ -9,6 +9,7 @@ import { claimUsernameEndpoint } from './onboarding'
 import { homeEndpoint } from './home'
 import { registrationStateEndpoint, registerEndpoint, waitlistEndpoint } from './tournaments'
 import { acceptInvitationEndpoint, declineInvitationEndpoint } from './invitations'
+import { paymentStatusEndpoint } from './payments'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -29,4 +30,5 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   waitlistEndpoint,
   acceptInvitationEndpoint,
   declineInvitationEndpoint,
+  paymentStatusEndpoint,
 ]
