@@ -8,8 +8,10 @@ const { performRegisterForTournament } = vi.hoisted(() => ({ performRegisterForT
 vi.mock('@/lib/tournaments/register-service', () => ({ performRegisterForTournament }))
 const { runIdempotent } = vi.hoisted(() => ({ runIdempotent: vi.fn() }))
 vi.mock('../idempotency', () => ({ runIdempotent }))
+const { performJoinWaitlist } = vi.hoisted(() => ({ performJoinWaitlist: vi.fn() }))
+vi.mock('@/lib/tournaments/waitlist-service', () => ({ performJoinWaitlist }))
 
-import { registrationStateEndpoint, registerEndpoint } from './tournaments'
+import { registrationStateEndpoint, registerEndpoint, waitlistEndpoint } from './tournaments'
 
 describe('registrationStateEndpoint', () => {
   beforeEach(() => {
@@ -52,5 +54,18 @@ describe('registerEndpoint', () => {
     expect(res.status).toBe(400)
     expect((await res.json()).error.code).toBe('squads_not_available')
     expect(performRegisterForTournament).not.toHaveBeenCalled()
+  })
+})
+
+describe('waitlistEndpoint', () => {
+  it('maps waitlist_not_open to 409', async () => {
+    authenticate.mockResolvedValue({ userId: 'u1', admin: {}, userClient: {} })
+    performJoinWaitlist.mockResolvedValue({ ok: false, errorCode: 'waitlist_not_open' })
+    const req = new Request('https://x.test/api/mobile/v1/tournaments/t1/waitlist', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ displayName: 'Ada', whatsapp: '+2348012345678', clubName: 'FC', agreedToRules: true }),
+    })
+    const res = await waitlistEndpoint.handler(req, { params: { id: 't1' } })
+    expect(res.status).toBe(409)
   })
 })

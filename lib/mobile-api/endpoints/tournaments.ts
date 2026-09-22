@@ -5,6 +5,7 @@ import { createAnonClient } from '../anon-client'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { buildRegistrationState } from '@/lib/tournaments/registration-state-service'
 import { performRegisterForTournament, type RegisterErrorCode } from '@/lib/tournaments/register-service'
+import { performJoinWaitlist, type WaitlistErrorCode } from '@/lib/tournaments/waitlist-service'
 
 const registrationStateResponse = z.object({
   view: z.enum(['guest', 'can_register', 'complete_payment', 'registered', 'waitlisted', 'full', 'closed', 'ended', 'invitation_only']),
@@ -87,5 +88,46 @@ export const registerEndpoint = defineEndpoint({
     if (!result.ok) throw new ApiError(REGISTER_ERROR_STATUS[result.errorCode], result.errorCode, REGISTER_ERROR_MESSAGE[result.errorCode])
     if (result.status === 'confirmed') return { status: 'confirmed' as const }
     return { status: 'pending' as const, authorizationUrl: result.authorizationUrl, reference: result.reference }
+  },
+})
+
+const waitlistBody = z.object({
+  displayName: z.string().trim().min(1).max(60),
+  whatsapp: z.string().trim().regex(/^\+?[0-9]{10,15}$/),
+  clubName: z.string().trim().min(1).max(60),
+  ignTag: z.string().trim().max(60).optional(),
+  agreedToRules: z.boolean(),
+})
+const waitlistResponse = z.object({ status: z.literal('waitlisted') })
+
+const WAITLIST_ERROR_STATUS: Record<WaitlistErrorCode, number> = {
+  needs_username: 400, tournament_not_found: 404, waitlist_not_open: 409,
+  rules_agreement_required: 400, already_on_waitlist: 409, already_registered: 409, waitlist_failed: 500,
+}
+const WAITLIST_ERROR_MESSAGE: Record<WaitlistErrorCode, string> = {
+  needs_username: 'Claim a username before joining the waitlist.',
+  tournament_not_found: 'Tournament not found.',
+  waitlist_not_open: 'The waitlist is only open once registration has closed.',
+  rules_agreement_required: 'Please confirm you have read and agree to the rules.',
+  already_on_waitlist: "You're already on the waitlist.",
+  already_registered: "You're already registered for this tournament.",
+  waitlist_failed: 'Could not join the waitlist. Please try again.',
+}
+
+export const waitlistEndpoint = defineEndpoint({
+  operationId: 'postTournamentWaitlist',
+  method: 'POST',
+  path: '/tournaments/{id}/waitlist',
+  summary: 'Join the waitlist once registration has closed — no payment step.',
+  auth: 'user',
+  body: waitlistBody,
+  response: waitlistResponse,
+  handler: async ({ ctx, body, params }) => {
+    const result = await performJoinWaitlist(ctx.userClient, ctx.admin, ctx.userId, params.id, {
+      displayName: body.displayName, whatsapp: body.whatsapp, clubName: body.clubName,
+      ignTag: body.ignTag ?? null, agreedToRules: body.agreedToRules,
+    })
+    if (!result.ok) throw new ApiError(WAITLIST_ERROR_STATUS[result.errorCode], result.errorCode, WAITLIST_ERROR_MESSAGE[result.errorCode])
+    return { status: 'waitlisted' as const }
   },
 })
