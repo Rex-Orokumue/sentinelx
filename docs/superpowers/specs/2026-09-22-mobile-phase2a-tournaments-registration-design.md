@@ -54,6 +54,23 @@ directly against both projects (not inferred):
 
 No re-baseline needed. Staging is fit to develop Phase 2 write-path work against as-is.
 
+**Process gotcha worth recording, not just the result:** the replay's first pass read
+migrations from this working directory's checked-out branch — which, independently
+confirmed earlier in this same investigation, was missing the two newest files on trunk
+(`20260918200000_lock_down_profiles_and_write_paths.sql`,
+`20260918210000_fcm_tokens_platform.sql`) because the branch was stale relative to
+`origin/main`. Replaying a stale local migrations folder reproduced the pre-fix, S1-S3-
+vulnerable policy set on staging — a false PASS if "did it apply without error" were the
+only check, since a stale-but-internally-consistent migration set replays cleanly. The
+table/column/policy-count **diff against live production** (not just "did the replay
+error") is what caught it; refetching from `origin/main` and reapplying produced the
+verified-matching state in the table above. **Lesson for any future replay of this
+staging project:** always build the migration set from `origin/main` (or an explicit
+`git fetch` + diff first), never from whatever a working directory happens to have
+checked out — this repo carries many long-lived local branches and worktrees
+(`git worktree list`), and "my checkout is behind trunk" is a recurring, documented risk
+here, not a one-off.
+
 **Flavor wiring (new exit-criteria item, §7):** the mobile repo's `dev` flavor must
 resolve to `ofxmoxpvwbemfouaowoa`, not the hard-coded production URL left over from the
 original vertical slice (master spec §11). This is a one-line config check, not a code
