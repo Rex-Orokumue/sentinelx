@@ -144,4 +144,29 @@ describe('defineEndpoint', () => {
     })
     expect((await call(cached)).headers.get('cache-control')).toBe('public, s-maxage=60')
   })
+
+  it('passes route params through to the handler', async () => {
+    authenticate.mockResolvedValue(ctx())
+    const withParams = defineEndpoint({
+      operationId: 'getWithId', method: 'GET', path: '/things/{id}', summary: 't', auth: 'user',
+      response: z.object({ id: z.string() }),
+      handler: async ({ params }) => ({ id: params.id }),
+    })
+    const res = await withParams.handler(
+      new Request('https://x.test/api/mobile/v1/things/abc', { headers: { 'content-type': 'application/json' } }),
+      { params: { id: 'abc' } },
+    )
+    expect(await res.json()).toEqual({ data: { id: 'abc' } })
+  })
+
+  it('defaults params to an empty object when no context is passed (static routes)', async () => {
+    authenticate.mockResolvedValue(ctx())
+    const noParams = defineEndpoint({
+      operationId: 'getNoParams', method: 'GET', path: '/things', summary: 't', auth: 'user',
+      response: z.object({ count: z.number() }),
+      handler: async ({ params }) => ({ count: Object.keys(params).length }),
+    })
+    const res = await call(noParams)
+    expect(await res.json()).toEqual({ data: { count: 0 } })
+  })
 })

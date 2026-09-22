@@ -17,7 +17,7 @@ export interface EndpointMeta {
 
 export interface Endpoint {
   meta: EndpointMeta
-  handler: (req: Request) => Promise<Response>
+  handler: (req: Request, context?: { params: Record<string, string> }) => Promise<Response>
 }
 
 const HEADERS = { 'x-api-version': '1' }
@@ -57,6 +57,7 @@ export function defineEndpoint<
     ctx: A extends 'public' ? MobileCtx | null : MobileCtx
     body: z.infer<TBody>
     req: Request
+    params: Record<string, string>
   }) => Promise<z.infer<TRes>>
 }): Endpoint {
   const meta: EndpointMeta = {
@@ -69,7 +70,7 @@ export function defineEndpoint<
     response: def.response,
   }
 
-  async function handler(req: Request): Promise<Response> {
+  async function handler(req: Request, context?: { params: Record<string, string> }): Promise<Response> {
     try {
       const appVersion = req.headers.get('x-app-version')
       const min = process.env.MOBILE_MIN_APP_VERSION ?? '0.0.0'
@@ -95,7 +96,7 @@ export function defineEndpoint<
         body = parsed.data
       }
 
-      const result = await def.handler({ ctx: ctx as never, body: body as never, req })
+      const result = await def.handler({ ctx: ctx as never, body: body as never, req, params: context?.params ?? {} })
       // Enforces the published contract at runtime: a drifting handler 500s in dev/CI, not in a user's hand.
       const data = def.response.parse(result)
       return json(200, { data }, def.cacheControl)
