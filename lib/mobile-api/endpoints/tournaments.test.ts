@@ -4,8 +4,12 @@ const { authenticate, optionalAuth } = vi.hoisted(() => ({ authenticate: vi.fn()
 vi.mock('../auth', () => ({ authenticate, optionalAuth }))
 const { buildRegistrationState } = vi.hoisted(() => ({ buildRegistrationState: vi.fn() }))
 vi.mock('@/lib/tournaments/registration-state-service', () => ({ buildRegistrationState }))
+const { performRegisterForTournament } = vi.hoisted(() => ({ performRegisterForTournament: vi.fn() }))
+vi.mock('@/lib/tournaments/register-service', () => ({ performRegisterForTournament }))
+const { runIdempotent } = vi.hoisted(() => ({ runIdempotent: vi.fn() }))
+vi.mock('../idempotency', () => ({ runIdempotent }))
 
-import { registrationStateEndpoint } from './tournaments'
+import { registrationStateEndpoint, registerEndpoint } from './tournaments'
 
 describe('registrationStateEndpoint', () => {
   beforeEach(() => {
@@ -33,5 +37,20 @@ describe('registrationStateEndpoint', () => {
       { params: { id: 'missing' } },
     )
     expect(res.status).toBe(404)
+  })
+})
+
+describe('registerEndpoint', () => {
+  it('rejects a non-null squadId at the route level before calling the service', async () => {
+    authenticate.mockResolvedValue({ userId: 'u1', admin: {}, userClient: {} })
+    runIdempotent.mockImplementation(async (_admin, _args, run) => run())
+    const req = new Request('https://x.test/api/mobile/v1/tournaments/t1/register', {
+      method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': 'k1' },
+      body: JSON.stringify({ displayName: 'Ada', whatsapp: '+2348012345678', clubName: 'FC', agreedToRules: true, coinsUsed: 0, squadId: 'sq1' }),
+    })
+    const res = await registerEndpoint.handler(req, { params: { id: 't1' } })
+    expect(res.status).toBe(400)
+    expect((await res.json()).error.code).toBe('squads_not_available')
+    expect(performRegisterForTournament).not.toHaveBeenCalled()
   })
 })

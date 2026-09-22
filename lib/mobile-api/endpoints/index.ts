@@ -7,7 +7,7 @@ import { sessionStartEndpoint } from './session'
 import { signupEndpoint, resendConfirmationEndpoint, requestResetEndpoint } from './auth'
 import { claimUsernameEndpoint } from './onboarding'
 import { homeEndpoint } from './home'
-import { registrationStateEndpoint } from './tournaments'
+import { registrationStateEndpoint, registerEndpoint } from './tournaments'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -24,4 +24,5 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   claimUsernameEndpoint,
   homeEndpoint,
   registrationStateEndpoint,
+  registerEndpoint,
 ]
