@@ -106,7 +106,6 @@ PostgREST reads, unchanged from 2a's §5.8 pattern. `GET /payments/{reference}` 
 | Endpoint | Tier | Source | `Idempotency-Key`? |
 |---|---|---|---|
 | `POST /squads` | T3 | `createSquad` (`lib/tournaments/squad-actions.ts`) | **Required** — creates a squad + invite code; a retry must not create two |
-| `POST /squads/{id}/members/remove`, `/members/move` | T3 | `removeSquadMember`, `moveSquadMember` | Not required — naturally idempotent, same class as the existing admin `movePlayerToGroup` precedent (also has none) |
 | `POST /matches/{id}/check-in` | T3 | `checkInToMatch` (`lib/matches/check-in-actions.ts`) | Not required — a one-time flag flip, re-tapping an already-checked-in state is a harmless no-op |
 | `POST /matches/{id}/result` | T3 | `submitMatchResult` (`lib/matches/actions.ts`) | **Required** — a flaky-network double-submit must not create two competing pending results |
 | `POST /matches/{id}/rating` | T3 | **New** — `lib/scoring/opponent-rating-service.ts` (§6) | **Required** — writes an `sx_score_events` row; a retry must not double-award/double-penalize |
@@ -116,13 +115,22 @@ PostgREST reads, unchanged from 2a's §5.8 pattern. `GET /payments/{reference}` 
 All "Required" rows reuse 2a's `api_idempotency_keys` claim/fill/reclaim primitive as-is — no new
 idempotency infrastructure this phase, purely new callers of it.
 
-**Extraction work:** `createSquad`, `removeSquadMember`, `moveSquadMember`, `checkInToMatch`,
-`submitMatchResult`, `placeWager`, and `submitLobbyResult` are all currently FormData-based Server
-Actions (`(_prev, formData: FormData)` signature — confirmed by reading each file). Each needs the
-same treatment `registerForTournament` got in 2a: the FormData parsing stays in the existing Server
-Action, the actual logic moves into a plain function both the action and the new route call. Seven
-extractions across three domains (tournaments/squads, matches, wagers) — the largest surface area
-of any phase so far (2a had five, all in one domain).
+**Extraction work:** `createSquad`, `checkInToMatch`, `submitMatchResult`, `placeWager`, and
+`submitLobbyResult` are all currently FormData-based Server Actions (`(_prev, formData: FormData)`
+signature — confirmed by reading each file). Each needs the same treatment `registerForTournament`
+got in 2a: the FormData parsing stays in the existing Server Action, the actual logic moves into a
+plain function both the action and the new route call. Five extractions across three domains
+(tournaments/squads, matches, wagers) — comparable surface area to 2a (five extractions, one
+domain).
+
+**Correction made while writing the implementation plan:** the earlier draft (and an earlier
+version of this spec) listed `POST /squads/{id}/members/remove` and `/members/move` here, sourced
+from `removeSquadMember`/`moveSquadMember`. Both call `requireAdmin()` — they're staff roster-editing
+tools (the mobile equivalent of the admin bracket page's `movePlayerToGroup`), not player
+self-service. The master spec's own phase table puts squad *management* tooling under **Phase 8b —
+Admin tournament builders**, separate from Phase 2's player-facing Compete Core. Dropped from this
+phase entirely; `createSquad` and `lookupSquadByCode` (§4) are the only squad endpoints here, and
+both are genuinely self-serve.
 
 **Rule carried forward unchanged (CLAUDE.md rule 5, 2a's own §6 note):** none of these writes
 advance a bracket, group table, or standings themselves. `submitMatchResult`/`submitLobbyResult`
@@ -186,8 +194,8 @@ own registration contract rather than bolt them on awkwardly later.
 - Vercel preview env verified pointed at `sentinelx-staging`, not production (§2) — a config check,
   done before any write-path testing begins.
 - Full loop proven on staging: register (2a) → admin publishes bracket → check-in → submit result
-  → admin confirms → standings/bracket update → rate opponent. Squad create/lookup/member-move and
-  wager placement each exercised at least once.
+  → admin confirms → standings/bracket update → rate opponent. Squad create/lookup and wager
+  placement each exercised at least once.
 - **Idempotency proven, not just implemented,** on `result`, `rating`, `wager`, `lobby result`,
   `squad create`: the sequential-replay case (identical request twice, same key, byte-identical
   stored response both times) **and** the concurrent-reclaim case (a request held past the 30s
@@ -205,7 +213,7 @@ own registration contract rather than bolt them on awkwardly later.
 
 | Risk | Mitigation |
 |---|---|
-| Seven FormData-action extractions across three domains (tournaments/squads, matches, wagers) — largest surface area of any phase so far | Same per-action extraction discipline as `registerForTournament` (2a §5.3): existing tests stay the safety net, each branch gets its own contract test |
+| Five FormData-action extractions across three domains (tournaments/squads, matches, wagers) | Same per-action extraction discipline as `registerForTournament` (2a §5.3): existing tests stay the safety net, each branch gets its own contract test |
 | Opponent rating is genuinely new logic, not extracted from anything proven in production | Unit tests on `submitOpponentRating` covering all 5 star values, the 3★-no-event case, and `already_rated`, before wiring the endpoint |
 | Vercel preview env pointed at staging is new infra this phase adds — 2a's spec didn't include it, so this is an undocumented gap being closed now, not a known-working setup being reused | Explicit verification step before any write-path testing, not assumed from "the branch-scoped vars were set" |
 | `Match Centre` composes four separate source modules (participant, check-in, wager market, no-show) into one response — the widest single-endpoint composition this phase | Each source module already has its own tests; the composition itself gets a contract test asserting the combined shape, not just that each piece individually works |
