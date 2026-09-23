@@ -72,15 +72,17 @@ a route under `app/api/mobile/v1/**`.
 
 | Endpoint | Params | Returns | Cache |
 |---|---|---|---|
-| `GET /rankings` | `game` (slug), `region`, `page` | rows (rank, trend, streak, player card, wins/score/goals per scope), `viewerRow` when signed in and off-page, `games[]` + `regions[]` (filter chips, only games with a completed match), platform stats, page info | `public, s-maxage=60, stale-while-revalidate=300` (varies by bearer only for `viewerRow` — see below) |
+| `GET /rankings` | `game` (slug), `region`, `page` | rows (rank, trend, streak, player card, wins/score/goals per scope), `games[]` + `regions[]` (filter chips, only games with a completed match), platform stats, headline highlights (top streak/score/titles/win rate), page info. **Never viewer-specific.** | `public, s-maxage=60, stale-while-revalidate=300` |
+| `GET /rankings/me` | `game`, `region` | the signed-in viewer's own ranked row in that scope, or `null` if not ranked. `auth: 'user'`. | `no-store` |
 | `GET /seasons` | — | seasons list (id, slug, name, dates) | `s-maxage=300` |
-| `GET /seasons/{slug}` | — | per-game sections: tournaments, leaderboard, tier labels; viewer invitation state when signed in | `s-maxage=60` |
+| `GET /seasons/{slug}` | — | per-game sections: tournaments, leaderboard (with `isProvisional`), tier labels. **Never viewer-specific** — the web page only highlights the viewer's own row client-side (`currentUserId`); the app does the same by comparing `playerId` to its own `/me` id. There is no invitation state on the web seasons page; invitations already have their own 2a endpoints. | `s-maxage=60` |
 | `GET /hall-of-fame` | — | champions, MVP, Golden Boot, per-category and per-game awards, tournament results | `s-maxage=300` |
 
 Rules:
-- **Viewer-specific data and caching:** `viewerRow` (rankings) and invitation state (seasons) depend on the caller.
-  Either return them from a separate authenticated call, or send `Vary: Authorization` / `private` when a bearer is
-  present — do **not** let a shared cache serve one viewer's row to another. The plan must pick one and test it.
+- **Viewer-specific data and caching (decided):** the only viewer-dependent datum is the pinned "your row" on
+  rankings. It is served by the separate `GET /rankings/me` (`auth: 'user'`, `no-store`), so every cacheable
+  endpoint is purely public and identical for everyone. `GET /rankings` therefore must not read the bearer at all —
+  a test asserts the response is byte-identical with and without an `Authorization` header.
 - **Rank semantics preserved:** region and game filters narrow who is ranked, so ranks reflect the board shown (as on
   web). Default board ranks by score; a game board ranks by wins — do not "improve" this.
 - **Profiles:** select only allow-listed columns (CLAUDE.md rule 10); never `select('*')` on `profiles`. Deleted /
@@ -107,13 +109,16 @@ Rules:
 
 ## 4. Flutter work
 
-New feature folders `lib/features/{rankings,seasons,hall_of_fame}/`, Riverpod providers beside each feature, generated
-API client from `openapi/mobile-v1.json`. Screens are `ConsumerWidget`s and never build a repository/API client
+New feature folders `lib/features/{rankings,seasons,hall_of_fame}/`, Riverpod providers beside each feature. The API
+client is **hand-written** (`lib/core/api/api_client.dart` + models with `fromJson`); every new method must be listed in
+`ApiClient.usedOperations`, which `test/core/api_contract_test.dart` checks against `api/openapi.json` (a copy of the
+web repo's `openapi/mobile-v1.json` — refresh it from the web repo, never edit it by hand). Screens are `ConsumerWidget`s and never build a repository/API client
 themselves. Mobile-first at 375px.
 
 - **Rankings:** category + game chips, region filter, paginated list, rank-trend arrows, streak flair, pinned "you"
   row when signed in and off-page. Gamey-stat styling per the design concept (tier color, oversized rank number).
-- **Seasons:** season picker, per-game tabs, standings, tournament list, tier labels from the API, invitation state.
+- **Seasons:** season picker, per-game tabs, standings (own row highlighted by comparing `playerId` to `/me`),
+  tournament list, tier labels from the API, provisional-points marker.
 - **Hall of Fame:** champions and award cards, per-game/category awards, tournament results.
 - **Copy:** never hard-coded. Add strings to web `messages/en.json` first, then run `tool/gen_l10n_from_web.dart`,
   then `flutter gen-l10n`; commit generated output.
@@ -132,7 +137,9 @@ Both repos have hotspots the 2b session also edits. Codex must:
 - Work only in its own git worktree/branch per repo; never in the primary checkout.
 - Prefer new files over edits to shared ones. Hotspots: `openapi/mobile-v1.json` (regenerate **last**, after rebasing
   onto current `main`), `lib/mobile-api/endpoints/index.ts`, mobile `lib/router/app_router.dart`, ARB/l10n outputs,
-  `lib/supabase/types.ts` (regenerate, don't hand-merge).
+  `lib/supabase/types.ts` (regenerate, don't hand-merge). Mobile-side hotspots: `lib/core/api/api_client.dart`
+  (`usedOperations` map + methods — keep the edit to appended lines), `api/openapi.json`. Put new models in a new
+  file `lib/core/api/progress_models.dart`, not in `models.dart`.
 - Rebase onto `main` and re-run all checks before merge; resolve `openapi/mobile-v1.json` by regenerating, not
   merging text.
 - New migrations, if any become necessary, use a UTC timestamp prefix. None are expected.
@@ -165,11 +172,10 @@ Both repos have hotspots the 2b session also edits. Codex must:
 - **Extraction regression on web.** Mitigated by characterization tests written first and a behavior-neutral PR that
   ships alone.
 - **Column exposure on the admin-client season path** — §3; exact-key-set tests are the only backstop.
-- **Shared-cache leakage of viewer rows** — §3 rule; must have a test.
+- **Shared-cache leakage of viewer rows** — removed by construction (`/rankings/me` is separate); the
+  byte-identical-with-and-without-bearer test guards it.
 - **Merge friction with 2b** — §5.
 
 ## 8. Open items not resolved by this spec
 
-- Whether `viewerRow` is a separate authenticated call or `private`/`Vary` on the main one (plan decides; both are
-  acceptable if tested).
 - `RANKING_MIN_MATCHES` and the 200-row profile cap are inherited as-is; revisiting them is out of scope.
