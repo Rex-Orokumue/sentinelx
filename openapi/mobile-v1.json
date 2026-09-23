@@ -1997,6 +1997,78 @@
         }
       }
     },
+    "/api/mobile/v1/squads/lookup": {
+      "get": {
+        "operationId": "getSquadLookup",
+        "summary": "Preview a squad by its invite code before committing to join it.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "squad": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "memberCount": {
+                              "type": "number"
+                            },
+                            "teamSize": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "memberCount",
+                            "teamSize"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "squad"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/tournaments/{id}/bracket": {
       "get": {
         "operationId": "getTournamentBracket",

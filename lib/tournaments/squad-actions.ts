@@ -6,6 +6,7 @@ import { requireAdmin } from '@/lib/admin/auth'
 import { squadNameSchema, inviteCodeSchema } from './squad-schema'
 import { maybeCompleteSquad } from './squad-membership'
 import { performCreateSquad, type CreateSquadErrorCode } from './create-squad-service'
+import { performLookupSquad, type LookupSquadErrorCode } from './lookup-squad-service'
 
 export type CreateSquadState = { error?: string; squadId?: string; inviteCode?: string } | undefined
 
@@ -47,6 +48,13 @@ export type SquadLookupState =
   | { error?: string; squad?: { id: string; name: string; memberCount: number; teamSize: number } }
   | undefined
 
+const LOOKUP_SQUAD_MESSAGE: Record<LookupSquadErrorCode, string> = {
+  tournament_not_found: 'Tournament not found.',
+  squad_not_found: 'No squad found for that code.',
+  not_accepting_members: 'That squad is no longer accepting members.',
+  squad_full: 'That squad is already full.',
+}
+
 // Read-only preview before the player commits to registering — the UI shows
 // "You're joining: <name> (n/size)" before the payment step.
 export async function lookupSquadByCode(_prev: SquadLookupState, formData: FormData): Promise<SquadLookupState> {
@@ -55,22 +63,10 @@ export async function lookupSquadByCode(_prev: SquadLookupState, formData: FormD
   if (!tournamentId) return { error: 'Missing tournament.' }
   if (!parsedCode.success) return { error: 'Enter a valid invite code.' }
 
-  const supabase = createClient()
-  const { data: tournament } = await supabase.from('tournaments').select('squad_size').eq('id', tournamentId).maybeSingle()
-  if (!tournament?.squad_size) return { error: 'Tournament not found.' }
+  const result = await performLookupSquad(createClient(), { tournamentId, code: parsedCode.data })
+  if (!result.ok) return { error: LOOKUP_SQUAD_MESSAGE[result.errorCode] }
 
-  const { data: squad } = await supabase
-    .from('squads')
-    .select('id, name, tournament_id, status')
-    .eq('invite_code', parsedCode.data)
-    .maybeSingle()
-  if (!squad || squad.tournament_id !== tournamentId) return { error: 'No squad found for that code.' }
-  if (squad.status !== 'forming') return { error: 'That squad is no longer accepting members.' }
-
-  const { count } = await supabase.from('squad_members').select('*', { count: 'exact', head: true }).eq('squad_id', squad.id)
-  if ((count ?? 0) >= tournament.squad_size) return { error: 'That squad is already full.' }
-
-  return { squad: { id: squad.id, name: squad.name, memberCount: count ?? 0, teamSize: tournament.squad_size } }
+  return { squad: result.squad }
 }
 
 export type SquadMoveState = { error?: string; success?: boolean } | undefined

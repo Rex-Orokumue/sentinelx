@@ -13,7 +13,7 @@ import { paymentStatusEndpoint } from './payments'
 import { bracketEndpoint } from './bracket'
 import { standingsEndpoint } from './standings'
 import { resultsEndpoint } from './results'
-import { createSquadEndpoint } from './squads'
+import { createSquadEndpoint, lookupSquadEndpoint } from './squads'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -39,4 +39,5 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   standingsEndpoint,
   resultsEndpoint,
   createSquadEndpoint,
+  lookupSquadEndpoint,
 ]
