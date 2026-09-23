@@ -3074,6 +3074,122 @@
         }
       }
     },
+    "/api/mobile/v1/tournaments/{id}/standings": {
+      "get": {
+        "operationId": "getTournamentStandings",
+        "summary": "Points-race stage standings (round-robin/BR). Group standings live in GET /tournaments/{id}/bracket instead.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "rows": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "entrantId": {
+                                "type": "string"
+                              },
+                              "displayName": {
+                                "type": "string"
+                              },
+                              "played": {
+                                "type": "number"
+                              },
+                              "totalPoints": {
+                                "type": "number"
+                              },
+                              "totalKills": {
+                                "type": "number"
+                              },
+                              "bestPlacement": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "lastRoundPlacement": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "rank": {
+                                "type": "number"
+                              },
+                              "advancing": {
+                                "type": "boolean"
+                              },
+                              "unresolvedTieWith": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "required": [
+                              "entrantId",
+                              "displayName",
+                              "played",
+                              "totalPoints",
+                              "totalKills",
+                              "bestPlacement",
+                              "lastRoundPlacement",
+                              "rank",
+                              "advancing",
+                              "unresolvedTieWith"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "rows"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/tournaments/{id}/waitlist": {
       "post": {
         "operationId": "postTournamentWaitlist",
