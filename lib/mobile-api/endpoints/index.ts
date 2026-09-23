@@ -12,6 +12,7 @@ import { acceptInvitationEndpoint, declineInvitationEndpoint } from './invitatio
 import { paymentStatusEndpoint } from './payments'
 import { bracketEndpoint } from './bracket'
 import { standingsEndpoint } from './standings'
+import { resultsEndpoint } from './results'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -35,4 +36,5 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   paymentStatusEndpoint,
   bracketEndpoint,
   standingsEndpoint,
+  resultsEndpoint,
 ]
