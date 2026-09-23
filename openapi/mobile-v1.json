@@ -1913,6 +1913,90 @@
         }
       }
     },
+    "/api/mobile/v1/squads": {
+      "post": {
+        "operationId": "postSquads",
+        "summary": "Create a squad for a squad-entry tournament and receive its invite code.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tournamentId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 30
+                  }
+                },
+                "required": [
+                  "tournamentId",
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "squadId": {
+                          "type": "string"
+                        },
+                        "inviteCode": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "squadId",
+                        "inviteCode"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/tournaments/{id}/bracket": {
       "get": {
         "operationId": "getTournamentBracket",

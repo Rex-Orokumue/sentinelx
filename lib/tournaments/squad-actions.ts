@@ -4,9 +4,21 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin/auth'
 import { squadNameSchema, inviteCodeSchema } from './squad-schema'
-import { uniqueInviteCode, maybeCompleteSquad } from './squad-membership'
+import { maybeCompleteSquad } from './squad-membership'
+import { performCreateSquad, type CreateSquadErrorCode } from './create-squad-service'
 
 export type CreateSquadState = { error?: string; squadId?: string; inviteCode?: string } | undefined
+
+const CREATE_SQUAD_MESSAGE: Record<CreateSquadErrorCode, string> = {
+  no_username: 'Claim a username before creating a squad.',
+  tournament_not_found: 'Tournament not found.',
+  not_squad_tournament: 'This tournament does not use squads.',
+  registration_closed: 'Registration is not open.',
+  already_in_squad: "You're already in a squad for this tournament.",
+  invite_code_failed: 'Could not create a squad. Please try again.',
+  name_taken: 'A squad with that name already exists in this tournament.',
+  create_failed: 'Could not create the squad. Please try again.',
+}
 
 // Self-serve squad creation (spec §5.1). Only creates the squad row — the
 // captain still registers (and pays) through the ordinary
@@ -24,54 +36,11 @@ export async function createSquad(_prev: CreateSquadState, formData: FormData): 
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to create a squad.' }
 
-  const { data: profile } = await supabase.from('profiles').select('username').eq('id', user.id).maybeSingle()
-  if (!profile?.username) return { error: 'Claim a username before creating a squad.' }
-
-  const { data: tournament } = await supabase
-    .from('tournaments')
-    .select('id, status, entry_unit')
-    .eq('id', tournamentId)
-    .maybeSingle()
-  if (!tournament) return { error: 'Tournament not found.' }
-  if (tournament.entry_unit !== 'squad') return { error: 'This tournament does not use squads.' }
-  if (tournament.status !== 'registration_open') return { error: 'Registration is not open.' }
-
-  const { data: existingMembership } = await supabase
-    .from('squad_members')
-    .select('id')
-    .eq('tournament_id', tournamentId)
-    .eq('player_id', user.id)
-    .maybeSingle()
-  if (existingMembership) return { error: "You're already in a squad for this tournament." }
-
-  const admin = createAdminClient()
-  let inviteCode: string
-  try {
-    inviteCode = await uniqueInviteCode(admin)
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Could not create a squad. Please try again.' }
-  }
-
-  const { data: squad, error } = await admin
-    .from('squads')
-    .insert({
-      tournament_id: tournamentId,
-      name: parsedName.data,
-      captain_id: user.id,
-      invite_code: inviteCode,
-      status: 'forming',
-    })
-    .select('id, invite_code')
-    .single()
-  if (error || !squad) {
-    // squads_name_per_tournament_uniq — the one collision worth a friendly message.
-    return {
-      error: error?.code === '23505' ? 'A squad with that name already exists in this tournament.' : 'Could not create the squad. Please try again.',
-    }
-  }
+  const result = await performCreateSquad(supabase, createAdminClient(), user.id, { tournamentId, name: parsedName.data })
+  if (!result.ok) return { error: CREATE_SQUAD_MESSAGE[result.errorCode] }
 
   revalidatePath(`/tournaments`)
-  return { squadId: squad.id, inviteCode: squad.invite_code }
+  return { squadId: result.squadId, inviteCode: result.inviteCode }
 }
 
 export type SquadLookupState =
