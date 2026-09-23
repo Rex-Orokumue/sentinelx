@@ -85,7 +85,20 @@ Rules:
   web). Default board ranks by score; a game board ranks by wins — do not "improve" this.
 - **Profiles:** select only allow-listed columns (CLAUDE.md rule 10); never `select('*')` on `profiles`. Deleted /
   anonymised accounts render as tombstones, never crash.
-- **Service role** is used only where the web page already uses it (seasons), never widened.
+- **Service role** is used only where the web page already uses it (seasons), never widened. See the dedicated risk
+  below — this is not a routine bullet.
+- **Highest-risk item in 3a — season endpoints run on the admin client with no RLS backstop.** Every query in
+  `getSeasonLeaderboard` / `getMonthlyLeaderboard` (`lib/seasons/data.ts`) uses the service role: `profiles`,
+  `tournaments`, `matches`, `tournament_registrations`, `season_ranking_points`, `season_noshow_penalties`. Rankings
+  and hall of fame run on the RLS-scoped client, so a sloppy select there is caught structurally; here **nothing
+  catches it except the code and its tests**. Today it is safe because someone was careful (`profiles` is selected as
+  `id, username, display_name, avatar_url, sx_score`; the returned row is `SeasonLeaderboardRow`). The extraction and
+  the endpoint response mapper must:
+  - keep every select an explicit column list (never `*`, never a wider join), and map rows into an explicit
+    response object rather than spreading a query result;
+  - never pass query rows straight into the JSON response — only the mapped, schema-validated shape leaves the
+    handler (the `defineEndpoint()` zod `response` schema must be `.strict()` or otherwise reject extra keys);
+  - not read or return anything from `tournament_registrations`/`matches` beyond what the leaderboard math needs.
 - Run `npm run openapi` **last** and commit `openapi/mobile-v1.json` (the Flutter repo builds against it). Run
   `npm run lint` and `npm run build` before pushing, not only `tsc --noEmit`.
 - `SITE_URL` fallback etc. unchanged; no new env vars.
@@ -134,6 +147,11 @@ Both repos have hotspots the 2b session also edits. Codex must:
 
 1. PR 1: characterization tests green before *and* after the move; cost baseline recorded; web pages visually
    unchanged.
+   **The season-leaderboard characterization test must assert the exact key set of every returned row**
+   (`Object.keys(row).sort()` equals `playerId, username, displayName, avatarUrl, sxScore, points, isProvisional`),
+   not just spot-check values. `expect(row.sxScore).toBe(1234)` still passes if an extra field rides along in the same
+   object; on the admin client RLS won't catch that, so the test must. Add the same exact-key-set assertion at the
+   endpoint layer for `/seasons/{slug}` (and for the rankings/hall-of-fame player cards, cheaply).
 2. PR 2: unit tests per endpoint (params, filters, pagination, tombstones, viewer vs anonymous, cache headers);
    `npm run lint`, `npm run build`, `npm run openapi` clean.
 3. Flutter: `flutter analyze` / `flutter test` clean; run on a device/emulator against staging.
@@ -146,6 +164,7 @@ Both repos have hotspots the 2b session also edits. Codex must:
   Optimization is a separate, later, provable decision.
 - **Extraction regression on web.** Mitigated by characterization tests written first and a behavior-neutral PR that
   ships alone.
+- **Column exposure on the admin-client season path** — §3; exact-key-set tests are the only backstop.
 - **Shared-cache leakage of viewer rows** — §3 rule; must have a test.
 - **Merge friction with 2b** — §5.
 
