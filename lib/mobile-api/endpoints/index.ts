@@ -14,6 +14,7 @@ import { bracketEndpoint } from './bracket'
 import { standingsEndpoint } from './standings'
 import { resultsEndpoint } from './results'
 import { createSquadEndpoint, lookupSquadEndpoint } from './squads'
+import { matchCentreEndpoint } from './match-centre'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -40,4 +41,5 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   resultsEndpoint,
   createSquadEndpoint,
   lookupSquadEndpoint,
+  matchCentreEndpoint,
 ]

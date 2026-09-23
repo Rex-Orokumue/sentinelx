@@ -1352,6 +1352,183 @@
         }
       }
     },
+    "/api/mobile/v1/matches/{id}/centre": {
+      "get": {
+        "operationId": "getMatchCentre",
+        "summary": "Composed Match Centre view: participation, check-in state, wager pools/window, no-show eligibility.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "matchId": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "scheduledAt": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "isFullDay": {
+                          "type": "boolean"
+                        },
+                        "isParticipant": {
+                          "type": "boolean"
+                        },
+                        "canCheckIn": {
+                          "type": "boolean"
+                        },
+                        "checkedInPlayerIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "checkInVerdict": {
+                          "type": "string",
+                          "enum": [
+                            "both",
+                            "one",
+                            "none"
+                          ]
+                        },
+                        "soleAttendeeId": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "wager": {
+                          "type": "object",
+                          "properties": {
+                            "windowOpen": {
+                              "type": "boolean"
+                            },
+                            "pools": {
+                              "type": "object",
+                              "properties": {
+                                "playerA": {
+                                  "type": "number"
+                                },
+                                "playerB": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "playerA",
+                                "playerB"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "feeRate": {
+                              "type": "number"
+                            },
+                            "minStake": {
+                              "type": "number"
+                            },
+                            "maxStake": {
+                              "type": "number"
+                            },
+                            "myPickPlayerId": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "myStakeCoins": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "estimatedPayoutIfIStakeA100": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "windowOpen",
+                            "pools",
+                            "feeRate",
+                            "minStake",
+                            "maxStake",
+                            "myPickPlayerId",
+                            "myStakeCoins",
+                            "estimatedPayoutIfIStakeA100"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "noShowEligible": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "matchId",
+                        "status",
+                        "scheduledAt",
+                        "isFullDay",
+                        "isParticipant",
+                        "canCheckIn",
+                        "checkedInPlayerIds",
+                        "checkInVerdict",
+                        "soleAttendeeId",
+                        "wager",
+                        "noShowEligible"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/me": {
       "get": {
         "operationId": "getMe",
