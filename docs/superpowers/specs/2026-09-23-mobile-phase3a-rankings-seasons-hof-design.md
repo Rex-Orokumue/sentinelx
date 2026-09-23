@@ -18,7 +18,8 @@ Does **not** depend on Phase 2a/2b endpoints.
 
 **Exit criterion:** for a sample of 10 players (rankings) and 1 season (all its games), the values shown in the app
 match the web page exactly — rank, wins, SX Score, trend, streak, season points, awards. Verified on staging data and
-recorded in the PR description.
+recorded in the PR description. (Rank is compared as the *global* rank — see the decision in §8 about the web's
+page-local re-rank.)
 
 **In scope:** `/rankings`, `/seasons`, `/seasons/{slug}`, `/hall-of-fame` read endpoints; Flutter screens for each;
 behavior-neutral extraction of the web pages' inline aggregation into services.
@@ -120,12 +121,18 @@ themselves. Mobile-first at 375px.
 - **Seasons:** season picker, per-game tabs, standings (own row highlighted by comparing `playerId` to `/me`),
   tournament list, tier labels from the API, provisional-points marker.
 - **Hall of Fame:** champions and award cards, per-game/category awards, tournament results.
-- **Copy:** never hard-coded. Add strings to web `messages/en.json` first, then run `tool/gen_l10n_from_web.dart`,
-  then `flutter gen-l10n`; commit generated output.
-- **Placement (decided):** a **Rankings** entry under the Compete tab (Hall of Fame and Seasons reachable from it and
-  from Home's leaderboard/hall-of-fame teasers). The 5-tab shell is not changed. Routes: `/rankings`, `/seasons`,
-  `/seasons/:slug`, `/hall-of-fame`; `resolveWebLink()` maps the same web paths to them. Add routes in new files with a
-  minimal edit to `lib/router/app_router.dart`.
+- **Copy:** never hard-coded in widgets. The web has **no i18n namespace for these three pages** (verified
+  2026-09-23: `messages/en.json` holds only the nav labels; the page copy is hard-coded English in the JSX), so the
+  "add to web `messages/en.json` first" rule cannot apply here. Add the new keys directly to the template
+  `lib/core/l10n/app_en.arb`, run `flutter gen-l10n`, commit the generated output, never edit `gen/*` by hand.
+- **Placement (decided, revised 2026-09-23 after reading the router):** the routes `/rankings`, `/seasons`,
+  `/seasons/:slug`, `/hall-of-fame` are added as sibling routes **inside the Compete branch** of the shell (so the
+  bottom bar stays visible with Compete selected); `resolveWebLink()` maps the same web paths. Entry points in 3a
+  are the **Home screen** (three list tiles under Top Players) and cross-links between the three screens. A
+  Compete-tab entry row is **deferred**: the Compete tab is currently the temporary tournaments slice that Phase
+  2a/2b are replacing wholesale (mobile `CLAUDE.md`: don't build on it, don't reshuffle it), so editing it now would
+  collide with that work. Add the Compete entry once the API-backed tournaments list lands. The 5-tab shell itself
+  is unchanged.
 - `flutter analyze` and `flutter test` must be clean before every commit. Widget tests cover empty, loading, error,
   tombstone-player, and viewer-pinned states.
 
@@ -177,5 +184,21 @@ Both repos have hotspots the 2b session also edits. Codex must:
 - **Merge friction with 2b** — §5.
 
 ## 8. Open items not resolved by this spec
+
+- **DECISION NEEDED (found 2026-09-23 reading `components/rankings/LeaderboardTabs.tsx`): the web rankings tabs
+  re-rank only the visible page.** The server ranks all players (score on the overall board, wins on a game board),
+  slices one page, and passes only that slice (`pagePlayers`) to `LeaderboardTabs`, which re-sorts it client-side with
+  `rankPlayersBy(players, metric, gameId)` — and `rankPlayersBy` assigns `rank = index + 1` within the slice. The
+  client default tab is `wins` even though the server ordered by score. Net effect on web: the `#rank` shown restarts
+  at 1 on every page, and the row order on page 1 is "top 10 by score, re-sorted by wins" (only the pinned viewer row
+  shows the true global rank). This is a web bug, not a contract to reproduce.
+  **Recommended (what the plans assume):** the API returns **global** ranks in server order (score overall, wins per
+  game); mobile shows exactly those. The web metric tabs (Wins / SX Score / Goals / category) are **out of 3a**; if
+  wanted later they need a server-side `metric` param, not a client re-sort of a page. Consequence for the exit
+  criterion (§1): compare **values** (wins, SX Score, streak, trend, points) and **order/rank against the web's
+  pinned-viewer rank and against a direct `rankPlayersBy` over all players**, not against the web table's page-local
+  `#` column. Fixing the web page itself is a separate change and is not part of this phase.
+- Alternative if the owner wants literal web parity: expose a `metric` param and replicate the page-local re-rank —
+  not recommended, and it would make the app's ranks disagree with `/rankings/me`.
 
 - `RANKING_MIN_MATCHES` and the 200-row profile cap are inherited as-is; revisiting them is out of scope.
