@@ -44,3 +44,23 @@ describe('fakeSupabase', () => {
     expect(() => (client.from('profiles') as unknown as { overlaps: () => void }).overlaps()).toThrow(/not supported/)
   })
 })
+
+describe('fakeSupabase — or/rpc', () => {
+  it('records .or() in the query log and does not filter', async () => {
+    const { client, queries } = fakeSupabase({ m: [{ id: 1 }, { id: 2 }] })
+    const { data } = await client.from('m').select('id').or('a.eq.1,b.eq.2')
+    expect((data as unknown[]).length).toBe(2)
+    expect(queries).toEqual(['m:select|or'])
+  })
+
+  it('serves rpc() from the provided map and logs it', async () => {
+    const { client, queries } = fakeSupabase({}, { rpc: { player_rank: (a: { uname: string }) => (a.uname === 'x' ? 7 : null) } })
+    expect((await client.rpc('player_rank', { uname: 'x' })).data).toBe(7)
+    expect(queries).toEqual(['rpc:player_rank'])
+  })
+
+  it('throws on an rpc with no fixture', async () => {
+    const { client } = fakeSupabase({})
+    await expect(client.rpc('nope', {})).rejects.toThrow(/no rpc fixture/)
+  })
+})

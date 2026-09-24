@@ -13,7 +13,10 @@ function cmp(a: unknown, b: unknown): number {
  * Every query is logged as `table:op|op(col)…` so tests can pin query count and shape.
  * Any method it does not implement throws — extend it deliberately, never silently.
  */
-export function fakeSupabase(tables: Record<string, Row[]>, opts: { user?: { id: string } | null } = {}) {
+export function fakeSupabase(
+  tables: Record<string, Row[]>,
+  opts: { user?: { id: string } | null; rpc?: Record<string, (args: never) => unknown> } = {},
+) {
   const queries: string[] = []
 
   function builder(table: string) {
@@ -43,6 +46,12 @@ export function fakeSupabase(tables: Record<string, Row[]>, opts: { user?: { id:
       in: (col: string, vals: unknown[]) => filter('in', col, (v) => vals.includes(v)),
       is: (col: string, val: unknown) => filter('is', col, (v) => (v ?? null) === val),
       not: (col: string, _op: string, val: unknown) => filter('not', col, (v) => (v ?? null) !== val),
+      // .or() takes a PostgREST filter-list string the fake cannot evaluate: it is RECORDED in the query log
+      // but does not narrow rows, so fixtures for or()-filtered queries must already be pre-shaped.
+      or: () => {
+        ops.push('or')
+        return proxy
+      },
       order: () => proxy,
       limit: () => proxy,
       maybeSingle: () => {
@@ -75,6 +84,12 @@ export function fakeSupabase(tables: Record<string, Row[]>, opts: { user?: { id:
     // Test double: the chain is intentionally untyped so tests can call any supported builder method.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     from: (table: string): any => builder(table),
+    rpc: async (name: string, args: unknown) => {
+      queries.push(`rpc:${name}`)
+      const fn = opts.rpc?.[name]
+      if (!fn) throw new Error(`fake-supabase: no rpc fixture for ${name}`)
+      return { data: fn(args as never), error: null }
+    },
     auth: { getUser: async () => ({ data: { user: opts.user ?? null }, error: null }) },
   }
   return { client, queries }
