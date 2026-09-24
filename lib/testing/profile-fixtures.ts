@@ -1,4 +1,4 @@
-import { PROFILES, SEASON_FIXTURE_TABLES } from './progress-fixtures'
+import { PROFILES, SEASONS, SEASON_FIXTURE_TABLES } from './progress-fixtures'
 
 type Row = Record<string, unknown>
 
@@ -88,6 +88,8 @@ export const PROFILE_TABLES: Record<string, Row[]> = {
   ...SEASON_FIXTURE_TABLES,
   profiles,
   matches,
+  // The profile page only reads a standing when a season is `active` (the shared SEASONS fixture has no status).
+  seasons: SEASONS.map((x) => ({ ...x, status: 'active' })),
   achievements,
   player_achievements: playerAchievements,
   squads: [{ id: 'sq1', name: 'Alpha Squad' }, { id: 'sq2', name: 'Bravo Squad' }],
