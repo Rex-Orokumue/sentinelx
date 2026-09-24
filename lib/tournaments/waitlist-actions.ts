@@ -2,10 +2,20 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { registrationDetailsSchema } from './registration-schema'
-import { assertNotPendingDeletion } from '@/lib/settings/restriction'
+import { registrationDetailsSchema } from './registration-schema'
+import { performJoinWaitlist, type WaitlistErrorCode } from './waitlist-service'
 
 export type JoinWaitlistState = { error?: string; success?: boolean; needsUsername?: boolean } | undefined
+
+const ERROR_MESSAGES: Record<WaitlistErrorCode, string> = {
+  needs_username: 'Claim a username before joining the waitlist.',
+  tournament_not_found: 'Tournament not found.',
+  waitlist_not_open: 'The waitlist is only open once registration has closed.',
+  rules_agreement_required: 'Please confirm you have read and agree to the rules.',
+  already_on_waitlist: "You're already on the waitlist.",
+  already_registered: "You're already registered for this tournament.",
+  waitlist_failed: 'Could not join the waitlist. Please try again.',
+}
 
 // A player signals availability as a potential substitute once registration
 // is closed/active. No payment — admin promotes a waitlisted entry into a
@@ -28,72 +38,22 @@ export async function joinWaitlist(_prev: JoinWaitlistState, formData: FormData)
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to join the waitlist.' }
-  // An account pending deletion must not take on new obligations, or the
-  // guards that passed at request time no longer hold at execution.
-  const restricted = await assertNotPendingDeletion(createAdminClient(), user.id)
-  if (restricted) return { error: restricted }
 
-  // Same gate as registerForTournament — a nameless profile (Google sign-in /
-  // deferred username claim — migration 073) would land in the bracket as
-  // "TBD" if promoted to a substitute later. The /dashboard onboarding gate
-  // does not cover this public route.
-  const { data: callerProfile } = await supabase
-    .from('profiles')
-    .select('username')
-    .eq('id', user.id)
-    .maybeSingle()
-  if (!callerProfile?.username) {
-    return { error: 'Claim a username before joining the waitlist.', needsUsername: true }
-  }
-
-  const { data: tournament } = await supabase
-    .from('tournaments')
-    .select('id, slug, status, rules')
-    .eq('id', tournamentId)
-    .maybeSingle()
-  if (!tournament) return { error: 'Tournament not found.' }
-  if (tournament.status !== 'registration_closed' && tournament.status !== 'active') {
-    return { error: 'The waitlist is only open once registration has closed.' }
-  }
-  // Only proves the checkbox was ticked at submit time, mirroring
-  // registerForTournament's same deliberate limitation.
-  if (tournament.rules && formData.get('agreedToRules') !== 'true') {
-    return { error: 'Please confirm you have read and agree to the rules.' }
-  }
-
-  const { data: existing } = await supabase
-    .from('tournament_registrations')
-    .select('id, status')
-    .eq('tournament_id', tournamentId)
-    .eq('player_id', user.id)
-    .maybeSingle()
-  if (existing) {
-    return {
-      error:
-        existing.status === 'waitlisted'
-          ? "You're already on the waitlist."
-          : "You're already registered for this tournament.",
-    }
-  }
-
-  // Player has no self-INSERT-with-status RLS policy beyond ownership (staff-only
-  // update, see migration 001/035) — writes go through the admin client, same
-  // pattern as registerForTournament. This action's own validation above (auth,
-  // tournament state, duplicate check, input schema) is the trust boundary.
-  const admin = createAdminClient()
-  const { error: insErr } = await admin.from('tournament_registrations').insert({
-    tournament_id: tournamentId,
-    player_id: user.id,
-    payment_status: 'pending',
-    status: 'waitlisted',
-    reg_display_name: parsed.data.displayName,
-    reg_whatsapp: parsed.data.whatsapp,
-    reg_club_name: parsed.data.clubName,
-    reg_ign_tag: parsed.data.ignTag || null,
+  const result = await performJoinWaitlist(supabase, createAdminClient(), user.id, tournamentId, {
+    displayName: parsed.data.displayName,
+    whatsapp: parsed.data.whatsapp,
+    clubName: parsed.data.clubName,
+    ignTag: parsed.data.ignTag || null,
+    agreedToRules: formData.get('agreedToRules') === 'true',
   })
-  if (insErr) return { error: 'Could not join the waitlist. Please try again.' }
 
-  revalidatePath(`/tournaments/${tournament.slug}`)
+  if (!result.ok) {
+    return result.errorCode === 'needs_username'
+      ? { error: ERROR_MESSAGES.needs_username, needsUsername: true }
+      : { error: ERROR_MESSAGES[result.errorCode] }
+  }
+
+  revalidatePath(`/tournaments/${result.tournamentSlug}`)
   revalidatePath(`/admin/tournaments/${tournamentId}/registrations`)
   return { success: true }
 }

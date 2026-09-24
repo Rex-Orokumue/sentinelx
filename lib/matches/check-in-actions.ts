@@ -2,10 +2,17 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { canCheckIn } from './check-in'
-import { isMatchParticipant } from './participant'
+import { performCheckIn, type CheckInErrorCode } from './check-in-service'
 
 export type CheckInState = { error?: string; success?: boolean } | undefined
+
+const CHECK_IN_MESSAGE: Record<CheckInErrorCode, string> = {
+  match_not_found: 'Match not found.',
+  not_participant: "You're not playing in this match.",
+  not_match_day: "You can check in once it's match day.",
+  check_in_closed: 'This match is no longer open for check-in.',
+  check_in_failed: 'Could not check you in. Please try again.',
+}
 
 // A player marks themselves present for a match. Records presence only — it
 // never resolves the match. The admin still decides every outcome; this just
@@ -21,42 +28,8 @@ export async function checkInToMatch(_prev: CheckInState, formData: FormData): P
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to check in.' }
 
-  // Re-read server-side; never trust the client for participation or state.
-  const { data: match } = await supabase
-    .from('matches')
-    .select('id, status, scheduled_at, player_a_id, player_b_id, team_a_id, team_b_id')
-    .eq('id', matchId)
-    .maybeSingle()
-  if (!match) return { error: 'Match not found.' }
-
-  const isParticipant = await isMatchParticipant(supabase, user.id, match)
-  // Mirrors lib/dashboard/fixtures.ts's matchDayReached — an unscheduled match
-  // has nothing to compare against yet.
-  const dayReached =
-    match.scheduled_at != null && new Date(match.scheduled_at).getTime() <= Date.now()
-
-  const { data: existing } = await supabase
-    .from('match_check_ins')
-    .select('id')
-    .eq('match_id', matchId)
-    .eq('player_id', user.id)
-    .maybeSingle()
-
-  if (!canCheckIn({ isParticipant, dayReached, status: match.status, alreadyCheckedIn: !!existing })) {
-    if (!isParticipant) return { error: "You're not playing in this match." }
-    if (existing) return { success: true } // already checked in — benign
-    if (!dayReached) return { error: "You can check in once it's match day." }
-    return { error: 'This match is no longer open for check-in.' }
-  }
-
-  const admin = createAdminClient()
-  const { error } = await admin
-    .from('match_check_ins')
-    .insert({ match_id: matchId, player_id: user.id })
-  // 23505 = the UNIQUE(match_id, player_id) guard caught a double submit.
-  if (error && (error as { code?: string }).code !== '23505') {
-    return { error: 'Could not check you in. Please try again.' }
-  }
+  const result = await performCheckIn(supabase, createAdminClient(), user.id, matchId)
+  if (!result.ok) return { error: CHECK_IN_MESSAGE[result.errorCode] }
 
   revalidatePath(`/matches/${matchId}`)
   revalidatePath(`/admin/matches/${matchId}/review`)

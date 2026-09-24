@@ -2,12 +2,20 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
 import { placeWagerSchema } from './schema'
-import { wagerWindowOpen } from './market'
-import { assertNotPendingDeletion } from '@/lib/settings/restriction'
+import { performPlaceWager, type PlaceWagerErrorCode } from './place-wager-service'
 
 export type WagerState = { error?: string; success?: boolean } | undefined
+
+const PLACE_WAGER_MESSAGE: Record<PlaceWagerErrorCode, string> = {
+  pending_deletion: 'Your account is pending deletion.',
+  match_not_found: 'Match not found.',
+  own_match: 'You cannot wager on your own match.',
+  invalid_pick: 'Pick must be one of the two players in this match.',
+  window_closed: 'Wagering is closed for this match.',
+  insufficient_coins: 'Not enough SX Coins for this stake.',
+  wager_failed: 'Could not place your wager. Please try again.',
+}
 
 export async function placeWager(_prev: WagerState, formData: FormData): Promise<WagerState> {
   const parsed = placeWagerSchema.safeParse({
@@ -23,65 +31,9 @@ export async function placeWager(_prev: WagerState, formData: FormData): Promise
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to place a wager.' }
-  // An account pending deletion must not take on new obligations, or the
-  // guards that passed at request time no longer hold at execution.
-  const restricted = await assertNotPendingDeletion(createAdminClient(), user.id)
-  if (restricted) return { error: restricted }
 
-  const admin = createAdminClient()
-  const { data: match } = await admin
-    .from('matches')
-    .select('id, status, scheduled_at, player_a_id, player_b_id, is_full_day')
-    .eq('id', matchId)
-    .maybeSingle()
-  if (!match) return { error: 'Match not found.' }
-  if (user.id === match.player_a_id || user.id === match.player_b_id) {
-    return { error: 'You cannot wager on your own match.' }
-  }
-  if (pickPlayerId !== match.player_a_id && pickPlayerId !== match.player_b_id) {
-    return { error: 'Pick must be one of the two players in this match.' }
-  }
-  if (!wagerWindowOpen(match)) return { error: 'Wagering is closed for this match.' }
-
-  const { data: existing } = await admin
-    .from('match_wagers')
-    .select('id, stake_coins')
-    .eq('match_id', matchId)
-    .eq('bettor_id', user.id)
-    .maybeSingle()
-
-  // Changing an existing wager (spec §5: "can change stake up until window
-  // closes") refunds the old stake before checking/deducting the new one —
-  // never double-charges for the same wager. Both coin movements reference
-  // matchId, not the wager row's id — there's no settled row id to point to
-  // yet at debit time.
-  const previousStake = existing?.stake_coins ?? 0
-  const balance = await getCoinBalance(admin, user.id)
-  if (balance + previousStake < stakeCoins) return { error: 'Not enough SX Coins for this stake.' }
-
-  if (previousStake > 0) {
-    await recordCoinTransaction(admin, user.id, previousStake, 'wager_refund', matchId, 'Wager changed — previous stake refunded')
-  }
-  await recordCoinTransaction(admin, user.id, -stakeCoins, 'wager_stake', matchId, `Wager — match ${matchId}`)
-
-  const { error: upsertErr } = await admin.from('match_wagers').upsert(
-    {
-      match_id: matchId,
-      bettor_id: user.id,
-      pick_player_id: pickPlayerId,
-      stake_coins: stakeCoins,
-      status: 'pending',
-      payout_coins: null,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'match_id,bettor_id' },
-  )
-  if (upsertErr) {
-    // Undo the debit — a player must never lose coins for a wager that
-    // wasn't actually recorded.
-    await recordCoinTransaction(admin, user.id, stakeCoins, 'wager_refund', matchId, 'Wager save failed — auto-reversed')
-    return { error: 'Could not place your wager. Please try again.' }
-  }
+  const result = await performPlaceWager(supabase, createAdminClient(), user.id, matchId, { pickPlayerId, stakeCoins })
+  if (!result.ok) return { error: PLACE_WAGER_MESSAGE[result.errorCode] }
 
   revalidatePath(`/matches/${matchId}`)
   return { success: true }

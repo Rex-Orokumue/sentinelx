@@ -18,6 +18,10 @@ export const Errors = {
     new ApiError(400, 'validation_failed', 'Some fields are invalid.', fields),
   upgradeRequired: (min: string) =>
     new ApiError(426, 'app_update_required', `Please update the app to version ${min} or newer.`),
+  idempotencyKeyRequired: () =>
+    new ApiError(400, 'idempotency_key_required', 'An Idempotency-Key header is required for this request.'),
+  idempotencyInProgress: () =>
+    new ApiError(409, 'idempotency_in_progress', 'Try again shortly with the same Idempotency-Key.'),
 }
 
 export function errorBody(e: ApiError): {
