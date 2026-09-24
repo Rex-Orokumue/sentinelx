@@ -12,13 +12,13 @@ import SeasonPage from './page'
 
 describe('season page — characterization', () => {
   it('renders sections for every active game', async () => {
-    state.fake = fakeSupabase(SEASON_FIXTURE_TABLES, { user: { id: 'p1' } }) as never
+    state.fake = fakeSupabase(SEASON_FIXTURE_TABLES, { user: { id: 'p1' } })
     const tree = await SeasonPage({ params: { slug: 'season-1' } })
     expect(serializeTree(tree)).toMatchSnapshot('tree')
     expect(state.fake!.queries).toMatchSnapshot('queries')
   })
   it('404s on an unknown slug', async () => {
-    state.fake = fakeSupabase(SEASON_FIXTURE_TABLES) as never
+    state.fake = fakeSupabase(SEASON_FIXTURE_TABLES)
     await expect(SeasonPage({ params: { slug: 'nope' } })).rejects.toThrow('NOT_FOUND')
   })
 })

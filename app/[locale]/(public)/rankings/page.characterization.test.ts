@@ -9,7 +9,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: () => state.fake!.client
 import RankingsPage from './page'
 
 async function render(searchParams: Record<string, string>, user: { id: string } | null) {
-  state.fake = fakeSupabase(FIXTURE_TABLES, { user }) as never
+  state.fake = fakeSupabase(FIXTURE_TABLES, { user })
   const tree = await RankingsPage({ searchParams })
   return { tree: serializeTree(tree), queries: state.fake!.queries }
 }

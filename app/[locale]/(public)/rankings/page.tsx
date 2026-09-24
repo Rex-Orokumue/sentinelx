@@ -1,24 +1,17 @@
 import Link from 'next/link'
-import { frameUrlFor } from '@/lib/store/cosmetics'
 import { Trophy } from 'lucide-react'
 import { ImagePlaceholder } from '@/components/ui/ImagePlaceholder'
 import { createClient } from '@/lib/supabase/server'
-import { RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
-import { winsByPlayerAndGame, scoreStatsByPlayerAndCategory, scoreStatsByPlayerAndGame, type GameScopedMatch } from '@/lib/rankings/game-breakdown'
-import { CATEGORY_META } from '@/lib/games/categories'
 import { LeaderboardTabs } from '@/components/rankings/LeaderboardTabs'
 import { GameTabs } from '@/components/rankings/GameTabs'
 import { LeaderboardPagination } from '@/components/rankings/LeaderboardPagination'
 import { LeaderboardFilters } from '@/components/rankings/LeaderboardFilters'
-import { paginate } from '@/lib/rankings/pagination'
-import { longestWinStreakByPlayer, type StreakMatch } from '@/lib/rankings/streak'
-import { rostersForSquads } from '@/lib/tournaments/squad-roster'
-import { previousRankFor, trendFor, type RankSnapshot, type Trend } from '@/lib/rankings/trend'
-import { rankPlayersBy } from '@/lib/rankings/leaderboard'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
 import { formatNaira } from '@/lib/format'
+import { getRankings } from '@/lib/rankings/service'
+import { RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params
@@ -28,16 +21,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
     path: '/rankings',
     locale,
   })
-}
-
-type RawGameRef = { id: string; name: string; category: string } | { id: string; name: string; category: string }[] | null
-type RawTournamentRef = { game: RawGameRef } | { game: RawGameRef }[] | null
-
-function firstGameRef(g: RawGameRef): { id: string; name: string; category: string } | null {
-  return Array.isArray(g) ? g[0] ?? null : g
-}
-function firstTournamentRef(t: RawTournamentRef): { game: RawGameRef } | null {
-  return Array.isArray(t) ? t[0] ?? null : t
 }
 
 export default async function RankingsPage({
@@ -50,200 +33,29 @@ export default async function RankingsPage({
   const regionFilter = searchParams.region?.trim() || null
   const seasonFilter = searchParams.season?.trim() || null
   const requestedPage = Number.parseInt(searchParams.page ?? '1', 10) || 1
-  const [
-    { data: profiles },
-    { data: matchRows },
-    { data: activeGames },
-    { count: matchCount },
-    { data: prizeRows },
-    {
-      data: { user },
-    },
-  ] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select(
-        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sx_score, sentinel_tier, membership_tier, kyc_verified, deleted_at, equipped_avatar_border',
-      )
-      .gte('total_matches', RANKING_MIN_MATCHES)
-      .order('wins', { ascending: false })
-      .limit(200),
-    // Fetched once and shared by both winsByPlayerAndGame and the per-category
-    // aggregates below — never fetch completed matches twice.
-    supabase
-      .from('matches')
-      .select(
-        'status, score_a, score_b, player_a_id, player_b_id, team_a_id, team_b_id, completed_at, tournament:tournaments(game:games(id, name, category))',
-      )
-      .eq('status', 'completed'),
-    // Independent of match data — a category can be "active" (a tab should
-    // show) even with zero completed matches played in it yet.
-    supabase.from('games').select('id, name, slug, category').eq('active', true),
-    supabase.from('matches').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
-    supabase.from('tournaments').select('prize_pool').eq('status', 'completed'),
-    supabase.auth.getUser(),
-  ])
-
-  const prizesAwarded = (prizeRows ?? []).reduce((sum, r) => sum + (r.prize_pool ?? 0), 0)
-
-  const rawMatches = ((matchRows as unknown[] | null) ?? []) as {
-    status: string
-    score_a: number | null
-    score_b: number | null
-    player_a_id: string | null
-    player_b_id: string | null
-    team_a_id: string | null
-    team_b_id: string | null
-    completed_at: string | null
-    tournament: RawTournamentRef
-  }[]
-  const squadIds = Array.from(
-    new Set(rawMatches.flatMap((m) => [m.team_a_id, m.team_b_id]).filter((id): id is string => id != null)),
+  const data = await getRankings(
+    supabase,
+    { gameSlug, region: regionFilter, page: requestedPage },
+    { mode: 'session' },
   )
-  const rosterBySquad = await rostersForSquads(supabase, squadIds)
-  const matches: (GameScopedMatch & { completed_at: string | null })[] = rawMatches.map((m) => {
-    const t = firstTournamentRef(m.tournament)
-    const g = firstGameRef(t?.game ?? null)
-    return {
-      status: m.status,
-      score_a: m.score_a,
-      score_b: m.score_b,
-      player_a_id: m.player_a_id,
-      player_b_id: m.player_b_id,
-      team_a_id: m.team_a_id,
-      team_b_id: m.team_b_id,
-      team_a_roster: m.team_a_id ? rosterBySquad.get(m.team_a_id) ?? [] : undefined,
-      team_b_roster: m.team_b_id ? rosterBySquad.get(m.team_b_id) ?? [] : undefined,
-      completed_at: m.completed_at,
-      game_id: g?.id ?? 'unknown',
-      game_name: g?.name ?? 'Unknown',
-      game_category: g?.category ?? 'other',
-    }
-  })
-  const winsMap = winsByPlayerAndGame(matches)
-  const categoryMaps = Object.keys(CATEGORY_META).map((category) => ({
-    category,
-    map: scoreStatsByPlayerAndCategory(matches, category),
-  }))
-  const gameMaps = (activeGames ?? []).map((g) => ({
-    gameId: g.id,
-    map: scoreStatsByPlayerAndGame(matches, g.id),
-  }))
-
-  const players: PlayerStatsInput[] = (profiles ?? []).map(
-    (p): PlayerStatsInput => ({
-      id: p.id,
-      username: p.username,
-      displayName: p.display_name,
-      deletedAt: p.deleted_at,
-      avatarUrl: p.avatar_url,
-      country: p.country,
-      wins: p.wins,
-      losses: p.losses,
-      totalMatches: p.total_matches,
-      goalsScored: p.goals_scored,
-      goalsConceded: p.goals_conceded,
-      categoryStats: categoryMaps.map(({ category, map }) => ({
-        category,
-        scored: map.get(p.id)?.scored ?? 0,
-        conceded: map.get(p.id)?.conceded ?? 0,
-      })),
-      gameStats: gameMaps.map(({ gameId, map }) => ({
-        gameId,
-        scored: map.get(p.id)?.scored ?? 0,
-        conceded: map.get(p.id)?.conceded ?? 0,
-      })),
-      winsByGame: winsMap.get(p.id) ?? [],
-      totalTitles: p.total_titles,
-      sxScore: p.sx_score,
-      sentinelTier: p.sentinel_tier,
-      membershipTier: p.membership_tier,
-      kycVerified: p.kyc_verified,
-      frameUrl: frameUrlFor(p.equipped_avatar_border),
-    }),
-  )
-
-  // ── Game scoping, filters, trend and pagination ──────────────────────
-  // Only games with a completed match get a tab: no tab should open an empty
-  // board. This also drives the "Games Included" stat beside it.
-  const gamesWithMatches = (activeGames ?? []).filter((g) =>
-    matches.some((m) => m.game_id === g.id),
-  )
-  const activeGame = gameSlug ? gamesWithMatches.find((g) => g.slug === gameSlug) ?? null : null
-
-  const [{ data: snapshotRows }, { data: seasonRows }] = await Promise.all([
-    supabase
-      .from('player_rank_snapshots')
-      .select('player_id, game_id, rank, captured_on')
-      .order('captured_on', { ascending: false })
-      .limit(2000),
-    supabase.from('seasons').select('id, name').order('start_date', { ascending: false }),
-  ])
-
-  const snapshots: RankSnapshot[] = ((snapshotRows as unknown[] | null) ?? []).map((raw) => {
-    const r = raw as { player_id: string; game_id: string | null; rank: number; captured_on: string }
-    return { playerId: r.player_id, gameId: r.game_id, rank: r.rank, capturedOn: r.captured_on }
-  })
-  const today = new Date().toISOString().slice(0, 10)
-
-  const regions = Array.from(
-    new Set((players.map((p) => p.country).filter(Boolean) as string[])),
-  ).sort()
-
-  // Who has actually competed in each game — participation, not just wins, so a
-  // player who has played that game without winning still appears on its tab.
-  const playersByGame = new Map<string, Set<string>>()
-  for (const m of matches) {
-    const set = playersByGame.get(m.game_id) ?? new Set<string>()
-    if (m.player_a_id) set.add(m.player_a_id)
-    if (m.player_b_id) set.add(m.player_b_id)
-    playersByGame.set(m.game_id, set)
-  }
-
-  // Region and game both narrow who is ranked at all, so ranks reflect the board
-  // being shown rather than global ranks with rows missing from the middle.
-  let filteredPlayers = regionFilter
-    ? players.filter((p) => p.country === regionFilter)
-    : players
-  if (activeGame) {
-    const competed = playersByGame.get(activeGame.id) ?? new Set<string>()
-    filteredPlayers = filteredPlayers.filter((p) => competed.has(p.id))
-  }
-
-  const scopedRanked = rankPlayersBy(
-    filteredPlayers,
-    activeGame ? 'wins' : 'score',
-    activeGame?.id,
-  )
-
-  const trendByPlayer: Record<string, Trend> = {}
-  for (const pl of scopedRanked) {
-    trendByPlayer[pl.id] = trendFor(
-      pl.rank,
-      previousRankFor(snapshots, pl.id, activeGame?.id ?? null, today),
-    )
-  }
-
-  const pageInfo = paginate(scopedRanked.length, requestedPage)
-  const pagePlayers = scopedRanked.slice(pageInfo.startIndex, pageInfo.endIndex)
-
-  const viewerRanked = user ? scopedRanked.find((p) => p.id === user.id) ?? null : null
-  const pinnedViewer =
-    viewerRanked && !pagePlayers.some((p) => p.id === viewerRanked.id) ? viewerRanked : null
-
-  const streakByPlayer = longestWinStreakByPlayer(matches as unknown as StreakMatch[])
-  // .forEach rather than spreading Map entries — this tsconfig has no
-  // downlevelIteration (see the same note in lib/rankings/game-breakdown.ts).
-  let topStreakId: string | null = null
-  let topStreakBest = 0
-  streakByPlayer.forEach((streak, playerId) => {
-    if (streak > topStreakBest) {
-      topStreakBest = streak
-      topStreakId = playerId
-    }
-  })
-  const topStreak = topStreakId ? players.find((p) => p.id === topStreakId) ?? null : null
-  const topStreakValue = topStreakBest
+  const {
+    players,
+    scopedRanked,
+    pageInfo,
+    pagePlayers,
+    pinnedViewer,
+    viewer,
+    viewerId,
+    trendByPlayer,
+    activeGame,
+    gamesWithMatches,
+    activeGames,
+    regions,
+    seasons,
+    matchCount,
+    prizesAwarded,
+    highlights: { topScore, topTitles, topWinRate, topStreak, topStreakValue },
+  } = data
 
   function hrefForPage(page: number): string {
     const sp = new URLSearchParams()
@@ -254,14 +66,6 @@ export default async function RankingsPage({
     const q = sp.toString()
     return q ? `/rankings?${q}` : '/rankings'
   }
-
-  const viewer = user ? players.find((p) => p.id === user.id) ?? null : null
-  const topScore = [...players].sort((a, b) => b.sxScore - a.sxScore)[0] ?? null
-  const topTitles = [...players].sort((a, b) => b.totalTitles - a.totalTitles)[0] ?? null
-  const topWinRate =
-    [...players]
-      .filter((p) => p.totalMatches > 0)
-      .sort((a, b) => b.wins / b.totalMatches - a.wins / a.totalMatches)[0] ?? null
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
@@ -313,7 +117,7 @@ export default async function RankingsPage({
       <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
         {/* ── Right: sidebars (shown first on mobile) ── */}
         <aside className="order-first space-y-6 lg:order-last">
-          <YourGlobalStatsCard viewer={viewer} isLoggedIn={!!user} />
+          <YourGlobalStatsCard viewer={viewer} isLoggedIn={viewerId != null} />
           <TopPerformersCard
             topScore={topScore}
             topTitles={topTitles}
@@ -323,7 +127,7 @@ export default async function RankingsPage({
           />
           <LeaderboardFilters
             regions={regions}
-            seasons={(seasonRows ?? []) as { id: string; name: string }[]}
+            seasons={seasons}
             activeGame={gameSlug}
             activeRegion={regionFilter}
             activeSeason={seasonFilter}
@@ -335,8 +139,8 @@ export default async function RankingsPage({
           <GameTabs games={gamesWithMatches} activeSlug={activeGame?.slug ?? null} />
           <LeaderboardTabs
             players={pagePlayers}
-            currentUserId={user?.id ?? null}
-            activeGames={activeGames ?? []}
+            currentUserId={viewerId}
+            activeGames={activeGames}
             trendByPlayer={trendByPlayer}
             pinnedViewer={pinnedViewer}
           />

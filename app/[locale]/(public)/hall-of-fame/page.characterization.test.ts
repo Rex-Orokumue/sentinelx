@@ -9,7 +9,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: () => state.fake!.client
 import HallOfFamePage from './page'
 
 async function render(searchParams: Record<string, string>) {
-  state.fake = fakeSupabase(HALL_OF_FAME_FIXTURE_TABLES, { user: null }) as never
+  state.fake = fakeSupabase(HALL_OF_FAME_FIXTURE_TABLES, { user: null })
   const tree = await HallOfFamePage({ searchParams })
   return { tree: serializeTree(tree), queries: state.fake!.queries }
 }
