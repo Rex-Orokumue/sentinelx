@@ -22,6 +22,7 @@ import { wagerEndpoint } from './wager'
 import { lobbyResultEndpoint } from './lobby-result'
 import { summaryEndpoint } from './summary'
 import { playersSearchEndpoint, playerProfileEndpoint, playerFollowersEndpoint, playerFollowingEndpoint } from './players'
+import { myFollowsEndpoint, followEndpoint, unfollowEndpoint } from './follows'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -59,4 +60,7 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   playerProfileEndpoint,
   playerFollowersEndpoint,
   playerFollowingEndpoint,
+  myFollowsEndpoint,
+  followEndpoint,
+  unfollowEndpoint,
 ]
