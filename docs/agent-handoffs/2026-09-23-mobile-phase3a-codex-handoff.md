@@ -15,7 +15,7 @@ the services as `/api/mobile/v1` endpoints, and the Flutter PR renders them.
 ## Read these, in this order
 
 1. `C:\Users\gorok\Videos\sentinelx\AGENTS.md` and `CLAUDE.md`; `C:\Users\gorok\sentinelx_mobile\AGENTS.md` and `CLAUDE.md`
-2. **Spec:** `C:\Users\gorok\Videos\sentinelx\docs\superpowers\specs\2026-09-23-mobile-phase3a-rankings-seasons-hof-design.md`
+2. **Spec (and the parity addendum listed under "Decision made" below):** `C:\Users\gorok\Videos\sentinelx\docs\superpowers\specs\2026-09-23-mobile-phase3a-rankings-seasons-hof-design.md`
    (especially §3 the two-PR structure, §5 parallel-work rules, §8 the open decision)
 3. **Web plan:** `C:\Users\gorok\Videos\sentinelx\docs\superpowers\plans\2026-09-23-mobile-phase3a-web-api.md`
 4. **Flutter plan:** `C:\Users\gorok\sentinelx_mobile\docs\superpowers\plans\2026-09-23-mobile-phase3a-flutter-screens.md`
@@ -69,12 +69,14 @@ PR 3 in parallel with PR 2's review.
 - Web plan Task 7 adds `gameSlug` to the season sections; if that changes the recorded season-page snapshot, derive the
   slug in the endpoint instead (the plan says how).
 
-## Decision waiting on the owner (spec §8)
+## Decision made: LITERAL web parity (2026-09-24)
 
-The web rankings tabs re-rank only the visible page client-side, so the web's `#` column is page-local and restarts at
-1 on every page. **The plans assume the app shows true global ranks** (score order overall, wins per game) and that the
-web's metric tabs are out of scope. If the owner chooses literal web parity instead, the API needs a `metric` param and
-the plans change — ask before building the rankings screen (Flutter Task 4) if you have not seen a confirmation.
+The owner chose literal parity with the web rankings page, including its metric tabs and their page-local re-rank.
+**Read `docs/superpowers/plans/2026-09-24-mobile-phase3a-literal-parity-addendum.md` — it OVERRIDES the rankings parts
+of both plans** (web Tasks 9, 10, 14; Flutter Tasks 1, 2, 4). The API takes `metric`/`tabGame` and the server runs the
+same `rankPlayersBy` on the same page slice, so nothing is ported to Dart. One item needs a 5-minute browser check on
+the staging web before you write the Flutter notifier: whether the selected tab persists across pagination/filters
+(the addendum explains what to look for and how to flip the behavior).
 
 ## Definition of done per PR
 
@@ -87,7 +89,7 @@ the plans change — ask before building the rankings screen (Flutter Task 4) if
 
 ## Not in this phase (don't build)
 
-Player profiles, follow, achievements, XP/SX history, coin ledger (all Phase 3b, own spec later); metric tabs;
+Player profiles, follow, achievements, XP/SX history, coin ledger (all Phase 3b, own spec later);
 query-shape optimization of rankings; a Compete-tab entry row (the Compete tab is the temporary tournaments slice that
 2a/2b are replacing); admin screens; any write.
 

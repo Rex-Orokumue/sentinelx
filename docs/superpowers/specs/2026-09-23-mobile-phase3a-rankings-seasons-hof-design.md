@@ -18,8 +18,7 @@ Does **not** depend on Phase 2a/2b endpoints.
 
 **Exit criterion:** for a sample of 10 players (rankings) and 1 season (all its games), the values shown in the app
 match the web page exactly — rank, wins, SX Score, trend, streak, season points, awards. Verified on staging data and
-recorded in the PR description. (Rank is compared as the *global* rank — see the decision in §8 about the web's
-page-local re-rank.)
+recorded in the PR description. (Rank is compared exactly as the web displays it, per tab — see the literal-parity decision in §8.)
 
 **In scope:** `/rankings`, `/seasons`, `/seasons/{slug}`, `/hall-of-fame` read endpoints; Flutter screens for each;
 behavior-neutral extraction of the web pages' inline aggregation into services.
@@ -185,20 +184,13 @@ Both repos have hotspots the 2b session also edits. Codex must:
 
 ## 8. Open items not resolved by this spec
 
-- **DECISION NEEDED (found 2026-09-23 reading `components/rankings/LeaderboardTabs.tsx`): the web rankings tabs
-  re-rank only the visible page.** The server ranks all players (score on the overall board, wins on a game board),
-  slices one page, and passes only that slice (`pagePlayers`) to `LeaderboardTabs`, which re-sorts it client-side with
-  `rankPlayersBy(players, metric, gameId)` — and `rankPlayersBy` assigns `rank = index + 1` within the slice. The
-  client default tab is `wins` even though the server ordered by score. Net effect on web: the `#rank` shown restarts
-  at 1 on every page, and the row order on page 1 is "top 10 by score, re-sorted by wins" (only the pinned viewer row
-  shows the true global rank). This is a web bug, not a contract to reproduce.
-  **Recommended (what the plans assume):** the API returns **global** ranks in server order (score overall, wins per
-  game); mobile shows exactly those. The web metric tabs (Wins / SX Score / Goals / category) are **out of 3a**; if
-  wanted later they need a server-side `metric` param, not a client re-sort of a page. Consequence for the exit
-  criterion (§1): compare **values** (wins, SX Score, streak, trend, points) and **order/rank against the web's
-  pinned-viewer rank and against a direct `rankPlayersBy` over all players**, not against the web table's page-local
-  `#` column. Fixing the web page itself is a separate change and is not part of this phase.
-- Alternative if the owner wants literal web parity: expose a `metric` param and replicate the page-local re-rank —
-  not recommended, and it would make the app's ranks disagree with `/rankings/me`.
+- **RESOLVED 2026-09-24 — literal web parity (owner decision).** The web rankings tabs re-rank only the visible page
+  client-side (`LeaderboardTabs` → `rankPlayersBy(pageSlice, metric, gameId)` assigns page-local ranks; default tab
+  `wins`; tabs Wins / SX Score / one per active category; sub-game chips for categories with 2+ games; Wins rows
+  expandable; pinned viewer row shows the *global* rank). The app reproduces this exactly. To avoid porting ranking
+  logic to Dart, `GET /rankings` takes `metric` and `tabGame` and the server runs the same `rankPlayersBy` on the same
+  page slice. Full design, schemas, tests and Flutter changes:
+  `docs/superpowers/plans/2026-09-24-mobile-phase3a-literal-parity-addendum.md` (**overrides** the rankings parts of
+  §3 and §4 and of both plans). The §1 exit criterion now includes the web's page-local `#` column, per tab.
 
 - `RANKING_MIN_MATCHES` and the 200-row profile cap are inherited as-is; revisiting them is out of scope.
