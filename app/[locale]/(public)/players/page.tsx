@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
-import { PlayerCard, type PlayerCardData } from '@/components/player/PlayerCard'
+import { PlayerCard } from '@/components/player/PlayerCard'
+import { searchPlayers } from '@/lib/players/service'
 import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
 import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
@@ -15,9 +16,6 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
   })
 }
 
-const PLAYER_COLS =
-  'username, display_name, avatar_url, sx_score, sentinel_tier, membership_tier, equipped_avatar_border'
-
 export default async function PlayersPage({ searchParams }: { searchParams: { q?: string } }) {
   const q = (searchParams.q ?? '').trim()
   const supabase = createClient()
@@ -25,21 +23,7 @@ export default async function PlayersPage({ searchParams }: { searchParams: { q?
     data: { user },
   } = await supabase.auth.getUser()
 
-  let query = supabase
-    .from('profiles')
-    .select(PLAYER_COLS)
-    .order('sx_score', { ascending: false })
-    .limit(60)
-  if (user) query = query.neq('id', user.id)
-  if (q) {
-    // Escape ilike wildcards ("%"/"_") plus the characters that are
-    // structural to PostgREST's `.or()` filter-list syntax (",", "(", ")")
-    // so they can't widen the match or break/inject into the filter string.
-    const escaped = q.replace(/[%_,()]/g, (c) => `\\${c}`)
-    query = query.or(`username.ilike.%${escaped}%,display_name.ilike.%${escaped}%`)
-  }
-  const { data } = await query
-  const players = (data ?? []) as PlayerCardData[]
+  const players = await searchPlayers(supabase, q, user?.id ?? null)
 
   return (
     <div className="mx-auto max-w-2xl px-4 pb-20 pt-6">
