@@ -1,0 +1,519 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`followers page — characterization (pins current behavior; must not change during extraction) > anonymous > queries 1`] = `
+[
+  "profiles:select|eq(username)",
+  "player_follows:select|eq(following_id)",
+]
+`;
+
+exports[`followers page — characterization (pins current behavior; must not change during extraction) > anonymous > tree 1`] = `
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": "Home",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Player 2",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/players/player2",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Followers",
+          "props": {
+            "className": "text-white",
+          },
+          "t": "span",
+        },
+      ],
+      "props": {
+        "className": "py-4 text-xs text-sx-gray",
+      },
+      "t": "nav",
+    },
+    {
+      "children": "Followers",
+      "props": {
+        "className": "mb-4 font-display text-xl font-black text-white",
+      },
+      "t": "h1",
+    },
+    {
+      "children": null,
+      "props": {
+        "entries": [
+          {
+            "avatarUrl": null,
+            "displayName": "Player 1",
+            "id": "p1",
+            "membershipTier": "guardian",
+            "username": "player1",
+          },
+          {
+            "avatarUrl": null,
+            "displayName": "Player 3",
+            "id": "p3",
+            "membershipTier": "guardian",
+            "username": "player3",
+          },
+        ],
+        "followsViewerIds": {
+          "__set": [],
+        },
+      },
+      "t": "FollowList",
+    },
+  ],
+  "props": {
+    "className": "mx-auto max-w-2xl px-4 pb-20 sm:px-6",
+  },
+  "t": "div",
+}
+`;
+
+exports[`followers page — characterization (pins current behavior; must not change during extraction) > empty list renders the empty state > tree 1`] = `
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": "Home",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Player 2",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/players/player2",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Followers",
+          "props": {
+            "className": "text-white",
+          },
+          "t": "span",
+        },
+      ],
+      "props": {
+        "className": "py-4 text-xs text-sx-gray",
+      },
+      "t": "nav",
+    },
+    {
+      "children": "Followers",
+      "props": {
+        "className": "mb-4 font-display text-xl font-black text-white",
+      },
+      "t": "h1",
+    },
+    {
+      "children": null,
+      "props": {
+        "body": "Player 2 doesn't have any followers yet.",
+        "icon": "👥",
+        "title": "No followers yet",
+      },
+      "t": "EmptyState",
+    },
+  ],
+  "props": {
+    "className": "mx-auto max-w-2xl px-4 pb-20 sm:px-6",
+  },
+  "t": "div",
+}
+`;
+
+exports[`followers page — characterization (pins current behavior; must not change during extraction) > signed in: "Follows you" ids come from fetchFollowerIds(viewer) > queries 1`] = `
+[
+  "profiles:select|eq(username)",
+  "player_follows:select|eq(following_id)",
+  "player_follows:select|eq(following_id)",
+]
+`;
+
+exports[`followers page — characterization (pins current behavior; must not change during extraction) > signed in: "Follows you" ids come from fetchFollowerIds(viewer) > tree 1`] = `
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": "Home",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Player 2",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/players/player2",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Followers",
+          "props": {
+            "className": "text-white",
+          },
+          "t": "span",
+        },
+      ],
+      "props": {
+        "className": "py-4 text-xs text-sx-gray",
+      },
+      "t": "nav",
+    },
+    {
+      "children": "Followers",
+      "props": {
+        "className": "mb-4 font-display text-xl font-black text-white",
+      },
+      "t": "h1",
+    },
+    {
+      "children": null,
+      "props": {
+        "entries": [
+          {
+            "avatarUrl": null,
+            "displayName": "Player 1",
+            "id": "p1",
+            "membershipTier": "guardian",
+            "username": "player1",
+          },
+          {
+            "avatarUrl": null,
+            "displayName": "Player 3",
+            "id": "p3",
+            "membershipTier": "guardian",
+            "username": "player3",
+          },
+        ],
+        "followsViewerIds": {
+          "__set": [
+            "p1",
+            "p3",
+          ],
+        },
+      },
+      "t": "FollowList",
+    },
+  ],
+  "props": {
+    "className": "mx-auto max-w-2xl px-4 pb-20 sm:px-6",
+  },
+  "t": "div",
+}
+`;
+
+exports[`following page — characterization > anonymous > queries 1`] = `
+[
+  "profiles:select|eq(username)",
+  "player_follows:select|eq(follower_id)",
+]
+`;
+
+exports[`following page — characterization > anonymous > tree 1`] = `
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": "Home",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Player 2",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/players/player2",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Following",
+          "props": {
+            "className": "text-white",
+          },
+          "t": "span",
+        },
+      ],
+      "props": {
+        "className": "py-4 text-xs text-sx-gray",
+      },
+      "t": "nav",
+    },
+    {
+      "children": "Following",
+      "props": {
+        "className": "mb-4 font-display text-xl font-black text-white",
+      },
+      "t": "h1",
+    },
+    {
+      "children": null,
+      "props": {
+        "entries": [
+          {
+            "avatarUrl": null,
+            "displayName": "Player 3",
+            "id": "p3",
+            "membershipTier": "guardian",
+            "username": "player3",
+          },
+        ],
+        "followsViewerIds": {
+          "__set": [],
+        },
+      },
+      "t": "FollowList",
+    },
+  ],
+  "props": {
+    "className": "mx-auto max-w-2xl px-4 pb-20 sm:px-6",
+  },
+  "t": "div",
+}
+`;
+
+exports[`following page — characterization > empty list renders the empty state > tree 1`] = `
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": "Home",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Player 2",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/players/player2",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Following",
+          "props": {
+            "className": "text-white",
+          },
+          "t": "span",
+        },
+      ],
+      "props": {
+        "className": "py-4 text-xs text-sx-gray",
+      },
+      "t": "nav",
+    },
+    {
+      "children": "Following",
+      "props": {
+        "className": "mb-4 font-display text-xl font-black text-white",
+      },
+      "t": "h1",
+    },
+    {
+      "children": null,
+      "props": {
+        "body": "Player 2 isn't following anyone yet.",
+        "icon": "👥",
+        "title": "Not following anyone yet",
+      },
+      "t": "EmptyState",
+    },
+  ],
+  "props": {
+    "className": "mx-auto max-w-2xl px-4 pb-20 sm:px-6",
+  },
+  "t": "div",
+}
+`;
+
+exports[`following page — characterization > signed in > queries 1`] = `
+[
+  "profiles:select|eq(username)",
+  "player_follows:select|eq(follower_id)",
+  "player_follows:select|eq(following_id)",
+]
+`;
+
+exports[`following page — characterization > signed in > tree 1`] = `
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": "Home",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Player 2",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/players/player2",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Following",
+          "props": {
+            "className": "text-white",
+          },
+          "t": "span",
+        },
+      ],
+      "props": {
+        "className": "py-4 text-xs text-sx-gray",
+      },
+      "t": "nav",
+    },
+    {
+      "children": "Following",
+      "props": {
+        "className": "mb-4 font-display text-xl font-black text-white",
+      },
+      "t": "h1",
+    },
+    {
+      "children": null,
+      "props": {
+        "entries": [
+          {
+            "avatarUrl": null,
+            "displayName": "Player 3",
+            "id": "p3",
+            "membershipTier": "guardian",
+            "username": "player3",
+          },
+        ],
+        "followsViewerIds": {
+          "__set": [
+            "p1",
+            "p3",
+          ],
+        },
+      },
+      "t": "FollowList",
+    },
+  ],
+  "props": {
+    "className": "mx-auto max-w-2xl px-4 pb-20 sm:px-6",
+  },
+  "t": "div",
+}
+`;
