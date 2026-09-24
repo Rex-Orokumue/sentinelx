@@ -2649,6 +2649,773 @@
         }
       }
     },
+    "/api/mobile/v1/players": {
+      "get": {
+        "operationId": "searchPlayers",
+        "summary": "Player directory search (max 60, ranked by SX Score). Public. Unlike the web page it cannot exclude the signed-in viewer (responses are identical for everyone) — the app filters its own username.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "username": {
+                            "type": "string"
+                          },
+                          "displayName": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "avatarUrl": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "sxScore": {
+                            "type": "number"
+                          },
+                          "sentinelTier": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "membershipTier": {
+                            "type": "string"
+                          },
+                          "equippedAvatarBorder": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          }
+                        },
+                        "required": [
+                          "username",
+                          "displayName",
+                          "avatarUrl",
+                          "sxScore",
+                          "sentinelTier",
+                          "membershipTier",
+                          "equippedAvatarBorder"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/players/{username}": {
+      "get": {
+        "operationId": "getPlayerProfile",
+        "summary": "Public player profile. 404 for unknown and deleted accounts. Locked achievements are never described — only total/unlockedCount. Identical for every caller.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "player": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "username": {
+                              "type": "string"
+                            },
+                            "displayName": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "avatarUrl": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "frameUrl": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "profileTheme": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "usernameColour": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "country": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "bio": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "createdAt": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "sxScore": {
+                              "type": "number"
+                            },
+                            "sentinelTier": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "membershipTier": {
+                              "type": "string"
+                            },
+                            "xp": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "username",
+                            "displayName",
+                            "avatarUrl",
+                            "frameUrl",
+                            "profileTheme",
+                            "usernameColour",
+                            "country",
+                            "bio",
+                            "createdAt",
+                            "sxScore",
+                            "sentinelTier",
+                            "membershipTier",
+                            "xp"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "stats": {
+                          "type": "object",
+                          "properties": {
+                            "totalMatches": {
+                              "type": "number"
+                            },
+                            "wins": {
+                              "type": "number"
+                            },
+                            "losses": {
+                              "type": "number"
+                            },
+                            "goalsScored": {
+                              "type": "number"
+                            },
+                            "goalsConceded": {
+                              "type": "number"
+                            },
+                            "totalTitles": {
+                              "type": "number"
+                            },
+                            "tournamentsPlayed": {
+                              "type": "number"
+                            },
+                            "currentStreak": {
+                              "type": "number"
+                            },
+                            "rank": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "totalRankedPlayers": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "followerCount": {
+                              "type": "number"
+                            },
+                            "followingCount": {
+                              "type": "number"
+                            },
+                            "categoryStats": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "category": {
+                                    "type": "string"
+                                  },
+                                  "scored": {
+                                    "type": "number"
+                                  },
+                                  "conceded": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "category",
+                                  "scored",
+                                  "conceded"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "totalMatches",
+                            "wins",
+                            "losses",
+                            "goalsScored",
+                            "goalsConceded",
+                            "totalTitles",
+                            "tournamentsPlayed",
+                            "currentStreak",
+                            "rank",
+                            "totalRankedPlayers",
+                            "followerCount",
+                            "followingCount",
+                            "categoryStats"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "titles": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "tournamentTitle": {
+                                "type": "string"
+                              },
+                              "tournamentSlug": {
+                                "type": "string"
+                              },
+                              "gameName": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "date": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "tournamentTitle",
+                              "tournamentSlug",
+                              "gameName",
+                              "date"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "recentMatches": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "opponentName": {
+                                "type": "string"
+                              },
+                              "playerScore": {
+                                "type": "number"
+                              },
+                              "opponentScore": {
+                                "type": "number"
+                              },
+                              "outcome": {
+                                "type": "string",
+                                "enum": [
+                                  "win",
+                                  "loss",
+                                  "draw"
+                                ]
+                              },
+                              "tournamentTitle": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "completedAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "opponentName",
+                              "playerScore",
+                              "opponentScore",
+                              "outcome",
+                              "tournamentTitle",
+                              "completedAt"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "achievements": {
+                          "type": "object",
+                          "properties": {
+                            "total": {
+                              "type": "number"
+                            },
+                            "unlockedCount": {
+                              "type": "number"
+                            },
+                            "unlocked": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "slug": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "category": {
+                                    "type": "string"
+                                  },
+                                  "unlockedAt": {
+                                    "type": "string"
+                                  },
+                                  "unlockCount": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "slug",
+                                  "name",
+                                  "description",
+                                  "category",
+                                  "unlockedAt",
+                                  "unlockCount"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "showcase": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "total",
+                            "unlockedCount",
+                            "unlocked",
+                            "showcase"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "posts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "content": {
+                                "type": "string"
+                              },
+                              "postType": {
+                                "type": "string"
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "content",
+                              "postType",
+                              "createdAt"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "gallery": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "imageUrl": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "imageUrl"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "player",
+                        "stats",
+                        "titles",
+                        "recentMatches",
+                        "achievements",
+                        "posts",
+                        "gallery"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/players/{username}/followers": {
+      "get": {
+        "operationId": "getPlayerFollowers",
+        "summary": "Who follows this player (max 100, newest first). Public.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "username": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "displayName": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "avatarUrl": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "membershipTier": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "username",
+                          "displayName",
+                          "avatarUrl",
+                          "membershipTier"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/players/{username}/following": {
+      "get": {
+        "operationId": "getPlayerFollowing",
+        "summary": "Who this player follows (max 100, newest first). Public.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "username": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "displayName": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "avatarUrl": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "membershipTier": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "username",
+                          "displayName",
+                          "avatarUrl",
+                          "membershipTier"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/session/start": {
       "post": {
         "operationId": "postSessionStart",

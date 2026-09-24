@@ -21,6 +21,7 @@ import { ratingEndpoint } from './rating'
 import { wagerEndpoint } from './wager'
 import { lobbyResultEndpoint } from './lobby-result'
 import { summaryEndpoint } from './summary'
+import { playersSearchEndpoint, playerProfileEndpoint, playerFollowersEndpoint, playerFollowingEndpoint } from './players'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -54,4 +55,8 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   wagerEndpoint,
   lobbyResultEndpoint,
   summaryEndpoint,
+  playersSearchEndpoint,
+  playerProfileEndpoint,
+  playerFollowersEndpoint,
+  playerFollowingEndpoint,
 ]
