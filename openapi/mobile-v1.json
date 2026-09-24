@@ -2332,6 +2332,177 @@
         }
       }
     },
+    "/api/mobile/v1/me/progress": {
+      "get": {
+        "operationId": "getMyProgress",
+        "summary": "Owner-only progress: XP and membership tier (with progress to the next tier, null at max), SX Score, coin balance, and the active DLS season standing (null with no active season).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "xp": {
+                          "type": "number"
+                        },
+                        "membershipTier": {
+                          "type": "string"
+                        },
+                        "tierProgress": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "current": {
+                                  "type": "string"
+                                },
+                                "next": {
+                                  "type": "string"
+                                },
+                                "xpIntoTier": {
+                                  "type": "number"
+                                },
+                                "xpForNextTier": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "current",
+                                "next",
+                                "xpIntoTier",
+                                "xpForNextTier"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "sxScore": {
+                          "type": "number"
+                        },
+                        "sentinelTier": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "coinBalance": {
+                          "type": "number"
+                        },
+                        "seasonStanding": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "seasonName": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "rank": {
+                                  "anyOf": [
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "points": {
+                                  "type": "number"
+                                },
+                                "pointsAtRankSixteen": {
+                                  "type": "number"
+                                },
+                                "monthlyRank": {
+                                  "anyOf": [
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "monthlyPoints": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "seasonName",
+                                "rank",
+                                "points",
+                                "pointsAtRankSixteen",
+                                "monthlyRank",
+                                "monthlyPoints"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "xp",
+                        "membershipTier",
+                        "tierProgress",
+                        "sxScore",
+                        "sentinelTier",
+                        "coinBalance",
+                        "seasonStanding"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/me/summary": {
       "get": {
         "operationId": "getMeSummary",

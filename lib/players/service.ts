@@ -10,7 +10,7 @@ import { sideAIds, sideBIds } from '@/lib/tournaments/advancement'
 import { rostersForSquads } from '@/lib/tournaments/squad-roster'
 import { CATEGORY_META } from '@/lib/games/categories'
 import { RANKING_MIN_MATCHES } from '@/lib/rankings/leaderboard'
-import { getSeasonLeaderboard, getMonthlyLeaderboard } from '@/lib/seasons/data'
+import { loadSeasonStanding } from './season-standing'
 import { buildAchievementCells, type AchievementCell } from '@/lib/players/achievement-rarity'
 import { equippedCosmeticsBySlug } from '@/lib/store/cosmetics'
 import { findLiveProfileByUsername } from './find-by-username'
@@ -411,33 +411,12 @@ export async function buildPlayerProfile(
   const coinBalance = isOwner ? await getCoinBalance(getAdmin(), p.id) : null
 
   // ── Season standing (spec §2.1 hero pill + §2.7 owner-only card) ─────────
-  const { data: activeSeason } = await supabase.from('seasons').select('id').eq('status', 'active').maybeSingle()
-
-  let seasonRank: number | null = null
-  let seasonPoints = 0
-  let pointsAtRankSixteen = 0
-  let monthlyRank: number | null = null
-  let monthlyPoints = 0
-  if (activeSeason) {
-    // DLS-only for now, matching this card's pre-multi-game behavior — see
-    // the equivalent note on app/[locale]/seasons/[slug]/page.tsx. Showing a
-    // per-game season standing here is a separate follow-up.
-    const seasonAdmin = getAdmin()
-    const { data: dlsGame } = await supabase.from('games').select('id').eq('slug', 'dls').maybeSingle()
-    const seasonBoard = await getSeasonLeaderboard(seasonAdmin, activeSeason.id, dlsGame?.id ?? '')
-    const idx = seasonBoard.findIndex((r) => r.playerId === p.id)
-    seasonRank = idx >= 0 ? idx + 1 : null
-    seasonPoints = idx >= 0 ? seasonBoard[idx].points : 0
-    pointsAtRankSixteen = seasonBoard[15]?.points ?? 0
-    // Monthly board is only needed for the owner-only Season Standing card —
-    // skip the extra query entirely for public visitors.
-    if (isOwner) {
-      const monthlyBoard = await getMonthlyLeaderboard(seasonAdmin, activeSeason.id, new Date(), dlsGame?.id ?? '')
-      const monthlyIdx = monthlyBoard.findIndex((r) => r.playerId === p.id)
-      monthlyRank = monthlyIdx >= 0 ? monthlyIdx + 1 : null
-      monthlyPoints = monthlyIdx >= 0 ? monthlyBoard[monthlyIdx].points : 0
-    }
-  }
+  const standing = await loadSeasonStanding(supabase, getAdmin, p.id, isOwner)
+  const seasonRank = standing?.rank ?? null
+  const seasonPoints = standing?.points ?? 0
+  const pointsAtRankSixteen = standing?.pointsAtRankSixteen ?? 0
+  const monthlyRank = standing?.monthlyRank ?? null
+  const monthlyPoints = standing?.monthlyPoints ?? 0
 
   const profile: ProfileView = {
     id: p.id,
