@@ -53,13 +53,63 @@ export const SEASONS: Row[] = [
   { id: 's1', slug: 'season-1', name: 'Season 1', start_date: '2026-08-01', end_date: '2026-10-31' },
 ]
 
+const COMPLETED_TOURNAMENTS: Row[] = [
+  {
+    id: 't-masters', slug: 'masters-cup', title: 'Masters Cup', tournament_type: 'masters',
+    prize_pool: 50000, tournament_end: '2026-09-20T18:00:00Z', game_id: 'g-dls',
+    games: { name: 'Dream League Soccer' }, season: { name: 'Season 1' }, status: 'completed',
+  },
+  {
+    id: 't-champions', slug: 'champions-cup', title: 'Champions Cup', tournament_type: 'champions_cup',
+    prize_pool: 100000, tournament_end: '2026-09-21T18:00:00Z', game_id: 'g-dls',
+    games: { name: 'Dream League Soccer' }, season: { name: 'Season 1' }, status: 'completed',
+  },
+  {
+    id: 't-community', slug: 'community-cup', title: 'Community Cup', tournament_type: 'community_club',
+    prize_pool: 20000, tournament_end: '2026-09-19T18:00:00Z', game_id: 'g-ff',
+    games: { name: 'Free Fire' }, season: { name: 'Season 1' }, status: 'completed',
+  },
+]
+
+function profileRef(id: string): Row {
+  const p = PROFILES.find((row) => row.id === id)!
+  return { id, username: p.username, display_name: p.display_name, avatar_url: p.avatar_url }
+}
+
+function placingMatch(
+  id: string,
+  tournamentId: string,
+  round: 'final' | 'third_place',
+  a: string,
+  b: string,
+  scoreA: number,
+  scoreB: number,
+  gameId: string,
+): Row {
+  const g = GAMES.find((row) => row.id === gameId)!
+  return {
+    id, tournament_id: tournamentId, round, status: 'completed', score_a: scoreA, score_b: scoreB,
+    player_a_id: a, player_b_id: b, team_a_id: null, team_b_id: null,
+    player_a: profileRef(a), player_b: profileRef(b), team_a: null, team_b: null,
+    completed_at: '2026-09-20T18:00:00Z',
+    tournament: { game: { id: g.id, name: g.name, category: g.category } },
+  }
+}
+
+const PLACING_MATCHES: Row[] = [
+  placingMatch('final-masters', 't-masters', 'final', 'p1', 'p2', 3, 1, 'g-dls'),
+  placingMatch('bronze-masters', 't-masters', 'third_place', 'p3', 'p4', 2, 0, 'g-dls'),
+  placingMatch('final-champions', 't-champions', 'final', 'p5', 'p6', 2, 1, 'g-dls'),
+  placingMatch('final-community', 't-community', 'final', 'p7', 'p8', 12, 8, 'g-ff'),
+]
+
 export const FIXTURE_TABLES: Record<string, Row[]> = {
   profiles: PROFILES,
   games: GAMES,
-  matches: MATCHES,
+  matches: [...MATCHES, ...PLACING_MATCHES],
   player_rank_snapshots: SNAPSHOTS,
   seasons: SEASONS,
-  tournaments: [],
+  tournaments: COMPLETED_TOURNAMENTS,
   squads: [],
   squad_members: [],
   season_ranking_points: [],
