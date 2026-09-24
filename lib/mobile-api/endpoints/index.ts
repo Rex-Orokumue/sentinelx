@@ -10,6 +10,17 @@ import { homeEndpoint } from './home'
 import { registrationStateEndpoint, registerEndpoint, waitlistEndpoint } from './tournaments'
 import { acceptInvitationEndpoint, declineInvitationEndpoint } from './invitations'
 import { paymentStatusEndpoint } from './payments'
+import { bracketEndpoint } from './bracket'
+import { standingsEndpoint } from './standings'
+import { resultsEndpoint } from './results'
+import { createSquadEndpoint, lookupSquadEndpoint } from './squads'
+import { matchCentreEndpoint } from './match-centre'
+import { checkInEndpoint } from './check-in'
+import { matchResultEndpoint } from './match-result'
+import { ratingEndpoint } from './rating'
+import { wagerEndpoint } from './wager'
+import { lobbyResultEndpoint } from './lobby-result'
+import { summaryEndpoint } from './summary'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -31,4 +42,16 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   acceptInvitationEndpoint,
   declineInvitationEndpoint,
   paymentStatusEndpoint,
+  bracketEndpoint,
+  standingsEndpoint,
+  resultsEndpoint,
+  createSquadEndpoint,
+  lookupSquadEndpoint,
+  matchCentreEndpoint,
+  checkInEndpoint,
+  matchResultEndpoint,
+  ratingEndpoint,
+  wagerEndpoint,
+  lobbyResultEndpoint,
+  summaryEndpoint,
 ]

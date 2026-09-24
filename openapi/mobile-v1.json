@@ -1352,6 +1352,597 @@
         }
       }
     },
+    "/api/mobile/v1/lobbies/{id}/result": {
+      "post": {
+        "operationId": "postLobbyResult",
+        "summary": "Submit a placement/kills result for one lobby (BR/points-race formats) for admin review.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "placement": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "kills": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "screenshotPath": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "placement",
+                  "kills",
+                  "screenshotPath"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "success"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/matches/{id}/centre": {
+      "get": {
+        "operationId": "getMatchCentre",
+        "summary": "Composed Match Centre view: participation, check-in state, wager pools/window, no-show eligibility.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "matchId": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "scheduledAt": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "isFullDay": {
+                          "type": "boolean"
+                        },
+                        "isParticipant": {
+                          "type": "boolean"
+                        },
+                        "canCheckIn": {
+                          "type": "boolean"
+                        },
+                        "checkedInPlayerIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "checkInVerdict": {
+                          "type": "string",
+                          "enum": [
+                            "both",
+                            "one",
+                            "none"
+                          ]
+                        },
+                        "soleAttendeeId": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "wager": {
+                          "type": "object",
+                          "properties": {
+                            "windowOpen": {
+                              "type": "boolean"
+                            },
+                            "pools": {
+                              "type": "object",
+                              "properties": {
+                                "playerA": {
+                                  "type": "number"
+                                },
+                                "playerB": {
+                                  "type": "number"
+                                }
+                              },
+                              "required": [
+                                "playerA",
+                                "playerB"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "feeRate": {
+                              "type": "number"
+                            },
+                            "minStake": {
+                              "type": "number"
+                            },
+                            "maxStake": {
+                              "type": "number"
+                            },
+                            "myPickPlayerId": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "myStakeCoins": {
+                              "anyOf": [
+                                {
+                                  "type": "number"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "estimatedPayoutIfIStakeA100": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "windowOpen",
+                            "pools",
+                            "feeRate",
+                            "minStake",
+                            "maxStake",
+                            "myPickPlayerId",
+                            "myStakeCoins",
+                            "estimatedPayoutIfIStakeA100"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "noShowEligible": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "matchId",
+                        "status",
+                        "scheduledAt",
+                        "isFullDay",
+                        "isParticipant",
+                        "canCheckIn",
+                        "checkedInPlayerIds",
+                        "checkInVerdict",
+                        "soleAttendeeId",
+                        "wager",
+                        "noShowEligible"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/matches/{id}/check-in": {
+      "post": {
+        "operationId": "postMatchCheckIn",
+        "summary": "Mark the signed-in player present for a match.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "success"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/matches/{id}/rating": {
+      "post": {
+        "operationId": "postMatchRating",
+        "summary": "Rate your opponent 1-5 stars after a confirmed match result.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "stars": {
+                    "anyOf": [
+                      {
+                        "type": "number",
+                        "const": 1
+                      },
+                      {
+                        "type": "number",
+                        "const": 2
+                      },
+                      {
+                        "type": "number",
+                        "const": 3
+                      },
+                      {
+                        "type": "number",
+                        "const": 4
+                      },
+                      {
+                        "type": "number",
+                        "const": 5
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "stars"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "success"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/matches/{id}/result": {
+      "post": {
+        "operationId": "postMatchResult",
+        "summary": "Submit a match result (screenshot required) for admin review.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "scoreA": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 99
+                  },
+                  "scoreB": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 99
+                  },
+                  "recordingUrl": {
+                    "default": "",
+                    "type": "string"
+                  },
+                  "screenshotPath": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "scoreA",
+                  "scoreB",
+                  "recordingUrl",
+                  "screenshotPath"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "success"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/matches/{id}/wager": {
+      "post": {
+        "operationId": "postMatchWager",
+        "summary": "Place or change a coin wager on a match you are not playing in.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pickPlayerId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "stakeCoins": {
+                    "type": "integer",
+                    "minimum": 50,
+                    "maximum": 2000
+                  }
+                },
+                "required": [
+                  "pickPlayerId",
+                  "stakeCoins"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "success": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "success"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/me": {
       "get": {
         "operationId": "getMe",
@@ -1676,6 +2267,253 @@
         }
       }
     },
+    "/api/mobile/v1/me/summary": {
+      "get": {
+        "operationId": "getMeSummary",
+        "summary": "Dashboard fixtures summary: next fixture, submit-result prompt, active registrations, qualify/eliminate banners.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "nextMatch": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "status": {
+                                  "type": "string"
+                                },
+                                "round": {
+                                  "type": "string"
+                                },
+                                "scheduledAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "isFullDay": {
+                                  "type": "boolean"
+                                },
+                                "tournamentTitle": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "status",
+                                "round",
+                                "scheduledAt",
+                                "isFullDay",
+                                "tournamentTitle"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "nextLobby": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "lobbyId": {
+                                  "type": "string"
+                                },
+                                "tournamentTitle": {
+                                  "type": "string"
+                                },
+                                "stageName": {
+                                  "type": "string"
+                                },
+                                "roundNo": {
+                                  "type": "number"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "scheduledAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "hasRoomCode": {
+                                  "type": "boolean"
+                                },
+                                "submitted": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "lobbyId",
+                                "tournamentTitle",
+                                "stageName",
+                                "roundNo",
+                                "label",
+                                "scheduledAt",
+                                "hasRoomCode",
+                                "submitted"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "hasSubmittableMatch": {
+                          "type": "boolean"
+                        },
+                        "registrations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "paymentStatus": {
+                                "type": "string"
+                              },
+                              "tournamentTitle": {
+                                "type": "string"
+                              },
+                              "tournamentSlug": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "paymentStatus",
+                              "tournamentTitle",
+                              "tournamentSlug"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "banners": {
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "qualified"
+                                  },
+                                  "tournamentTitle": {
+                                    "type": "string"
+                                  },
+                                  "tournamentSlug": {
+                                    "type": "string"
+                                  },
+                                  "round": {
+                                    "type": "string"
+                                  },
+                                  "awaitingOpponent": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "tournamentTitle",
+                                  "tournamentSlug",
+                                  "round",
+                                  "awaitingOpponent"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "eliminated"
+                                  },
+                                  "tournamentTitle": {
+                                    "type": "string"
+                                  },
+                                  "tournamentSlug": {
+                                    "type": "string"
+                                  },
+                                  "round": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "tournamentTitle",
+                                  "tournamentSlug",
+                                  "round"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "nextMatch",
+                        "nextLobby",
+                        "hasSubmittableMatch",
+                        "registrations",
+                        "banners"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/onboarding/username": {
       "post": {
         "operationId": "postOnboardingUsername",
@@ -1913,6 +2751,1114 @@
         }
       }
     },
+    "/api/mobile/v1/squads": {
+      "post": {
+        "operationId": "postSquads",
+        "summary": "Create a squad for a squad-entry tournament and receive its invite code.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tournamentId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 30
+                  }
+                },
+                "required": [
+                  "tournamentId",
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "squadId": {
+                          "type": "string"
+                        },
+                        "inviteCode": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "squadId",
+                        "inviteCode"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/squads/lookup": {
+      "get": {
+        "operationId": "getSquadLookup",
+        "summary": "Preview a squad by its invite code before committing to join it.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "squad": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "memberCount": {
+                              "type": "number"
+                            },
+                            "teamSize": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "memberCount",
+                            "teamSize"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "squad"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/tournaments/{id}/bracket": {
+      "get": {
+        "operationId": "getTournamentBracket",
+        "summary": "Group standings, fixtures, and knockout rounds for one tournament.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "standings": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "groupId": {
+                                "type": "string"
+                              },
+                              "groupName": {
+                                "type": "string"
+                              },
+                              "rows": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "playerId": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    },
+                                    "clubName": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "played": {
+                                      "type": "number"
+                                    },
+                                    "wins": {
+                                      "type": "number"
+                                    },
+                                    "draws": {
+                                      "type": "number"
+                                    },
+                                    "losses": {
+                                      "type": "number"
+                                    },
+                                    "goalsFor": {
+                                      "type": "number"
+                                    },
+                                    "goalsAgainst": {
+                                      "type": "number"
+                                    },
+                                    "goalDiff": {
+                                      "type": "number"
+                                    },
+                                    "points": {
+                                      "type": "number"
+                                    },
+                                    "rank": {
+                                      "type": "number"
+                                    },
+                                    "advancing": {
+                                      "type": "boolean"
+                                    }
+                                  },
+                                  "required": [
+                                    "playerId",
+                                    "name",
+                                    "played",
+                                    "wins",
+                                    "draws",
+                                    "losses",
+                                    "goalsFor",
+                                    "goalsAgainst",
+                                    "goalDiff",
+                                    "points",
+                                    "rank",
+                                    "advancing"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
+                            "required": [
+                              "groupId",
+                              "groupName",
+                              "rows"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "fixtures": {
+                          "type": "object",
+                          "properties": {
+                            "live": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "round": {
+                                    "type": "string"
+                                  },
+                                  "group_id": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "groupName": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "status": {
+                                    "type": "string"
+                                  },
+                                  "score_a": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "score_b": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "scheduled_at": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "is_full_day": {
+                                    "type": "boolean"
+                                  },
+                                  "playerA": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  "playerB": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "round",
+                                  "group_id",
+                                  "groupName",
+                                  "status",
+                                  "score_a",
+                                  "score_b",
+                                  "scheduled_at",
+                                  "is_full_day",
+                                  "playerA",
+                                  "playerB"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "upcoming": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "round": {
+                                    "type": "string"
+                                  },
+                                  "group_id": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "groupName": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "status": {
+                                    "type": "string"
+                                  },
+                                  "score_a": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "score_b": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "scheduled_at": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "is_full_day": {
+                                    "type": "boolean"
+                                  },
+                                  "playerA": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  "playerB": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "round",
+                                  "group_id",
+                                  "groupName",
+                                  "status",
+                                  "score_a",
+                                  "score_b",
+                                  "scheduled_at",
+                                  "is_full_day",
+                                  "playerA",
+                                  "playerB"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "completed": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "round": {
+                                    "type": "string"
+                                  },
+                                  "group_id": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "groupName": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "status": {
+                                    "type": "string"
+                                  },
+                                  "score_a": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "score_b": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "scheduled_at": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "is_full_day": {
+                                    "type": "boolean"
+                                  },
+                                  "playerA": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  "playerB": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "round",
+                                  "group_id",
+                                  "groupName",
+                                  "status",
+                                  "score_a",
+                                  "score_b",
+                                  "scheduled_at",
+                                  "is_full_day",
+                                  "playerA",
+                                  "playerB"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "disputedOrCancelled": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "round": {
+                                    "type": "string"
+                                  },
+                                  "group_id": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "groupName": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "status": {
+                                    "type": "string"
+                                  },
+                                  "score_a": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "score_b": {
+                                    "anyOf": [
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "scheduled_at": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "is_full_day": {
+                                    "type": "boolean"
+                                  },
+                                  "playerA": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  "playerB": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "name": {
+                                        "type": "string"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "name"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "round",
+                                  "group_id",
+                                  "groupName",
+                                  "status",
+                                  "score_a",
+                                  "score_b",
+                                  "scheduled_at",
+                                  "is_full_day",
+                                  "playerA",
+                                  "playerB"
+                                ],
+                                "additionalProperties": false
+                              }
+                            }
+                          },
+                          "required": [
+                            "live",
+                            "upcoming",
+                            "completed",
+                            "disputedOrCancelled"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "rounds": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "round": {
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "matches": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "round": {
+                                      "type": "string"
+                                    },
+                                    "group_id": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "groupName": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "status": {
+                                      "type": "string"
+                                    },
+                                    "score_a": {
+                                      "anyOf": [
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "score_b": {
+                                      "anyOf": [
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "scheduled_at": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "null"
+                                        }
+                                      ]
+                                    },
+                                    "is_full_day": {
+                                      "type": "boolean"
+                                    },
+                                    "playerA": {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    "playerB": {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "additionalProperties": false
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "round",
+                                    "group_id",
+                                    "groupName",
+                                    "status",
+                                    "score_a",
+                                    "score_b",
+                                    "scheduled_at",
+                                    "is_full_day",
+                                    "playerA",
+                                    "playerB"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
+                            "required": [
+                              "round",
+                              "label",
+                              "matches"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "projected": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "round": {
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "matchCount": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "round",
+                              "label",
+                              "matchCount"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "champion": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "thirdPlace": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "name"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "thirdPlaceMatch": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "round": {
+                                  "type": "string"
+                                },
+                                "group_id": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "groupName": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "status": {
+                                  "type": "string"
+                                },
+                                "score_a": {
+                                  "anyOf": [
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "score_b": {
+                                  "anyOf": [
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "scheduled_at": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "is_full_day": {
+                                  "type": "boolean"
+                                },
+                                "playerA": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "playerB": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "round",
+                                "group_id",
+                                "groupName",
+                                "status",
+                                "score_a",
+                                "score_b",
+                                "scheduled_at",
+                                "is_full_day",
+                                "playerA",
+                                "playerB"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "hasGroups": {
+                          "type": "boolean"
+                        },
+                        "hasKnockout": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "standings",
+                        "fixtures",
+                        "rounds",
+                        "projected",
+                        "champion",
+                        "thirdPlace",
+                        "thirdPlaceMatch",
+                        "hasGroups",
+                        "hasKnockout"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/tournaments/{id}/register": {
       "post": {
         "operationId": "postTournamentRegister",
@@ -2096,6 +4042,304 @@
                         "hasWaiver",
                         "coinDiscountEligible",
                         "agreementRequired"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/tournaments/{id}/results": {
+      "get": {
+        "operationId": "getTournamentResults",
+        "summary": "Champion (if resolved) and no-winner status for a completed tournament.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "champion": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "tournamentId": {
+                                  "type": "string"
+                                },
+                                "slug": {
+                                  "type": "string"
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "tournamentType": {
+                                  "type": "string",
+                                  "enum": [
+                                    "champions_cup",
+                                    "masters",
+                                    "community_club",
+                                    "open"
+                                  ]
+                                },
+                                "gameId": {
+                                  "type": "string"
+                                },
+                                "gameName": {
+                                  "type": "string"
+                                },
+                                "date": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "prizePool": {
+                                  "anyOf": [
+                                    {
+                                      "type": "number"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "champion": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "name": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "name"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "runnerUp": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "id": {
+                                          "type": "string"
+                                        },
+                                        "name": {
+                                          "type": "string"
+                                        }
+                                      },
+                                      "required": [
+                                        "id",
+                                        "name"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "championAvatarUrl": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "seasonName": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "tournamentId",
+                                "slug",
+                                "title",
+                                "tournamentType",
+                                "gameId",
+                                "gameName",
+                                "date",
+                                "prizePool",
+                                "champion",
+                                "runnerUp",
+                                "championAvatarUrl",
+                                "seasonName"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "noWinner": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "champion",
+                        "noWinner"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/tournaments/{id}/standings": {
+      "get": {
+        "operationId": "getTournamentStandings",
+        "summary": "Points-race stage standings (round-robin/BR). Group standings live in GET /tournaments/{id}/bracket instead.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "rows": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "entrantId": {
+                                "type": "string"
+                              },
+                              "displayName": {
+                                "type": "string"
+                              },
+                              "played": {
+                                "type": "number"
+                              },
+                              "totalPoints": {
+                                "type": "number"
+                              },
+                              "totalKills": {
+                                "type": "number"
+                              },
+                              "bestPlacement": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "lastRoundPlacement": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "rank": {
+                                "type": "number"
+                              },
+                              "advancing": {
+                                "type": "boolean"
+                              },
+                              "unresolvedTieWith": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            "required": [
+                              "entrantId",
+                              "displayName",
+                              "played",
+                              "totalPoints",
+                              "totalKills",
+                              "bestPlacement",
+                              "lastRoundPlacement",
+                              "rank",
+                              "advancing",
+                              "unresolvedTieWith"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "rows"
                       ],
                       "additionalProperties": false
                     }

@@ -9,8 +9,18 @@ import { lobbyResultSchema } from './lobby-result-schema'
 import { frozenResultRows, stageIsComplete, type ConfirmRowInput } from './lobby-confirm'
 import { validateLobbyResults } from './lobby-validation'
 import { parsePointsConfig, DEFAULT_POINTS_CONFIG } from './points-config'
+import { performSubmitLobbyResult, type SubmitLobbyResultErrorCode } from './submit-lobby-result-service'
 
 export type LobbyResultState = { error?: string; success?: boolean } | undefined
+
+const SUBMIT_LOBBY_RESULT_MESSAGE: Record<SubmitLobbyResultErrorCode, string> = {
+  not_in_lobby: 'You are not in this lobby.',
+  lobby_confirmed: 'This lobby has been confirmed and can no longer be edited.',
+  validation_failed: 'Please check your placement and kills.',
+  result_confirmed: 'Your result is confirmed and can no longer be edited.',
+  screenshot_required: 'A screenshot is required.',
+  submit_failed: 'Could not submit your result. Please try again.',
+}
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -86,80 +96,15 @@ export async function submitLobbyResult(
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to submit a result.' }
 
-  const admin = createAdminClient()
-  const caller = await callerEntrantFor(admin, lobbyId, user.id)
-  if (!caller) return { error: 'You are not in this lobby.' }
-  if (caller.lobbyStatus === 'confirmed') {
-    return { error: 'This lobby has been confirmed and can no longer be edited.' }
-  }
-
-  const parsed = lobbyResultSchema.safeParse({
-    placement: formData.get('placement'),
-    kills: formData.get('kills'),
+  const result = await performSubmitLobbyResult(createAdminClient(), user.id, lobbyId, {
+    placement: Number(formData.get('placement')),
+    kills: Number(formData.get('kills')),
+    screenshotPath,
   })
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
-
-  const { data: existing } = await admin
-    .from('lobby_results')
-    .select('id, status, screenshot_url')
-    .eq('lobby_id', lobbyId)
-    .eq('entrant_id', caller.entrantId)
-    .maybeSingle()
-  if (existing?.status === 'confirmed') {
-    return { error: 'Your result is confirmed and can no longer be edited.' }
-  }
-
-  const finalScreenshot = screenshotPath || existing?.screenshot_url || null
-  if (!finalScreenshot) return { error: 'A screenshot is required.' }
-
-  // Whether this is the lobby's FIRST submission decides if staff get pinged —
-  // read before the upsert, or the row we just wrote would count itself.
-  const { count: priorSubmissions } = await admin
-    .from('lobby_results')
-    .select('id', { count: 'exact', head: true })
-    .eq('lobby_id', lobbyId)
-
-  const { error } = await admin.from('lobby_results').upsert(
-    {
-      lobby_id: lobbyId,
-      entrant_id: caller.entrantId,
-      placement: parsed.data.placement,
-      kills: parsed.data.kills,
-      // Points are written at CONFIRM time, never here. A submission is a
-      // claim, and a claim must not be able to move the standings.
-      placement_points: 0,
-      kill_points: 0,
-      screenshot_url: finalScreenshot,
-      submitted_by: user.id,
-      status: 'pending',
-    },
-    { onConflict: 'lobby_id,entrant_id' },
-  )
-  if (error) return { error: 'Could not submit your result. Please try again.' }
-
-  if (caller.lobbyStatus === 'scheduled') {
-    await admin.from('tournament_lobbies').update({ status: 'awaiting_results' }).eq('id', lobbyId)
-  }
-
-  // Once per lobby, on its first submission. A 48-entrant lobby must not
-  // produce 48 alerts — that buries the review queue rather than filling it.
-  if (!priorSubmissions) {
-    const notification = resultNotification({
-      type: 'result_needs_review',
-      tournamentTitle: caller.tournamentTitle,
-      playerAName: 'Lobby',
-      playerBName: 'results',
-      createdAt: new Date().toISOString(),
-    })
-    await notifyStaff(admin, 'result_needs_review', {
-      title: notification.title,
-      body: `${caller.tournamentTitle} — a lobby has results to review.`,
-      link: `/admin/tournaments/${caller.tournamentId}/lobbies`,
-    })
-  }
+  if (!result.ok) return { error: SUBMIT_LOBBY_RESULT_MESSAGE[result.errorCode] }
 
   revalidatePath(`/lobbies/${lobbyId}`)
-  revalidatePath(`/admin/tournaments/${caller.tournamentId}/lobbies`)
+  revalidatePath(`/admin/tournaments/${result.tournamentId}/lobbies`)
   return { success: true }
 }
 
