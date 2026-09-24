@@ -2267,6 +2267,253 @@
         }
       }
     },
+    "/api/mobile/v1/me/summary": {
+      "get": {
+        "operationId": "getMeSummary",
+        "summary": "Dashboard fixtures summary: next fixture, submit-result prompt, active registrations, qualify/eliminate banners.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "nextMatch": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "status": {
+                                  "type": "string"
+                                },
+                                "round": {
+                                  "type": "string"
+                                },
+                                "scheduledAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "isFullDay": {
+                                  "type": "boolean"
+                                },
+                                "tournamentTitle": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "status",
+                                "round",
+                                "scheduledAt",
+                                "isFullDay",
+                                "tournamentTitle"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "nextLobby": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "lobbyId": {
+                                  "type": "string"
+                                },
+                                "tournamentTitle": {
+                                  "type": "string"
+                                },
+                                "stageName": {
+                                  "type": "string"
+                                },
+                                "roundNo": {
+                                  "type": "number"
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "scheduledAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "hasRoomCode": {
+                                  "type": "boolean"
+                                },
+                                "submitted": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "lobbyId",
+                                "tournamentTitle",
+                                "stageName",
+                                "roundNo",
+                                "label",
+                                "scheduledAt",
+                                "hasRoomCode",
+                                "submitted"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "hasSubmittableMatch": {
+                          "type": "boolean"
+                        },
+                        "registrations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "paymentStatus": {
+                                "type": "string"
+                              },
+                              "tournamentTitle": {
+                                "type": "string"
+                              },
+                              "tournamentSlug": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "paymentStatus",
+                              "tournamentTitle",
+                              "tournamentSlug"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "banners": {
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "qualified"
+                                  },
+                                  "tournamentTitle": {
+                                    "type": "string"
+                                  },
+                                  "tournamentSlug": {
+                                    "type": "string"
+                                  },
+                                  "round": {
+                                    "type": "string"
+                                  },
+                                  "awaitingOpponent": {
+                                    "type": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "tournamentTitle",
+                                  "tournamentSlug",
+                                  "round",
+                                  "awaitingOpponent"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "eliminated"
+                                  },
+                                  "tournamentTitle": {
+                                    "type": "string"
+                                  },
+                                  "tournamentSlug": {
+                                    "type": "string"
+                                  },
+                                  "round": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "tournamentTitle",
+                                  "tournamentSlug",
+                                  "round"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "nextMatch",
+                        "nextLobby",
+                        "hasSubmittableMatch",
+                        "registrations",
+                        "banners"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/onboarding/username": {
       "post": {
         "operationId": "postOnboardingUsername",
