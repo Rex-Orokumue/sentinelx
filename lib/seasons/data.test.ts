@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { getSeasonLeaderboard } from './data'
+import { fakeSupabase } from '@/lib/testing/fake-supabase'
+import { getMonthlyLeaderboard, getSeasonLeaderboard } from './data'
 
 function fakeAdmin(opts: {
   // game_id is optional so every pre-existing fixture (none of which cares
@@ -219,5 +220,42 @@ describe('getSeasonLeaderboard', () => {
     expect(rows).toEqual([
       { playerId: 'x', username: 'player-x', displayName: null, avatarUrl: null, sxScore: 900, points: 100, isProvisional: false },
     ])
+  })
+})
+
+describe('season leaderboards - exposed field set (admin client: no RLS backstop)', () => {
+  const ROW_KEYS = ['avatarUrl', 'displayName', 'isProvisional', 'playerId', 'points', 'sxScore', 'username']
+
+  // An extra sensitive-looking column on the profile row must never appear in the result.
+  const profiles = [{ id: 'p1', username: 'ada', display_name: 'Ada', avatar_url: null, sx_score: 1234, whatsapp_number: '+2348000000000' }]
+
+  it('getSeasonLeaderboard rows contain exactly the documented keys and nothing else', async () => {
+    const { client } = fakeSupabase({
+      tournaments: [{ id: 't1', season_id: 's1', game_id: 'g1', status: 'completed', tournament_type: 'masters', entry_unit: 'player' }],
+      matches: [],
+      tournament_registrations: [],
+      season_ranking_points: [{ season_id: 's1', tournament_id: 't1', player_id: 'p1', points: 40 }],
+      season_noshow_penalties: [],
+      profiles,
+    })
+    const rows = await getSeasonLeaderboard(client as never, 's1', 'g1')
+    expect(rows.length).toBe(1)
+    expect(rows[0]).toMatchObject({ playerId: 'p1', points: 40, sxScore: 1234 })
+    for (const row of rows) expect(Object.keys(row).sort()).toEqual(ROW_KEYS)
+    expect(JSON.stringify(rows)).not.toContain('whatsapp')
+  })
+
+  it('getMonthlyLeaderboard rows contain exactly the documented keys and nothing else', async () => {
+    const { client } = fakeSupabase({
+      tournaments: [{ id: 't1', season_id: 's1', game_id: 'g1', tournament_type: 'community_club', tournament_start: '2026-09-10T10:00:00Z' }],
+      matches: [{ id: 'm1', tournament_id: 't1' }],
+      season_ranking_points: [{ season_id: 's1', tournament_id: 't1', player_id: 'p1', points: 25 }],
+      season_noshow_penalties: [],
+      profiles,
+    })
+    const rows = await getMonthlyLeaderboard(client as never, 's1', new Date('2026-09-15T00:00:00Z'), 'g1')
+    expect(rows.length).toBe(1)
+    for (const row of rows) expect(Object.keys(row).sort()).toEqual(ROW_KEYS)
+    expect(JSON.stringify(rows)).not.toContain('whatsapp')
   })
 })

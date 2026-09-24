@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { fakeSupabase } from '@/lib/testing/fake-supabase'
 import { serializeTree } from '@/lib/testing/serialize-tree'
-import { FIXTURE_TABLES, FIXTURE_NOW } from '@/lib/testing/progress-fixtures'
+import { HALL_OF_FAME_FIXTURE_TABLES, FIXTURE_NOW } from '@/lib/testing/progress-fixtures'
 
 const state = vi.hoisted(() => ({ fake: null as null | { client: unknown; queries: string[] } }))
 vi.mock('@/lib/supabase/server', () => ({ createClient: () => state.fake!.client }))
@@ -9,7 +9,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: () => state.fake!.client
 import HallOfFamePage from './page'
 
 async function render(searchParams: Record<string, string>) {
-  state.fake = fakeSupabase(FIXTURE_TABLES, { user: null }) as never
+  state.fake = fakeSupabase(HALL_OF_FAME_FIXTURE_TABLES, { user: null }) as never
   const tree = await HallOfFamePage({ searchParams })
   return { tree: serializeTree(tree), queries: state.fake!.queries }
 }

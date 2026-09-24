@@ -57,7 +57,9 @@ const COMPLETED_TOURNAMENTS: Row[] = [
   {
     id: 't-masters', slug: 'masters-cup', title: 'Masters Cup', tournament_type: 'masters',
     prize_pool: 50000, tournament_end: '2026-09-20T18:00:00Z', game_id: 'g-dls',
-    games: { name: 'Dream League Soccer' }, season: { name: 'Season 1' }, status: 'completed',
+    games: { name: 'Dream League Soccer' }, season: { name: 'Season 1' }, season_id: 's1',
+    status: 'completed', entry_unit: 'player', invitation_only: true,
+    tournament_start: '2026-09-18T18:00:00Z',
   },
   {
     id: 't-champions', slug: 'champions-cup', title: 'Champions Cup', tournament_type: 'champions_cup',
@@ -106,14 +108,30 @@ const PLACING_MATCHES: Row[] = [
 export const FIXTURE_TABLES: Record<string, Row[]> = {
   profiles: PROFILES,
   games: GAMES,
-  matches: [...MATCHES, ...PLACING_MATCHES],
+  matches: MATCHES,
   player_rank_snapshots: SNAPSHOTS,
   seasons: SEASONS,
-  tournaments: COMPLETED_TOURNAMENTS,
+  tournaments: [],
   squads: [],
   squad_members: [],
   season_ranking_points: [],
   season_noshow_penalties: [],
   tournament_registrations: [],
   player_achievements: [],
+}
+
+// Page-specific overlays keep the rankings characterization dataset immutable. Adding completed
+// tournament matches globally would alter its match totals, prizes, and ranking statistics.
+export const HALL_OF_FAME_FIXTURE_TABLES: Record<string, Row[]> = {
+  ...FIXTURE_TABLES,
+  matches: [...MATCHES, ...PLACING_MATCHES],
+  tournaments: COMPLETED_TOURNAMENTS,
+}
+
+export const SEASON_FIXTURE_TABLES: Record<string, Row[]> = {
+  ...FIXTURE_TABLES,
+  matches: PLACING_MATCHES.filter((row) => row.tournament_id === 't-masters'),
+  tournaments: COMPLETED_TOURNAMENTS.filter((row) => row.id === 't-masters'),
+  season_ranking_points: [{ season_id: 's1', tournament_id: 't-masters', player_id: 'p1', points: 40 }],
+  tournament_registrations: [{ tournament_id: 't-masters', player_id: 'p1', status: 'active' }],
 }
