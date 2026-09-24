@@ -19,6 +19,7 @@ import { checkInEndpoint } from './check-in'
 import { matchResultEndpoint } from './match-result'
 import { ratingEndpoint } from './rating'
 import { wagerEndpoint } from './wager'
+import { lobbyResultEndpoint } from './lobby-result'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -50,4 +51,5 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   matchResultEndpoint,
   ratingEndpoint,
   wagerEndpoint,
+  lobbyResultEndpoint,
 ]
