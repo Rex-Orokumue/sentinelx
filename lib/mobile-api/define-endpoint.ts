@@ -13,6 +13,15 @@ export interface EndpointMeta {
   auth: AuthLevel
   body?: z.ZodTypeAny
   response: z.ZodTypeAny
+  parameters?: OpenApiParameter[]
+}
+
+export interface OpenApiParameter {
+  name: string
+  in: 'query' | 'path'
+  required?: boolean
+  description?: string
+  schema: Record<string, unknown>
 }
 
 export interface Endpoint {
@@ -51,6 +60,7 @@ export function defineEndpoint<
   auth: A
   body?: TBody
   response: TRes
+  parameters?: OpenApiParameter[]
   cacheControl?: string
   skipVersionGate?: boolean
   handler: (input: {
@@ -67,6 +77,7 @@ export function defineEndpoint<
     auth: def.auth,
     body: def.body,
     response: def.response,
+    parameters: def.parameters,
   }
 
   async function handler(req: Request): Promise<Response> {
