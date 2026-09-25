@@ -1,0 +1,160 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`season page — characterization > renders sections for every active game > queries 1`] = `
+[
+  "seasons:select|eq(slug)",
+  "games:select|eq(active)",
+  "tournaments:select|eq(season_id)|eq(game_id)|in(tournament_type)",
+  "tournaments:select|eq(season_id)|eq(game_id)|neq(tournament_type)",
+  "tournaments:select|eq(season_id)|eq(game_id)|in(tournament_type)",
+  "tournaments:select|eq(season_id)|eq(game_id)|neq(tournament_type)",
+  "tournaments:select|eq(season_id)|eq(game_id)|in(tournament_type)",
+  "tournaments:select|eq(season_id)|eq(game_id)|neq(tournament_type)",
+  "matches:select|in(tournament_id)",
+  "season_ranking_points:select|eq(season_id)|in(tournament_id)",
+  "season_ranking_points:select|eq(season_id)|in(tournament_id)",
+  "tournament_registrations:select|in(tournament_id)|eq(status)",
+  "season_ranking_points:select|eq(season_id)|in(tournament_id)",
+  "season_noshow_penalties:select|eq(season_id)|in(match_id)",
+  "profiles:select|in(id)",
+]
+`;
+
+exports[`season page — characterization > renders sections for every active game > tree 1`] = `
+{
+  "children": [
+    {
+      "children": null,
+      "props": {
+        "data": {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://sentinelxesports.com.ng/",
+              "name": "Home",
+              "position": 1,
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://sentinelxesports.com.ng/seasons/season-1",
+              "name": "Season 1",
+              "position": 2,
+            },
+          ],
+        },
+      },
+      "t": "JsonLd",
+    },
+    {
+      "children": null,
+      "props": {
+        "data": {
+          "@context": "https://schema.org",
+          "@type": "EventSeries",
+          "description": "Season 1 on Sentinel X — tournaments across every game, and the road to the top of each leaderboard.",
+          "endDate": "2026-10-31",
+          "name": "Season 1",
+          "organizer": {
+            "@type": "Organization",
+            "name": "SentinelX Esports",
+            "url": "https://sentinelxesports.com.ng",
+          },
+          "startDate": "2026-08-01",
+          "url": "https://sentinelxesports.com.ng/seasons/season-1",
+        },
+      },
+      "t": "JsonLd",
+    },
+    {
+      "children": null,
+      "props": {
+        "currentUserId": "p1",
+        "season": {
+          "end_date": "2026-10-31",
+          "id": "s1",
+          "name": "Season 1",
+          "slug": "season-1",
+          "start_date": "2026-08-01",
+        },
+        "seasonEndLabel": "October 2026",
+        "sections": [
+          {
+            "gameId": "g-dls",
+            "gameName": "Dream League Soccer",
+            "leaderboard": [
+              {
+                "avatarUrl": null,
+                "displayName": "Player 1",
+                "isProvisional": false,
+                "playerId": "p1",
+                "points": 40,
+                "sxScore": 980,
+                "username": "player1",
+              },
+            ],
+            "tierLabels": {
+              "communityClub": "Community Clubs",
+              "masters": "Masters",
+              "qualificationNote": "Qualify for Champions Cup — top 16 at season end earn an invitation.",
+              "showChampionsCupSpotlight": true,
+            },
+            "tournaments": [
+              {
+                "entry_unit": "player",
+                "game_id": "g-dls",
+                "games": {
+                  "name": "Dream League Soccer",
+                },
+                "id": "t-masters",
+                "invitation_only": true,
+                "prize_pool": 50000,
+                "season": {
+                  "name": "Season 1",
+                },
+                "season_id": "s1",
+                "slug": "masters-cup",
+                "status": "completed",
+                "title": "Masters Cup",
+                "tournament_end": "2026-09-20T18:00:00Z",
+                "tournament_start": "2026-09-18T18:00:00Z",
+                "tournament_type": "masters",
+              },
+            ],
+          },
+          {
+            "gameId": "g-fc",
+            "gameName": "EA FC Mobile",
+            "leaderboard": [],
+            "tierLabels": {
+              "communityClub": "Circuit Cups",
+              "masters": "Elite Cups",
+              "qualificationNote": "Top 16 monthly Circuit Cup points earn an Elite Cup invitation.",
+              "showChampionsCupSpotlight": false,
+            },
+            "tournaments": [],
+          },
+          {
+            "gameId": "g-ff",
+            "gameName": "Free Fire",
+            "leaderboard": [],
+            "tierLabels": {
+              "communityClub": "Community Tournaments",
+              "masters": "Masters",
+              "qualificationNote": "Top ranked players earn an invitation to the next tier.",
+              "showChampionsCupSpotlight": false,
+            },
+            "tournaments": [],
+          },
+        ],
+      },
+      "t": "SeasonGameTabs",
+    },
+  ],
+  "props": {
+    "className": "mx-auto max-w-4xl px-4 pb-20 pt-8 sm:px-6",
+  },
+  "t": "div",
+}
+`;

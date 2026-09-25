@@ -1,31 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { frameUrlFor } from '@/lib/store/cosmetics'
-import { RANKING_MIN_MATCHES, type PlayerStatsInput } from '@/lib/rankings/leaderboard'
-import {
-  pickMVP,
-  pickCategoryAward,
-  pickGameAward,
-  deriveThirdPlaces,
-  type ThirdPlaceInput,
-} from '@/lib/hall-of-fame/awards'
-import {
-  scoreStatsByPlayerAndCategory,
-  scoreStatsByPlayerAndGame,
-  categoryStat,
-  gameStat,
-  type GameScopedMatch,
-} from '@/lib/rankings/game-breakdown'
-import { CATEGORY_META } from '@/lib/games/categories'
-import type { BracketMatch } from '@/lib/tournaments/bracket'
+import { getHallOfFame } from '@/lib/hall-of-fame/service'
 import { SectionHeader } from '@/components/hall-of-fame/SectionHeader'
 import { HeroSection } from '@/components/hall-of-fame/HeroSection'
 import { AllTimeAwardCard, AllTimeAwardEmptyCard } from '@/components/hall-of-fame/AllTimeAwardCard'
-import { CategoryAwardFilter, type AwardOption } from '@/components/hall-of-fame/CategoryAwardFilter'
+import { CategoryAwardFilter } from '@/components/hall-of-fame/CategoryAwardFilter'
 import { ChampionsCupCard, ChampionsCupEmptyCard } from '@/components/hall-of-fame/ChampionsCupCard'
 import { TournamentChampionCard } from '@/components/hall-of-fame/TournamentChampionCard'
 import { HallOfFameGameFilter } from '@/components/hall-of-fame/HallOfFameGameFilter'
-import { fetchChampions, groupByType } from '@/lib/tournaments/champions'
-import { rostersForSquads } from '@/lib/tournaments/squad-roster'
 import { MastersChampionCard, MastersChampionEmptyCard } from '@/components/hall-of-fame/MastersChampionCard'
 import { CommunityClubCard } from '@/components/hall-of-fame/CommunityClubCard'
 import { BronzeCard } from '@/components/hall-of-fame/BronzeCard'
@@ -43,310 +25,22 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
   })
 }
 
-type ProfileRef = { id?: string; username: string | null; display_name: string | null } | null
-
-function nameOf(p: ProfileRef): string {
-  return p?.display_name ?? p?.username ?? 'TBD'
-}
-
-type SquadRef = { id: string; name: string } | { id: string; name: string }[] | null
-function firstSquad(s: SquadRef): { id: string; name: string } | null {
-  return Array.isArray(s) ? s[0] ?? null : s
-}
-function sideRef(player: ProfileRef, team: SquadRef): { id: string; name: string } {
-  const t = firstSquad(team)
-  if (t) return t
-  return { id: player?.id ?? '', name: nameOf(player) }
-}
-
-// Supabase to-one embeds can arrive as an object or a single-element array; normalize.
-function firstGameName(games: unknown): string | null {
-  if (Array.isArray(games)) return (games[0] as { name?: string } | undefined)?.name ?? null
-  return (games as { name?: string } | null)?.name ?? null
-}
-
-type RawGameRef = { id: string; name: string; category: string } | { id: string; name: string; category: string }[] | null
-type RawTournamentRef = { game: RawGameRef } | { game: RawGameRef }[] | null
-
-function firstGameRef(g: RawGameRef): { id: string; name: string; category: string } | null {
-  return Array.isArray(g) ? g[0] ?? null : g
-}
-function firstTournamentRef(t: RawTournamentRef): { game: RawGameRef } | null {
-  return Array.isArray(t) ? t[0] ?? null : t
-}
-
-export default async function HallOfFamePage({
-  searchParams,
-}: {
-  searchParams: { game?: string }
-}) {
-  const supabase = createClient()
-  const gameSlug = searchParams.game?.trim() || null
-
-  // Awards: eligible profiles. Champions: completed tournaments + their completed finals.
-  const [
-    { data: profileRows },
-    { data: tournamentRows },
-    { data: matchRows },
-    { data: activeGames },
-  ] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select(
-        'id, username, display_name, avatar_url, country, wins, losses, total_matches, goals_scored, goals_conceded, total_titles, sx_score, sentinel_tier, membership_tier, kyc_verified, equipped_avatar_border',
-      )
-      .gte('total_matches', RANKING_MIN_MATCHES),
-    supabase
-      .from('tournaments')
-      .select('id, slug, title, tournament_end, games(name)')
-      .eq('status', 'completed'),
-    supabase
-      .from('matches')
-      .select(
-        'status, score_a, score_b, player_a_id, player_b_id, team_a_id, team_b_id, tournament:tournaments(game:games(id, name, category))',
-      )
-      .eq('status', 'completed'),
-    // Independent of match data — a category can be "active" even with zero
-    // completed matches played in it yet.
-    supabase.from('games').select('id, name, slug, category').eq('active', true),
-  ])
-
-  const activeCategories = Array.from(new Set((activeGames ?? []).map((g) => g.category)))
-
-  const rawMatches = ((matchRows as unknown[] | null) ?? []) as {
-    status: string
-    score_a: number | null
-    score_b: number | null
-    player_a_id: string | null
-    player_b_id: string | null
-    team_a_id: string | null
-    team_b_id: string | null
-    tournament: RawTournamentRef
-  }[]
-  const squadIds = Array.from(
-    new Set(rawMatches.flatMap((m) => [m.team_a_id, m.team_b_id]).filter((id): id is string => id != null)),
-  )
-  const rosterBySquad = await rostersForSquads(supabase, squadIds)
-  const matches: GameScopedMatch[] = rawMatches.map((m) => {
-    const t = firstTournamentRef(m.tournament)
-    const g = firstGameRef(t?.game ?? null)
-    return {
-      status: m.status,
-      score_a: m.score_a,
-      score_b: m.score_b,
-      player_a_id: m.player_a_id,
-      player_b_id: m.player_b_id,
-      team_a_id: m.team_a_id,
-      team_b_id: m.team_b_id,
-      team_a_roster: m.team_a_id ? rosterBySquad.get(m.team_a_id) ?? [] : undefined,
-      team_b_roster: m.team_b_id ? rosterBySquad.get(m.team_b_id) ?? [] : undefined,
-      game_id: g?.id ?? 'unknown',
-      game_name: g?.name ?? 'Unknown',
-      game_category: g?.category ?? 'other',
-    }
-  })
-  const categoryMaps = Object.keys(CATEGORY_META).map((category) => ({
-    category,
-    map: scoreStatsByPlayerAndCategory(matches, category),
-  }))
-  const gameMaps = (activeGames ?? []).map((g) => ({
-    gameId: g.id,
-    map: scoreStatsByPlayerAndGame(matches, g.id),
-  }))
-
-  const players: PlayerStatsInput[] = (profileRows ?? []).map((p) => ({
-    id: p.id,
-    kycVerified: p.kyc_verified,
-    username: p.username,
-    displayName: p.display_name,
-    avatarUrl: p.avatar_url,
-    country: p.country,
-    wins: p.wins,
-    losses: p.losses,
-    totalMatches: p.total_matches,
-    goalsScored: p.goals_scored,
-    goalsConceded: p.goals_conceded,
-    categoryStats: categoryMaps.map(({ category, map }) => ({
-      category,
-      scored: map.get(p.id)?.scored ?? 0,
-      conceded: map.get(p.id)?.conceded ?? 0,
-    })),
-    gameStats: gameMaps.map(({ gameId, map }) => ({
-      gameId,
-      scored: map.get(p.id)?.scored ?? 0,
-      conceded: map.get(p.id)?.conceded ?? 0,
-    })),
-    winsByGame: [],
-    totalTitles: p.total_titles,
-    sxScore: p.sx_score,
-    sentinelTier: p.sentinel_tier,
-    membershipTier: p.membership_tier,
-    frameUrl: frameUrlFor(p.equipped_avatar_border),
-  }))
-
-  function awardOptionsFor(category: string): AwardOption[] {
-    const allWinner = pickCategoryAward(players, category)
-    const options: AwardOption[] = [
-      {
-        gameId: null,
-        gameLabel: `All ${CATEGORY_META[category]?.statLabel ?? category}`,
-        winner: allWinner,
-        metricValue: allWinner ? categoryStat(allWinner.categoryStats, category).scored : 0,
-      },
-    ]
-    const gamesInCategory = (activeGames ?? []).filter((g) => g.category === category)
-    if (gamesInCategory.length > 1) {
-      for (const g of gamesInCategory) {
-        const winner = pickGameAward(players, g.id)
-        options.push({
-          gameId: g.id,
-          gameLabel: g.name,
-          winner,
-          metricValue: winner ? gameStat(winner.gameStats, g.id).scored : 0,
-        })
-      }
-    }
-    return options
-  }
-
-  const mvp = pickMVP(players)
-  const goldenBootOptions = awardOptionsFor('football')
-  const goldenBoot = goldenBootOptions[0]?.winner ?? null
-  const categoryAwards = activeCategories
-    .filter((c) => c !== 'football' && CATEGORY_META[c] != null)
-    .map((c) => ({ category: c, meta: CATEGORY_META[c], options: awardOptionsFor(c) }))
-    .filter((a) => a.options[0]?.winner != null)
-
-  // Fetch completed final matches for the completed tournaments, then attach to each.
-  const tournaments = (tournamentRows ?? []) as unknown as {
-    id: string
-    slug: string
-    title: string
-    tournament_end: string | null
-    games: unknown
-  }[]
-  const tournamentIds = tournaments.map((t) => t.id)
-
-  const { data: thirdPlaceRows } =
-    tournamentIds.length > 0
-      ? await supabase
-          .from('matches')
-          .select(
-            'id, tournament_id, round, status, score_a, score_b, ' +
-              'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
-              'player_b:profiles!matches_player_b_id_fkey(id, username, display_name), ' +
-              'team_a:squads!matches_team_a_id_fkey(id, name), ' +
-              'team_b:squads!matches_team_b_id_fkey(id, name)',
-          )
-          .in('tournament_id', tournamentIds)
-          .eq('round', 'third_place')
-          .in('status', ['completed', 'bye'])
-      : { data: [] as unknown[] }
-
-  const thirdPlaceByTournament = new Map<string, BracketMatch>()
-  for (const raw of (thirdPlaceRows as unknown[] | null) ?? []) {
-    const m = raw as {
-      id: string
-      tournament_id: string
-      round: string
-      status: string
-      score_a: number | null
-      score_b: number | null
-      player_a: ProfileRef
-      player_b: ProfileRef
-      team_a: SquadRef
-      team_b: SquadRef
-    }
-    const a = sideRef(m.player_a, m.team_a)
-    const b = sideRef(m.player_b, m.team_b)
-    thirdPlaceByTournament.set(m.tournament_id, {
-      id: m.id,
-      round: m.round,
-      group_id: null,
-      groupName: null,
-      status: m.status,
-      score_a: m.score_a,
-      score_b: m.score_b,
-      scheduled_at: null,
-      is_full_day: false,
-      playerA: a,
-      playerB: b,
-    })
-  }
-
-  const thirdPlaceInputs: ThirdPlaceInput[] = tournaments.map((t) => ({
-    tournamentId: t.id,
-    slug: t.slug,
-    title: t.title,
-    gameName: firstGameName(t.games),
-    tournamentEnd: t.tournament_end,
-    thirdPlaceMatch: thirdPlaceByTournament.get(t.id) ?? null,
-  }))
-  const thirdPlaces = deriveThirdPlaces(thirdPlaceInputs)
-
-  const hasAwards = mvp != null || goldenBoot != null || categoryAwards.length > 0
-  const hasBronze = thirdPlaces.length > 0
-
-  // ── Champions, for every tournament type and every game ────────────────
-  // Champion resolution lives in lib/tournaments/champions.ts so the homepage,
-  // games page and tournament page share it. Type now decides which section a
-  // champion renders in — it is no longer a filter that can hide one.
-  const activeGameList = (activeGames ?? []) as unknown as {
-    id: string
-    name: string
-    slug: string
-    category: string
-  }[]
-  const selectedGame = gameSlug ? activeGameList.find((g) => g.slug === gameSlug) ?? null : null
-  // An unknown slug falls back to "all games" rather than showing nothing.
-  const gameFilterId = selectedGame?.id
-
-  const champions = await fetchChampions(supabase, gameFilterId ? { gameId: gameFilterId } : {})
-  const championGroups = groupByType(champions)
-
-  // Tier decorations for the champion cards.
-  const championIds = Array.from(new Set(champions.map((c) => c.champion.id)))
-  const { data: championProfileRows } = championIds.length
-    ? await supabase
-        .from('profiles')
-        .select('id, avatar_url, membership_tier, sentinel_tier, equipped_avatar_border')
-        .in('id', championIds)
-    : { data: [] as unknown[] }
-  const championProfileById = new Map<
-    string,
-    {
-      avatar_url: string | null
-      membership_tier: string | null
-      sentinel_tier: string | null
-      equipped_avatar_border: string | null
-    }
-  >()
-  for (const raw of (championProfileRows as unknown[] | null) ?? []) {
-    const r = raw as {
-      id: string
-      avatar_url: string | null
-      membership_tier: string | null
-      sentinel_tier: string | null
-      equipped_avatar_border: string | null
-    }
-    championProfileById.set(r.id, r)
-  }
-
-  const cupEntry = championGroups.champions_cup[0] ?? null
-
-  // Achievement slugs for the Champions Cup champion's HexAvatar decorations.
-  const { data: cupChampAchievements } = cupEntry
-    ? await supabase.from('player_achievements').select('achievements(slug)').eq('player_id', cupEntry.champion.id)
-    : { data: [] as unknown[] }
-  const cupChampionSlugs = ((cupChampAchievements as unknown[] | null) ?? []).flatMap((raw) => {
-    const r = raw as { achievements: { slug: string } | { slug: string }[] | null }
-    const ref = Array.isArray(r.achievements) ? r.achievements[0] : r.achievements
-    return ref?.slug ? [ref.slug] : []
-  })
-
-  // Under a game filter an empty section is noise, so it is hidden; with no
-  // filter the aspirational empty cards stay, since they signal the intended
-  // competition structure.
+export default async function HallOfFamePage({ searchParams }: { searchParams: { game?: string } }) {
+  const data = await getHallOfFame(createClient(), { gameSlug: searchParams.game?.trim() || null })
+  const {
+    activeGameList,
+    selectedGame,
+    mvp,
+    goldenBootOptions,
+    categoryAwards,
+    championGroups,
+    championProfileById,
+    cupEntry,
+    cupChampionSlugs,
+    thirdPlaces,
+    hasAwards,
+    hasBronze,
+  } = data
   const showEmptySections = !selectedGame
 
   return (
@@ -491,11 +185,7 @@ export default async function HallOfFamePage({
 
         {championGroups.open.length > 0 && (
           <section className="py-16">
-            <SectionHeader
-              icon="🏆"
-              title="Tournament Champions"
-              subtitle="Every other competition across the platform."
-            />
+            <SectionHeader icon="🏆" title="Tournament Champions" subtitle="Every other competition across the platform." />
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {championGroups.open.map((entry) => (
                 <TournamentChampionCard

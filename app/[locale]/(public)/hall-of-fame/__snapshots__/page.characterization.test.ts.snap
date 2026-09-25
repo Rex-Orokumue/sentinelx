@@ -1,0 +1,1064 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`hall-of-fame page — characterization > all games > queries 1`] = `
+[
+  "profiles:select|gte(total_matches)",
+  "tournaments:select|eq(status)",
+  "matches:select|eq(status)",
+  "games:select|eq(active)",
+  "matches:select|in(tournament_id)|eq(round)|in(status)",
+  "tournaments:select|eq(status)",
+  "matches:select|in(tournament_id)",
+  "profiles:select|in(id)",
+  "player_achievements:select|eq(player_id)",
+]
+`;
+
+exports[`hall-of-fame page — characterization > all games > tree 1`] = `
+{
+  "children": [
+    {
+      "children": null,
+      "props": {},
+      "t": "HeroSection",
+    },
+    {
+      "children": [
+        {
+          "children": {
+            "children": null,
+            "props": {
+              "activeSlug": null,
+              "games": [
+                {
+                  "active": true,
+                  "category": "football",
+                  "id": "g-dls",
+                  "name": "Dream League Soccer",
+                  "slug": "dls",
+                },
+                {
+                  "active": true,
+                  "category": "football",
+                  "id": "g-fc",
+                  "name": "EA FC Mobile",
+                  "slug": "ea-fc-mobile",
+                },
+                {
+                  "active": true,
+                  "category": "shooter",
+                  "id": "g-ff",
+                  "name": "Free Fire",
+                  "slug": "free-fire",
+                },
+              ],
+            },
+            "t": "HallOfFameGameFilter",
+          },
+          "props": {
+            "className": "pt-8",
+          },
+          "t": "div",
+        },
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "icon": "☀️",
+                "subtitle": "The greatest individuals in SentinelX history.",
+                "title": "All-Time Awards",
+                "tone": "gold",
+              },
+              "t": "SectionHeader",
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": null,
+                      "props": {
+                        "avatarUrl": null,
+                        "awardName": "All-Time MVP",
+                        "frameUrl": undefined,
+                        "icon": "⭐",
+                        "label": "MVP",
+                        "membershipTier": "bronze",
+                        "metricLabel": "SX Score",
+                        "metricValue": 980,
+                        "name": "Player 1",
+                        "sentinelTier": "trusted",
+                      },
+                      "t": "AllTimeAwardCard",
+                    },
+                    {
+                      "children": null,
+                      "props": {
+                        "awardName": "All-Time Golden Boot",
+                        "icon": "👟",
+                        "label": "Golden Boot",
+                        "metricLabel": "goals scored",
+                        "options": [
+                          {
+                            "gameId": null,
+                            "gameLabel": "All Goals",
+                            "metricValue": 13,
+                            "winner": {
+                              "avatarUrl": null,
+                              "categoryStats": [
+                                {
+                                  "category": "football",
+                                  "conceded": 11,
+                                  "scored": 13,
+                                },
+                                {
+                                  "category": "fighting",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                                {
+                                  "category": "shooter",
+                                  "conceded": 4,
+                                  "scored": 11,
+                                },
+                                {
+                                  "category": "racing",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                              ],
+                              "country": "GH",
+                              "displayName": "Player 2",
+                              "frameUrl": undefined,
+                              "gameStats": [
+                                {
+                                  "conceded": 9,
+                                  "gameId": "g-dls",
+                                  "scored": 8,
+                                },
+                                {
+                                  "conceded": 2,
+                                  "gameId": "g-fc",
+                                  "scored": 5,
+                                },
+                                {
+                                  "conceded": 4,
+                                  "gameId": "g-ff",
+                                  "scored": 11,
+                                },
+                              ],
+                              "goalsConceded": 12,
+                              "goalsScored": 28,
+                              "id": "p2",
+                              "kycVerified": false,
+                              "losses": 2,
+                              "membershipTier": "bronze",
+                              "sentinelTier": "trusted",
+                              "sxScore": 960,
+                              "totalMatches": 12,
+                              "totalTitles": 1,
+                              "username": "player2",
+                              "wins": 10,
+                              "winsByGame": [],
+                            },
+                          },
+                          {
+                            "gameId": "g-dls",
+                            "gameLabel": "Dream League Soccer",
+                            "metricValue": 10,
+                            "winner": {
+                              "avatarUrl": null,
+                              "categoryStats": [
+                                {
+                                  "category": "football",
+                                  "conceded": 14,
+                                  "scored": 12,
+                                },
+                                {
+                                  "category": "fighting",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                                {
+                                  "category": "shooter",
+                                  "conceded": 11,
+                                  "scored": 4,
+                                },
+                                {
+                                  "category": "racing",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                              ],
+                              "country": "GH",
+                              "displayName": "Player 6",
+                              "frameUrl": undefined,
+                              "gameStats": [
+                                {
+                                  "conceded": 9,
+                                  "gameId": "g-dls",
+                                  "scored": 10,
+                                },
+                                {
+                                  "conceded": 5,
+                                  "gameId": "g-fc",
+                                  "scored": 2,
+                                },
+                                {
+                                  "conceded": 11,
+                                  "gameId": "g-ff",
+                                  "scored": 4,
+                                },
+                              ],
+                              "goalsConceded": 16,
+                              "goalsScored": 24,
+                              "id": "p6",
+                              "kycVerified": true,
+                              "losses": 5,
+                              "membershipTier": "bronze",
+                              "sentinelTier": "trusted",
+                              "sxScore": 880,
+                              "totalMatches": 12,
+                              "totalTitles": 0,
+                              "username": "player6",
+                              "wins": 7,
+                              "winsByGame": [],
+                            },
+                          },
+                          {
+                            "gameId": "g-fc",
+                            "gameLabel": "EA FC Mobile",
+                            "metricValue": 5,
+                            "winner": {
+                              "avatarUrl": null,
+                              "categoryStats": [
+                                {
+                                  "category": "football",
+                                  "conceded": 11,
+                                  "scored": 13,
+                                },
+                                {
+                                  "category": "fighting",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                                {
+                                  "category": "shooter",
+                                  "conceded": 4,
+                                  "scored": 11,
+                                },
+                                {
+                                  "category": "racing",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                              ],
+                              "country": "GH",
+                              "displayName": "Player 2",
+                              "frameUrl": undefined,
+                              "gameStats": [
+                                {
+                                  "conceded": 9,
+                                  "gameId": "g-dls",
+                                  "scored": 8,
+                                },
+                                {
+                                  "conceded": 2,
+                                  "gameId": "g-fc",
+                                  "scored": 5,
+                                },
+                                {
+                                  "conceded": 4,
+                                  "gameId": "g-ff",
+                                  "scored": 11,
+                                },
+                              ],
+                              "goalsConceded": 12,
+                              "goalsScored": 28,
+                              "id": "p2",
+                              "kycVerified": false,
+                              "losses": 2,
+                              "membershipTier": "bronze",
+                              "sentinelTier": "trusted",
+                              "sxScore": 960,
+                              "totalMatches": 12,
+                              "totalTitles": 1,
+                              "username": "player2",
+                              "wins": 10,
+                              "winsByGame": [],
+                            },
+                          },
+                        ],
+                      },
+                      "t": "CategoryAwardFilter",
+                    },
+                  ],
+                  "props": {
+                    "className": "flex flex-col gap-4 sm:flex-row",
+                  },
+                  "t": "div",
+                },
+                {
+                  "children": [
+                    {
+                      "children": null,
+                      "props": {
+                        "awardName": "Sharpshooter",
+                        "icon": "🎯",
+                        "label": "Sharpshooter",
+                        "metricLabel": "kills",
+                        "options": [
+                          {
+                            "gameId": null,
+                            "gameLabel": "All Kills",
+                            "metricValue": 17,
+                            "winner": {
+                              "avatarUrl": null,
+                              "categoryStats": [
+                                {
+                                  "category": "football",
+                                  "conceded": 6,
+                                  "scored": 5,
+                                },
+                                {
+                                  "category": "fighting",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                                {
+                                  "category": "shooter",
+                                  "conceded": 20,
+                                  "scored": 17,
+                                },
+                                {
+                                  "category": "racing",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                              ],
+                              "country": "NG",
+                              "displayName": "Player 7",
+                              "frameUrl": undefined,
+                              "gameStats": [
+                                {
+                                  "conceded": 3,
+                                  "gameId": "g-dls",
+                                  "scored": 5,
+                                },
+                                {
+                                  "conceded": 3,
+                                  "gameId": "g-fc",
+                                  "scored": 0,
+                                },
+                                {
+                                  "conceded": 20,
+                                  "gameId": "g-ff",
+                                  "scored": 17,
+                                },
+                              ],
+                              "goalsConceded": 17,
+                              "goalsScored": 23,
+                              "id": "p7",
+                              "kycVerified": false,
+                              "losses": 7,
+                              "membershipTier": "bronze",
+                              "sentinelTier": "trusted",
+                              "sxScore": 860,
+                              "totalMatches": 12,
+                              "totalTitles": 0,
+                              "username": "player7",
+                              "wins": 5,
+                              "winsByGame": [],
+                            },
+                          },
+                        ],
+                      },
+                      "t": "CategoryAwardFilter",
+                    },
+                  ],
+                  "props": {
+                    "className": "mt-4 flex flex-col gap-4 sm:flex-row",
+                  },
+                  "t": "div",
+                },
+              ],
+              "props": {},
+              "t": "Anonymous",
+            },
+          ],
+          "props": {
+            "className": "border-b border-amber-500/10 py-16",
+          },
+          "t": "section",
+        },
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "icon": "🏆",
+                "subtitle": "The greatest prize in Nigerian mobile esports. Annual · Invitation Only.",
+                "title": "Champions Cup Legends",
+                "tone": "purple",
+              },
+              "t": "SectionHeader",
+            },
+            {
+              "children": null,
+              "props": {
+                "achievements": [],
+                "avatarUrl": null,
+                "date": "2026-09-21T18:00:00Z",
+                "frameUrl": undefined,
+                "name": "Player 5",
+                "prizePool": 100000,
+                "seasonName": "Season 1",
+                "sentinelTier": "trusted",
+                "slug": "champions-cup",
+              },
+              "t": "ChampionsCupCard",
+            },
+          ],
+          "props": {
+            "className": "border-y border-sx-purple/30 py-16",
+            "style": {
+              "background": "linear-gradient(180deg, rgba(124,58,237,0.08) 0%, transparent 100%)",
+            },
+          },
+          "t": "section",
+        },
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "icon": "👑",
+                "subtitle": "Monthly elite champions — the top 16 per month, competing for the prize.",
+                "title": "Masters Champions",
+                "tone": "gold",
+              },
+              "t": "SectionHeader",
+            },
+            {
+              "children": [
+                {
+                  "children": null,
+                  "props": {
+                    "avatarUrl": null,
+                    "frameUrl": undefined,
+                    "membershipTier": "bronze",
+                    "name": "Player 1",
+                    "prizePool": 50000,
+                    "runnerUpName": "Player 2",
+                    "sentinelTier": "trusted",
+                    "slug": "masters-cup",
+                    "title": "Masters Cup",
+                  },
+                  "t": "MastersChampionCard",
+                },
+              ],
+              "props": {
+                "className": "grid gap-4 sm:grid-cols-2",
+              },
+              "t": "div",
+            },
+          ],
+          "props": {
+            "className": "border-t border-amber-500/20 py-16",
+          },
+          "t": "section",
+        },
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "icon": "⚡",
+                "subtitle": "Weekly community tournaments — where every legend starts.",
+                "title": "Community Club Champions",
+              },
+              "t": "SectionHeader",
+            },
+            {
+              "children": [
+                {
+                  "children": null,
+                  "props": {
+                    "avatarUrl": null,
+                    "date": "2026-09-19T18:00:00Z",
+                    "frameUrl": undefined,
+                    "membershipTier": "bronze",
+                    "name": "Player 7",
+                    "runnerUpName": "Player 8",
+                    "sentinelTier": "trusted",
+                    "slug": "community-cup",
+                    "title": "Community Cup",
+                  },
+                  "t": "CommunityClubCard",
+                },
+              ],
+              "props": {
+                "className": "grid gap-4 sm:grid-cols-2 lg:grid-cols-3",
+              },
+              "t": "div",
+            },
+          ],
+          "props": {
+            "className": "py-16",
+          },
+          "t": "section",
+        },
+        null,
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "icon": "🥉",
+                "subtitle": "Third-place finishers across every tournament.",
+                "title": "Bronze Finishes",
+              },
+              "t": "SectionHeader",
+            },
+            {
+              "children": [
+                {
+                  "children": null,
+                  "props": {
+                    "date": "2026-09-20T18:00:00Z",
+                    "gameName": "Dream League Soccer",
+                    "playerName": "Player 3",
+                    "slug": "masters-cup",
+                    "title": "Masters Cup",
+                  },
+                  "t": "BronzeCard",
+                },
+              ],
+              "props": {
+                "className": "grid gap-4 sm:grid-cols-2",
+              },
+              "t": "div",
+            },
+          ],
+          "props": {
+            "className": "py-16",
+          },
+          "t": "section",
+        },
+      ],
+      "props": {
+        "className": "mx-auto max-w-3xl px-4 pb-20",
+      },
+      "t": "div",
+    },
+  ],
+  "props": {},
+  "t": "Anonymous",
+}
+`;
+
+exports[`hall-of-fame page — characterization > filtered to one game > tree 1`] = `
+{
+  "children": [
+    {
+      "children": null,
+      "props": {},
+      "t": "HeroSection",
+    },
+    {
+      "children": [
+        {
+          "children": {
+            "children": null,
+            "props": {
+              "activeSlug": "dls",
+              "games": [
+                {
+                  "active": true,
+                  "category": "football",
+                  "id": "g-dls",
+                  "name": "Dream League Soccer",
+                  "slug": "dls",
+                },
+                {
+                  "active": true,
+                  "category": "football",
+                  "id": "g-fc",
+                  "name": "EA FC Mobile",
+                  "slug": "ea-fc-mobile",
+                },
+                {
+                  "active": true,
+                  "category": "shooter",
+                  "id": "g-ff",
+                  "name": "Free Fire",
+                  "slug": "free-fire",
+                },
+              ],
+            },
+            "t": "HallOfFameGameFilter",
+          },
+          "props": {
+            "className": "pt-8",
+          },
+          "t": "div",
+        },
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "icon": "☀️",
+                "subtitle": "The greatest individuals in SentinelX history.",
+                "title": "All-Time Awards",
+                "tone": "gold",
+              },
+              "t": "SectionHeader",
+            },
+            {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "children": null,
+                      "props": {
+                        "avatarUrl": null,
+                        "awardName": "All-Time MVP",
+                        "frameUrl": undefined,
+                        "icon": "⭐",
+                        "label": "MVP",
+                        "membershipTier": "bronze",
+                        "metricLabel": "SX Score",
+                        "metricValue": 980,
+                        "name": "Player 1",
+                        "sentinelTier": "trusted",
+                      },
+                      "t": "AllTimeAwardCard",
+                    },
+                    {
+                      "children": null,
+                      "props": {
+                        "awardName": "All-Time Golden Boot",
+                        "icon": "👟",
+                        "label": "Golden Boot",
+                        "metricLabel": "goals scored",
+                        "options": [
+                          {
+                            "gameId": null,
+                            "gameLabel": "All Goals",
+                            "metricValue": 13,
+                            "winner": {
+                              "avatarUrl": null,
+                              "categoryStats": [
+                                {
+                                  "category": "football",
+                                  "conceded": 11,
+                                  "scored": 13,
+                                },
+                                {
+                                  "category": "fighting",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                                {
+                                  "category": "shooter",
+                                  "conceded": 4,
+                                  "scored": 11,
+                                },
+                                {
+                                  "category": "racing",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                              ],
+                              "country": "GH",
+                              "displayName": "Player 2",
+                              "frameUrl": undefined,
+                              "gameStats": [
+                                {
+                                  "conceded": 9,
+                                  "gameId": "g-dls",
+                                  "scored": 8,
+                                },
+                                {
+                                  "conceded": 2,
+                                  "gameId": "g-fc",
+                                  "scored": 5,
+                                },
+                                {
+                                  "conceded": 4,
+                                  "gameId": "g-ff",
+                                  "scored": 11,
+                                },
+                              ],
+                              "goalsConceded": 12,
+                              "goalsScored": 28,
+                              "id": "p2",
+                              "kycVerified": false,
+                              "losses": 2,
+                              "membershipTier": "bronze",
+                              "sentinelTier": "trusted",
+                              "sxScore": 960,
+                              "totalMatches": 12,
+                              "totalTitles": 1,
+                              "username": "player2",
+                              "wins": 10,
+                              "winsByGame": [],
+                            },
+                          },
+                          {
+                            "gameId": "g-dls",
+                            "gameLabel": "Dream League Soccer",
+                            "metricValue": 10,
+                            "winner": {
+                              "avatarUrl": null,
+                              "categoryStats": [
+                                {
+                                  "category": "football",
+                                  "conceded": 14,
+                                  "scored": 12,
+                                },
+                                {
+                                  "category": "fighting",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                                {
+                                  "category": "shooter",
+                                  "conceded": 11,
+                                  "scored": 4,
+                                },
+                                {
+                                  "category": "racing",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                              ],
+                              "country": "GH",
+                              "displayName": "Player 6",
+                              "frameUrl": undefined,
+                              "gameStats": [
+                                {
+                                  "conceded": 9,
+                                  "gameId": "g-dls",
+                                  "scored": 10,
+                                },
+                                {
+                                  "conceded": 5,
+                                  "gameId": "g-fc",
+                                  "scored": 2,
+                                },
+                                {
+                                  "conceded": 11,
+                                  "gameId": "g-ff",
+                                  "scored": 4,
+                                },
+                              ],
+                              "goalsConceded": 16,
+                              "goalsScored": 24,
+                              "id": "p6",
+                              "kycVerified": true,
+                              "losses": 5,
+                              "membershipTier": "bronze",
+                              "sentinelTier": "trusted",
+                              "sxScore": 880,
+                              "totalMatches": 12,
+                              "totalTitles": 0,
+                              "username": "player6",
+                              "wins": 7,
+                              "winsByGame": [],
+                            },
+                          },
+                          {
+                            "gameId": "g-fc",
+                            "gameLabel": "EA FC Mobile",
+                            "metricValue": 5,
+                            "winner": {
+                              "avatarUrl": null,
+                              "categoryStats": [
+                                {
+                                  "category": "football",
+                                  "conceded": 11,
+                                  "scored": 13,
+                                },
+                                {
+                                  "category": "fighting",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                                {
+                                  "category": "shooter",
+                                  "conceded": 4,
+                                  "scored": 11,
+                                },
+                                {
+                                  "category": "racing",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                              ],
+                              "country": "GH",
+                              "displayName": "Player 2",
+                              "frameUrl": undefined,
+                              "gameStats": [
+                                {
+                                  "conceded": 9,
+                                  "gameId": "g-dls",
+                                  "scored": 8,
+                                },
+                                {
+                                  "conceded": 2,
+                                  "gameId": "g-fc",
+                                  "scored": 5,
+                                },
+                                {
+                                  "conceded": 4,
+                                  "gameId": "g-ff",
+                                  "scored": 11,
+                                },
+                              ],
+                              "goalsConceded": 12,
+                              "goalsScored": 28,
+                              "id": "p2",
+                              "kycVerified": false,
+                              "losses": 2,
+                              "membershipTier": "bronze",
+                              "sentinelTier": "trusted",
+                              "sxScore": 960,
+                              "totalMatches": 12,
+                              "totalTitles": 1,
+                              "username": "player2",
+                              "wins": 10,
+                              "winsByGame": [],
+                            },
+                          },
+                        ],
+                      },
+                      "t": "CategoryAwardFilter",
+                    },
+                  ],
+                  "props": {
+                    "className": "flex flex-col gap-4 sm:flex-row",
+                  },
+                  "t": "div",
+                },
+                {
+                  "children": [
+                    {
+                      "children": null,
+                      "props": {
+                        "awardName": "Sharpshooter",
+                        "icon": "🎯",
+                        "label": "Sharpshooter",
+                        "metricLabel": "kills",
+                        "options": [
+                          {
+                            "gameId": null,
+                            "gameLabel": "All Kills",
+                            "metricValue": 17,
+                            "winner": {
+                              "avatarUrl": null,
+                              "categoryStats": [
+                                {
+                                  "category": "football",
+                                  "conceded": 6,
+                                  "scored": 5,
+                                },
+                                {
+                                  "category": "fighting",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                                {
+                                  "category": "shooter",
+                                  "conceded": 20,
+                                  "scored": 17,
+                                },
+                                {
+                                  "category": "racing",
+                                  "conceded": 0,
+                                  "scored": 0,
+                                },
+                              ],
+                              "country": "NG",
+                              "displayName": "Player 7",
+                              "frameUrl": undefined,
+                              "gameStats": [
+                                {
+                                  "conceded": 3,
+                                  "gameId": "g-dls",
+                                  "scored": 5,
+                                },
+                                {
+                                  "conceded": 3,
+                                  "gameId": "g-fc",
+                                  "scored": 0,
+                                },
+                                {
+                                  "conceded": 20,
+                                  "gameId": "g-ff",
+                                  "scored": 17,
+                                },
+                              ],
+                              "goalsConceded": 17,
+                              "goalsScored": 23,
+                              "id": "p7",
+                              "kycVerified": false,
+                              "losses": 7,
+                              "membershipTier": "bronze",
+                              "sentinelTier": "trusted",
+                              "sxScore": 860,
+                              "totalMatches": 12,
+                              "totalTitles": 0,
+                              "username": "player7",
+                              "wins": 5,
+                              "winsByGame": [],
+                            },
+                          },
+                        ],
+                      },
+                      "t": "CategoryAwardFilter",
+                    },
+                  ],
+                  "props": {
+                    "className": "mt-4 flex flex-col gap-4 sm:flex-row",
+                  },
+                  "t": "div",
+                },
+              ],
+              "props": {},
+              "t": "Anonymous",
+            },
+          ],
+          "props": {
+            "className": "border-b border-amber-500/10 py-16",
+          },
+          "t": "section",
+        },
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "icon": "🏆",
+                "subtitle": "The greatest prize in Nigerian mobile esports. Annual · Invitation Only.",
+                "title": "Champions Cup Legends",
+                "tone": "purple",
+              },
+              "t": "SectionHeader",
+            },
+            {
+              "children": null,
+              "props": {
+                "achievements": [],
+                "avatarUrl": null,
+                "date": "2026-09-21T18:00:00Z",
+                "frameUrl": undefined,
+                "name": "Player 5",
+                "prizePool": 100000,
+                "seasonName": "Season 1",
+                "sentinelTier": "trusted",
+                "slug": "champions-cup",
+              },
+              "t": "ChampionsCupCard",
+            },
+          ],
+          "props": {
+            "className": "border-y border-sx-purple/30 py-16",
+            "style": {
+              "background": "linear-gradient(180deg, rgba(124,58,237,0.08) 0%, transparent 100%)",
+            },
+          },
+          "t": "section",
+        },
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "icon": "👑",
+                "subtitle": "Monthly elite champions — the top 16 per month, competing for the prize.",
+                "title": "Masters Champions",
+                "tone": "gold",
+              },
+              "t": "SectionHeader",
+            },
+            {
+              "children": [
+                {
+                  "children": null,
+                  "props": {
+                    "avatarUrl": null,
+                    "frameUrl": undefined,
+                    "membershipTier": "bronze",
+                    "name": "Player 1",
+                    "prizePool": 50000,
+                    "runnerUpName": "Player 2",
+                    "sentinelTier": "trusted",
+                    "slug": "masters-cup",
+                    "title": "Masters Cup",
+                  },
+                  "t": "MastersChampionCard",
+                },
+              ],
+              "props": {
+                "className": "grid gap-4 sm:grid-cols-2",
+              },
+              "t": "div",
+            },
+          ],
+          "props": {
+            "className": "border-t border-amber-500/20 py-16",
+          },
+          "t": "section",
+        },
+        null,
+        null,
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "icon": "🥉",
+                "subtitle": "Third-place finishers across every tournament.",
+                "title": "Bronze Finishes",
+              },
+              "t": "SectionHeader",
+            },
+            {
+              "children": [
+                {
+                  "children": null,
+                  "props": {
+                    "date": "2026-09-20T18:00:00Z",
+                    "gameName": "Dream League Soccer",
+                    "playerName": "Player 3",
+                    "slug": "masters-cup",
+                    "title": "Masters Cup",
+                  },
+                  "t": "BronzeCard",
+                },
+              ],
+              "props": {
+                "className": "grid gap-4 sm:grid-cols-2",
+              },
+              "t": "div",
+            },
+          ],
+          "props": {
+            "className": "py-16",
+          },
+          "t": "section",
+        },
+      ],
+      "props": {
+        "className": "mx-auto max-w-3xl px-4 pb-20",
+      },
+      "t": "div",
+    },
+  ],
+  "props": {},
+  "t": "Anonymous",
+}
+`;
