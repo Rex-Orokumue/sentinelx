@@ -55,6 +55,13 @@ function mapRow(
 export const rankingsEndpoint = defineEndpoint({
   operationId: 'getRankings', method: 'GET', path: '/rankings',
   summary: 'Public leaderboard with literal web metric-tab ordering, filters, pagination, trend and streak.',
+  parameters: [
+    { name: 'game', in: 'query', schema: { type: 'string', maxLength: 64 } },
+    { name: 'region', in: 'query', schema: { type: 'string', maxLength: 64 } },
+    { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 10000, default: 1 } },
+    { name: 'metric', in: 'query', schema: { type: 'string', enum: ['wins', 'score', 'football', 'fighting', 'shooter'], default: 'wins' } },
+    { name: 'tabGame', in: 'query', schema: { type: 'string', maxLength: 64 } },
+  ],
   auth: 'public', cacheControl: 'public, s-maxage=60, stale-while-revalidate=300', response: rankingsResponseSchema,
   handler: async ({ req }) => {
     const q = parseQuery(req)
@@ -92,6 +99,12 @@ export const rankingsEndpoint = defineEndpoint({
 export const rankingsMeEndpoint = defineEndpoint({
   operationId: 'getRankingsMe', method: 'GET', path: '/rankings/me',
   summary: 'Authenticated viewer global rank in the selected leaderboard scope and metric.',
+  parameters: [
+    { name: 'game', in: 'query', schema: { type: 'string', maxLength: 64 } },
+    { name: 'region', in: 'query', schema: { type: 'string', maxLength: 64 } },
+    { name: 'metric', in: 'query', schema: { type: 'string', enum: ['wins', 'score', 'football', 'fighting', 'shooter'], default: 'wins' } },
+    { name: 'tabGame', in: 'query', schema: { type: 'string', maxLength: 64 } },
+  ],
   auth: 'user', cacheControl: 'no-store', response: rankingsMeResponseSchema,
   handler: async ({ ctx, req }) => {
     const q = parseQuery(req)

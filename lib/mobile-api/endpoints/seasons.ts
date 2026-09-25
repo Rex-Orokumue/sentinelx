@@ -18,6 +18,7 @@ export const seasonsListEndpoint = defineEndpoint({
 export const seasonDetailEndpoint = defineEndpoint({
   operationId: 'getSeasonDetail', method: 'GET', path: '/seasons/{slug}',
   summary: 'One season with per-game tournaments, provisional-aware standings and tier labels.',
+  parameters: [{ name: 'slug', in: 'path', required: true, schema: { type: 'string' } }],
   auth: 'public', cacheControl: 'public, s-maxage=60, stale-while-revalidate=300', response: seasonDetailResponseSchema,
   handler: async ({ req }) => {
     const slug = decodeURIComponent(new URL(req.url).pathname.split('/').filter(Boolean).at(-1) ?? '')

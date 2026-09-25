@@ -7,6 +7,9 @@ import { sessionStartEndpoint } from './session'
 import { signupEndpoint, resendConfirmationEndpoint, requestResetEndpoint } from './auth'
 import { claimUsernameEndpoint } from './onboarding'
 import { homeEndpoint } from './home'
+import { rankingsEndpoint, rankingsMeEndpoint } from './rankings'
+import { seasonsListEndpoint, seasonDetailEndpoint } from './seasons'
+import { hallOfFameEndpoint } from './hall-of-fame'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -21,4 +24,9 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   requestResetEndpoint,
   claimUsernameEndpoint,
   homeEndpoint,
+  rankingsEndpoint,
+  rankingsMeEndpoint,
+  seasonsListEndpoint,
+  seasonDetailEndpoint,
+  hallOfFameEndpoint,
 ]

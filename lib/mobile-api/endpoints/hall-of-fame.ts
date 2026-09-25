@@ -19,6 +19,7 @@ function mapChampion(entry: ChampionEntry) {
 export const hallOfFameEndpoint = defineEndpoint({
   operationId: 'getHallOfFame', method: 'GET', path: '/hall-of-fame',
   summary: 'Public Hall of Fame awards, champions by tier, and bronze finishes with optional game filter.',
+  parameters: [{ name: 'game', in: 'query', schema: { type: 'string' } }],
   auth: 'public', cacheControl: 'public, s-maxage=300, stale-while-revalidate=600', response: hallOfFameResponseSchema,
   handler: async ({ req }) => {
     const gameSlug = new URL(req.url).searchParams.get('game')?.trim() || null

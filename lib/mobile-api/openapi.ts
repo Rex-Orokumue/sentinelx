@@ -28,6 +28,7 @@ export function buildOpenApi(endpoints: Endpoint[]): Record<string, unknown> {
       operationId: meta.operationId,
       summary: meta.summary,
       security: meta.auth === 'public' ? [] : [{ bearerAuth: [] }],
+      ...(meta.parameters ? { parameters: meta.parameters } : {}),
       ...(meta.body
         ? { requestBody: { required: true, content: { 'application/json': { schema: schemaOf(meta.body) } } } }
         : {}),
