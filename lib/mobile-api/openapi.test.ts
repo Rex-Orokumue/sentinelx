@@ -12,6 +12,7 @@ const ep = defineEndpoint({
 })
 const pub = defineEndpoint({
   operationId: 'getOpen', method: 'GET', path: '/open', summary: 'Open', auth: 'public',
+  parameters: [{ name: 'page', in: 'query', schema: { type: 'integer', minimum: 1 } }],
   response: z.object({ ok: z.boolean() }), handler: async () => ({ ok: true }),
 })
 
@@ -30,6 +31,11 @@ describe('buildOpenApi', () => {
   it('requires bearer auth for non-public endpoints only', () => {
     expect(doc.paths['/api/mobile/v1/thing'].post.security).toEqual([{ bearerAuth: [] }])
     expect(doc.paths['/api/mobile/v1/open'].get.security).toEqual([])
+  })
+  it('emits declared path and query parameters', () => {
+    expect(doc.paths['/api/mobile/v1/open'].get.parameters).toEqual([
+      { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1 } },
+    ])
   })
   it('wraps the response in the {data} envelope and documents the error envelope', () => {
     const ok = doc.paths['/api/mobile/v1/thing'].post.responses['200'].content['application/json'].schema
