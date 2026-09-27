@@ -9,6 +9,7 @@ import {
   type BracketMatch,
 } from './bracket'
 import { projectBracketRounds, type ProjectedRound } from './bracket-tree'
+import { fetchRegistrationFields, pickDisplayValue } from './registration-fields'
 
 // Top two of every group advance (sortStandings' advancingCount default).
 const ADVANCE_PER_GROUP = 2
@@ -58,6 +59,11 @@ export async function loadBracketView(
   const groupIds = (groups ?? []).map((g) => g.id)
   const groupNameById = new Map((groups ?? []).map((g) => [g.id, g.name]))
 
+  const { data: tournamentRow } = await supabase.from('tournaments').select('game_id').eq('id', tournamentId).maybeSingle()
+  const bracketFields = tournamentRow
+    ? (await fetchRegistrationFields(supabase, tournamentRow.game_id)).filter((f) => f.showOnBracket)
+    : []
+
   const [membershipsRes, matchesRes, regsRes] = await Promise.all([
     groupIds.length > 0
       ? supabase
@@ -79,13 +85,13 @@ export async function loadBracketView(
           'team_b:squads!matches_team_b_id_fkey(id, name)',
       )
       .eq('tournament_id', tournamentId),
-    supabase.from('tournament_registrations').select('player_id, reg_club_name').eq('tournament_id', tournamentId),
+    supabase.from('tournament_registrations').select('player_id, registration_details').eq('tournament_id', tournamentId),
   ])
 
   const clubNameByPlayer = new Map(
-    ((regsRes.data as { player_id: string; reg_club_name: string | null }[] | null) ?? []).map((r) => [
+    ((regsRes.data as { player_id: string; registration_details: Record<string, string> | null }[] | null) ?? []).map((r) => [
       r.player_id,
-      r.reg_club_name,
+      pickDisplayValue(r.registration_details, bracketFields),
     ]),
   )
 
