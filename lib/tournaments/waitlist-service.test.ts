@@ -8,7 +8,7 @@ beforeEach(async () => {
   vi.mocked(assertNotPendingDeletion).mockResolvedValue(null)
 })
 
-const baseInput = { displayName: 'Ada', whatsapp: '+2348012345678', clubName: 'FC Test', ignTag: null, agreedToRules: true }
+const baseInput = { displayName: 'Ada', whatsapp: '+2348012345678', registrationDetails: { club_name: 'FC Test' }, agreedToRules: true }
 
 function fakeSupabase(opts: { profile?: { username: string | null }; tournament?: Record<string, unknown> | null; existing?: { id: string; status: string } | null }) {
   return {

@@ -9,7 +9,7 @@ export type WaitlistErrorCode =
   | 'needs_username' | 'tournament_not_found' | 'waitlist_not_open'
   | 'rules_agreement_required' | 'already_on_waitlist' | 'already_registered' | 'waitlist_failed'
 
-export type WaitlistInput = { displayName: string; whatsapp: string; clubName: string; ignTag: string | null; agreedToRules: boolean }
+export type WaitlistInput = { displayName: string; whatsapp: string; registrationDetails: Record<string, string>; agreedToRules: boolean }
 export type WaitlistResult = { ok: false; errorCode: WaitlistErrorCode } | { ok: true; tournamentSlug: string }
 
 // Extracted from lib/tournaments/waitlist-actions.ts's joinWaitlist().
@@ -36,7 +36,7 @@ export async function performJoinWaitlist(
 
   const { error: insErr } = await admin.from('tournament_registrations').insert({
     tournament_id: tournamentId, player_id: userId, payment_status: 'pending', status: 'waitlisted',
-    reg_display_name: input.displayName, reg_whatsapp: input.whatsapp, reg_club_name: input.clubName, reg_ign_tag: input.ignTag || null,
+    reg_display_name: input.displayName, reg_whatsapp: input.whatsapp, registration_details: input.registrationDetails,
   })
   if (insErr) return { ok: false, errorCode: 'waitlist_failed' }
 
