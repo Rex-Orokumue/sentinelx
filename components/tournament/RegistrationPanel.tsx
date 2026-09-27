@@ -11,6 +11,7 @@ import { COINS_HALF_ENTRY, COINS_PER_ENTRY, NAIRA_PER_COIN } from '@/lib/coins/v
 import { RegistrationGate } from './RegistrationGate'
 import { SquadEntryFlow } from './SquadEntryFlow'
 import { squadInviteShareUrl } from '@/lib/tournaments/squad-share'
+import type { RegistrationField } from '@/lib/tournaments/registration-fields'
 
 const box = 'rounded-2xl border border-slate-800 bg-slate-900 p-5'
 
@@ -30,6 +31,7 @@ export function RegistrationPanel({
   loggedIn,
   coinBalance,
   hasUsername,
+  registrationFields,
 }: {
   view: RegView
   tournamentId: string
@@ -46,6 +48,7 @@ export function RegistrationPanel({
   loggedIn: boolean
   coinBalance: number
   hasUsername: boolean
+  registrationFields: RegistrationField[]
 }) {
   const bracketHref = `/tournaments/${slug}/bracket`
 
@@ -90,6 +93,7 @@ export function RegistrationPanel({
             tournamentTitle={tournamentTitle}
             coinBalance={coinBalance}
             squadSize={squadSize ?? 0}
+            registrationFields={registrationFields}
           />
         </div>
       )
@@ -106,6 +110,7 @@ export function RegistrationPanel({
           tournamentTitle={tournamentTitle}
           coinBalance={coinBalance}
           isCompletingPayment={view === 'complete_payment'}
+          registrationFields={registrationFields}
         />
       </div>
     )
@@ -204,6 +209,7 @@ export function RegistrationPanel({
                 rules={rules}
                 gameName={gameName}
                 tournamentTitle={tournamentTitle}
+                registrationFields={registrationFields}
               />
             ) : (
               <>
@@ -238,6 +244,7 @@ function WaitlistForm({
   rules,
   gameName,
   tournamentTitle,
+  registrationFields,
 }: {
   tournamentId: string
   slug: string
@@ -245,6 +252,7 @@ function WaitlistForm({
   rules: string[]
   gameName: string
   tournamentTitle: string
+  registrationFields: RegistrationField[]
 }) {
   const [state, formAction] = useFormState<JoinWaitlistState, FormData>(joinWaitlist, undefined)
 
@@ -263,13 +271,15 @@ function WaitlistForm({
         defaultValue={prefill.whatsapp}
         placeholder="+234…"
       />
-      <Field name="clubName" label="Club name" placeholder="Your in-game club/team" />
-      <Field
-        name="ignTag"
-        label="In-game player ID / tag (optional)"
-        placeholder="Your IGN or player tag"
-        required={false}
-      />
+      {registrationFields.map((f) => (
+        <Field
+          key={f.fieldKey}
+          name={f.fieldKey}
+          label={f.required ? f.label : `${f.label} (optional)`}
+          placeholder={f.placeholder ?? undefined}
+          required={f.required}
+        />
+      ))}
       {state?.error && <p className="text-center text-sm text-red-400">{state.error}</p>}
       {state?.needsUsername && (
         <Link
@@ -301,6 +311,7 @@ function SquadPickerThenRegister(props: {
   tournamentTitle: string
   coinBalance: number
   squadSize: number
+  registrationFields: RegistrationField[]
 }) {
   const [choice, setChoice] = useState<{ squadId: string; squadName: string } | null>(null)
   const [skipped, setSkipped] = useState(false)
@@ -352,6 +363,7 @@ function RegisterForm({
   coinBalance,
   isCompletingPayment,
   squadId,
+  registrationFields,
 }: {
   tournamentId: string
   slug: string
@@ -363,6 +375,7 @@ function RegisterForm({
   coinBalance: number
   isCompletingPayment: boolean
   squadId?: string
+  registrationFields: RegistrationField[]
 }) {
   const [state, formAction] = useFormState<RegisterState, FormData>(registerForTournament, undefined)
   const [tier, setTier] = useState<CoinTier>('0')
@@ -396,13 +409,15 @@ function RegisterForm({
           defaultValue={prefill.whatsapp}
           placeholder="+234…"
         />
-        <Field name="clubName" label="Club name" placeholder="Your in-game club/team" />
-        <Field
-          name="ignTag"
-          label="In-game player ID / tag (optional)"
-          placeholder="Your IGN or player tag"
-          required={false}
-        />
+        {registrationFields.map((f) => (
+          <Field
+            key={f.fieldKey}
+            name={f.fieldKey}
+            label={f.required ? f.label : `${f.label} (optional)`}
+            placeholder={f.placeholder ?? undefined}
+            required={f.required}
+          />
+        ))}
         {(canHalf || canFree) && (
           <div className="rounded-xl border border-slate-700 bg-slate-950 p-3">
             <p className="mb-2 flex items-center justify-between text-xs font-bold text-white">

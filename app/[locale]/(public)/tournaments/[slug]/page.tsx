@@ -23,6 +23,7 @@ import { fetchChampions } from '@/lib/tournaments/champions'
 import { isClosedWithoutWinner } from '@/lib/tournaments/no-winner'
 import { gameGenreEmoji } from '@/lib/games/genre-emoji'
 import { splitRules } from '@/lib/tournaments/split-rules'
+import { fetchRegistrationFields } from '@/lib/tournaments/registration-fields'
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   active:              { label: 'LIVE',        cls: 'bg-red-500/20 text-red-400 border-red-500/30' },
@@ -36,7 +37,7 @@ async function getTournament(slug: string) {
   const { data } = await supabase
     .from('tournaments')
     .select(
-      'id, title, slug, description, banner_url, card_image_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, tournament_end, rules, invitation_only, entry_unit, squad_size, games(name, icon_url, slug, category), game_modes(name), game_mode_formats(name), game_mode_maps(name), game_mode_match_rules(name)',
+      'id, title, slug, description, banner_url, card_image_url, prize_pool, registration_fee, status, format, max_players, registration_end, tournament_start, tournament_end, rules, invitation_only, entry_unit, squad_size, game_id, games(name, icon_url, slug, category), game_modes(name), game_mode_formats(name), game_mode_maps(name), game_mode_match_rules(name)',
     )
     .eq('slug', slug)
     .maybeSingle()
@@ -113,6 +114,8 @@ export default async function TournamentDetailPage({
     coinBalance = balance
     hasUsername = !!profile?.username
   }
+
+  const registrationFields = await fetchRegistrationFields(supabase, t.game_id)
 
   const view = resolveRegistrationView({
     status: t.status,
@@ -290,6 +293,7 @@ export default async function TournamentDetailPage({
           loggedIn={!!user}
           coinBalance={coinBalance}
           hasUsername={hasUsername}
+          registrationFields={registrationFields}
         />
       </div>
 
