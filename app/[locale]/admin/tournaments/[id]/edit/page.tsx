@@ -22,7 +22,7 @@ export default async function EditTournamentPage({ params }: { params: { id: str
   const supabase = createClient()
   const [{ data: t }, { data: games }, { data: seasons }, catalogue] = await Promise.all([
     supabase.from('tournaments').select('*').eq('id', params.id).maybeSingle(),
-    supabase.from('games').select('id, name, supported_formats').eq('active', true).order('name'),
+    supabase.from('games').select('id, name, slug, supported_formats').eq('active', true).order('name'),
     supabase.from('seasons').select('id, name').order('start_date', { ascending: false }),
     fetchModeCatalogue(),
   ])
@@ -99,6 +99,7 @@ export default async function EditTournamentPage({ params }: { params: { id: str
         games={(games ?? []).map((g) => ({
           id: g.id,
           name: g.name,
+          slug: g.slug,
           supportedFormats: g.supported_formats ?? [],
         }))}
         seasons={seasons ?? []}
