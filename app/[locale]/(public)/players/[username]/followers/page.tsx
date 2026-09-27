@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { findLiveProfileByUsername } from '@/lib/players/find-by-username'
 import { fetchFollowers, fetchFollowerIds, type FollowListEntry } from '@/lib/follows/query'
 import { HexAvatar } from '@/components/shared/HexAvatar'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -9,16 +10,9 @@ import { buildMetadata } from '@/lib/seo/metadata'
 import type { Locale } from '@/i18n/locales'
 import type { MembershipTier } from '@/lib/membership/tiers'
 
-async function loadNamedProfile(username: string) {
-  const supabase = createClient()
-  const { data } = await supabase
-    .from('profiles')
-    .select('id, username, display_name, deleted_at')
-    .eq('username', username)
-    .maybeSingle()
-  if (!data || data.deleted_at) return null
-  return data
-}
+type NamedProfile = { id: string; username: string; display_name: string | null; deleted_at: string | null }
+const loadNamedProfile = (username: string) =>
+  findLiveProfileByUsername<NamedProfile>(createClient(), username, 'id, username, display_name, deleted_at')
 
 export async function generateMetadata({ params }: { params: { username: string; locale: Locale } }): Promise<Metadata> {
   const p = await loadNamedProfile(params.username)

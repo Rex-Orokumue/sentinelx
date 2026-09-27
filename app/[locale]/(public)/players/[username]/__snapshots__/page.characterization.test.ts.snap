@@ -1,0 +1,2552 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`player profile page — characterization (pins current behavior; must not change during extraction) > anonymous visitor > adminQueries 1`] = `
+[
+  "tournaments:select|eq(season_id)|eq(game_id)|in(tournament_type)",
+  "matches:select|in(tournament_id)",
+  "tournament_registrations:select|in(tournament_id)|eq(status)",
+  "season_ranking_points:select|eq(season_id)|in(tournament_id)",
+  "profiles:select|in(id)",
+]
+`;
+
+exports[`player profile page — characterization (pins current behavior; must not change during extraction) > anonymous visitor > queries 1`] = `
+[
+  "profiles:select|eq(username)",
+  "squad_members:select|eq(player_id)",
+  "rpc:player_rank",
+  "player_follows:select|eq(following_id)",
+  "player_follows:select|eq(follower_id)",
+  "matches:select|eq(status)|or",
+  "matches:select|eq(round)|eq(status)|or",
+  "matches:select|eq(status)|or",
+  "tournament_registrations:select|eq(player_id)|eq(payment_status)",
+  "profiles:select|gte(total_matches)",
+  "achievements:select",
+  "player_achievements:select|eq(player_id)",
+  "player_store_items:select|eq(player_id)|eq(equipped)",
+  "player_achievements:select",
+  "community_posts:select|eq(author_id)|eq(is_deleted)",
+  "community_posts:select|eq(author_id)|eq(is_deleted)|not(image_url)",
+  "squad_members:select|in(squad_id)",
+  "seasons:select|eq(status)",
+  "games:select|eq(slug)",
+]
+`;
+
+exports[`player profile page — characterization (pins current behavior; must not change during extraction) > anonymous visitor > tree 1`] = `
+{
+  "children": [
+    {
+      "children": null,
+      "props": {
+        "data": {
+          "@context": "https://schema.org",
+          "@type": "ProfilePage",
+          "mainEntity": {
+            "@type": "Person",
+            "alternateName": "player2",
+            "description": "Player 2 on Sentinel X — 10 wins from 12 matches, SX Score 960 (trusted tier).",
+            "name": "Player 2",
+            "url": "https://sentinelxesports.com.ng/players/player2",
+          },
+        },
+      },
+      "t": "JsonLd",
+    },
+    {
+      "children": null,
+      "props": {
+        "data": {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://sentinelxesports.com.ng/players",
+              "name": "Players",
+              "position": 1,
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://sentinelxesports.com.ng/players/player2",
+              "name": "Player 2",
+              "position": 2,
+            },
+          ],
+        },
+      },
+      "t": "JsonLd",
+    },
+    {
+      "children": [
+        {
+          "children": "Home",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Players",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/players",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Player 2",
+          "props": {
+            "className": "text-white",
+          },
+          "t": "span",
+        },
+      ],
+      "props": {
+        "className": "py-4 text-xs text-sx-gray",
+      },
+      "t": "nav",
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "isOwner": false,
+              },
+              "t": "ProfileSidebarNav",
+            },
+            {
+              "children": null,
+              "props": {},
+              "t": "ProfileTournamentsPromo",
+            },
+          ],
+          "props": {
+            "className": "space-y-4 lg:sticky lg:top-20 lg:self-start",
+          },
+          "t": "aside",
+        },
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "achievements": [
+                  "first-blood",
+                  "champion",
+                ],
+                "avatarFrameUrl": "/coin-items/purple-glow.webp",
+                "coinBalance": undefined,
+                "followsViewer": false,
+                "friendshipStatus": "none",
+                "isFollowing": false,
+                "messagingState": undefined,
+                "profile": {
+                  "avatarUrl": null,
+                  "bio": "Bio of player2",
+                  "categoryStats": [
+                    {
+                      "category": "football",
+                      "conceded": 3,
+                      "scored": 8,
+                    },
+                    {
+                      "category": "fighting",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "shooter",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "racing",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                  ],
+                  "country": "GH",
+                  "createdAt": "2026-01-15T09:00:00Z",
+                  "currentStreak": 2,
+                  "displayName": "Player 2",
+                  "followerCount": 2,
+                  "followingCount": 1,
+                  "goalsConceded": 12,
+                  "goalsScored": 28,
+                  "id": "p2",
+                  "losses": 2,
+                  "membershipTier": "guardian",
+                  "rank": 3,
+                  "seasonRank": null,
+                  "sentinelTier": "trusted",
+                  "sxScore": 960,
+                  "totalMatches": 12,
+                  "totalRankedPlayers": 10,
+                  "totalTitles": 1,
+                  "tournamentsPlayed": 2,
+                  "username": "player2",
+                  "wins": 10,
+                },
+                "profileThemeClass": undefined,
+                "usernameColourClass": undefined,
+                "viewerId": null,
+              },
+              "t": "ProfileHeader",
+            },
+            {
+              "children": null,
+              "props": {
+                "profile": {
+                  "avatarUrl": null,
+                  "bio": "Bio of player2",
+                  "categoryStats": [
+                    {
+                      "category": "football",
+                      "conceded": 3,
+                      "scored": 8,
+                    },
+                    {
+                      "category": "fighting",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "shooter",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "racing",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                  ],
+                  "country": "GH",
+                  "createdAt": "2026-01-15T09:00:00Z",
+                  "currentStreak": 2,
+                  "displayName": "Player 2",
+                  "followerCount": 2,
+                  "followingCount": 1,
+                  "goalsConceded": 12,
+                  "goalsScored": 28,
+                  "id": "p2",
+                  "losses": 2,
+                  "membershipTier": "guardian",
+                  "rank": 3,
+                  "seasonRank": null,
+                  "sentinelTier": "trusted",
+                  "sxScore": 960,
+                  "totalMatches": 12,
+                  "totalRankedPlayers": 10,
+                  "totalTitles": 1,
+                  "tournamentsPlayed": 2,
+                  "username": "player2",
+                  "wins": 10,
+                },
+              },
+              "t": "ProfileStats",
+            },
+            {
+              "children": null,
+              "props": {
+                "coinBalance": undefined,
+                "xp": 1500,
+              },
+              "t": "XPProgressPanel",
+            },
+            {
+              "children": null,
+              "props": {
+                "games": [
+                  {
+                    "matches": 5,
+                    "name": "Dream League Soccer",
+                    "wins": 3,
+                  },
+                ],
+              },
+              "t": "ProfileGamesRow",
+            },
+            {
+              "children": [
+                {
+                  "children": null,
+                  "props": {
+                    "titles": [
+                      {
+                        "date": "2026-09-20T18:00:00Z",
+                        "gameName": "Dream League Soccer",
+                        "tournamentSlug": "masters-cup",
+                        "tournamentTitle": "Masters Cup",
+                      },
+                    ],
+                  },
+                  "t": "ProfileAchievements",
+                },
+                {
+                  "children": null,
+                  "props": {},
+                  "t": "CareerStatsRadar",
+                },
+                {
+                  "children": null,
+                  "props": {
+                    "matches": [
+                      {
+                        "completedAt": "2026-09-18T10:00:00Z",
+                        "id": "pm1",
+                        "opponentName": "Player 1",
+                        "opponentScore": 0,
+                        "outcome": "win",
+                        "playerScore": 2,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-17T10:00:00Z",
+                        "id": "pm2",
+                        "opponentName": "TBD",
+                        "opponentScore": 1,
+                        "outcome": "win",
+                        "playerScore": 3,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-16T10:00:00Z",
+                        "id": "pm3",
+                        "opponentName": "Player 1",
+                        "opponentScore": 1,
+                        "outcome": "loss",
+                        "playerScore": 0,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-15T10:00:00Z",
+                        "id": "pm4",
+                        "opponentName": "Bravo Squad",
+                        "opponentScore": 2,
+                        "outcome": "draw",
+                        "playerScore": 2,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-20T17:00:00Z",
+                        "id": "pm5",
+                        "opponentName": "Player 1",
+                        "opponentScore": 1,
+                        "outcome": "win",
+                        "playerScore": 3,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                    ],
+                  },
+                  "t": "ProfileRecentActivity",
+                },
+              ],
+              "props": {
+                "className": "grid gap-8 lg:grid-cols-3",
+              },
+              "t": "div",
+            },
+            {
+              "children": null,
+              "props": {
+                "achievements": [
+                  {
+                    "category": "matches",
+                    "description": "Win your first match.",
+                    "id": "a1",
+                    "name": "First Blood",
+                    "slug": "first-blood",
+                    "sort_order": 1,
+                    "unlockCount": 2,
+                    "unlocked": true,
+                    "unlockedAt": "2026-08-01T10:00:00Z",
+                  },
+                  {
+                    "category": "tournaments",
+                    "description": "Win a tournament.",
+                    "id": "a2",
+                    "name": "Champion",
+                    "slug": "champion",
+                    "sort_order": 2,
+                    "unlockCount": 1,
+                    "unlocked": true,
+                    "unlockedAt": "2026-09-20T18:30:00Z",
+                  },
+                  {
+                    "category": "secret",
+                    "description": "Hidden alpha description.",
+                    "id": "a3",
+                    "name": "Secret Locked Alpha",
+                    "slug": "secret-alpha",
+                    "sort_order": 3,
+                    "unlockCount": 1,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                  {
+                    "category": "secret",
+                    "description": "Hidden beta description.",
+                    "id": "a4",
+                    "name": "Secret Locked Beta",
+                    "slug": "secret-beta",
+                    "sort_order": 4,
+                    "unlockCount": 0,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                  {
+                    "category": "secret",
+                    "description": "Hidden gamma description.",
+                    "id": "a5",
+                    "name": "Secret Locked Gamma",
+                    "slug": "secret-gamma",
+                    "sort_order": 5,
+                    "unlockCount": 0,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                ],
+              },
+              "t": "AchievementShowcase",
+            },
+            {
+              "children": null,
+              "props": {
+                "matches": [
+                  {
+                    "completedAt": "2026-09-18T10:00:00Z",
+                    "id": "pm1",
+                    "opponentName": "Player 1",
+                    "opponentScore": 0,
+                    "outcome": "win",
+                    "playerScore": 2,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-17T10:00:00Z",
+                    "id": "pm2",
+                    "opponentName": "TBD",
+                    "opponentScore": 1,
+                    "outcome": "win",
+                    "playerScore": 3,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-16T10:00:00Z",
+                    "id": "pm3",
+                    "opponentName": "Player 1",
+                    "opponentScore": 1,
+                    "outcome": "loss",
+                    "playerScore": 0,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-15T10:00:00Z",
+                    "id": "pm4",
+                    "opponentName": "Bravo Squad",
+                    "opponentScore": 2,
+                    "outcome": "draw",
+                    "playerScore": 2,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-20T17:00:00Z",
+                    "id": "pm5",
+                    "opponentName": "Player 1",
+                    "opponentScore": 1,
+                    "outcome": "win",
+                    "playerScore": 3,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                ],
+                "username": "player2",
+              },
+              "t": "ProfileMatchHistory",
+            },
+            {
+              "children": null,
+              "props": {
+                "posts": [
+                  {
+                    "content": "gg everyone",
+                    "createdAt": "2026-09-19T10:00:00Z",
+                    "id": "c1",
+                    "postType": "text",
+                  },
+                  {
+                    "content": "clutch win",
+                    "createdAt": "2026-09-18T10:00:00Z",
+                    "id": "c2",
+                    "postType": "image",
+                  },
+                ],
+                "username": "player2",
+              },
+              "t": "ProfileCommunityPosts",
+            },
+            {
+              "children": null,
+              "props": {
+                "items": [
+                  {
+                    "id": "c2",
+                    "imageUrl": "https://cdn.test/c2.jpg",
+                  },
+                ],
+              },
+              "t": "ProfileImageGrid",
+            },
+            null,
+          ],
+          "props": {
+            "className": "min-w-0 space-y-8",
+          },
+          "t": "div",
+        },
+      ],
+      "props": {
+        "className": "grid gap-6 pb-4 lg:grid-cols-[240px_1fr]",
+        "id": "top",
+      },
+      "t": "div",
+    },
+  ],
+  "props": {
+    "className": "mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8",
+  },
+  "t": "div",
+}
+`;
+
+exports[`player profile page — characterization (pins current behavior; must not change during extraction) > owner sees the owner-only coin balance and season standing > adminQueries 1`] = `
+[
+  "sx_coins:select|eq(player_id)",
+  "tournaments:select|eq(season_id)|eq(game_id)|in(tournament_type)",
+  "matches:select|in(tournament_id)",
+  "tournament_registrations:select|in(tournament_id)|eq(status)",
+  "season_ranking_points:select|eq(season_id)|in(tournament_id)",
+  "profiles:select|in(id)",
+  "tournaments:select|eq(season_id)|eq(game_id)|eq(tournament_type)|gte(tournament_start)|lt(tournament_start)",
+]
+`;
+
+exports[`player profile page — characterization (pins current behavior; must not change during extraction) > owner sees the owner-only coin balance and season standing > queries 1`] = `
+[
+  "profiles:select|eq(username)",
+  "squad_members:select|eq(player_id)",
+  "rpc:player_rank",
+  "player_follows:select|eq(following_id)",
+  "player_follows:select|eq(follower_id)",
+  "matches:select|eq(status)|or",
+  "matches:select|eq(round)|eq(status)|or",
+  "matches:select|eq(status)|or",
+  "tournament_registrations:select|eq(player_id)|eq(payment_status)",
+  "profiles:select|gte(total_matches)",
+  "achievements:select",
+  "player_achievements:select|eq(player_id)",
+  "player_store_items:select|eq(player_id)|eq(equipped)",
+  "player_achievements:select",
+  "community_posts:select|eq(author_id)|eq(is_deleted)",
+  "community_posts:select|eq(author_id)|eq(is_deleted)|not(image_url)",
+  "squad_members:select|in(squad_id)",
+  "seasons:select|eq(status)",
+  "games:select|eq(slug)",
+]
+`;
+
+exports[`player profile page — characterization (pins current behavior; must not change during extraction) > owner sees the owner-only coin balance and season standing > tree 1`] = `
+{
+  "children": [
+    {
+      "children": null,
+      "props": {
+        "data": {
+          "@context": "https://schema.org",
+          "@type": "ProfilePage",
+          "mainEntity": {
+            "@type": "Person",
+            "alternateName": "player1",
+            "description": "Player 1 on Sentinel X — 11 wins from 12 matches, SX Score 980 (trusted tier).",
+            "name": "Player 1",
+            "url": "https://sentinelxesports.com.ng/players/player1",
+          },
+        },
+      },
+      "t": "JsonLd",
+    },
+    {
+      "children": null,
+      "props": {
+        "data": {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://sentinelxesports.com.ng/players",
+              "name": "Players",
+              "position": 1,
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://sentinelxesports.com.ng/players/player1",
+              "name": "Player 1",
+              "position": 2,
+            },
+          ],
+        },
+      },
+      "t": "JsonLd",
+    },
+    {
+      "children": [
+        {
+          "children": "Home",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Players",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/players",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Player 1",
+          "props": {
+            "className": "text-white",
+          },
+          "t": "span",
+        },
+      ],
+      "props": {
+        "className": "py-4 text-xs text-sx-gray",
+      },
+      "t": "nav",
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "isOwner": true,
+              },
+              "t": "ProfileSidebarNav",
+            },
+            {
+              "children": null,
+              "props": {},
+              "t": "ProfileTournamentsPromo",
+            },
+          ],
+          "props": {
+            "className": "space-y-4 lg:sticky lg:top-20 lg:self-start",
+          },
+          "t": "aside",
+        },
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "achievements": [],
+                "avatarFrameUrl": undefined,
+                "coinBalance": 1234,
+                "followsViewer": false,
+                "friendshipStatus": "none",
+                "isFollowing": false,
+                "messagingState": undefined,
+                "profile": {
+                  "avatarUrl": null,
+                  "bio": "Bio of player1",
+                  "categoryStats": [
+                    {
+                      "category": "football",
+                      "conceded": 5,
+                      "scored": 2,
+                    },
+                    {
+                      "category": "fighting",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "shooter",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "racing",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                  ],
+                  "country": "NG",
+                  "createdAt": "2026-01-15T09:00:00Z",
+                  "currentStreak": 0,
+                  "displayName": "Player 1",
+                  "followerCount": 0,
+                  "followingCount": 1,
+                  "goalsConceded": 11,
+                  "goalsScored": 29,
+                  "id": "p1",
+                  "losses": 1,
+                  "membershipTier": "guardian",
+                  "rank": 3,
+                  "seasonRank": 1,
+                  "sentinelTier": "trusted",
+                  "sxScore": 980,
+                  "totalMatches": 12,
+                  "totalRankedPlayers": 10,
+                  "totalTitles": 1,
+                  "tournamentsPlayed": 1,
+                  "username": "player1",
+                  "wins": 11,
+                },
+                "profileThemeClass": undefined,
+                "usernameColourClass": undefined,
+                "viewerId": "p1",
+              },
+              "t": "ProfileHeader",
+            },
+            {
+              "children": null,
+              "props": {
+                "profile": {
+                  "avatarUrl": null,
+                  "bio": "Bio of player1",
+                  "categoryStats": [
+                    {
+                      "category": "football",
+                      "conceded": 5,
+                      "scored": 2,
+                    },
+                    {
+                      "category": "fighting",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "shooter",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "racing",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                  ],
+                  "country": "NG",
+                  "createdAt": "2026-01-15T09:00:00Z",
+                  "currentStreak": 0,
+                  "displayName": "Player 1",
+                  "followerCount": 0,
+                  "followingCount": 1,
+                  "goalsConceded": 11,
+                  "goalsScored": 29,
+                  "id": "p1",
+                  "losses": 1,
+                  "membershipTier": "guardian",
+                  "rank": 3,
+                  "seasonRank": 1,
+                  "sentinelTier": "trusted",
+                  "sxScore": 980,
+                  "totalMatches": 12,
+                  "totalRankedPlayers": 10,
+                  "totalTitles": 1,
+                  "tournamentsPlayed": 1,
+                  "username": "player1",
+                  "wins": 11,
+                },
+              },
+              "t": "ProfileStats",
+            },
+            {
+              "children": null,
+              "props": {
+                "coinBalance": 1234,
+                "xp": 1500,
+              },
+              "t": "XPProgressPanel",
+            },
+            {
+              "children": null,
+              "props": {
+                "games": [
+                  {
+                    "matches": 3,
+                    "name": "Dream League Soccer",
+                    "wins": 1,
+                  },
+                ],
+              },
+              "t": "ProfileGamesRow",
+            },
+            {
+              "children": [
+                {
+                  "children": null,
+                  "props": {
+                    "titles": [],
+                  },
+                  "t": "ProfileAchievements",
+                },
+                {
+                  "children": null,
+                  "props": {},
+                  "t": "CareerStatsRadar",
+                },
+                {
+                  "children": null,
+                  "props": {
+                    "matches": [
+                      {
+                        "completedAt": "2026-09-18T10:00:00Z",
+                        "id": "pm1",
+                        "opponentName": "Player 2",
+                        "opponentScore": 2,
+                        "outcome": "loss",
+                        "playerScore": 0,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-17T10:00:00Z",
+                        "id": "pm2",
+                        "opponentName": "Player 2",
+                        "opponentScore": 3,
+                        "outcome": "loss",
+                        "playerScore": 1,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-16T10:00:00Z",
+                        "id": "pm3",
+                        "opponentName": "Player 2",
+                        "opponentScore": 0,
+                        "outcome": "win",
+                        "playerScore": 1,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-15T10:00:00Z",
+                        "id": "pm4",
+                        "opponentName": "Alpha Squad",
+                        "opponentScore": 2,
+                        "outcome": "draw",
+                        "playerScore": 2,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-20T17:00:00Z",
+                        "id": "pm5",
+                        "opponentName": "Player 2",
+                        "opponentScore": 3,
+                        "outcome": "loss",
+                        "playerScore": 1,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                    ],
+                  },
+                  "t": "ProfileRecentActivity",
+                },
+              ],
+              "props": {
+                "className": "grid gap-8 lg:grid-cols-3",
+              },
+              "t": "div",
+            },
+            {
+              "children": null,
+              "props": {
+                "achievements": [
+                  {
+                    "category": "matches",
+                    "description": "Win your first match.",
+                    "id": "a1",
+                    "name": "First Blood",
+                    "slug": "first-blood",
+                    "sort_order": 1,
+                    "unlockCount": 2,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                  {
+                    "category": "tournaments",
+                    "description": "Win a tournament.",
+                    "id": "a2",
+                    "name": "Champion",
+                    "slug": "champion",
+                    "sort_order": 2,
+                    "unlockCount": 1,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                  {
+                    "category": "secret",
+                    "description": "Hidden alpha description.",
+                    "id": "a3",
+                    "name": "Secret Locked Alpha",
+                    "slug": "secret-alpha",
+                    "sort_order": 3,
+                    "unlockCount": 1,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                  {
+                    "category": "secret",
+                    "description": "Hidden beta description.",
+                    "id": "a4",
+                    "name": "Secret Locked Beta",
+                    "slug": "secret-beta",
+                    "sort_order": 4,
+                    "unlockCount": 0,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                  {
+                    "category": "secret",
+                    "description": "Hidden gamma description.",
+                    "id": "a5",
+                    "name": "Secret Locked Gamma",
+                    "slug": "secret-gamma",
+                    "sort_order": 5,
+                    "unlockCount": 0,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                ],
+              },
+              "t": "AchievementShowcase",
+            },
+            {
+              "children": null,
+              "props": {
+                "matches": [
+                  {
+                    "completedAt": "2026-09-18T10:00:00Z",
+                    "id": "pm1",
+                    "opponentName": "Player 2",
+                    "opponentScore": 2,
+                    "outcome": "loss",
+                    "playerScore": 0,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-17T10:00:00Z",
+                    "id": "pm2",
+                    "opponentName": "Player 2",
+                    "opponentScore": 3,
+                    "outcome": "loss",
+                    "playerScore": 1,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-16T10:00:00Z",
+                    "id": "pm3",
+                    "opponentName": "Player 2",
+                    "opponentScore": 0,
+                    "outcome": "win",
+                    "playerScore": 1,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-15T10:00:00Z",
+                    "id": "pm4",
+                    "opponentName": "Alpha Squad",
+                    "opponentScore": 2,
+                    "outcome": "draw",
+                    "playerScore": 2,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-20T17:00:00Z",
+                    "id": "pm5",
+                    "opponentName": "Player 2",
+                    "opponentScore": 3,
+                    "outcome": "loss",
+                    "playerScore": 1,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                ],
+                "username": "player1",
+              },
+              "t": "ProfileMatchHistory",
+            },
+            {
+              "children": null,
+              "props": {
+                "posts": [],
+                "username": "player1",
+              },
+              "t": "ProfileCommunityPosts",
+            },
+            {
+              "children": null,
+              "props": {
+                "items": [],
+              },
+              "t": "ProfileImageGrid",
+            },
+            {
+              "children": null,
+              "props": {
+                "monthlyPoints": 0,
+                "monthlyRank": null,
+                "pointsAtRankSixteen": 0,
+                "seasonPoints": 40,
+                "seasonRank": 1,
+              },
+              "t": "SeasonStandingCard",
+            },
+          ],
+          "props": {
+            "className": "min-w-0 space-y-8",
+          },
+          "t": "div",
+        },
+      ],
+      "props": {
+        "className": "grid gap-6 pb-4 lg:grid-cols-[240px_1fr]",
+        "id": "top",
+      },
+      "t": "div",
+    },
+  ],
+  "props": {
+    "className": "mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8",
+  },
+  "t": "div",
+}
+`;
+
+exports[`player profile page — characterization (pins current behavior; must not change during extraction) > profile that follows the viewer back ("follows you") > tree 1`] = `
+{
+  "children": [
+    {
+      "children": null,
+      "props": {
+        "data": {
+          "@context": "https://schema.org",
+          "@type": "ProfilePage",
+          "mainEntity": {
+            "@type": "Person",
+            "alternateName": "player3",
+            "description": "Player 3 on Sentinel X — 9 wins from 12 matches, SX Score 940 (trusted tier).",
+            "name": "Player 3",
+            "url": "https://sentinelxesports.com.ng/players/player3",
+          },
+        },
+      },
+      "t": "JsonLd",
+    },
+    {
+      "children": null,
+      "props": {
+        "data": {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://sentinelxesports.com.ng/players",
+              "name": "Players",
+              "position": 1,
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://sentinelxesports.com.ng/players/player3",
+              "name": "Player 3",
+              "position": 2,
+            },
+          ],
+        },
+      },
+      "t": "JsonLd",
+    },
+    {
+      "children": [
+        {
+          "children": "Home",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Players",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/players",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Player 3",
+          "props": {
+            "className": "text-white",
+          },
+          "t": "span",
+        },
+      ],
+      "props": {
+        "className": "py-4 text-xs text-sx-gray",
+      },
+      "t": "nav",
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "isOwner": false,
+              },
+              "t": "ProfileSidebarNav",
+            },
+            {
+              "children": null,
+              "props": {},
+              "t": "ProfileTournamentsPromo",
+            },
+          ],
+          "props": {
+            "className": "space-y-4 lg:sticky lg:top-20 lg:self-start",
+          },
+          "t": "aside",
+        },
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "achievements": [
+                  "first-blood",
+                  "secret-alpha",
+                ],
+                "avatarFrameUrl": undefined,
+                "coinBalance": undefined,
+                "followsViewer": true,
+                "friendshipStatus": "none",
+                "isFollowing": true,
+                "messagingState": undefined,
+                "profile": {
+                  "avatarUrl": null,
+                  "bio": "Bio of player3",
+                  "categoryStats": [
+                    {
+                      "category": "football",
+                      "conceded": 3,
+                      "scored": 1,
+                    },
+                    {
+                      "category": "fighting",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "shooter",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "racing",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                  ],
+                  "country": "NG",
+                  "createdAt": "2026-01-15T09:00:00Z",
+                  "currentStreak": 0,
+                  "displayName": "Player 3",
+                  "followerCount": 1,
+                  "followingCount": 1,
+                  "goalsConceded": 13,
+                  "goalsScored": 27,
+                  "id": "p3",
+                  "losses": 3,
+                  "membershipTier": "guardian",
+                  "rank": 3,
+                  "seasonRank": null,
+                  "sentinelTier": "trusted",
+                  "sxScore": 940,
+                  "totalMatches": 12,
+                  "totalRankedPlayers": 10,
+                  "totalTitles": 0,
+                  "tournamentsPlayed": 0,
+                  "username": "player3",
+                  "wins": 9,
+                },
+                "profileThemeClass": undefined,
+                "usernameColourClass": undefined,
+                "viewerId": "p2",
+              },
+              "t": "ProfileHeader",
+            },
+            {
+              "children": null,
+              "props": {
+                "profile": {
+                  "avatarUrl": null,
+                  "bio": "Bio of player3",
+                  "categoryStats": [
+                    {
+                      "category": "football",
+                      "conceded": 3,
+                      "scored": 1,
+                    },
+                    {
+                      "category": "fighting",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "shooter",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "racing",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                  ],
+                  "country": "NG",
+                  "createdAt": "2026-01-15T09:00:00Z",
+                  "currentStreak": 0,
+                  "displayName": "Player 3",
+                  "followerCount": 1,
+                  "followingCount": 1,
+                  "goalsConceded": 13,
+                  "goalsScored": 27,
+                  "id": "p3",
+                  "losses": 3,
+                  "membershipTier": "guardian",
+                  "rank": 3,
+                  "seasonRank": null,
+                  "sentinelTier": "trusted",
+                  "sxScore": 940,
+                  "totalMatches": 12,
+                  "totalRankedPlayers": 10,
+                  "totalTitles": 0,
+                  "tournamentsPlayed": 0,
+                  "username": "player3",
+                  "wins": 9,
+                },
+              },
+              "t": "ProfileStats",
+            },
+            {
+              "children": null,
+              "props": {
+                "coinBalance": undefined,
+                "xp": 1500,
+              },
+              "t": "XPProgressPanel",
+            },
+            {
+              "children": null,
+              "props": {
+                "games": [
+                  {
+                    "matches": 1,
+                    "name": "Dream League Soccer",
+                    "wins": 0,
+                  },
+                ],
+              },
+              "t": "ProfileGamesRow",
+            },
+            {
+              "children": [
+                {
+                  "children": null,
+                  "props": {
+                    "titles": [],
+                  },
+                  "t": "ProfileAchievements",
+                },
+                {
+                  "children": null,
+                  "props": {},
+                  "t": "CareerStatsRadar",
+                },
+                {
+                  "children": null,
+                  "props": {
+                    "matches": [
+                      {
+                        "completedAt": "2026-09-18T10:00:00Z",
+                        "id": "pm1",
+                        "opponentName": "Player 2",
+                        "opponentScore": 2,
+                        "outcome": "loss",
+                        "playerScore": 0,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-17T10:00:00Z",
+                        "id": "pm2",
+                        "opponentName": "Player 2",
+                        "opponentScore": 3,
+                        "outcome": "loss",
+                        "playerScore": 1,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-16T10:00:00Z",
+                        "id": "pm3",
+                        "opponentName": "Player 2",
+                        "opponentScore": 0,
+                        "outcome": "win",
+                        "playerScore": 1,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-15T10:00:00Z",
+                        "id": "pm4",
+                        "opponentName": "Alpha Squad",
+                        "opponentScore": 2,
+                        "outcome": "draw",
+                        "playerScore": 2,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-20T17:00:00Z",
+                        "id": "pm5",
+                        "opponentName": "Player 2",
+                        "opponentScore": 3,
+                        "outcome": "loss",
+                        "playerScore": 1,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                    ],
+                  },
+                  "t": "ProfileRecentActivity",
+                },
+              ],
+              "props": {
+                "className": "grid gap-8 lg:grid-cols-3",
+              },
+              "t": "div",
+            },
+            {
+              "children": null,
+              "props": {
+                "achievements": [
+                  {
+                    "category": "matches",
+                    "description": "Win your first match.",
+                    "id": "a1",
+                    "name": "First Blood",
+                    "slug": "first-blood",
+                    "sort_order": 1,
+                    "unlockCount": 2,
+                    "unlocked": true,
+                    "unlockedAt": "2026-08-05T10:00:00Z",
+                  },
+                  {
+                    "category": "tournaments",
+                    "description": "Win a tournament.",
+                    "id": "a2",
+                    "name": "Champion",
+                    "slug": "champion",
+                    "sort_order": 2,
+                    "unlockCount": 1,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                  {
+                    "category": "secret",
+                    "description": "Hidden alpha description.",
+                    "id": "a3",
+                    "name": "Secret Locked Alpha",
+                    "slug": "secret-alpha",
+                    "sort_order": 3,
+                    "unlockCount": 1,
+                    "unlocked": true,
+                    "unlockedAt": "2026-09-01T10:00:00Z",
+                  },
+                  {
+                    "category": "secret",
+                    "description": "Hidden beta description.",
+                    "id": "a4",
+                    "name": "Secret Locked Beta",
+                    "slug": "secret-beta",
+                    "sort_order": 4,
+                    "unlockCount": 0,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                  {
+                    "category": "secret",
+                    "description": "Hidden gamma description.",
+                    "id": "a5",
+                    "name": "Secret Locked Gamma",
+                    "slug": "secret-gamma",
+                    "sort_order": 5,
+                    "unlockCount": 0,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                ],
+              },
+              "t": "AchievementShowcase",
+            },
+            {
+              "children": null,
+              "props": {
+                "matches": [
+                  {
+                    "completedAt": "2026-09-18T10:00:00Z",
+                    "id": "pm1",
+                    "opponentName": "Player 2",
+                    "opponentScore": 2,
+                    "outcome": "loss",
+                    "playerScore": 0,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-17T10:00:00Z",
+                    "id": "pm2",
+                    "opponentName": "Player 2",
+                    "opponentScore": 3,
+                    "outcome": "loss",
+                    "playerScore": 1,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-16T10:00:00Z",
+                    "id": "pm3",
+                    "opponentName": "Player 2",
+                    "opponentScore": 0,
+                    "outcome": "win",
+                    "playerScore": 1,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-15T10:00:00Z",
+                    "id": "pm4",
+                    "opponentName": "Alpha Squad",
+                    "opponentScore": 2,
+                    "outcome": "draw",
+                    "playerScore": 2,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-20T17:00:00Z",
+                    "id": "pm5",
+                    "opponentName": "Player 2",
+                    "opponentScore": 3,
+                    "outcome": "loss",
+                    "playerScore": 1,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                ],
+                "username": "player3",
+              },
+              "t": "ProfileMatchHistory",
+            },
+            {
+              "children": null,
+              "props": {
+                "posts": [],
+                "username": "player3",
+              },
+              "t": "ProfileCommunityPosts",
+            },
+            {
+              "children": null,
+              "props": {
+                "items": [],
+              },
+              "t": "ProfileImageGrid",
+            },
+            null,
+          ],
+          "props": {
+            "className": "min-w-0 space-y-8",
+          },
+          "t": "div",
+        },
+      ],
+      "props": {
+        "className": "grid gap-6 pb-4 lg:grid-cols-[240px_1fr]",
+        "id": "top",
+      },
+      "t": "div",
+    },
+  ],
+  "props": {
+    "className": "mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8",
+  },
+  "t": "div",
+}
+`;
+
+exports[`player profile page — characterization (pins current behavior; must not change during extraction) > signed-in visitor who does not follow the profile > tree 1`] = `
+{
+  "children": [
+    {
+      "children": null,
+      "props": {
+        "data": {
+          "@context": "https://schema.org",
+          "@type": "ProfilePage",
+          "mainEntity": {
+            "@type": "Person",
+            "alternateName": "player1",
+            "description": "Player 1 on Sentinel X — 11 wins from 12 matches, SX Score 980 (trusted tier).",
+            "name": "Player 1",
+            "url": "https://sentinelxesports.com.ng/players/player1",
+          },
+        },
+      },
+      "t": "JsonLd",
+    },
+    {
+      "children": null,
+      "props": {
+        "data": {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://sentinelxesports.com.ng/players",
+              "name": "Players",
+              "position": 1,
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://sentinelxesports.com.ng/players/player1",
+              "name": "Player 1",
+              "position": 2,
+            },
+          ],
+        },
+      },
+      "t": "JsonLd",
+    },
+    {
+      "children": [
+        {
+          "children": "Home",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Players",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/players",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Player 1",
+          "props": {
+            "className": "text-white",
+          },
+          "t": "span",
+        },
+      ],
+      "props": {
+        "className": "py-4 text-xs text-sx-gray",
+      },
+      "t": "nav",
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "isOwner": false,
+              },
+              "t": "ProfileSidebarNav",
+            },
+            {
+              "children": null,
+              "props": {},
+              "t": "ProfileTournamentsPromo",
+            },
+          ],
+          "props": {
+            "className": "space-y-4 lg:sticky lg:top-20 lg:self-start",
+          },
+          "t": "aside",
+        },
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "achievements": [],
+                "avatarFrameUrl": undefined,
+                "coinBalance": undefined,
+                "followsViewer": false,
+                "friendshipStatus": "none",
+                "isFollowing": false,
+                "messagingState": undefined,
+                "profile": {
+                  "avatarUrl": null,
+                  "bio": "Bio of player1",
+                  "categoryStats": [
+                    {
+                      "category": "football",
+                      "conceded": 5,
+                      "scored": 2,
+                    },
+                    {
+                      "category": "fighting",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "shooter",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "racing",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                  ],
+                  "country": "NG",
+                  "createdAt": "2026-01-15T09:00:00Z",
+                  "currentStreak": 0,
+                  "displayName": "Player 1",
+                  "followerCount": 0,
+                  "followingCount": 1,
+                  "goalsConceded": 11,
+                  "goalsScored": 29,
+                  "id": "p1",
+                  "losses": 1,
+                  "membershipTier": "guardian",
+                  "rank": 3,
+                  "seasonRank": 1,
+                  "sentinelTier": "trusted",
+                  "sxScore": 980,
+                  "totalMatches": 12,
+                  "totalRankedPlayers": 10,
+                  "totalTitles": 1,
+                  "tournamentsPlayed": 1,
+                  "username": "player1",
+                  "wins": 11,
+                },
+                "profileThemeClass": undefined,
+                "usernameColourClass": undefined,
+                "viewerId": "p3",
+              },
+              "t": "ProfileHeader",
+            },
+            {
+              "children": null,
+              "props": {
+                "profile": {
+                  "avatarUrl": null,
+                  "bio": "Bio of player1",
+                  "categoryStats": [
+                    {
+                      "category": "football",
+                      "conceded": 5,
+                      "scored": 2,
+                    },
+                    {
+                      "category": "fighting",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "shooter",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "racing",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                  ],
+                  "country": "NG",
+                  "createdAt": "2026-01-15T09:00:00Z",
+                  "currentStreak": 0,
+                  "displayName": "Player 1",
+                  "followerCount": 0,
+                  "followingCount": 1,
+                  "goalsConceded": 11,
+                  "goalsScored": 29,
+                  "id": "p1",
+                  "losses": 1,
+                  "membershipTier": "guardian",
+                  "rank": 3,
+                  "seasonRank": 1,
+                  "sentinelTier": "trusted",
+                  "sxScore": 980,
+                  "totalMatches": 12,
+                  "totalRankedPlayers": 10,
+                  "totalTitles": 1,
+                  "tournamentsPlayed": 1,
+                  "username": "player1",
+                  "wins": 11,
+                },
+              },
+              "t": "ProfileStats",
+            },
+            {
+              "children": null,
+              "props": {
+                "coinBalance": undefined,
+                "xp": 1500,
+              },
+              "t": "XPProgressPanel",
+            },
+            {
+              "children": null,
+              "props": {
+                "games": [
+                  {
+                    "matches": 3,
+                    "name": "Dream League Soccer",
+                    "wins": 1,
+                  },
+                ],
+              },
+              "t": "ProfileGamesRow",
+            },
+            {
+              "children": [
+                {
+                  "children": null,
+                  "props": {
+                    "titles": [],
+                  },
+                  "t": "ProfileAchievements",
+                },
+                {
+                  "children": null,
+                  "props": {},
+                  "t": "CareerStatsRadar",
+                },
+                {
+                  "children": null,
+                  "props": {
+                    "matches": [
+                      {
+                        "completedAt": "2026-09-18T10:00:00Z",
+                        "id": "pm1",
+                        "opponentName": "Player 2",
+                        "opponentScore": 2,
+                        "outcome": "loss",
+                        "playerScore": 0,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-17T10:00:00Z",
+                        "id": "pm2",
+                        "opponentName": "Player 2",
+                        "opponentScore": 3,
+                        "outcome": "loss",
+                        "playerScore": 1,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-16T10:00:00Z",
+                        "id": "pm3",
+                        "opponentName": "Player 2",
+                        "opponentScore": 0,
+                        "outcome": "win",
+                        "playerScore": 1,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-15T10:00:00Z",
+                        "id": "pm4",
+                        "opponentName": "Alpha Squad",
+                        "opponentScore": 2,
+                        "outcome": "draw",
+                        "playerScore": 2,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-20T17:00:00Z",
+                        "id": "pm5",
+                        "opponentName": "Player 2",
+                        "opponentScore": 3,
+                        "outcome": "loss",
+                        "playerScore": 1,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                    ],
+                  },
+                  "t": "ProfileRecentActivity",
+                },
+              ],
+              "props": {
+                "className": "grid gap-8 lg:grid-cols-3",
+              },
+              "t": "div",
+            },
+            {
+              "children": null,
+              "props": {
+                "achievements": [
+                  {
+                    "category": "matches",
+                    "description": "Win your first match.",
+                    "id": "a1",
+                    "name": "First Blood",
+                    "slug": "first-blood",
+                    "sort_order": 1,
+                    "unlockCount": 2,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                  {
+                    "category": "tournaments",
+                    "description": "Win a tournament.",
+                    "id": "a2",
+                    "name": "Champion",
+                    "slug": "champion",
+                    "sort_order": 2,
+                    "unlockCount": 1,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                  {
+                    "category": "secret",
+                    "description": "Hidden alpha description.",
+                    "id": "a3",
+                    "name": "Secret Locked Alpha",
+                    "slug": "secret-alpha",
+                    "sort_order": 3,
+                    "unlockCount": 1,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                  {
+                    "category": "secret",
+                    "description": "Hidden beta description.",
+                    "id": "a4",
+                    "name": "Secret Locked Beta",
+                    "slug": "secret-beta",
+                    "sort_order": 4,
+                    "unlockCount": 0,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                  {
+                    "category": "secret",
+                    "description": "Hidden gamma description.",
+                    "id": "a5",
+                    "name": "Secret Locked Gamma",
+                    "slug": "secret-gamma",
+                    "sort_order": 5,
+                    "unlockCount": 0,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                ],
+              },
+              "t": "AchievementShowcase",
+            },
+            {
+              "children": null,
+              "props": {
+                "matches": [
+                  {
+                    "completedAt": "2026-09-18T10:00:00Z",
+                    "id": "pm1",
+                    "opponentName": "Player 2",
+                    "opponentScore": 2,
+                    "outcome": "loss",
+                    "playerScore": 0,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-17T10:00:00Z",
+                    "id": "pm2",
+                    "opponentName": "Player 2",
+                    "opponentScore": 3,
+                    "outcome": "loss",
+                    "playerScore": 1,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-16T10:00:00Z",
+                    "id": "pm3",
+                    "opponentName": "Player 2",
+                    "opponentScore": 0,
+                    "outcome": "win",
+                    "playerScore": 1,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-15T10:00:00Z",
+                    "id": "pm4",
+                    "opponentName": "Alpha Squad",
+                    "opponentScore": 2,
+                    "outcome": "draw",
+                    "playerScore": 2,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-20T17:00:00Z",
+                    "id": "pm5",
+                    "opponentName": "Player 2",
+                    "opponentScore": 3,
+                    "outcome": "loss",
+                    "playerScore": 1,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                ],
+                "username": "player1",
+              },
+              "t": "ProfileMatchHistory",
+            },
+            {
+              "children": null,
+              "props": {
+                "posts": [],
+                "username": "player1",
+              },
+              "t": "ProfileCommunityPosts",
+            },
+            {
+              "children": null,
+              "props": {
+                "items": [],
+              },
+              "t": "ProfileImageGrid",
+            },
+            null,
+          ],
+          "props": {
+            "className": "min-w-0 space-y-8",
+          },
+          "t": "div",
+        },
+      ],
+      "props": {
+        "className": "grid gap-6 pb-4 lg:grid-cols-[240px_1fr]",
+        "id": "top",
+      },
+      "t": "div",
+    },
+  ],
+  "props": {
+    "className": "mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8",
+  },
+  "t": "div",
+}
+`;
+
+exports[`player profile page — characterization (pins current behavior; must not change during extraction) > signed-in visitor who follows the target > queries 1`] = `
+[
+  "profiles:select|eq(username)",
+  "friends:select|or",
+  "player_follows:select|eq(follower_id)|eq(following_id)",
+  "player_follows:select|eq(follower_id)|eq(following_id)",
+  "squad_members:select|eq(player_id)",
+  "rpc:player_rank",
+  "player_follows:select|eq(following_id)",
+  "player_follows:select|eq(follower_id)",
+  "matches:select|eq(status)|or",
+  "matches:select|eq(round)|eq(status)|or",
+  "matches:select|eq(status)|or",
+  "tournament_registrations:select|eq(player_id)|eq(payment_status)",
+  "profiles:select|gte(total_matches)",
+  "achievements:select",
+  "player_achievements:select|eq(player_id)",
+  "player_store_items:select|eq(player_id)|eq(equipped)",
+  "player_achievements:select",
+  "community_posts:select|eq(author_id)|eq(is_deleted)",
+  "community_posts:select|eq(author_id)|eq(is_deleted)|not(image_url)",
+  "squad_members:select|in(squad_id)",
+  "seasons:select|eq(status)",
+  "games:select|eq(slug)",
+]
+`;
+
+exports[`player profile page — characterization (pins current behavior; must not change during extraction) > signed-in visitor who follows the target > tree 1`] = `
+{
+  "children": [
+    {
+      "children": null,
+      "props": {
+        "data": {
+          "@context": "https://schema.org",
+          "@type": "ProfilePage",
+          "mainEntity": {
+            "@type": "Person",
+            "alternateName": "player2",
+            "description": "Player 2 on Sentinel X — 10 wins from 12 matches, SX Score 960 (trusted tier).",
+            "name": "Player 2",
+            "url": "https://sentinelxesports.com.ng/players/player2",
+          },
+        },
+      },
+      "t": "JsonLd",
+    },
+    {
+      "children": null,
+      "props": {
+        "data": {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "item": "https://sentinelxesports.com.ng/players",
+              "name": "Players",
+              "position": 1,
+            },
+            {
+              "@type": "ListItem",
+              "item": "https://sentinelxesports.com.ng/players/player2",
+              "name": "Player 2",
+              "position": 2,
+            },
+          ],
+        },
+      },
+      "t": "JsonLd",
+    },
+    {
+      "children": [
+        {
+          "children": "Home",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Players",
+          "props": {
+            "className": "hover:text-white",
+            "href": "/players",
+          },
+          "t": "LinkComponent",
+        },
+        {
+          "children": "›",
+          "props": {
+            "className": "mx-1.5",
+          },
+          "t": "span",
+        },
+        {
+          "children": "Player 2",
+          "props": {
+            "className": "text-white",
+          },
+          "t": "span",
+        },
+      ],
+      "props": {
+        "className": "py-4 text-xs text-sx-gray",
+      },
+      "t": "nav",
+    },
+    {
+      "children": [
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "isOwner": false,
+              },
+              "t": "ProfileSidebarNav",
+            },
+            {
+              "children": null,
+              "props": {},
+              "t": "ProfileTournamentsPromo",
+            },
+          ],
+          "props": {
+            "className": "space-y-4 lg:sticky lg:top-20 lg:self-start",
+          },
+          "t": "aside",
+        },
+        {
+          "children": [
+            {
+              "children": null,
+              "props": {
+                "achievements": [
+                  "first-blood",
+                  "champion",
+                ],
+                "avatarFrameUrl": "/coin-items/purple-glow.webp",
+                "coinBalance": undefined,
+                "followsViewer": false,
+                "friendshipStatus": "none",
+                "isFollowing": true,
+                "messagingState": undefined,
+                "profile": {
+                  "avatarUrl": null,
+                  "bio": "Bio of player2",
+                  "categoryStats": [
+                    {
+                      "category": "football",
+                      "conceded": 3,
+                      "scored": 8,
+                    },
+                    {
+                      "category": "fighting",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "shooter",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "racing",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                  ],
+                  "country": "GH",
+                  "createdAt": "2026-01-15T09:00:00Z",
+                  "currentStreak": 2,
+                  "displayName": "Player 2",
+                  "followerCount": 2,
+                  "followingCount": 1,
+                  "goalsConceded": 12,
+                  "goalsScored": 28,
+                  "id": "p2",
+                  "losses": 2,
+                  "membershipTier": "guardian",
+                  "rank": 3,
+                  "seasonRank": null,
+                  "sentinelTier": "trusted",
+                  "sxScore": 960,
+                  "totalMatches": 12,
+                  "totalRankedPlayers": 10,
+                  "totalTitles": 1,
+                  "tournamentsPlayed": 2,
+                  "username": "player2",
+                  "wins": 10,
+                },
+                "profileThemeClass": undefined,
+                "usernameColourClass": undefined,
+                "viewerId": "p1",
+              },
+              "t": "ProfileHeader",
+            },
+            {
+              "children": null,
+              "props": {
+                "profile": {
+                  "avatarUrl": null,
+                  "bio": "Bio of player2",
+                  "categoryStats": [
+                    {
+                      "category": "football",
+                      "conceded": 3,
+                      "scored": 8,
+                    },
+                    {
+                      "category": "fighting",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "shooter",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                    {
+                      "category": "racing",
+                      "conceded": 0,
+                      "scored": 0,
+                    },
+                  ],
+                  "country": "GH",
+                  "createdAt": "2026-01-15T09:00:00Z",
+                  "currentStreak": 2,
+                  "displayName": "Player 2",
+                  "followerCount": 2,
+                  "followingCount": 1,
+                  "goalsConceded": 12,
+                  "goalsScored": 28,
+                  "id": "p2",
+                  "losses": 2,
+                  "membershipTier": "guardian",
+                  "rank": 3,
+                  "seasonRank": null,
+                  "sentinelTier": "trusted",
+                  "sxScore": 960,
+                  "totalMatches": 12,
+                  "totalRankedPlayers": 10,
+                  "totalTitles": 1,
+                  "tournamentsPlayed": 2,
+                  "username": "player2",
+                  "wins": 10,
+                },
+              },
+              "t": "ProfileStats",
+            },
+            {
+              "children": null,
+              "props": {
+                "coinBalance": undefined,
+                "xp": 1500,
+              },
+              "t": "XPProgressPanel",
+            },
+            {
+              "children": null,
+              "props": {
+                "games": [
+                  {
+                    "matches": 5,
+                    "name": "Dream League Soccer",
+                    "wins": 3,
+                  },
+                ],
+              },
+              "t": "ProfileGamesRow",
+            },
+            {
+              "children": [
+                {
+                  "children": null,
+                  "props": {
+                    "titles": [
+                      {
+                        "date": "2026-09-20T18:00:00Z",
+                        "gameName": "Dream League Soccer",
+                        "tournamentSlug": "masters-cup",
+                        "tournamentTitle": "Masters Cup",
+                      },
+                    ],
+                  },
+                  "t": "ProfileAchievements",
+                },
+                {
+                  "children": null,
+                  "props": {},
+                  "t": "CareerStatsRadar",
+                },
+                {
+                  "children": null,
+                  "props": {
+                    "matches": [
+                      {
+                        "completedAt": "2026-09-18T10:00:00Z",
+                        "id": "pm1",
+                        "opponentName": "Player 1",
+                        "opponentScore": 0,
+                        "outcome": "win",
+                        "playerScore": 2,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-17T10:00:00Z",
+                        "id": "pm2",
+                        "opponentName": "TBD",
+                        "opponentScore": 1,
+                        "outcome": "win",
+                        "playerScore": 3,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-16T10:00:00Z",
+                        "id": "pm3",
+                        "opponentName": "Player 1",
+                        "opponentScore": 1,
+                        "outcome": "loss",
+                        "playerScore": 0,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-15T10:00:00Z",
+                        "id": "pm4",
+                        "opponentName": "Bravo Squad",
+                        "opponentScore": 2,
+                        "outcome": "draw",
+                        "playerScore": 2,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                      {
+                        "completedAt": "2026-09-20T17:00:00Z",
+                        "id": "pm5",
+                        "opponentName": "Player 1",
+                        "opponentScore": 1,
+                        "outcome": "win",
+                        "playerScore": 3,
+                        "tournamentTitle": "Masters Cup",
+                      },
+                    ],
+                  },
+                  "t": "ProfileRecentActivity",
+                },
+              ],
+              "props": {
+                "className": "grid gap-8 lg:grid-cols-3",
+              },
+              "t": "div",
+            },
+            {
+              "children": null,
+              "props": {
+                "achievements": [
+                  {
+                    "category": "matches",
+                    "description": "Win your first match.",
+                    "id": "a1",
+                    "name": "First Blood",
+                    "slug": "first-blood",
+                    "sort_order": 1,
+                    "unlockCount": 2,
+                    "unlocked": true,
+                    "unlockedAt": "2026-08-01T10:00:00Z",
+                  },
+                  {
+                    "category": "tournaments",
+                    "description": "Win a tournament.",
+                    "id": "a2",
+                    "name": "Champion",
+                    "slug": "champion",
+                    "sort_order": 2,
+                    "unlockCount": 1,
+                    "unlocked": true,
+                    "unlockedAt": "2026-09-20T18:30:00Z",
+                  },
+                  {
+                    "category": "secret",
+                    "description": "Hidden alpha description.",
+                    "id": "a3",
+                    "name": "Secret Locked Alpha",
+                    "slug": "secret-alpha",
+                    "sort_order": 3,
+                    "unlockCount": 1,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                  {
+                    "category": "secret",
+                    "description": "Hidden beta description.",
+                    "id": "a4",
+                    "name": "Secret Locked Beta",
+                    "slug": "secret-beta",
+                    "sort_order": 4,
+                    "unlockCount": 0,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                  {
+                    "category": "secret",
+                    "description": "Hidden gamma description.",
+                    "id": "a5",
+                    "name": "Secret Locked Gamma",
+                    "slug": "secret-gamma",
+                    "sort_order": 5,
+                    "unlockCount": 0,
+                    "unlocked": false,
+                    "unlockedAt": null,
+                  },
+                ],
+              },
+              "t": "AchievementShowcase",
+            },
+            {
+              "children": null,
+              "props": {
+                "matches": [
+                  {
+                    "completedAt": "2026-09-18T10:00:00Z",
+                    "id": "pm1",
+                    "opponentName": "Player 1",
+                    "opponentScore": 0,
+                    "outcome": "win",
+                    "playerScore": 2,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-17T10:00:00Z",
+                    "id": "pm2",
+                    "opponentName": "TBD",
+                    "opponentScore": 1,
+                    "outcome": "win",
+                    "playerScore": 3,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-16T10:00:00Z",
+                    "id": "pm3",
+                    "opponentName": "Player 1",
+                    "opponentScore": 1,
+                    "outcome": "loss",
+                    "playerScore": 0,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-15T10:00:00Z",
+                    "id": "pm4",
+                    "opponentName": "Bravo Squad",
+                    "opponentScore": 2,
+                    "outcome": "draw",
+                    "playerScore": 2,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                  {
+                    "completedAt": "2026-09-20T17:00:00Z",
+                    "id": "pm5",
+                    "opponentName": "Player 1",
+                    "opponentScore": 1,
+                    "outcome": "win",
+                    "playerScore": 3,
+                    "tournamentTitle": "Masters Cup",
+                  },
+                ],
+                "username": "player2",
+              },
+              "t": "ProfileMatchHistory",
+            },
+            {
+              "children": null,
+              "props": {
+                "posts": [
+                  {
+                    "content": "gg everyone",
+                    "createdAt": "2026-09-19T10:00:00Z",
+                    "id": "c1",
+                    "postType": "text",
+                  },
+                  {
+                    "content": "clutch win",
+                    "createdAt": "2026-09-18T10:00:00Z",
+                    "id": "c2",
+                    "postType": "image",
+                  },
+                ],
+                "username": "player2",
+              },
+              "t": "ProfileCommunityPosts",
+            },
+            {
+              "children": null,
+              "props": {
+                "items": [
+                  {
+                    "id": "c2",
+                    "imageUrl": "https://cdn.test/c2.jpg",
+                  },
+                ],
+              },
+              "t": "ProfileImageGrid",
+            },
+            null,
+          ],
+          "props": {
+            "className": "min-w-0 space-y-8",
+          },
+          "t": "div",
+        },
+      ],
+      "props": {
+        "className": "grid gap-6 pb-4 lg:grid-cols-[240px_1fr]",
+        "id": "top",
+      },
+      "t": "div",
+    },
+  ],
+  "props": {
+    "className": "mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8",
+  },
+  "t": "div",
+}
+`;

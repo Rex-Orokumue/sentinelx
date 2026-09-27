@@ -1,8 +1,14 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/lib/supabase/types'
 import { safeCount } from './predicates'
 
-export async function fetchFollowCounts(profileId: string): Promise<{ followers: number; following: number }> {
-  const supabase = createClient()
+// Every loader takes an optional client (default: the request-scoped cookie client, exactly as before) so the
+// players service and the mobile endpoints can inject theirs.
+type Client = SupabaseClient<Database>
+
+export async function fetchFollowCounts(profileId: string, client: Client = createClient()): Promise<{ followers: number; following: number }> {
+  const supabase = client
   const [{ count: followers }, { count: following }] = await Promise.all([
     supabase.from('player_follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', profileId),
     supabase.from('player_follows').select('following_id', { count: 'exact', head: true }).eq('follower_id', profileId),
@@ -10,8 +16,8 @@ export async function fetchFollowCounts(profileId: string): Promise<{ followers:
   return { followers: safeCount(followers), following: safeCount(following) }
 }
 
-export async function fetchIsFollowing(viewerId: string, profileId: string): Promise<boolean> {
-  const supabase = createClient()
+export async function fetchIsFollowing(viewerId: string, profileId: string, client: Client = createClient()): Promise<boolean> {
+  const supabase = client
   const { data } = await supabase
     .from('player_follows')
     .select('follower_id')
@@ -24,8 +30,8 @@ export async function fetchIsFollowing(viewerId: string, profileId: string): Pro
 // Every profile the viewer follows — used to drive the feed's "Following"
 // tab. Unbounded: a player following thousands of others is not a case this
 // platform has, and the feed filter only needs id membership.
-export async function fetchFollowingIds(viewerId: string): Promise<string[]> {
-  const supabase = createClient()
+export async function fetchFollowingIds(viewerId: string, client: Client = createClient()): Promise<string[]> {
+  const supabase = client
   const { data } = await supabase.from('player_follows').select('following_id').eq('follower_id', viewerId)
   return (data ?? []).map((r) => r.following_id)
 }
@@ -33,8 +39,8 @@ export async function fetchFollowingIds(viewerId: string): Promise<string[]> {
 // Everyone who follows viewerId — the mirror of fetchFollowingIds. Used to
 // mark "Follows you" on the followers/following list pages without an
 // isFollowing round-trip per row.
-export async function fetchFollowerIds(viewerId: string): Promise<string[]> {
-  const supabase = createClient()
+export async function fetchFollowerIds(viewerId: string, client: Client = createClient()): Promise<string[]> {
+  const supabase = client
   const { data } = await supabase.from('player_follows').select('follower_id').eq('following_id', viewerId)
   return (data ?? []).map((r) => r.follower_id)
 }
@@ -68,8 +74,8 @@ const PROFILE_FIELDS = 'id, username, display_name, avatar_url, membership_tier'
 // Who follows profileId. Capped at `limit` (default 100) — the follower/
 // following list pages are the spec's named "cuttable corner"; a single
 // uncapped page is enough for v1 rather than building full pagination.
-export async function fetchFollowers(profileId: string, limit = 100): Promise<FollowListEntry[]> {
-  const supabase = createClient()
+export async function fetchFollowers(profileId: string, limit = 100, client: Client = createClient()): Promise<FollowListEntry[]> {
+  const supabase = client
   const { data } = await supabase
     .from('player_follows')
     .select(`follower:profiles!player_follows_follower_id_fkey(${PROFILE_FIELDS})`)
@@ -82,8 +88,8 @@ export async function fetchFollowers(profileId: string, limit = 100): Promise<Fo
 }
 
 // Who profileId follows.
-export async function fetchFollowing(profileId: string, limit = 100): Promise<FollowListEntry[]> {
-  const supabase = createClient()
+export async function fetchFollowing(profileId: string, limit = 100, client: Client = createClient()): Promise<FollowListEntry[]> {
+  const supabase = client
   const { data } = await supabase
     .from('player_follows')
     .select(`following:profiles!player_follows_following_id_fkey(${PROFILE_FIELDS})`)
