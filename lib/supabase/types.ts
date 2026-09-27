@@ -1205,6 +1205,62 @@ export type Database = {
           },
         ]
       }
+      game_registration_fields: {
+        Row: {
+          active: boolean
+          created_at: string
+          field_key: string
+          game_id: string
+          id: string
+          input_type: string
+          label: string
+          placeholder: string | null
+          required: boolean
+          seq: number
+          show_on_bracket: boolean
+          validation_message: string | null
+          validation_pattern: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          field_key: string
+          game_id: string
+          id?: string
+          input_type?: string
+          label: string
+          placeholder?: string | null
+          required?: boolean
+          seq?: number
+          show_on_bracket?: boolean
+          validation_message?: string | null
+          validation_pattern?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          field_key?: string
+          game_id?: string
+          id?: string
+          input_type?: string
+          label?: string
+          placeholder?: string | null
+          required?: boolean
+          seq?: number
+          show_on_bracket?: boolean
+          validation_message?: string | null
+          validation_pattern?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_registration_fields_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           active: boolean
@@ -3404,11 +3460,10 @@ export type Database = {
           payment_status: string
           paystack_reference: string | null
           player_id: string
-          reg_club_name: string | null
           reg_display_name: string | null
-          reg_ign_tag: string | null
           reg_whatsapp: string | null
           registered_at: string
+          registration_details: Json
           replaces_registration_id: string | null
           status: string
           tournament_id: string
@@ -3425,11 +3480,10 @@ export type Database = {
           payment_status?: string
           paystack_reference?: string | null
           player_id: string
-          reg_club_name?: string | null
           reg_display_name?: string | null
-          reg_ign_tag?: string | null
           reg_whatsapp?: string | null
           registered_at?: string
+          registration_details?: Json
           replaces_registration_id?: string | null
           status?: string
           tournament_id: string
@@ -3446,11 +3500,10 @@ export type Database = {
           payment_status?: string
           paystack_reference?: string | null
           player_id?: string
-          reg_club_name?: string | null
           reg_display_name?: string | null
-          reg_ign_tag?: string | null
           reg_whatsapp?: string | null
           registered_at?: string
+          registration_details?: Json
           replaces_registration_id?: string | null
           status?: string
           tournament_id?: string
