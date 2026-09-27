@@ -4,6 +4,7 @@ import { requireStaff } from '@/lib/admin/auth'
 import { bucketReviewQueue, type ReviewMatchInput } from '@/lib/matches/review-queue'
 import { hasScoreMismatch } from '@/lib/matches/verify'
 import { AdminResultsQueue } from '@/components/admin/AdminResultsQueue'
+import { fetchRegistrationFields, pickDisplayValue } from '@/lib/tournaments/registration-fields'
 
 export const metadata: Metadata = { title: 'Results · Admin · SentinelX' }
 
@@ -34,14 +35,32 @@ export default async function AdminResultsPage() {
   const tournamentIds = Array.from(
     new Set(rawRows.map((raw) => (raw as { tournament_id: string }).tournament_id)),
   )
+  const { data: tournamentGames } =
+    tournamentIds.length > 0
+      ? await supabase.from('tournaments').select('id, game_id').in('id', tournamentIds)
+      : { data: [] as { id: string; game_id: string }[] }
+  const gameIdByTournament = new Map((tournamentGames ?? []).map((t) => [t.id, t.game_id]))
+  const fieldsByGame = new Map(
+    await Promise.all(
+      Array.from(new Set((tournamentGames ?? []).map((t) => t.game_id))).map(
+        async (gameId) => [gameId, await fetchRegistrationFields(supabase, gameId)] as const,
+      ),
+    ),
+  )
+
   const { data: regs } =
     tournamentIds.length > 0
       ? await supabase
           .from('tournament_registrations')
-          .select('tournament_id, player_id, reg_club_name')
+          .select('tournament_id, player_id, registration_details')
           .in('tournament_id', tournamentIds)
-      : { data: [] as { tournament_id: string; player_id: string; reg_club_name: string | null }[] }
-  const clubByKey = new Map((regs ?? []).map((r) => [`${r.tournament_id}:${r.player_id}`, r.reg_club_name]))
+      : { data: [] as { tournament_id: string; player_id: string; registration_details: Record<string, string> | null }[] }
+  const clubByKey = new Map(
+    (regs ?? []).map((r) => [
+      `${r.tournament_id}:${r.player_id}`,
+      pickDisplayValue(r.registration_details as Record<string, string> | null, fieldsByGame.get(gameIdByTournament.get(r.tournament_id) ?? '') ?? []),
+    ]),
+  )
 
   const rows: ReviewMatchInput[] = rawRows.map((raw) => {
     const m = raw as {
