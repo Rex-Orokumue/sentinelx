@@ -43,7 +43,7 @@ export function AdminBracketView({
     groupId: g.groupId,
     groupName: g.groupName,
     rows: g.rows.filter((r) =>
-      matchesPlayerQuery({ username: null, displayName: r.name, clubName: r.clubName ?? null }, query),
+      matchesPlayerQuery({ username: null, displayName: r.name, registrationDetails: r.clubName ? { value: r.clubName } : null }, query),
     ),
   }))
   // Groups can only be manually reassigned in the staff-only preview window,

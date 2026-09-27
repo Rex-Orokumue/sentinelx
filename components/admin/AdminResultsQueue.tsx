@@ -7,8 +7,8 @@ import { PlayerSearch } from './PlayerSearch'
 
 function matchesEitherPlayer(m: ReviewMatchInput, query: string): boolean {
   return (
-    matchesPlayerQuery({ username: null, displayName: m.playerAName, clubName: m.playerAClubName ?? null }, query) ||
-    matchesPlayerQuery({ username: null, displayName: m.playerBName, clubName: m.playerBClubName ?? null }, query)
+    matchesPlayerQuery({ username: null, displayName: m.playerAName, registrationDetails: m.playerAClubName ? { value: m.playerAClubName } : null }, query) ||
+    matchesPlayerQuery({ username: null, displayName: m.playerBName, registrationDetails: m.playerBClubName ? { value: m.playerBClubName } : null }, query)
   )
 }
 
