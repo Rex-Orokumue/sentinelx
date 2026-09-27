@@ -45,7 +45,7 @@ export default async function NewTournamentPage() {
   await requireStaff()
   const supabase = createClient()
   const [{ data: games }, { data: seasons }, catalogue] = await Promise.all([
-    supabase.from('games').select('id, name, supported_formats').eq('active', true).order('name'),
+    supabase.from('games').select('id, name, slug, supported_formats').eq('active', true).order('name'),
     supabase.from('seasons').select('id, name').order('start_date', { ascending: false }),
     fetchModeCatalogue(),
   ])
@@ -66,6 +66,7 @@ export default async function NewTournamentPage() {
           games={(games ?? []).map((g) => ({
           id: g.id,
           name: g.name,
+          slug: g.slug,
           supportedFormats: g.supported_formats ?? [],
         }))}
           seasons={seasons ?? []}

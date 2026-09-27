@@ -11,6 +11,7 @@ import {
   resolveModeSelection,
 } from '@/lib/tournaments/mode-selection'
 import type { ModeCatalogue } from '@/lib/tournaments/mode-catalogue'
+import { seasonTierLabelsFor } from '@/lib/games/season-tier-labels'
 
 export interface TournamentFormValues {
   id?: string
@@ -58,7 +59,7 @@ export function TournamentForm({
   submitLabel,
 }: {
   action: Action
-  games: { id: string; name: string; supportedFormats: string[] }[]
+  games: { id: string; name: string; slug: string; supportedFormats: string[] }[]
   seasons: { id: string; name: string }[]
   catalogue: ModeCatalogue
   initial: TournamentFormValues
@@ -105,6 +106,12 @@ export function TournamentForm({
     ? derived.competitionFormat === 'points_race'
     : competitionFormat === 'points_race'
   const isInvitationOnly = tournamentType === 'masters' || tournamentType === 'champions_cup'
+
+  // Tier naming is per-game (Circuit Cup/Elite Cup for FC Mobile vs. Community
+  // Club/Masters for DLS — see 2026-08-27-fc-mobile-competition-structure-design.md
+  // §1). Same helper the public /seasons page already uses; falls back to the
+  // generic label set when no game is picked yet or the game has none of its own.
+  const tierLabels = seasonTierLabelsFor(games.find((g) => g.id === gameId)?.slug ?? '')
   return (
     <form action={formAction} className="space-y-4">
       {initial.id && <input type="hidden" name="id" value={initial.id} />}
@@ -362,10 +369,13 @@ export function TournamentForm({
           className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
         >
           <option value="open">Open</option>
-          <option value="community_club">Community Club</option>
-          <option value="masters">SentinelX Masters</option>
+          <option value="community_club">{tierLabels.communityClub}</option>
+          <option value="masters">{tierLabels.masters}</option>
           <option value="champions_cup">SentinelX Champions Cup</option>
         </select>
+        {!gameId && (
+          <p className="text-xs text-slate-500">Choose a game above to see its tier names.</p>
+        )}
       </div>
 
       {tournamentType !== 'open' && (
