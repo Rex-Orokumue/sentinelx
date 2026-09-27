@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { toMeResponse } from './me'
+import { toMeResponse, updateProfileErrorMessage } from './me'
 
 const ctx = { userId: 'u1', email: 'a@b.c', roles: ['moderator'], isStaff: true, isAdmin: false } as never
 
@@ -19,5 +19,13 @@ describe('toMeResponse', () => {
   })
   it('returns a null profile when the row does not exist yet', () => {
     expect(toMeResponse(ctx, null).profile).toBeNull()
+  })
+})
+
+describe('updateProfileErrorMessage', () => {
+  it('maps each UpdateProfileErrorCode to a player-facing message', () => {
+    expect(updateProfileErrorMessage('username_taken')).toBe('That username is already taken.')
+    expect(updateProfileErrorMessage('username_locked')).toBe('Username has already been changed once.')
+    expect(updateProfileErrorMessage('save_failed')).toBe('Could not save your profile. Please try again.')
   })
 })

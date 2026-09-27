@@ -2,17 +2,27 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { initializeTransaction, buildReference } from '@/lib/paystack/server'
-import { checkCanRegister } from './guard'
 import { registrationDetailsSchema, coinsUsedSchema } from './registration-schema'
-import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
-import { NAIRA_PER_COIN } from '@/lib/coins/value'
-import { settleReferralForPaidEntry } from '@/lib/referrals/credit'
-import { SITE_URL } from '@/lib/seo/site'
-import { assertNotPendingDeletion } from '@/lib/settings/restriction'
-import { finalizeSquadJoin } from './squad-membership'
+import { performRegisterForTournament, type RegisterErrorCode } from './register-service'
 
 export type RegisterState = { error?: string; needsUsername?: boolean } | undefined
+
+const ERROR_MESSAGES: Record<RegisterErrorCode, string> = {
+  needs_username: 'Claim a username before registering.',
+  tournament_not_found: 'Tournament not found.',
+  rules_agreement_required: 'Please confirm you have read and agree to the rules.',
+  already_registered: "You're already registered for this tournament.",
+  tournament_full: 'This tournament is full.',
+  invitation_only: 'This tournament is invitation-only. Check your dashboard for an invite.',
+  registration_closed: 'Registration is closed for this tournament.',
+  squads_not_available: 'This tournament does not use squads.',
+  squad_not_found: 'That squad no longer exists for this tournament.',
+  squad_not_accepting_members: 'That squad is no longer accepting members.',
+  squad_full: 'That squad is already full.',
+  insufficient_coins: 'Not enough SX Coins for this discount.',
+  registration_failed: 'Could not complete registration. Please try again.',
+  payment_init_failed: 'Payment could not be started. Please try again.',
+}
 
 export async function registerForTournament(
   _prev: RegisterState,
@@ -36,276 +46,25 @@ export async function registerForTournament(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to register.' }
-  // An account pending deletion must not take on new obligations, or the
-  // guards that passed at request time no longer hold at execution.
-  const restricted = await assertNotPendingDeletion(createAdminClient(), user.id)
-  if (restricted) return { error: restricted }
 
-  // A nameless profile (Google sign-in / deferred username claim — migration
-  // 073) would land in the bracket as "TBD". Force the handle claim first;
-  // the /dashboard onboarding gate does not cover this public route.
-  const { data: callerProfile } = await supabase
-    .from('profiles')
-    .select('username')
-    .eq('id', user.id)
-    .maybeSingle()
-  if (!callerProfile?.username) {
-    return { error: 'Claim a username before registering.', needsUsername: true }
-  }
-
-  // Re-fetch server-side; never trust the client for status, capacity, or rules.
-  const { data: tournament } = await supabase
-    .from('tournaments')
-    .select('id, slug, status, max_players, rules, registration_fee, invitation_only, entry_unit, squad_size')
-    .eq('id', tournamentId)
-    .maybeSingle()
-  if (!tournament) return { error: 'Tournament not found.' }
-
-  // Only proves the checkbox was ticked at submit time — there is no way to
-  // verify a player actually read the rules, and this deliberately doesn't try.
-  if (tournament.rules && formData.get('agreedToRules') !== 'true') {
-    return { error: 'Please confirm you have read and agree to the rules.' }
-  }
-
-  const { count: paidCount } = await supabase
-    .from('tournament_registrations')
-    .select('id', { count: 'exact', head: true })
-    .eq('tournament_id', tournamentId)
-    .eq('payment_status', 'paid')
-
-  const { data: existing } = await supabase
-    .from('tournament_registrations')
-    .select('id, payment_status')
-    .eq('tournament_id', tournamentId)
-    .eq('player_id', user.id)
-    .maybeSingle()
-
-  const guard = checkCanRegister({
-    status: tournament.status,
-    paidCount: paidCount ?? 0,
-    maxPlayers: tournament.max_players,
-    existingStatus: existing?.payment_status ?? null,
-    invitationOnly: tournament.invitation_only,
-  })
-  if (!guard.ok) {
-    return {
-      error:
-        guard.reason === 'already_registered'
-          ? "You're already registered for this tournament."
-          : guard.reason === 'full'
-            ? 'This tournament is full.'
-            : guard.reason === 'invitation_only'
-              ? 'This tournament is invitation-only. Check your dashboard for an invite.'
-              : 'Registration is closed for this tournament.',
-    }
-  }
-
-  // entry_unit='squad' only — the invite-code / create-squad UI never renders
-  // a squadId field for a solo tournament, but never trust the client.
   const squadIdRaw = String(formData.get('squadId') ?? '')
-  const squadId = squadIdRaw && tournament.entry_unit === 'squad' ? squadIdRaw : null
-  if (squadIdRaw && !squadId) return { error: 'This tournament does not use squads.' }
-  if (squadId) {
-    const { data: squad } = await supabase
-      .from('squads')
-      .select('id, tournament_id, status')
-      .eq('id', squadId)
-      .maybeSingle()
-    if (!squad || squad.tournament_id !== tournamentId) {
-      return { error: 'That squad no longer exists for this tournament.' }
-    }
-    if (squad.status !== 'forming') return { error: 'That squad is no longer accepting members.' }
-    const { count: squadMemberCount } = await supabase
-      .from('squad_members')
-      .select('*', { count: 'exact', head: true })
-      .eq('squad_id', squadId)
-    if ((squadMemberCount ?? 0) >= (tournament.squad_size ?? 0)) {
-      return { error: 'That squad is already full.' }
-    }
+
+  const result = await performRegisterForTournament(supabase, createAdminClient(), user.id, tournamentId, {
+    displayName: parsed.data.displayName,
+    whatsapp: parsed.data.whatsapp,
+    clubName: parsed.data.clubName,
+    ignTag: parsed.data.ignTag || null,
+    agreedToRules: formData.get('agreedToRules') === 'true',
+    coinsUsed,
+    squadId: squadIdRaw || null,
+  })
+
+  if (!result.ok) {
+    return result.errorCode === 'needs_username'
+      ? { error: ERROR_MESSAGES.needs_username, needsUsername: true }
+      : { error: ERROR_MESSAGES[result.errorCode] }
   }
 
-  const regFields = {
-    reg_display_name: parsed.data.displayName,
-    reg_whatsapp: parsed.data.whatsapp,
-    reg_club_name: parsed.data.clubName,
-    reg_ign_tag: parsed.data.ignTag || null,
-  }
-
-  // Player has no self-UPDATE RLS policy on tournament_registrations (staff-only,
-  // see migration 001) — writes go through the admin client, same pattern as
-  // lib/kyc/actions.ts's submitKyc. The Server Action's own validation above
-  // (auth, tournament state, input schema) is the trust boundary.
-  const admin = createAdminClient()
-
-  // A live (unredeemed) waiver skips Paystack entirely. Redeem it with a
-  // conditional UPDATE — never check-then-update — so a raced double submit
-  // can't redeem the same waiver twice.
-  const { data: waiver } = await admin
-    .from('tournament_fee_waivers')
-    .select('id')
-    .eq('tournament_id', tournamentId)
-    .eq('player_id', user.id)
-    .is('redeemed_at', null)
-    .maybeSingle()
-
-  if (waiver) {
-    const { data: redeemed } = await admin
-      .from('tournament_fee_waivers')
-      .update({ redeemed_at: new Date().toISOString() })
-      .eq('id', waiver.id)
-      .is('redeemed_at', null)
-      .select('id')
-    if (!redeemed || redeemed.length === 0) {
-      return { error: 'This free-entry grant is no longer available. Please try again or contact an admin.' }
-    }
-
-    const freeRegRow = {
-      tournament_id: tournamentId,
-      player_id: user.id,
-      payment_status: 'paid',
-      fee_waived: true,
-      paystack_reference: null,
-      joining_squad_id: squadId,
-      ...regFields,
-    }
-    let waiverRegId = existing?.id
-    if (!existing) {
-      const { data: inserted, error: insertErr } = await admin.from('tournament_registrations').insert(freeRegRow).select('id').single()
-      if (insertErr || !inserted) return { error: 'Could not complete registration. Please try again.' }
-      waiverRegId = inserted.id
-    } else {
-      await admin
-        .from('tournament_registrations')
-        .update({ payment_status: 'paid', fee_waived: true, paystack_reference: null, joining_squad_id: squadId, ...regFields })
-        .eq('id', existing.id)
-    }
-    if (squadId && waiverRegId) await finalizeSquadJoin(admin, waiverRegId)
-
-    redirect(`/tournaments/${tournament.slug}?paid=1`)
-  }
-
-  // A zero-fee tournament (e.g. a free community event) needs no payment at
-  // all. This is distinct from a waiver, which comps an existing fee for one
-  // specific player — a ₦0 tournament has no fee to waive, so fee_waived
-  // stays false and this never touches tournament_fee_waivers.
-  if (tournament.registration_fee === 0) {
-    const freeRegRow = {
-      tournament_id: tournamentId,
-      player_id: user.id,
-      payment_status: 'paid',
-      fee_waived: false,
-      paystack_reference: null,
-      joining_squad_id: squadId,
-      ...regFields,
-    }
-    let zeroFeeRegId = existing?.id
-    if (!existing) {
-      const { data: inserted, error: insertErr } = await admin.from('tournament_registrations').insert(freeRegRow).select('id').single()
-      if (insertErr || !inserted) return { error: 'Could not complete registration. Please try again.' }
-      zeroFeeRegId = inserted.id
-    } else {
-      await admin
-        .from('tournament_registrations')
-        .update({ payment_status: 'paid', fee_waived: false, paystack_reference: null, joining_squad_id: squadId, ...regFields })
-        .eq('id', existing.id)
-    }
-    if (squadId && zeroFeeRegId) await finalizeSquadJoin(admin, zeroFeeRegId)
-
-    redirect(`/tournaments/${tournament.slug}?paid=1`)
-  }
-
-  // Coin discount — spec §4. Only reachable once fee > 0 and there was no
-  // waiver. Discount only applies at ₦500+; a malformed/forged coinsUsed on
-  // a cheaper tournament is simply ignored rather than erroring, since the
-  // UI never offers the radio below ₦500 in the first place.
-  let coinDiscountNaira = 0
-  if (coinsUsed > 0 && tournament.registration_fee >= 500) {
-    const balance = await getCoinBalance(admin, user.id)
-    if (balance < coinsUsed) return { error: 'Not enough SX Coins for this discount.' }
-    coinDiscountNaira = Math.round(coinsUsed * NAIRA_PER_COIN)
-    await recordCoinTransaction(admin, user.id, -coinsUsed, 'entry_discount', tournamentId, `Tournament entry discount — ${tournament.slug}`)
-  }
-  const netFee = tournament.registration_fee - coinDiscountNaira
-
-  // Free entry (1,000 coins): the discount already brought the fee to ₦0 —
-  // confirm registration immediately, skip Paystack entirely (spec §4).
-  if (netFee <= 0) {
-    const freeRegRow = {
-      tournament_id: tournamentId,
-      player_id: user.id,
-      payment_status: 'paid',
-      fee_waived: false,
-      paystack_reference: null,
-      coins_used: coinsUsed,
-      coin_discount_naira: coinDiscountNaira,
-      joining_squad_id: squadId,
-      ...regFields,
-    }
-    let coinFreeRegId = existing?.id
-    if (!existing) {
-      const { data: inserted, error: insertErr } = await admin.from('tournament_registrations').insert(freeRegRow).select('id').single()
-      if (insertErr || !inserted) return { error: 'Could not complete registration. Please try again.' }
-      coinFreeRegId = inserted.id
-    } else {
-      await admin
-        .from('tournament_registrations')
-        .update({ payment_status: 'paid', fee_waived: false, paystack_reference: null, coins_used: coinsUsed, coin_discount_naira: coinDiscountNaira, joining_squad_id: squadId, ...regFields })
-        .eq('id', existing.id)
-    }
-
-    await settleReferralForPaidEntry(admin, user.id, {
-      registrationFee: tournament.registration_fee,
-      feeWaived: false,
-    })
-    if (squadId && coinFreeRegId) await finalizeSquadJoin(admin, coinFreeRegId)
-
-    redirect(`/tournaments/${tournament.slug}?paid=1`)
-  }
-
-  // Always mint a fresh reference for this attempt. Paystack rejects
-  // /transaction/initialize with a reference it has already seen — even if
-  // that prior attempt was abandoned and never paid — with "Duplicate
-  // Transaction Reference", so a retried checkout can never reuse the
-  // pending row's stored reference.
-  const reference = buildReference(tournamentId, user.id)
-  if (!existing) {
-    const { error: insertErr } = await admin.from('tournament_registrations').insert({
-      tournament_id: tournamentId,
-      player_id: user.id,
-      payment_status: 'pending',
-      paystack_reference: reference,
-      coins_used: coinsUsed,
-      coin_discount_naira: coinDiscountNaira,
-      joining_squad_id: squadId,
-      ...regFields,
-    })
-    if (insertErr) return { error: 'Could not start registration. Please try again.' }
-  } else {
-    await admin
-      .from('tournament_registrations')
-      .update({ paystack_reference: reference, coins_used: coinsUsed, coin_discount_naira: coinDiscountNaira, joining_squad_id: squadId, ...regFields })
-      .eq('id', existing.id)
-  }
-
-  let authorizationUrl: string
-  try {
-    authorizationUrl = await initializeTransaction({
-      email: user.email!,
-      amountKobo: netFee * 100,
-      reference,
-      callbackUrl: `${SITE_URL}/api/paystack/callback`,
-      metadata: { tournament_id: tournamentId, player_id: user.id, slug: tournament.slug },
-    })
-  } catch (err) {
-    // Surface the real cause in Vercel logs — the user-facing message is
-    // intentionally generic (never expose payment-provider internals to players).
-    console.error('[registerForTournament] Paystack initialize failed', {
-      tournamentId,
-      reference,
-      message: err instanceof Error ? err.message : String(err),
-    })
-    return { error: 'Payment could not be started. Please try again.' }
-  }
-
-  redirect(authorizationUrl)
+  if (result.status === 'confirmed') redirect(`/tournaments/${result.tournamentSlug}?paid=1`)
+  redirect(result.authorizationUrl)
 }

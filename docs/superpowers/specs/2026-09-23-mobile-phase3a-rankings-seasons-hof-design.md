@@ -1,0 +1,196 @@
+# Mobile Phase 3a — Rankings, Seasons, Hall of Fame — Design Spec
+
+**Date:** 2026-09-23
+**Status:** Approved design → ready for implementation planning
+**Repos:** `sentinelx` (web, this repo) owns the service extraction + endpoints; `sentinelx_mobile` owns the screens
+**Implementer:** Codex (both repos), in isolated worktrees, in parallel with the Claude-run Phase 2b session
+**Part of:** master spec `2026-09-18-flutter-mobile-app-master-design.md` §8.7, §13 Phase 3 row. Phase 3 is split
+like Phase 2 was: **3a (this spec)** = rankings, seasons, hall of fame (read-only); **3b (separate spec, later)** =
+player profiles, follow/unfollow, achievements/XP/SX displays, coin ledger view.
+**Depends on:** Phase 0B API foundation (`defineEndpoint()`, OpenAPI generation) and Phase 1 (shell, `/home`).
+Does **not** depend on Phase 2a/2b endpoints.
+
+---
+
+## 1. Goal, scope, exit criterion
+
+**Goal:** the app's rankings, season and hall-of-fame screens show the same numbers as the web pages.
+
+**Exit criterion:** for a sample of 10 players (rankings) and 1 season (all its games), the values shown in the app
+match the web page exactly — rank, wins, SX Score, trend, streak, season points, awards. Verified on staging data and
+recorded in the PR description. (Rank is compared exactly as the web displays it, per tab — see the literal-parity decision in §8.)
+
+**In scope:** `/rankings`, `/seasons`, `/seasons/{slug}`, `/hall-of-fame` read endpoints; Flutter screens for each;
+behavior-neutral extraction of the web pages' inline aggregation into services.
+
+**Out of scope:** player profiles, follow, achievements, XP/SX history, coin ledger (all 3b); any change to how
+rankings are computed; any query-shape optimization (see §3); the `season` query param on web `/rankings` (verified
+2026-09-23: it only feeds the `LeaderboardFilters` UI and pagination links; it never filters the ranking rows, so it
+is excluded from the API — reproducing a filter that does nothing would be a bug, not parity); writes of any kind.
+
+**No new tables. No idempotency needed** (all endpoints are GET).
+
+---
+
+## 2. Current state (verified 2026-09-23)
+
+- `app/[locale]/(public)/rankings/page.tsx` (497 lines) does all aggregation inline: profiles (`total_matches >=
+  RANKING_MIN_MATCHES`, ordered by wins, limit 200), **all completed matches** (one shared fetch), squad rosters,
+  per-game and per-category win/score stats, `player_rank_snapshots` (limit 2000) for trend, longest win streaks,
+  region and game filters, `paginate()`, and a pinned viewer row. Roughly 8 queries per render.
+- `app/[locale]/(public)/hall-of-fame/page.tsx` (527 lines) also inline; pure derivation helpers already exist in
+  `lib/hall-of-fame/awards.ts` and `tournament-results.ts`.
+- `app/[locale]/seasons/[slug]/page.tsx` (100 lines) is thin: `lib/seasons/data.ts` `getSeasonLeaderboard()` already
+  holds the logic, and reads with the **admin client**. Tier labels come from `lib/games/season-tier-labels.ts`
+  (code constant, not a DB table).
+- `/home` (`lib/mobile-api/endpoints/home.ts`) already returns a leaderboard teaser and a hall-of-fame teaser via
+  `lib/home/summary` — the pattern to follow for shared logic.
+
+---
+
+## 3. Web work — two PRs, in this order
+
+### PR 1 — Behavior-neutral extraction (ships first, on its own)
+
+1. **Characterization tests before moving anything.** Pin the current web output for a fixed fixture dataset:
+   rankings (overall + one game + region filter + pagination + viewer-pinned), hall of fame (all award blocks), and a
+   season leaderboard. Tests assert output values, not implementation.
+2. **Record a cost baseline** in the PR description: query count and rough wall-clock per page render on staging.
+   Purpose: if a later change is suspected of regressing cost, it can be *proven*, not suspected.
+3. **Extract** to `lib/rankings/service.ts` (`getRankings(client, params, viewerId)`), `lib/hall-of-fame/service.ts`
+   (`getHallOfFame(client)`), `lib/seasons/service.ts` (`listSeasons`, `getSeasonDetail(admin, slug, viewerId)`,
+   wrapping the existing `getSeasonLeaderboard`). The three web pages become thin callers of these services.
+4. **Nothing else changes.** No query is merged, dropped, reordered or cached differently. Tests green, web output
+   unchanged, then merge. Any "lighter query shape" idea is a **separate later decision** — bundling it here would
+   make a regression impossible to attribute (same discipline as the `registerForTournament` extraction).
+
+### PR 2 — Mobile endpoints
+
+All defined with `defineEndpoint()`, `auth: 'public'` (the handler receives `ctx | null`; a valid bearer, when
+present, identifies the viewer), envelope/versioning per `2026-09-18-mobile-api-v1-conventions.md`. Never hand-write
+a route under `app/api/mobile/v1/**`.
+
+| Endpoint | Params | Returns | Cache |
+|---|---|---|---|
+| `GET /rankings` | `game` (slug), `region`, `page` | rows (rank, trend, streak, player card, wins/score/goals per scope), `games[]` + `regions[]` (filter chips, only games with a completed match), platform stats, headline highlights (top streak/score/titles/win rate), page info. **Never viewer-specific.** | `public, s-maxage=60, stale-while-revalidate=300` |
+| `GET /rankings/me` | `game`, `region` | the signed-in viewer's own ranked row in that scope, or `null` if not ranked. `auth: 'user'`. | `no-store` |
+| `GET /seasons` | — | seasons list (id, slug, name, dates) | `s-maxage=300` |
+| `GET /seasons/{slug}` | — | per-game sections: tournaments, leaderboard (with `isProvisional`), tier labels. **Never viewer-specific** — the web page only highlights the viewer's own row client-side (`currentUserId`); the app does the same by comparing `playerId` to its own `/me` id. There is no invitation state on the web seasons page; invitations already have their own 2a endpoints. | `s-maxage=60` |
+| `GET /hall-of-fame` | — | champions, MVP, Golden Boot, per-category and per-game awards, tournament results | `s-maxage=300` |
+
+Rules:
+- **Viewer-specific data and caching (decided):** the only viewer-dependent datum is the pinned "your row" on
+  rankings. It is served by the separate `GET /rankings/me` (`auth: 'user'`, `no-store`), so every cacheable
+  endpoint is purely public and identical for everyone. `GET /rankings` therefore must not read the bearer at all —
+  a test asserts the response is byte-identical with and without an `Authorization` header.
+- **Rank semantics preserved:** region and game filters narrow who is ranked, so ranks reflect the board shown (as on
+  web). Default board ranks by score; a game board ranks by wins — do not "improve" this.
+- **Profiles:** select only allow-listed columns (CLAUDE.md rule 10); never `select('*')` on `profiles`. Deleted /
+  anonymised accounts render as tombstones, never crash.
+- **Service role** is used only where the web page already uses it (seasons), never widened. See the dedicated risk
+  below — this is not a routine bullet.
+- **Highest-risk item in 3a — season endpoints run on the admin client with no RLS backstop.** Every query in
+  `getSeasonLeaderboard` / `getMonthlyLeaderboard` (`lib/seasons/data.ts`) uses the service role: `profiles`,
+  `tournaments`, `matches`, `tournament_registrations`, `season_ranking_points`, `season_noshow_penalties`. Rankings
+  and hall of fame run on the RLS-scoped client, so a sloppy select there is caught structurally; here **nothing
+  catches it except the code and its tests**. Today it is safe because someone was careful (`profiles` is selected as
+  `id, username, display_name, avatar_url, sx_score`; the returned row is `SeasonLeaderboardRow`). The extraction and
+  the endpoint response mapper must:
+  - keep every select an explicit column list (never `*`, never a wider join), and map rows into an explicit
+    response object rather than spreading a query result;
+  - never pass query rows straight into the JSON response — only the mapped, schema-validated shape leaves the
+    handler (the `defineEndpoint()` zod `response` schema must be `.strict()` or otherwise reject extra keys);
+  - not read or return anything from `tournament_registrations`/`matches` beyond what the leaderboard math needs.
+- Run `npm run openapi` **last** and commit `openapi/mobile-v1.json` (the Flutter repo builds against it). Run
+  `npm run lint` and `npm run build` before pushing, not only `tsc --noEmit`.
+- `SITE_URL` fallback etc. unchanged; no new env vars.
+
+---
+
+## 4. Flutter work
+
+New feature folders `lib/features/{rankings,seasons,hall_of_fame}/`, Riverpod providers beside each feature. The API
+client is **hand-written** (`lib/core/api/api_client.dart` + models with `fromJson`); every new method must be listed in
+`ApiClient.usedOperations`, which `test/core/api_contract_test.dart` checks against `api/openapi.json` (a copy of the
+web repo's `openapi/mobile-v1.json` — refresh it from the web repo, never edit it by hand). Screens are `ConsumerWidget`s and never build a repository/API client
+themselves. Mobile-first at 375px.
+
+- **Rankings:** category + game chips, region filter, paginated list, rank-trend arrows, streak flair, pinned "you"
+  row when signed in and off-page. Gamey-stat styling per the design concept (tier color, oversized rank number).
+- **Seasons:** season picker, per-game tabs, standings (own row highlighted by comparing `playerId` to `/me`),
+  tournament list, tier labels from the API, provisional-points marker.
+- **Hall of Fame:** champions and award cards, per-game/category awards, tournament results.
+- **Copy:** never hard-coded in widgets. The web has **no i18n namespace for these three pages** (verified
+  2026-09-23: `messages/en.json` holds only the nav labels; the page copy is hard-coded English in the JSX), so the
+  "add to web `messages/en.json` first" rule cannot apply here. Add the new keys directly to the template
+  `lib/core/l10n/app_en.arb`, run `flutter gen-l10n`, commit the generated output, never edit `gen/*` by hand.
+- **Placement (decided, revised 2026-09-23 after reading the router):** the routes `/rankings`, `/seasons`,
+  `/seasons/:slug`, `/hall-of-fame` are added as sibling routes **inside the Compete branch** of the shell (so the
+  bottom bar stays visible with Compete selected); `resolveWebLink()` maps the same web paths. Entry points in 3a
+  are the **Home screen** (three list tiles under Top Players) and cross-links between the three screens. A
+  Compete-tab entry row is **deferred**: the Compete tab is currently the temporary tournaments slice that Phase
+  2a/2b are replacing wholesale (mobile `CLAUDE.md`: don't build on it, don't reshuffle it), so editing it now would
+  collide with that work. Add the Compete entry once the API-backed tournaments list lands. The 5-tab shell itself
+  is unchanged.
+- `flutter analyze` and `flutter test` must be clean before every commit. Widget tests cover empty, loading, error,
+  tombstone-player, and viewer-pinned states.
+
+---
+
+## 5. Parallel-work rules (Claude is building 2b concurrently)
+
+Both repos have hotspots the 2b session also edits. Codex must:
+- Work only in its own git worktree/branch per repo; never in the primary checkout.
+- Prefer new files over edits to shared ones. Hotspots: `openapi/mobile-v1.json` (regenerate **last**, after rebasing
+  onto current `main`), `lib/mobile-api/endpoints/index.ts`, mobile `lib/router/app_router.dart`, ARB/l10n outputs,
+  `lib/supabase/types.ts` (regenerate, don't hand-merge). Mobile-side hotspots: `lib/core/api/api_client.dart`
+  (`usedOperations` map + methods — keep the edit to appended lines), `api/openapi.json`. Put new models in a new
+  file `lib/core/api/progress_models.dart`, not in `models.dart`.
+- Rebase onto `main` and re-run all checks before merge; resolve `openapi/mobile-v1.json` by regenerating, not
+  merging text.
+- New migrations, if any become necessary, use a UTC timestamp prefix. None are expected.
+- Not run `npm run build` while another session's `next dev` is running in the same checkout (irrelevant in a
+  separate worktree, but do not share ports).
+- Apply nothing to production data. Staging is `sentinelx-staging` (`ofxmoxpvwbemfouaowoa`); read-only endpoints are
+  safe there, and 3a needs no writes.
+
+---
+
+## 6. Verification
+
+1. PR 1: characterization tests green before *and* after the move; cost baseline recorded; web pages visually
+   unchanged.
+   **The season-leaderboard characterization test must assert the exact key set of every returned row**
+   (`Object.keys(row).sort()` equals `playerId, username, displayName, avatarUrl, sxScore, points, isProvisional`),
+   not just spot-check values. `expect(row.sxScore).toBe(1234)` still passes if an extra field rides along in the same
+   object; on the admin client RLS won't catch that, so the test must. Add the same exact-key-set assertion at the
+   endpoint layer for `/seasons/{slug}` (and for the rankings/hall-of-fame player cards, cheaply).
+2. PR 2: unit tests per endpoint (params, filters, pagination, tombstones, viewer vs anonymous, cache headers);
+   `npm run lint`, `npm run build`, `npm run openapi` clean.
+3. Flutter: `flutter analyze` / `flutter test` clean; run on a device/emulator against staging.
+4. **Exit check:** side-by-side of 10 players + 1 season + the hall-of-fame page, app vs web; mismatches are bugs.
+
+## 7. Risks
+
+- **Rankings cost.** Each call reads every completed match. Mobile users re-check standings more casually than web
+  users load pages, so call volume may exceed web's. Mitigation now: cache headers and the recorded baseline.
+  Optimization is a separate, later, provable decision.
+- **Extraction regression on web.** Mitigated by characterization tests written first and a behavior-neutral PR that
+  ships alone.
+- **Column exposure on the admin-client season path** — §3; exact-key-set tests are the only backstop.
+- **Shared-cache leakage of viewer rows** — removed by construction (`/rankings/me` is separate); the
+  byte-identical-with-and-without-bearer test guards it.
+- **Merge friction with 2b** — §5.
+
+## 8. Open items not resolved by this spec
+
+- **RESOLVED 2026-09-24 — literal web parity (owner decision).** The web rankings tabs re-rank only the visible page
+  client-side (`LeaderboardTabs` → `rankPlayersBy(pageSlice, metric, gameId)` assigns page-local ranks; default tab
+  `wins`; tabs Wins / SX Score / one per active category; sub-game chips for categories with 2+ games; Wins rows
+  expandable; pinned viewer row shows the *global* rank). The app reproduces this exactly. To avoid porting ranking
+  logic to Dart, `GET /rankings` takes `metric` and `tabGame` and the server runs the same `rankPlayersBy` on the same
+  page slice. Full design, schemas, tests and Flutter changes:
+  `docs/superpowers/plans/2026-09-24-mobile-phase3a-literal-parity-addendum.md` (**overrides** the rankings parts of
+  §3 and §4 and of both plans). The §1 exit criterion now includes the web's page-local `#` column, per tab.
+
+- `RANKING_MIN_MATCHES` and the 200-row profile cap are inherited as-is; revisiting them is out of scope.
