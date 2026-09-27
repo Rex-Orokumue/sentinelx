@@ -21,8 +21,7 @@ export type RegisterErrorCode =
 export type RegisterInput = {
   displayName: string
   whatsapp: string
-  clubName: string
-  ignTag: string | null
+  registrationDetails: Record<string, string>
   agreedToRules: boolean
   coinsUsed: number
   squadId: string | null
@@ -99,7 +98,7 @@ export async function performRegisterForTournament(
 
   const regFields = {
     reg_display_name: input.displayName, reg_whatsapp: input.whatsapp,
-    reg_club_name: input.clubName, reg_ign_tag: input.ignTag || null,
+    registration_details: input.registrationDetails,
   }
 
   const { data: waiver } = await admin
