@@ -16,7 +16,7 @@ export interface RegistrationField {
 // One dynamic zod object, built from whatever fields a game declares. Every
 // registration/waitlist code path (web Server Actions, mobile endpoints)
 // calls this instead of hand-writing clubName/ignTag.
-export function buildRegistrationSchema(fields: RegistrationField[]) {
+export function buildRegistrationSchema(fields: RegistrationField[]): z.ZodType<Record<string, string>> {
   const shape: Record<string, z.ZodTypeAny> = {}
   for (const f of fields) {
     let str = z.string().trim().max(120, `${f.label} is too long`)
@@ -27,7 +27,13 @@ export function buildRegistrationSchema(fields: RegistrationField[]) {
       ? str.min(1, `${f.label} is required`)
       : z.union([z.literal(''), str])
   }
-  return z.object(shape)
+  // Every branch above always outputs a string, so the object's inferred
+  // shape is safe to widen to Record<string, string> for callers
+  // (register-service/waitlist-service write it straight into a jsonb
+  // column typed that way) — z.object(shape)'s own inferred type can't
+  // express that since `shape`'s declared value type is the general
+  // ZodTypeAny, not each field's specific schema.
+  return z.object(shape) as unknown as z.ZodType<Record<string, string>>
 }
 
 export async function fetchRegistrationFields(
