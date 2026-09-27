@@ -7,6 +7,7 @@ import { RegistrationsTable, type AdminRegistrationRow } from '@/components/admi
 import { WaitlistPanel } from '@/components/admin/WaitlistPanel'
 import { WaiverForm } from '@/components/admin/WaiverForm'
 import { WaiverRow, type AdminWaiver } from '@/components/admin/WaiverRow'
+import { fetchRegistrationFields } from '@/lib/tournaments/registration-fields'
 
 export const metadata: Metadata = { title: 'Registrations · Admin · SentinelX' }
 
@@ -20,16 +21,18 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
   const supabase = createClient()
   const { data: t } = await supabase
     .from('tournaments')
-    .select('id, title, status, registration_fee, max_players')
+    .select('id, title, status, registration_fee, max_players, game_id')
     .eq('id', params.id)
     .maybeSingle()
   if (!t) notFound()
+
+  const registrationFields = await fetchRegistrationFields(supabase, t.game_id)
 
   const [{ data }, { data: waiverRows }] = await Promise.all([
     supabase
       .from('tournament_registrations')
       .select(
-        'id, player_id, payment_status, registered_at, reg_display_name, reg_whatsapp, reg_club_name, reg_ign_tag, status, replaces_registration_id, profiles(username)',
+        'id, player_id, payment_status, registered_at, reg_display_name, reg_whatsapp, registration_details, status, replaces_registration_id, profiles(username)',
       )
       .eq('tournament_id', t.id)
       .order('registered_at', { ascending: false }),
@@ -48,8 +51,7 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
       registered_at: string
       reg_display_name: string | null
       reg_whatsapp: string | null
-      reg_club_name: string | null
-      reg_ign_tag: string | null
+      registration_details: Record<string, string> | null
       status: string
       replaces_registration_id: string | null
       profiles: ProfileRef
@@ -60,8 +62,7 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
       username: firstUsername(r.profiles),
       regDisplayName: r.reg_display_name,
       regWhatsapp: r.reg_whatsapp,
-      regClubName: r.reg_club_name,
-      regIgnTag: r.reg_ign_tag,
+      registrationDetails: r.registration_details ?? {},
       paymentStatus: r.payment_status,
       registeredAt: r.registered_at,
       status: r.status,
@@ -118,7 +119,7 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
         </div>
       )}
 
-      <WaitlistPanel rows={waitlistRows} tournamentId={t.id} tournamentTitle={t.title} />
+      <WaitlistPanel rows={waitlistRows} tournamentId={t.id} tournamentTitle={t.title} fields={registrationFields} />
 
       {registeredRows.length === 0 ? (
         <p className="rounded-2xl border border-slate-800 bg-slate-900/50 p-8 text-center text-sm text-slate-500">
@@ -133,6 +134,7 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
           registrationFee={t.registration_fee}
           isAdmin={ctx.isAdmin}
           waitlistUsernames={waitlistRows.map((r) => r.username).filter((u): u is string => !!u)}
+          fields={registrationFields}
         />
       )}
     </section>

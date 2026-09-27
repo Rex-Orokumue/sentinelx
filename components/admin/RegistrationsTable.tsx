@@ -9,6 +9,7 @@ import { DisqualifyButton } from './DisqualifyButton'
 import { RemoveButton } from './RemoveButton'
 import { DeleteRegistrationButton } from './DeleteRegistrationButton'
 import { SubstituteForm } from './SubstituteForm'
+import type { RegistrationField } from '@/lib/tournaments/registration-fields'
 
 export interface AdminRegistrationRow {
   id: string
@@ -16,8 +17,7 @@ export interface AdminRegistrationRow {
   username: string | null
   regDisplayName: string | null
   regWhatsapp: string | null
-  regClubName: string | null
-  regIgnTag: string | null
+  registrationDetails: Record<string, string>
   paymentStatus: string
   registeredAt: string
   status: string
@@ -32,6 +32,7 @@ export function RegistrationsTable({
   registrationFee,
   isAdmin,
   waitlistUsernames = [],
+  fields,
 }: {
   rows: AdminRegistrationRow[]
   tournamentId: string
@@ -43,11 +44,12 @@ export function RegistrationsTable({
   // their own panel and are filtered out of this table, so they'd otherwise
   // be missing from the substitute autocomplete.
   waitlistUsernames?: string[]
+  fields: RegistrationField[]
 }) {
   const [query, setQuery] = useState('')
   const filtered = rows.filter((r) =>
     matchesPlayerQuery(
-      { username: r.username, displayName: r.regDisplayName, clubName: r.regClubName },
+      { username: r.username, displayName: r.regDisplayName, registrationDetails: r.registrationDetails },
       query,
     ),
   )
@@ -69,8 +71,9 @@ export function RegistrationsTable({
               <tr className="border-b border-slate-800 text-[11px] uppercase tracking-widest text-slate-500">
                 <th className="px-3 py-2.5 text-left">Player</th>
                 <th className="px-2 py-2.5 text-left">WhatsApp</th>
-                <th className="px-2 py-2.5 text-left">Club</th>
-                <th className="px-2 py-2.5 text-left">IGN / Tag</th>
+                {fields.map((f) => (
+                  <th key={f.fieldKey} className="px-2 py-2.5 text-left">{f.label}</th>
+                ))}
                 <th className="px-2 py-2.5 text-left">Payment</th>
                 <th className="px-2 py-2.5 text-left">Status</th>
                 <th className="px-3 py-2.5 text-left">Registered</th>
@@ -86,8 +89,9 @@ export function RegistrationsTable({
                     </Link>
                   </td>
                   <td className="px-2 py-2.5 text-slate-300">{r.regWhatsapp ?? '—'}</td>
-                  <td className="px-2 py-2.5 text-slate-300">{r.regClubName ?? '—'}</td>
-                  <td className="px-2 py-2.5 text-slate-300">{r.regIgnTag ?? '—'}</td>
+                  {fields.map((f) => (
+                    <td key={f.fieldKey} className="px-2 py-2.5 text-slate-300">{r.registrationDetails[f.fieldKey] ?? '—'}</td>
+                  ))}
                   <td className="px-2 py-2.5 capitalize text-slate-300">{r.paymentStatus}</td>
                   <td className="px-2 py-2.5">
                     {r.status === 'disqualified' ? (

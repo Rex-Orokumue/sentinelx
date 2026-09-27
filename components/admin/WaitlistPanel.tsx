@@ -4,6 +4,7 @@ import { formatDateTime } from '@/lib/format'
 import type { AdminRegistrationRow } from './RegistrationsTable'
 import { removeFromWaitlist, promoteFromWaitlist, type DisqualifyState } from '@/lib/tournaments/registrations-admin-actions'
 import { SubmitButton } from '@/components/ui/submit-button'
+import { pickDisplayValue, type RegistrationField } from '@/lib/tournaments/registration-fields'
 
 function WaitlistRemoveButton({ registrationId, tournamentId }: { registrationId: string; tournamentId: string }) {
   const [state, action] = useFormState<DisqualifyState, FormData>(removeFromWaitlist, undefined)
@@ -78,10 +79,12 @@ export function WaitlistPanel({
   rows,
   tournamentId,
   tournamentTitle,
+  fields,
 }: {
   rows: AdminRegistrationRow[]
   tournamentId: string
   tournamentTitle: string
+  fields: RegistrationField[]
 }) {
   if (rows.length === 0) return null
 
@@ -114,7 +117,7 @@ export function WaitlistPanel({
                 </td>
                 <td className="px-2 py-2.5 text-slate-400">{r.username ?? '—'}</td>
                 <td className="px-2 py-2.5 text-slate-300">{r.regWhatsapp ?? '—'}</td>
-                <td className="px-2 py-2.5 text-slate-300">{r.regClubName ?? '—'}</td>
+                <td className="px-2 py-2.5 text-slate-300">{pickDisplayValue(r.registrationDetails, fields) ?? '—'}</td>
                 <td className="px-3 py-2.5 text-slate-400">{formatDateTime(r.registeredAt)}</td>
                 <td className="px-2 py-2.5">
                   <div className="flex items-center gap-1.5">
