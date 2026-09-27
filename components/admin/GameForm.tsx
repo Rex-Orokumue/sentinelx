@@ -6,7 +6,7 @@ import { SubmitButton } from '@/components/ui/submit-button'
 export function GameForm() {
   const [state, action] = useFormState<GameFormState, FormData>(createGame, undefined)
 
-  if (state?.success) return <p className="text-sm text-emerald-400">Game added.</p>
+  if (state?.success) return <p className="text-sm text-emerald-400">Game added. Find it in the list below to configure its fields.</p>
 
   return (
     <form action={action} className="space-y-3 rounded-2xl border border-slate-800 bg-slate-900 p-4">

@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import { useFormState } from 'react-dom'
 import { toggleGameActive, type GameFormState } from '@/lib/games/admin-actions'
 import { SubmitButton } from '@/components/ui/submit-button'
@@ -24,7 +25,9 @@ export function GameRow({
     <div className="rounded-2xl border border-slate-800 bg-slate-900 p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="font-bold text-white">{game.name}</p>
+          <Link href={`/admin/games/${game.id}`} className="font-bold text-white hover:text-violet-300">
+            {game.name}
+          </Link>
           <p className="text-xs text-slate-500">
             {game.category} · {game.active ? 'Active' : 'Inactive'}
             {activeTournamentCount > 0 && ` · ${activeTournamentCount} active tournament${activeTournamentCount === 1 ? '' : 's'}`}
