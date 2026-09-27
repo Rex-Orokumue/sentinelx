@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { buildRegistrationState } from '@/lib/tournaments/registration-state-service'
 import { performRegisterForTournament, type RegisterErrorCode } from '@/lib/tournaments/register-service'
 import { performJoinWaitlist, type WaitlistErrorCode } from '@/lib/tournaments/waitlist-service'
+import { buildRegistrationSchema, fetchRegistrationFields } from '@/lib/tournaments/registration-fields'
 
 const registrationStateResponse = z.object({
   view: z.enum(['guest', 'can_register', 'complete_payment', 'registered', 'waitlisted', 'full', 'closed', 'ended', 'invitation_only']),
@@ -34,8 +35,7 @@ export const registrationStateEndpoint = defineEndpoint({
 const registerBody = z.object({
   displayName: z.string().trim().min(1).max(60),
   whatsapp: z.string().trim().regex(/^\+?[0-9]{10,15}$/),
-  clubName: z.string().trim().min(1).max(60),
-  ignTag: z.string().trim().max(60).optional(),
+  registrationDetails: z.record(z.string(), z.string()).default({}),
   agreedToRules: z.boolean(),
   coinsUsed: z.number().int().nonnegative().default(0),
   squadId: z.string().optional(),
@@ -80,10 +80,14 @@ export const registerEndpoint = defineEndpoint({
   response: registerResponse,
   handler: async ({ ctx, body, params }) => {
     if (body.squadId) throw new ApiError(400, 'squads_not_available', REGISTER_ERROR_MESSAGE.squads_not_available)
+    const { data: tournament } = await ctx.userClient.from('tournaments').select('game_id').eq('id', params.id).maybeSingle()
+    if (!tournament) throw Errors.notFound()
+    const fields = await fetchRegistrationFields(ctx.userClient, tournament.game_id)
+    const parsedDetails = buildRegistrationSchema(fields).safeParse(body.registrationDetails)
+    if (!parsedDetails.success) throw new ApiError(400, 'validation_failed', parsedDetails.error.issues[0].message)
     const result = await performRegisterForTournament(ctx.userClient, ctx.admin, ctx.userId, params.id, {
-      displayName: body.displayName, whatsapp: body.whatsapp, clubName: body.clubName,
-      ignTag: body.ignTag ?? null, agreedToRules: body.agreedToRules, coinsUsed: body.coinsUsed,
-      squadId: null,
+      displayName: body.displayName, whatsapp: body.whatsapp, registrationDetails: parsedDetails.data,
+      agreedToRules: body.agreedToRules, coinsUsed: body.coinsUsed, squadId: null,
     })
     if (!result.ok) throw new ApiError(REGISTER_ERROR_STATUS[result.errorCode], result.errorCode, REGISTER_ERROR_MESSAGE[result.errorCode])
     if (result.status === 'confirmed') return { status: 'confirmed' as const }
@@ -94,8 +98,7 @@ export const registerEndpoint = defineEndpoint({
 const waitlistBody = z.object({
   displayName: z.string().trim().min(1).max(60),
   whatsapp: z.string().trim().regex(/^\+?[0-9]{10,15}$/),
-  clubName: z.string().trim().min(1).max(60),
-  ignTag: z.string().trim().max(60).optional(),
+  registrationDetails: z.record(z.string(), z.string()).default({}),
   agreedToRules: z.boolean(),
 })
 const waitlistResponse = z.object({ status: z.literal('waitlisted') })
@@ -123,9 +126,14 @@ export const waitlistEndpoint = defineEndpoint({
   body: waitlistBody,
   response: waitlistResponse,
   handler: async ({ ctx, body, params }) => {
+    const { data: tournament } = await ctx.userClient.from('tournaments').select('game_id').eq('id', params.id).maybeSingle()
+    if (!tournament) throw Errors.notFound()
+    const fields = await fetchRegistrationFields(ctx.userClient, tournament.game_id)
+    const parsedDetails = buildRegistrationSchema(fields).safeParse(body.registrationDetails)
+    if (!parsedDetails.success) throw new ApiError(400, 'validation_failed', parsedDetails.error.issues[0].message)
     const result = await performJoinWaitlist(ctx.userClient, ctx.admin, ctx.userId, params.id, {
-      displayName: body.displayName, whatsapp: body.whatsapp, clubName: body.clubName,
-      ignTag: body.ignTag ?? null, agreedToRules: body.agreedToRules,
+      displayName: body.displayName, whatsapp: body.whatsapp, registrationDetails: parsedDetails.data,
+      agreedToRules: body.agreedToRules,
     })
     if (!result.ok) throw new ApiError(WAITLIST_ERROR_STATUS[result.errorCode], result.errorCode, WAITLIST_ERROR_MESSAGE[result.errorCode])
     return { status: 'waitlisted' as const }

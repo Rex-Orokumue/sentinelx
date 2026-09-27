@@ -13,6 +13,16 @@ vi.mock('@/lib/tournaments/waitlist-service', () => ({ performJoinWaitlist }))
 
 import { registrationStateEndpoint, registerEndpoint, waitlistEndpoint } from './tournaments'
 
+function fakeUserClient(fields: { field_key: string; label: string; placeholder: string | null; input_type: string; required: boolean; validation_pattern: string | null; validation_message: string | null; show_on_bracket: boolean }[] = []) {
+  return {
+    from: (table: string) => {
+      if (table === 'tournaments') return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { game_id: 'g1' } }) }) }) }
+      if (table === 'game_registration_fields') return { select: () => ({ eq: () => ({ eq: () => ({ order: async () => ({ data: fields }) }) }) }) }
+      throw new Error(`unexpected table ${table}`)
+    },
+  }
+}
+
 describe('registrationStateEndpoint', () => {
   beforeEach(() => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://x.test.supabase.co')
@@ -44,26 +54,43 @@ describe('registrationStateEndpoint', () => {
 
 describe('registerEndpoint', () => {
   it('rejects a non-null squadId at the route level before calling the service', async () => {
-    authenticate.mockResolvedValue({ userId: 'u1', admin: {}, userClient: {} })
+    authenticate.mockResolvedValue({ userId: 'u1', admin: {}, userClient: fakeUserClient() })
     runIdempotent.mockImplementation(async (_admin, _args, run) => run())
     const req = new Request('https://x.test/api/mobile/v1/tournaments/t1/register', {
       method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': 'k1' },
-      body: JSON.stringify({ displayName: 'Ada', whatsapp: '+2348012345678', clubName: 'FC', agreedToRules: true, coinsUsed: 0, squadId: 'sq1' }),
+      body: JSON.stringify({ displayName: 'Ada', whatsapp: '+2348012345678', registrationDetails: { club_name: 'FC' }, agreedToRules: true, coinsUsed: 0, squadId: 'sq1' }),
     })
     const res = await registerEndpoint.handler(req, { params: { id: 't1' } })
     expect(res.status).toBe(400)
     expect((await res.json()).error.code).toBe('squads_not_available')
     expect(performRegisterForTournament).not.toHaveBeenCalled()
   })
+
+  it('rejects a missing required dynamic field before calling the service', async () => {
+    authenticate.mockResolvedValue({
+      userId: 'u1', admin: {}, userClient: fakeUserClient([
+        { field_key: 'in_game_uid', label: 'In-game UID', placeholder: null, input_type: 'text', required: true, validation_pattern: null, validation_message: null, show_on_bracket: true },
+      ]),
+    })
+    runIdempotent.mockImplementation(async (_admin, _args, run) => run())
+    const req = new Request('https://x.test/api/mobile/v1/tournaments/t1/register', {
+      method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': 'k1' },
+      body: JSON.stringify({ displayName: 'Ada', whatsapp: '+2348012345678', registrationDetails: {}, agreedToRules: true, coinsUsed: 0 }),
+    })
+    const res = await registerEndpoint.handler(req, { params: { id: 't1' } })
+    expect(res.status).toBe(400)
+    expect((await res.json()).error.code).toBe('validation_failed')
+    expect(performRegisterForTournament).not.toHaveBeenCalled()
+  })
 })
 
 describe('waitlistEndpoint', () => {
   it('maps waitlist_not_open to 409', async () => {
-    authenticate.mockResolvedValue({ userId: 'u1', admin: {}, userClient: {} })
+    authenticate.mockResolvedValue({ userId: 'u1', admin: {}, userClient: fakeUserClient() })
     performJoinWaitlist.mockResolvedValue({ ok: false, errorCode: 'waitlist_not_open' })
     const req = new Request('https://x.test/api/mobile/v1/tournaments/t1/waitlist', {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ displayName: 'Ada', whatsapp: '+2348012345678', clubName: 'FC', agreedToRules: true }),
+      body: JSON.stringify({ displayName: 'Ada', whatsapp: '+2348012345678', registrationDetails: { club_name: 'FC' }, agreedToRules: true }),
     })
     const res = await waitlistEndpoint.handler(req, { params: { id: 't1' } })
     expect(res.status).toBe(409)

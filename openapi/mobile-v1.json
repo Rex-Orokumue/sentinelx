@@ -7942,14 +7942,15 @@
                     "type": "string",
                     "pattern": "^\\+?[0-9]{10,15}$"
                   },
-                  "clubName": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 60
-                  },
-                  "ignTag": {
-                    "type": "string",
-                    "maxLength": 60
+                  "registrationDetails": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "string"
+                    }
                   },
                   "agreedToRules": {
                     "type": "boolean"
@@ -7967,7 +7968,7 @@
                 "required": [
                   "displayName",
                   "whatsapp",
-                  "clubName",
+                  "registrationDetails",
                   "agreedToRules",
                   "coinsUsed"
                 ],
@@ -8024,6 +8025,119 @@
                           "additionalProperties": false
                         }
                       ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/tournaments/{id}/registration-fields": {
+      "get": {
+        "operationId": "getTournamentRegistrationFields",
+        "summary": "The tournament's game-specific registration identity fields, for rendering a dynamic form.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "fields": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "fieldKey": {
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "placeholder": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "inputType": {
+                                "type": "string",
+                                "enum": [
+                                  "text",
+                                  "number",
+                                  "url"
+                                ]
+                              },
+                              "required": {
+                                "type": "boolean"
+                              },
+                              "validationPattern": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "validationMessage": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "fieldKey",
+                              "label",
+                              "placeholder",
+                              "inputType",
+                              "required",
+                              "validationPattern",
+                              "validationMessage"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "fields"
+                      ],
+                      "additionalProperties": false
                     }
                   }
                 }
@@ -8449,14 +8563,15 @@
                     "type": "string",
                     "pattern": "^\\+?[0-9]{10,15}$"
                   },
-                  "clubName": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 60
-                  },
-                  "ignTag": {
-                    "type": "string",
-                    "maxLength": 60
+                  "registrationDetails": {
+                    "default": {},
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "string"
+                    }
                   },
                   "agreedToRules": {
                     "type": "boolean"
@@ -8465,7 +8580,7 @@
                 "required": [
                   "displayName",
                   "whatsapp",
-                  "clubName",
+                  "registrationDetails",
                   "agreedToRules"
                 ],
                 "additionalProperties": false
