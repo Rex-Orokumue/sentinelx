@@ -2,7 +2,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { registrationDetailsSchema } from './registration-schema'
+import { fixedRegistrationSchema } from './registration-schema'
+import { buildRegistrationSchema, fetchRegistrationFields } from './registration-fields'
 import { performJoinWaitlist, type WaitlistErrorCode } from './waitlist-service'
 
 export type JoinWaitlistState = { error?: string; success?: boolean; needsUsername?: boolean } | undefined
@@ -25,25 +26,32 @@ export async function joinWaitlist(_prev: JoinWaitlistState, formData: FormData)
   const tournamentId = String(formData.get('tournamentId') ?? '')
   if (!tournamentId) return { error: 'Missing tournament.' }
 
-  const parsed = registrationDetailsSchema.safeParse({
+  const supabase = createClient()
+
+  const { data: tournament } = await supabase.from('tournaments').select('game_id').eq('id', tournamentId).maybeSingle()
+  if (!tournament) return { error: 'Tournament not found.' }
+
+  const fixedParsed = fixedRegistrationSchema.safeParse({
     displayName: formData.get('displayName') ?? '',
     whatsapp: formData.get('whatsapp') ?? '',
-    clubName: formData.get('clubName') ?? '',
-    ignTag: formData.get('ignTag') ?? '',
   })
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  if (!fixedParsed.success) return { error: fixedParsed.error.issues[0].message }
 
-  const supabase = createClient()
+  const fields = await fetchRegistrationFields(supabase, tournament.game_id)
+  const dynamicParsed = buildRegistrationSchema(fields).safeParse(
+    Object.fromEntries(fields.map((f) => [f.fieldKey, formData.get(f.fieldKey) ?? ''])),
+  )
+  if (!dynamicParsed.success) return { error: dynamicParsed.error.issues[0].message }
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to join the waitlist.' }
 
   const result = await performJoinWaitlist(supabase, createAdminClient(), user.id, tournamentId, {
-    displayName: parsed.data.displayName,
-    whatsapp: parsed.data.whatsapp,
-    clubName: parsed.data.clubName,
-    ignTag: parsed.data.ignTag || null,
+    displayName: fixedParsed.data.displayName,
+    whatsapp: fixedParsed.data.whatsapp,
+    registrationDetails: dynamicParsed.data,
     agreedToRules: formData.get('agreedToRules') === 'true',
   })
 

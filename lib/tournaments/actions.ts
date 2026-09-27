@@ -2,7 +2,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { registrationDetailsSchema, coinsUsedSchema } from './registration-schema'
+import { fixedRegistrationSchema, coinsUsedSchema } from './registration-schema'
+import { buildRegistrationSchema, fetchRegistrationFields } from './registration-fields'
 import { performRegisterForTournament, type RegisterErrorCode } from './register-service'
 
 export type RegisterState = { error?: string; needsUsername?: boolean } | undefined
@@ -31,17 +32,26 @@ export async function registerForTournament(
   const tournamentId = String(formData.get('tournamentId') ?? '')
   if (!tournamentId) return { error: 'Missing tournament.' }
 
-  const parsed = registrationDetailsSchema.safeParse({
+  const supabase = createClient()
+
+  const { data: tournament } = await supabase.from('tournaments').select('game_id').eq('id', tournamentId).maybeSingle()
+  if (!tournament) return { error: 'Tournament not found.' }
+
+  const fixedParsed = fixedRegistrationSchema.safeParse({
     displayName: formData.get('displayName') ?? '',
     whatsapp: formData.get('whatsapp') ?? '',
-    clubName: formData.get('clubName') ?? '',
-    ignTag: formData.get('ignTag') ?? '',
   })
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  if (!fixedParsed.success) return { error: fixedParsed.error.issues[0].message }
+
+  const fields = await fetchRegistrationFields(supabase, tournament.game_id)
+  const dynamicParsed = buildRegistrationSchema(fields).safeParse(
+    Object.fromEntries(fields.map((f) => [f.fieldKey, formData.get(f.fieldKey) ?? ''])),
+  )
+  if (!dynamicParsed.success) return { error: dynamicParsed.error.issues[0].message }
+
   const coinsUsedParsed = coinsUsedSchema.safeParse(formData.get('coinsUsed') ?? '0')
   const coinsUsed = coinsUsedParsed.success ? coinsUsedParsed.data : 0
 
-  const supabase = createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -50,10 +60,9 @@ export async function registerForTournament(
   const squadIdRaw = String(formData.get('squadId') ?? '')
 
   const result = await performRegisterForTournament(supabase, createAdminClient(), user.id, tournamentId, {
-    displayName: parsed.data.displayName,
-    whatsapp: parsed.data.whatsapp,
-    clubName: parsed.data.clubName,
-    ignTag: parsed.data.ignTag || null,
+    displayName: fixedParsed.data.displayName,
+    whatsapp: fixedParsed.data.whatsapp,
+    registrationDetails: dynamicParsed.data,
     agreedToRules: formData.get('agreedToRules') === 'true',
     coinsUsed,
     squadId: squadIdRaw || null,
