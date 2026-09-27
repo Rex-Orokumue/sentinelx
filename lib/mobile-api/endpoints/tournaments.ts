@@ -81,7 +81,7 @@ export const registerEndpoint = defineEndpoint({
   handler: async ({ ctx, body, params }) => {
     if (body.squadId) throw new ApiError(400, 'squads_not_available', REGISTER_ERROR_MESSAGE.squads_not_available)
     const { data: tournament } = await ctx.userClient.from('tournaments').select('game_id').eq('id', params.id).maybeSingle()
-    if (!tournament) throw Errors.notFound()
+    if (!tournament) throw new ApiError(REGISTER_ERROR_STATUS.tournament_not_found, 'tournament_not_found', REGISTER_ERROR_MESSAGE.tournament_not_found)
     const fields = await fetchRegistrationFields(ctx.userClient, tournament.game_id)
     const parsedDetails = buildRegistrationSchema(fields).safeParse(body.registrationDetails)
     if (!parsedDetails.success) throw new ApiError(400, 'validation_failed', parsedDetails.error.issues[0].message)
@@ -127,7 +127,7 @@ export const waitlistEndpoint = defineEndpoint({
   response: waitlistResponse,
   handler: async ({ ctx, body, params }) => {
     const { data: tournament } = await ctx.userClient.from('tournaments').select('game_id').eq('id', params.id).maybeSingle()
-    if (!tournament) throw Errors.notFound()
+    if (!tournament) throw new ApiError(WAITLIST_ERROR_STATUS.tournament_not_found, 'tournament_not_found', WAITLIST_ERROR_MESSAGE.tournament_not_found)
     const fields = await fetchRegistrationFields(ctx.userClient, tournament.game_id)
     const parsedDetails = buildRegistrationSchema(fields).safeParse(body.registrationDetails)
     if (!parsedDetails.success) throw new ApiError(400, 'validation_failed', parsedDetails.error.issues[0].message)

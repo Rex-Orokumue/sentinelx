@@ -23,7 +23,7 @@ import { fetchChampions } from '@/lib/tournaments/champions'
 import { isClosedWithoutWinner } from '@/lib/tournaments/no-winner'
 import { gameGenreEmoji } from '@/lib/games/genre-emoji'
 import { splitRules } from '@/lib/tournaments/split-rules'
-import { fetchRegistrationFields } from '@/lib/tournaments/registration-fields'
+import { safeFetchRegistrationFields } from '@/lib/tournaments/registration-fields'
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   active:              { label: 'LIVE',        cls: 'bg-red-500/20 text-red-400 border-red-500/30' },
@@ -115,7 +115,7 @@ export default async function TournamentDetailPage({
     hasUsername = !!profile?.username
   }
 
-  const registrationFields = await fetchRegistrationFields(supabase, t.game_id)
+  const registrationFields = await safeFetchRegistrationFields(supabase, t.game_id)
 
   const view = resolveRegistrationView({
     status: t.status,

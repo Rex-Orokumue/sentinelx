@@ -104,12 +104,16 @@ export async function deleteRegistrationField(
   // a bare key check, so this reads a page of the game's registration_details
   // and checks for the key in application code instead — simpler and correct
   // at this table's scale.
-  const { data: regs } = await supabase
+  const { data: regs, error: historyError } = await supabase
     .from('tournament_registrations')
     .select('registration_details, tournaments!inner(game_id)')
     .eq('tournaments.game_id', gameId)
     .limit(1000)
-  const hasHistory = (regs ?? []).some((r) => field.field_key in ((r.registration_details as Record<string, unknown>) ?? {}))
+  // A failed check must not fail open into a hard delete — deactivating a
+  // field nobody ever used costs nothing (it's the same operation the
+  // "history found" branch already does), while wrongly hard-deleting one
+  // that's still referenced loses its label everywhere it's displayed.
+  const hasHistory = historyError || (regs ?? []).some((r) => field.field_key in ((r.registration_details as Record<string, unknown>) ?? {}))
 
   const { error } = hasHistory
     ? await supabase.from('game_registration_fields').update({ active: false }).eq('id', id)

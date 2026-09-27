@@ -4,7 +4,7 @@ import { requireStaff } from '@/lib/admin/auth'
 import { bucketReviewQueue, type ReviewMatchInput } from '@/lib/matches/review-queue'
 import { hasScoreMismatch } from '@/lib/matches/verify'
 import { AdminResultsQueue } from '@/components/admin/AdminResultsQueue'
-import { fetchRegistrationFields, pickDisplayValue } from '@/lib/tournaments/registration-fields'
+import { safeFetchRegistrationFields, pickDisplayValue } from '@/lib/tournaments/registration-fields'
 
 export const metadata: Metadata = { title: 'Results · Admin · SentinelX' }
 
@@ -43,7 +43,7 @@ export default async function AdminResultsPage() {
   const fieldsByGame = new Map(
     await Promise.all(
       Array.from(new Set((tournamentGames ?? []).map((t) => t.game_id))).map(
-        async (gameId) => [gameId, await fetchRegistrationFields(supabase, gameId)] as const,
+        async (gameId) => [gameId, await safeFetchRegistrationFields(supabase, gameId)] as const,
       ),
     ),
   )

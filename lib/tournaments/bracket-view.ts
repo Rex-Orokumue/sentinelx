@@ -9,7 +9,7 @@ import {
   type BracketMatch,
 } from './bracket'
 import { projectBracketRounds, type ProjectedRound } from './bracket-tree'
-import { fetchRegistrationFields, pickDisplayValue } from './registration-fields'
+import { safeFetchRegistrationFields, pickDisplayValue } from './registration-fields'
 
 // Top two of every group advance (sortStandings' advancingCount default).
 const ADVANCE_PER_GROUP = 2
@@ -61,7 +61,7 @@ export async function loadBracketView(
 
   const { data: tournamentRow } = await supabase.from('tournaments').select('game_id').eq('id', tournamentId).maybeSingle()
   const bracketFields = tournamentRow
-    ? (await fetchRegistrationFields(supabase, tournamentRow.game_id)).filter((f) => f.showOnBracket)
+    ? (await safeFetchRegistrationFields(supabase, tournamentRow.game_id)).filter((f) => f.showOnBracket)
     : []
 
   const [membershipsRes, matchesRes, regsRes] = await Promise.all([

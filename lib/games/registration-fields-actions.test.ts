@@ -45,6 +45,23 @@ describe('deleteRegistrationField', () => {
     expect(updateFn).not.toHaveBeenCalled()
   })
 
+  it('deactivates rather than hard-deletes when the history check itself fails, since a false negative is destructive', async () => {
+    const deleteFn = vi.fn(() => ({ eq: async () => ({ error: null }) }))
+    const updateFn = vi.fn(() => ({ eq: async () => ({ error: null }) }))
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockReturnValue({
+      from: (table: string) => {
+        if (table === 'game_registration_fields') return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { field_key: 'in_game_uid' } }) }) }), delete: deleteFn, update: updateFn }
+        if (table === 'tournament_registrations') return { select: () => ({ eq: () => ({ limit: async () => ({ data: null, error: { message: 'connection reset' } }) }) }) }
+        throw new Error(`unexpected table ${table}`)
+      },
+    } as never)
+    const result = await deleteRegistrationField(undefined, formDataFrom({ id: 'f1', gameId: 'g1' }))
+    expect(result?.success).toBe(true)
+    expect(updateFn).toHaveBeenCalled()
+    expect(deleteFn).not.toHaveBeenCalled()
+  })
+
   it('deactivates instead of deleting when a past registration used this field', async () => {
     const deleteFn = vi.fn(() => ({ eq: async () => ({ error: null }) }))
     const updateFn = vi.fn(() => ({ eq: async () => ({ error: null }) }))

@@ -7,7 +7,7 @@ import { RegistrationsTable, type AdminRegistrationRow } from '@/components/admi
 import { WaitlistPanel } from '@/components/admin/WaitlistPanel'
 import { WaiverForm } from '@/components/admin/WaiverForm'
 import { WaiverRow, type AdminWaiver } from '@/components/admin/WaiverRow'
-import { fetchRegistrationFields } from '@/lib/tournaments/registration-fields'
+import { safeFetchRegistrationFields } from '@/lib/tournaments/registration-fields'
 
 export const metadata: Metadata = { title: 'Registrations · Admin · SentinelX' }
 
@@ -26,7 +26,7 @@ export default async function AdminRegistrationsPage({ params }: { params: { id:
     .maybeSingle()
   if (!t) notFound()
 
-  const registrationFields = await fetchRegistrationFields(supabase, t.game_id)
+  const registrationFields = await safeFetchRegistrationFields(supabase, t.game_id)
 
   const [{ data }, { data: waiverRows }] = await Promise.all([
     supabase
