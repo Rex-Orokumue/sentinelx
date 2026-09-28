@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { MatchTypeForm, type MatchTypeRow } from './MatchTypeForm'
-import { createMatchType, updateMatchType, deleteMatchType, reorderMatchTypes } from '@/lib/games/match-type-actions'
+import { createMatchType, updateMatchType, deleteMatchType, reactivateMatchType, reorderMatchTypes } from '@/lib/games/match-type-actions'
 import type { MatchTypeActionState } from '@/lib/games/match-type-actions'
 import { SubmitButton } from '@/components/ui/submit-button'
 
@@ -18,15 +18,18 @@ export function MatchTypesPanel({ matchTypes }: { matchTypes: MatchTypeRow[] }) 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [deleteState, deleteAction] = useFormState<MatchTypeActionState, FormData>(deleteMatchType, undefined)
+  const [reactivateState, reactivateAction] = useFormState<MatchTypeActionState, FormData>(reactivateMatchType, undefined)
   const [reorderState, reorderAction] = useFormState<MatchTypeActionState, FormData>(reorderMatchTypes, undefined)
-  const ids = matchTypes.map((t) => t.id)
+  const activeTypes = matchTypes.filter((t) => t.active)
+  const inactiveTypes = matchTypes.filter((t) => !t.active)
+  const ids = activeTypes.map((t) => t.id)
 
   return (
     <section className="mt-8 space-y-3">
       <h3 className="text-sm font-bold text-white">Match Types</h3>
       <p className="text-xs text-slate-500">Series length for head-to-head tournaments — global, not tied to any one game.</p>
 
-      {matchTypes.map((t, i) =>
+      {activeTypes.map((t, i) =>
         editingId === t.id ? (
           <MatchTypeForm key={t.id} action={updateMatchType} existing={t} onDone={() => setEditingId(null)} />
         ) : (
@@ -42,7 +45,7 @@ export function MatchTypesPanel({ matchTypes }: { matchTypes: MatchTypeRow[] }) 
                   <SubmitButton pendingLabel="…" className="rounded-lg border border-slate-700 px-2 py-1.5 text-xs font-bold text-slate-200 hover:border-slate-500">↑</SubmitButton>
                 </form>
               )}
-              {i < matchTypes.length - 1 && (
+              {i < activeTypes.length - 1 && (
                 <form action={reorderAction}>
                   <input type="hidden" name="orderedIds" value={JSON.stringify(reordered(ids, i, 1))} />
                   <SubmitButton pendingLabel="…" className="rounded-lg border border-slate-700 px-2 py-1.5 text-xs font-bold text-slate-200 hover:border-slate-500">↓</SubmitButton>
@@ -64,6 +67,22 @@ export function MatchTypesPanel({ matchTypes }: { matchTypes: MatchTypeRow[] }) 
         <MatchTypeForm action={createMatchType} onDone={() => setAdding(false)} />
       ) : (
         <button type="button" onClick={() => setAdding(true)} className="rounded-lg border border-slate-700 px-4 py-2 text-xs font-bold text-slate-200 hover:border-slate-500">+ Add a match type</button>
+      )}
+
+      {inactiveTypes.length > 0 && (
+        <div className="space-y-1.5 pt-1">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-600">Inactive</p>
+          {inactiveTypes.map((t) => (
+            <div key={t.id} className="flex items-center justify-between rounded-xl border border-slate-800/60 bg-slate-900/50 p-3 opacity-60">
+              <p className="text-sm text-slate-400">{t.name}</p>
+              <form action={reactivateAction}>
+                <input type="hidden" name="id" value={t.id} />
+                <SubmitButton pendingLabel="…" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-slate-500">Reactivate</SubmitButton>
+              </form>
+            </div>
+          ))}
+          {reactivateState?.error && <p className="text-xs text-red-400">{reactivateState.error}</p>}
+        </div>
       )}
     </section>
   )

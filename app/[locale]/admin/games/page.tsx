@@ -24,8 +24,8 @@ export default async function AdminGamesPage() {
     }),
   )
 
-  const { data: matchTypeRows } = await supabase.from('match_types').select('id, name, available').eq('active', true).order('seq')
-  const matchTypes = (matchTypeRows ?? []).map((t) => ({ id: t.id, name: t.name, available: t.available }))
+  const { data: matchTypeRows } = await supabase.from('match_types').select('id, name, available, active').order('seq')
+  const matchTypes = (matchTypeRows ?? []).map((t) => ({ id: t.id, name: t.name, available: t.available, active: t.active }))
 
   return (
     <section>

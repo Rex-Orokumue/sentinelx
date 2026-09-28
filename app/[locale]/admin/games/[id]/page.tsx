@@ -35,23 +35,25 @@ export default async function GameDesignerPage({ params }: { params: { id: strin
 
   const { data: modeRows } = await supabase
     .from('game_modes')
-    .select('id, name, competition_format')
+    .select('id, name, competition_format, active')
     .eq('game_id', game.id)
-    .eq('active', true)
     .order('seq')
-  const modes = (modeRows ?? []).map((m) => ({ id: m.id, name: m.name, competitionFormat: m.competition_format }))
-  const modeIds = modes.map((m) => m.id)
+  const modes = (modeRows ?? []).map((m) => ({ id: m.id, name: m.name, competitionFormat: m.competition_format, active: m.active }))
+  // Formats/Maps/Match Rules are only ever rendered under an ACTIVE mode's
+  // expanded panel (an inactive mode shows just its own Reactivate button,
+  // per ModesPanel) — no need to fetch children for a mode nothing can
+  // currently expand.
+  const activeModeIds = modes.filter((m) => m.active).map((m) => m.id)
 
-  const [{ data: formatRows }, { data: mapRows }, { data: ruleRows }] = modeIds.length
+  const [{ data: formatRows }, { data: mapRows }, { data: ruleRows }] = activeModeIds.length
     ? await Promise.all([
         supabase
           .from('game_mode_formats')
-          .select('id, mode_id, name, entry_unit, team_size, available')
-          .in('mode_id', modeIds)
-          .eq('active', true)
+          .select('id, mode_id, name, entry_unit, team_size, available, active')
+          .in('mode_id', activeModeIds)
           .order('seq'),
-        supabase.from('game_mode_maps').select('id, mode_id, name').in('mode_id', modeIds).eq('active', true).order('seq'),
-        supabase.from('game_mode_match_rules').select('id, mode_id, name').in('mode_id', modeIds).eq('active', true).order('seq'),
+        supabase.from('game_mode_maps').select('id, mode_id, name, active').in('mode_id', activeModeIds).order('seq'),
+        supabase.from('game_mode_match_rules').select('id, mode_id, name, active').in('mode_id', activeModeIds).order('seq'),
       ])
     : [{ data: [] }, { data: [] }, { data: [] }]
 
@@ -62,9 +64,10 @@ export default async function GameDesignerPage({ params }: { params: { id: strin
     entryUnit: f.entry_unit,
     teamSize: f.team_size,
     available: f.available,
+    active: f.active,
   }))
-  const maps = (mapRows ?? []).map((m) => ({ id: m.id, modeId: m.mode_id, name: m.name }))
-  const matchRules = (ruleRows ?? []).map((r) => ({ id: r.id, modeId: r.mode_id, name: r.name }))
+  const maps = (mapRows ?? []).map((m) => ({ id: m.id, modeId: m.mode_id, name: m.name, active: m.active }))
+  const matchRules = (ruleRows ?? []).map((r) => ({ id: r.id, modeId: r.mode_id, name: r.name, active: r.active }))
 
   return (
     <section className="max-w-2xl space-y-8">

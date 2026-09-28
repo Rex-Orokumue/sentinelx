@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { MatchRuleForm, type MatchRuleRow } from './MatchRuleForm'
-import { createMatchRule, updateMatchRule, deleteMatchRule, reorderMatchRules } from '@/lib/games/match-rule-actions'
+import { createMatchRule, updateMatchRule, deleteMatchRule, reactivateMatchRule, reorderMatchRules } from '@/lib/games/match-rule-actions'
 import type { MatchRuleActionState } from '@/lib/games/match-rule-actions'
 import { SubmitButton } from '@/components/ui/submit-button'
 
@@ -18,14 +18,17 @@ export function MatchRulesPanel({ gameId, modeId, matchRules }: { gameId: string
   const [editingId, setEditingId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [deleteState, deleteAction] = useFormState<MatchRuleActionState, FormData>(deleteMatchRule, undefined)
+  const [reactivateState, reactivateAction] = useFormState<MatchRuleActionState, FormData>(reactivateMatchRule, undefined)
   const [reorderState, reorderAction] = useFormState<MatchRuleActionState, FormData>(reorderMatchRules, undefined)
-  const ids = matchRules.map((r) => r.id)
+  const activeRules = matchRules.filter((r) => r.active)
+  const inactiveRules = matchRules.filter((r) => !r.active)
+  const ids = activeRules.map((r) => r.id)
 
   return (
     <section className="space-y-2">
       <h4 className="text-xs font-bold uppercase tracking-wide text-slate-400">Match Rules</h4>
 
-      {matchRules.map((r, i) =>
+      {activeRules.map((r, i) =>
         editingId === r.id ? (
           <MatchRuleForm key={r.id} gameId={gameId} modeId={modeId} action={updateMatchRule} existing={r} onDone={() => setEditingId(null)} />
         ) : (
@@ -39,7 +42,7 @@ export function MatchRulesPanel({ gameId, modeId, matchRules }: { gameId: string
                   <SubmitButton pendingLabel="…" className="rounded-lg border border-slate-700 px-2 py-1 text-xs font-bold text-slate-200 hover:border-slate-500">↑</SubmitButton>
                 </form>
               )}
-              {i < matchRules.length - 1 && (
+              {i < activeRules.length - 1 && (
                 <form action={reorderAction}>
                   <input type="hidden" name="gameId" value={gameId} />
                   <input type="hidden" name="orderedIds" value={JSON.stringify(reordered(ids, i, 1))} />
@@ -63,6 +66,23 @@ export function MatchRulesPanel({ gameId, modeId, matchRules }: { gameId: string
         <MatchRuleForm gameId={gameId} modeId={modeId} action={createMatchRule} onDone={() => setAdding(false)} />
       ) : (
         <button type="button" onClick={() => setAdding(true)} className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-slate-500">+ Add a match rule</button>
+      )}
+
+      {inactiveRules.length > 0 && (
+        <div className="space-y-1.5 pt-1">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-600">Inactive</p>
+          {inactiveRules.map((r) => (
+            <div key={r.id} className="flex items-center justify-between rounded-lg border border-slate-800/60 bg-slate-950/50 p-2.5 opacity-60">
+              <p className="text-sm text-slate-400">{r.name}</p>
+              <form action={reactivateAction}>
+                <input type="hidden" name="gameId" value={gameId} />
+                <input type="hidden" name="id" value={r.id} />
+                <SubmitButton pendingLabel="…" className="rounded-lg border border-slate-700 px-2.5 py-1 text-xs font-bold text-slate-200 hover:border-slate-500">Reactivate</SubmitButton>
+              </form>
+            </div>
+          ))}
+          {reactivateState?.error && <p className="text-xs text-red-400">{reactivateState.error}</p>}
+        </div>
       )}
     </section>
   )

@@ -9,6 +9,7 @@ export interface FormatRow {
   entryUnit: string
   teamSize: number
   available: boolean
+  active: boolean
 }
 
 type ActionState = { error?: string; success?: boolean } | undefined

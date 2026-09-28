@@ -6,6 +6,7 @@ export interface ModeRow {
   id: string
   name: string
   competitionFormat: string
+  active: boolean
 }
 
 type ActionState = { error?: string; success?: boolean } | undefined

@@ -6,6 +6,7 @@ export interface MatchTypeRow {
   id: string
   name: string
   available: boolean
+  active: boolean
 }
 
 type ActionState = { error?: string; success?: boolean } | undefined

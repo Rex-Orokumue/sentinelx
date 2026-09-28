@@ -8,7 +8,7 @@ import { MapsPanel } from './MapsPanel'
 import type { MapRow } from './MapForm'
 import { MatchRulesPanel } from './MatchRulesPanel'
 import type { MatchRuleRow } from './MatchRuleForm'
-import { createMode, updateMode, deleteMode, reorderModes } from '@/lib/games/mode-actions'
+import { createMode, updateMode, deleteMode, reactivateMode, reorderModes } from '@/lib/games/mode-actions'
 import type { ModeActionState } from '@/lib/games/mode-actions'
 import { SubmitButton } from '@/components/ui/submit-button'
 
@@ -37,15 +37,18 @@ export function ModesPanel({
   const [adding, setAdding] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [deleteState, deleteAction] = useFormState<ModeActionState, FormData>(deleteMode, undefined)
+  const [reactivateState, reactivateAction] = useFormState<ModeActionState, FormData>(reactivateMode, undefined)
   const [reorderState, reorderAction] = useFormState<ModeActionState, FormData>(reorderModes, undefined)
-  const ids = modes.map((m) => m.id)
+  const activeModes = modes.filter((m) => m.active)
+  const inactiveModes = modes.filter((m) => !m.active)
+  const ids = activeModes.map((m) => m.id)
 
   return (
     <section className="space-y-3">
       <h3 className="text-sm font-bold text-white">Modes</h3>
       <p className="text-xs text-slate-500">What is actually being played — Battle Royale, Clash Squad. Expand a mode to manage its Formats, Maps and Match Rules.</p>
 
-      {modes.map((m, i) =>
+      {activeModes.map((m, i) =>
         editingId === m.id ? (
           <ModeForm key={m.id} gameId={gameId} action={updateMode} existing={m} onDone={() => setEditingId(null)} />
         ) : (
@@ -64,7 +67,7 @@ export function ModesPanel({
                     <SubmitButton pendingLabel="…" className="rounded-lg border border-slate-700 px-2 py-1.5 text-xs font-bold text-slate-200 hover:border-slate-500">↑</SubmitButton>
                   </form>
                 )}
-                {i < modes.length - 1 && (
+                {i < activeModes.length - 1 && (
                   <form action={reorderAction}>
                     <input type="hidden" name="gameId" value={gameId} />
                     <input type="hidden" name="orderedIds" value={JSON.stringify(reordered(ids, i, 1))} />
@@ -96,6 +99,23 @@ export function ModesPanel({
         <ModeForm gameId={gameId} action={createMode} onDone={() => setAdding(false)} />
       ) : (
         <button type="button" onClick={() => setAdding(true)} className="rounded-lg border border-slate-700 px-4 py-2 text-xs font-bold text-slate-200 hover:border-slate-500">+ Add a mode</button>
+      )}
+
+      {inactiveModes.length > 0 && (
+        <div className="space-y-1.5 pt-1">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-600">Inactive</p>
+          {inactiveModes.map((m) => (
+            <div key={m.id} className="flex items-center justify-between rounded-xl border border-slate-800/60 bg-slate-900/50 p-3 opacity-60">
+              <p className="text-sm text-slate-400">{m.name} <span className="text-slate-600">({m.competitionFormat})</span></p>
+              <form action={reactivateAction}>
+                <input type="hidden" name="gameId" value={gameId} />
+                <input type="hidden" name="id" value={m.id} />
+                <SubmitButton pendingLabel="…" className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-slate-500">Reactivate</SubmitButton>
+              </form>
+            </div>
+          ))}
+          {reactivateState?.error && <p className="text-xs text-red-400">{reactivateState.error}</p>}
+        </div>
       )}
     </section>
   )

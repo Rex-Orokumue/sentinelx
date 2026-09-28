@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { MapForm, type MapRow } from './MapForm'
-import { createMap, updateMap, deleteMap, reorderMaps } from '@/lib/games/map-actions'
+import { createMap, updateMap, deleteMap, reactivateMap, reorderMaps } from '@/lib/games/map-actions'
 import type { MapActionState } from '@/lib/games/map-actions'
 import { SubmitButton } from '@/components/ui/submit-button'
 
@@ -18,14 +18,17 @@ export function MapsPanel({ gameId, modeId, maps }: { gameId: string; modeId: st
   const [editingId, setEditingId] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [deleteState, deleteAction] = useFormState<MapActionState, FormData>(deleteMap, undefined)
+  const [reactivateState, reactivateAction] = useFormState<MapActionState, FormData>(reactivateMap, undefined)
   const [reorderState, reorderAction] = useFormState<MapActionState, FormData>(reorderMaps, undefined)
-  const ids = maps.map((m) => m.id)
+  const activeMaps = maps.filter((m) => m.active)
+  const inactiveMaps = maps.filter((m) => !m.active)
+  const ids = activeMaps.map((m) => m.id)
 
   return (
     <section className="space-y-2">
       <h4 className="text-xs font-bold uppercase tracking-wide text-slate-400">Maps</h4>
 
-      {maps.map((m, i) =>
+      {activeMaps.map((m, i) =>
         editingId === m.id ? (
           <MapForm key={m.id} gameId={gameId} modeId={modeId} action={updateMap} existing={m} onDone={() => setEditingId(null)} />
         ) : (
@@ -39,7 +42,7 @@ export function MapsPanel({ gameId, modeId, maps }: { gameId: string; modeId: st
                   <SubmitButton pendingLabel="…" className="rounded-lg border border-slate-700 px-2 py-1 text-xs font-bold text-slate-200 hover:border-slate-500">↑</SubmitButton>
                 </form>
               )}
-              {i < maps.length - 1 && (
+              {i < activeMaps.length - 1 && (
                 <form action={reorderAction}>
                   <input type="hidden" name="gameId" value={gameId} />
                   <input type="hidden" name="orderedIds" value={JSON.stringify(reordered(ids, i, 1))} />
@@ -63,6 +66,23 @@ export function MapsPanel({ gameId, modeId, maps }: { gameId: string; modeId: st
         <MapForm gameId={gameId} modeId={modeId} action={createMap} onDone={() => setAdding(false)} />
       ) : (
         <button type="button" onClick={() => setAdding(true)} className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs font-bold text-slate-200 hover:border-slate-500">+ Add a map</button>
+      )}
+
+      {inactiveMaps.length > 0 && (
+        <div className="space-y-1.5 pt-1">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-slate-600">Inactive</p>
+          {inactiveMaps.map((m) => (
+            <div key={m.id} className="flex items-center justify-between rounded-lg border border-slate-800/60 bg-slate-950/50 p-2.5 opacity-60">
+              <p className="text-sm text-slate-400">{m.name}</p>
+              <form action={reactivateAction}>
+                <input type="hidden" name="gameId" value={gameId} />
+                <input type="hidden" name="id" value={m.id} />
+                <SubmitButton pendingLabel="…" className="rounded-lg border border-slate-700 px-2.5 py-1 text-xs font-bold text-slate-200 hover:border-slate-500">Reactivate</SubmitButton>
+              </form>
+            </div>
+          ))}
+          {reactivateState?.error && <p className="text-xs text-red-400">{reactivateState.error}</p>}
+        </div>
       )}
     </section>
   )

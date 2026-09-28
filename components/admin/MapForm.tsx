@@ -6,6 +6,7 @@ export interface MapRow {
   id: string
   modeId: string
   name: string
+  active: boolean
 }
 
 type ActionState = { error?: string; success?: boolean } | undefined
