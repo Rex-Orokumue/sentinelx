@@ -18,9 +18,9 @@ Design the `/api/mobile/v1/*` surface for Sentinel X mobile's Community feature 
 §8.9), grounded in the website's actual live implementation (Server Actions + Supabase, not the
 older design docs' intent, where they've drifted). Covers: feed, post detail, compose, reactions,
 comments, boost, statuses/stories, weekly challenges, Best Play of the Week voting, top members,
-upcoming events, gallery, community stats. Out of scope: Flutter screens (Stage C), staff/admin
-moderation tooling (§7 below — ruled into Phase 8), direct messages, follows (already specced
-elsewhere).
+upcoming events, gallery, community stats, and report (submit half; §6). Out of scope: Flutter
+screens (Stage C), staff/admin moderation tooling incl. the report review queue (§6 — ruled into
+Phase 8), direct messages, follows (already specced elsewhere).
 
 Exit criterion for this spec: every write action Phase 4 needs has a method/path/auth/idempotency/
 request/response/error decision; every read has an explicit mobile-api-vs-direct-Supabase call with
@@ -223,7 +223,24 @@ existing `ApiError`/`Errors` convention (`lib/mobile-api/errors.ts`) — codes b
   Fri 9am–Sun 9pm WAT window — `isVotingWindowOpen()`), `already_voted` (409, distinct nomination
   already voted this week — maps the `23505` unique-violation path).
 
-### Report — **not designed; see §6 open question**
+### `POST /community/posts/{id}/report` — report a post
+- Body: `{ reasonCode: 'spam' | 'harassment' | 'hate_speech' | 'nudity_or_sexual_content' | 'violence' | 'misinformation' | 'other', note?: string (≤500) }`
+- Response: `{ success: true }`
+- **Idempotent: yes**, via the `Idempotency-Key` mechanism for a genuine retry, *and* a DB-level dedupe
+  (`community_content_reports_post_dedupe` partial unique index on `(reporter_id, post_id) WHERE
+  comment_id IS NULL`) so the same reporter can only have one open report per post — a second distinct
+  report attempt (different key, same reporter+post) is the `already_reported` business error, not a
+  silent no-op, mirroring the Best Play vote endpoint's retry-vs-new-action split (§4 above).
+- Errors: `not_found` (404, post missing or `is_deleted`), `already_reported` (409).
+
+### `POST /community/comments/{id}/report` — report a comment
+- Body: same shape as the post report. `post_id` is resolved server-side from the comment (never
+  trusted from the client) and stored alongside `comment_id` so a staff reviewer sees both.
+- Response / idempotency / errors: same pattern as the post report, deduped via
+  `community_content_reports_comment_dedupe` (`(reporter_id, comment_id) WHERE comment_id IS NOT NULL`).
+
+See §6 for the full report design (new table, RLS, and why this ships in Phase 4 while the staff review
+queue that consumes it ships in Phase 8).
 
 ### Weekly challenge progress — **no write endpoint.** `incrementChallenge()` runs server-side only,
 as a side effect inside `createPost`/`toggleReaction`(now the reaction PUT/DELETE)/match-confirmation
@@ -233,52 +250,117 @@ read-only from the client's perspective (§3's `GET /community/challenges`).
 
 ## 5. Data model changes needed for Stage B
 
-None. Every endpoint above maps onto existing tables/columns. (Report, if built, would need a new
-table — see §6.)
+**One new table, `community_content_reports`**, built now rather than deferred (owner decision,
+2026-09-28 — see §6). Every other endpoint above maps onto existing tables/columns.
 
-## 6. Moderation ruling — staff actions deferred to Phase 8, not built in Phase 4
+```sql
+CREATE TABLE public.community_content_reports (
+  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  reporter_id uuid        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  post_id     uuid        NOT NULL REFERENCES public.community_posts(id) ON DELETE CASCADE,
+  comment_id  uuid        REFERENCES public.post_comments(id) ON DELETE CASCADE,
+  reason_code text        NOT NULL CHECK (reason_code IN (
+                            'spam', 'harassment', 'hate_speech',
+                            'nudity_or_sexual_content', 'violence', 'misinformation', 'other')),
+  reason_note text        CHECK (char_length(reason_note) <= 500),
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  resolved_at timestamptz,
+  resolved_by uuid        REFERENCES public.profiles(id) ON DELETE SET NULL,
+  resolution  text        CHECK (resolution IN ('no_action', 'content_removed', 'user_warned', 'user_banned'))
+);
 
-Master spec §8.9 says "Moderation: report/delete own; staff pin/announce/delete" in the same
-sentence, which reads ambiguously about which phase owns the staff half. §8.24 (Admin, Phase 8)
-resolves it explicitly: `createAnnouncement`, `togglePin`, `adminDeletePost`, `adminDeleteStatus`,
-`nominateBestPlay`, `confirmBestPlayWinner`, `createChallenge`, `updateChallenge`,
-`toggleChallengeActive` are all listed under `/admin/community`, `/admin/community/challenges` as
-Phase 8a admin actions with their own admin screens. **Ruling 7: Phase 4 (this phase) builds only
-the player-facing half — report (open question below) and delete-own. All staff moderation
-(pin/announce/delete-any/challenge CRUD/Best Play nomination-and-confirm) is Phase 8's endpoints and
-screens, not this phase's.** This is why §4's delete endpoints are deliberately author-only rather
-than "author or staff" even though the RLS policy would allow staff too — building the staff branch
-here would pre-empt Phase 8's own auth-level (`'staff'`) design for those actions.
+-- Dedupe: one open report per reporter per post, and separately per reporter per comment
+-- (partial indexes, not a single UNIQUE(...), because plain UNIQUE treats every NULL
+-- comment_id as distinct and would not actually dedupe post-level reports).
+CREATE UNIQUE INDEX community_content_reports_post_dedupe
+  ON public.community_content_reports (reporter_id, post_id) WHERE comment_id IS NULL;
+CREATE UNIQUE INDEX community_content_reports_comment_dedupe
+  ON public.community_content_reports (reporter_id, comment_id) WHERE comment_id IS NOT NULL;
+CREATE INDEX community_content_reports_open_idx
+  ON public.community_content_reports (created_at DESC) WHERE resolved_at IS NULL;
 
-The kickoff note asked to "confirm with the owner" rather than assume — flagging this ruling
-explicitly at Checkpoint 1 for that confirmation, even though §8.24's action list makes it a strong,
-evidence-based read rather than a guess.
+ALTER TABLE public.community_content_reports ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "community_content_reports_reporter_or_staff_read" ON public.community_content_reports
+  FOR SELECT USING (reporter_id = auth.uid() OR public.is_staff());
+CREATE POLICY "community_content_reports_own_insert" ON public.community_content_reports
+  FOR INSERT WITH CHECK (reporter_id = auth.uid());
+CREATE POLICY "community_content_reports_staff_update" ON public.community_content_reports
+  FOR UPDATE USING (public.is_staff()) WITH CHECK (public.is_staff());
+```
+
+Modeled directly on `dm_reports` (`20260909204325_direct_messages.sql`) — one table for both post- and
+comment-level reports (not two), `resolved_at`/`resolved_by` for the open-queue pattern, staff-only
+update. Two additions over the `dm_reports` shape, both because Community reports need to support a
+real moderation workflow from day one rather than a bare "resolved or not" flag: a `reason_code`
+taxonomy (so the Phase 8 queue can triage/filter by category instead of free-text-only) and a
+`resolution` enum (so closing a report records *what* staff did, not just *that* they looked at it —
+`dm_reports` only has `resolved_at`, which this table deliberately doesn't repeat).
+
+**Realtime publication:** `community_posts` is added to `supabase_realtime` (see §7) — this is also a
+Stage B migration, same shape as `081_community_realtime.sql`.
+
+## 6. Moderation ruling — staff actions confirmed deferred to Phase 8; report fully designed now
+
+**Decided by the owner at Checkpoint 1 (2026-09-28): confirmed as written.** Master spec §8.9 says
+"Moderation: report/delete own; staff pin/announce/delete" in the same sentence, which reads
+ambiguously about which phase owns the staff half. §8.24 (Admin, Phase 8) resolves it explicitly:
+`createAnnouncement`, `togglePin`, `adminDeletePost`, `adminDeleteStatus`, `nominateBestPlay`,
+`confirmBestPlayWinner`, `createChallenge`, `updateChallenge`, `toggleChallengeActive` are all listed
+under `/admin/community`, `/admin/community/challenges` as Phase 8a admin actions with their own admin
+screens. **Ruling 7: Phase 4 (this phase) builds only the player-facing half — report and delete-own.
+All staff moderation (pin/announce/delete-any/challenge CRUD/Best Play nomination-and-confirm,
+*including the report review queue itself*) is Phase 8's endpoints and screens, not this phase's.**
+This is why §4's delete endpoints are deliberately author-only rather than "author or staff" even
+though the RLS policy would allow staff too — building the staff branch here would pre-empt Phase 8's
+own auth-level (`'staff'`) design for those actions.
+
+**Report is not deferred as a *design* — only its staff-facing half is deferred as a *build*.** The
+original draft of this spec recommended punting Report to "a follow-up spec, someday" because web has
+no report mechanism for Community at all. The owner rejected that framing as a standing project rule:
+nothing here ships as a half-built v1 with a vague "later" — everything gets fully designed up front,
+even when one half's *build* genuinely belongs to a later phase for architectural reasons (auth-level
+separation, same as the rest of this ruling). So: the `community_content_reports` table (§5), its RLS,
+and the two player-facing submit endpoints (§4) are designed and **built in Phase 4**. The table is
+already shaped for the Phase 8 review queue it will feed (`reason_code` taxonomy, `resolution` enum,
+`resolved_at`/`resolved_by`) so that phase isn't redesigning the schema later — it just adds
+`GET /admin/community/reports` and the resolve action against a table that already exists. Phase 8's
+own spec still owns designing that queue's endpoints/UI in detail; this spec only guarantees the data
+it will read is already correct and complete.
 
 ## 7. Realtime plan for mobile
 
-Mirror web's actual scope (Ruling 3), not the master spec's "new-post" phrasing which the web
-implementation doesn't itself deliver: subscribe to `post_comments`, `post_reactions` (event `*`,
-filtered by `post_id` on a post-detail screen, unfiltered on the feed) and `player_statuses`
-(`INSERT`/`DELETE` only, feed screen only) via Supabase Realtime directly from Flutter — same
+**Decided by the owner at Checkpoint 1 (2026-09-28): mobile goes beyond web's current parity gap, and
+web is brought up to the same bar rather than mobile inventing a mobile-only mechanism.** Subscribe to
+`post_comments`, `post_reactions` (event `*`, filtered by `post_id` on a post-detail screen, unfiltered
+on the feed), `player_statuses` (`INSERT`/`DELETE` only, feed screen only), **and now `community_posts`
+(`INSERT` only, feed screen only)** via Supabase Realtime directly from Flutter — same
 `postgres_changes` channel approach as web, not a mobile-api concern. On any event, refetch the
 affected `GET` endpoint (debounced, matching web's 400ms coalesce) rather than trying to merge raw
 realtime rows into local state, for the same reason web's own comment gives: the list is server-computed
-(reaction counts, boost state, author profile, frame art) and reconstructing that from a raw row
-would duplicate and drift from that logic.
+(reaction counts, boost state, author profile, frame art) and reconstructing that from a raw row would
+duplicate and drift from that logic.
 
-**Open question for the owner:** does mobile need genuine live-new-post push (adding
-`community_posts` to the realtime publication), going beyond what web itself does today? Flagging
-rather than assuming — this would be new product surface, not parity.
+**Ruling 3 (revised):** `community_posts` is added to the `supabase_realtime` publication in Stage B
+(§5), with the identical justification `081_community_realtime.sql` already used for
+`post_comments`/`post_reactions` — the table is already public-read (`community_posts_read`,
+`is_deleted = false`), so publishing it for realtime exposes nothing a visitor couldn't already select;
+it's a capability addition, not a new access grant. This is a **platform-level** migration, not a
+mobile-only trick: web's own feed (`app/[locale]/community/page.tsx` or wherever it currently
+polls/reloads for new posts) can subscribe to the same publication in a future web change without
+another migration. This spec only builds the mobile consumer; bringing web's own UI onto the same feed
+subscription is out of scope here and left for web's own team/backlog to pick up, but the backend
+capability is shared from day one rather than mobile-siloed.
 
-## 8. Rulings summary (all seven, for scanability)
+## 8. Rulings summary (all eight, for scanability)
 
 1. Comments are flat, not threaded — no `parent_comment_id` exists in the schema despite master
    spec §8.9's "threaded comments." Endpoints designed for flat comments only.
 2. Weekly challenge progress has no player-initiated write path — it's a pure read from the mobile
    client's perspective.
-3. "Realtime new-post" doesn't exist on web (`community_posts` isn't in the realtime publication) —
-   mobile mirrors web's actual realtime scope (comments/reactions/statuses), flagged as an open
-   question rather than silently under- or over-building.
+3. **(Revised 2026-09-28.)** Mobile builds genuine live-new-post push: `community_posts` is added to
+   the `supabase_realtime` publication (a platform-level capability, not mobile-only — web can adopt
+   the same subscription later without another migration), going beyond web's current gap rather than
+   mirroring it.
 4. Every Community read goes through mobile-api; none stay direct-Supabase (contra the kickoff
    note's tentative "follow the direct-Supabase precedent" framing — that precedent doesn't actually
    exist once Phase 3a is checked).
@@ -286,25 +368,29 @@ rather than assuming — this would be new product surface, not parity.
    auth boundary simple and leave staff delete to Phase 8's own admin-scoped endpoint.
 6. Reactions are redesigned as PUT-to-set / DELETE-to-remove (idempotency-safe) rather than mirroring
    web's single ambiguous toggle action.
-7. Staff moderation (pin/announce/delete-any/challenge CRUD/Best Play nominate-confirm) is entirely
-   Phase 8's scope, evidenced by master spec §8.24's action list.
+7. Staff moderation (pin/announce/delete-any/challenge CRUD/Best Play nominate-confirm, and the report
+   review queue itself) is entirely Phase 8's scope, evidenced by master spec §8.24's action list —
+   **confirmed by the owner 2026-09-28.**
+8. **(New 2026-09-28.)** Report is fully designed and its player-facing half fully built in Phase 4
+   (table, RLS, submit endpoints) rather than deferred to an unscoped "follow-up spec" — only the
+   staff review queue that consumes it is a Phase 8 *build* item, per the project's standing
+   full-build-now rule (§6).
 
 Plus the now-resolved Ruling 0 (spec file location — see top of document).
 
-## 9. Open questions for the owner (Checkpoint 1)
+## 9. Open questions — resolved by the owner at Checkpoint 1 (2026-09-28)
 
-1. **Report** — master spec §8.9 lists "report" as in-scope for Phase 4, but the website has
-   **no report mechanism for community posts/comments at all** (no table, no action, no UI) — unlike
-   DMs, which do have `dm_reports`. Building one now means designing new product surface (a
-   `community_post_reports` table, RLS, an admin queue to review it) that doesn't exist on web,
-   which cuts against "same backend, not a new one." Recommend: **defer report to a follow-up spec**
-   once the web side decides whether/how it wants this feature, rather than inventing it unilaterally
-   for mobile-only. Flagging rather than deciding unilaterally since the master spec does name it.
-2. **Realtime new-post** (§7) — build genuine live-new-post push (new realtime-publication table),
-   or accept web's existing gap (comments/reactions/statuses live, new posts require pull-to-refresh
-   or pagination)?
-3. **Staff moderation scope** (Ruling 7) — confirm §8.24's action list is authoritative and Phase 4
-   should not build any staff-facing moderation UI/endpoints at all.
+1. **Report** — the original draft here recommended deferring report to an unscoped "follow-up spec."
+   **Owner's decision: reject the defer-the-design framing.** This is not a v1/v2 project — report is
+   fully designed now (§5, §6) and its player-facing half (submit endpoints, §4) is built in Phase 4.
+   Only the staff review queue is a Phase 8 *build* item, and only because that's a real phase/auth
+   boundary (staff-only tooling), not because the design was left unfinished.
+2. **Realtime new-post** (§7) — **owner's decision: build it, and go beyond web's current parity gap.**
+   `community_posts` joins the realtime publication as a platform-level capability (§7's revised
+   Ruling 3); mobile is the first consumer, web can adopt it later without another migration.
+3. **Staff moderation scope** (Ruling 7) — **confirmed.** §8.24's action list is authoritative; Phase 4
+   builds no staff-facing moderation UI/endpoints (including no report-review queue — that's Phase 8's,
+   consuming the table this phase already ships).
 
 ## 10. Out of scope for this spec
 
