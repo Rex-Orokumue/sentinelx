@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireStaff } from '@/lib/admin/auth'
 import { GameForm } from '@/components/admin/GameForm'
 import { GameRow } from '@/components/admin/GameRow'
+import { MatchTypesPanel } from '@/components/admin/MatchTypesPanel'
 
 export const metadata: Metadata = { title: 'Games · Admin · SentinelX' }
 
@@ -23,6 +24,9 @@ export default async function AdminGamesPage() {
     }),
   )
 
+  const { data: matchTypeRows } = await supabase.from('match_types').select('id, name, available').eq('active', true).order('seq')
+  const matchTypes = (matchTypeRows ?? []).map((t) => ({ id: t.id, name: t.name, available: t.available }))
+
   return (
     <section>
       <h2 className="mb-4 text-base font-bold text-white">Games</h2>
@@ -34,6 +38,7 @@ export default async function AdminGamesPage() {
           <GameRow key={g.id} game={g} activeTournamentCount={tournamentCounts[i]} />
         ))}
       </div>
+      <MatchTypesPanel matchTypes={matchTypes} />
     </section>
   )
 }
