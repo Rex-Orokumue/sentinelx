@@ -79,6 +79,21 @@ export async function deleteMap(_prev: MapActionState, formData: FormData): Prom
   return { success: true }
 }
 
+export async function reactivateMap(_prev: MapActionState, formData: FormData): Promise<MapActionState> {
+  await requireStaff()
+  const id = String(formData.get('id') ?? '')
+  const gameId = String(formData.get('gameId') ?? '')
+  if (!id || !gameId) return { error: 'Missing map.' }
+
+  const supabase = createClient()
+  const { error } = await supabase.from('game_mode_maps').update({ active: true }).eq('id', id)
+  if (error) return { error: 'Could not reactivate the map.' }
+
+  revalidatePath(`/admin/games/${gameId}`)
+  revalidatePath('/admin/tournaments/new')
+  return { success: true }
+}
+
 export async function reorderMaps(_prev: MapActionState, formData: FormData): Promise<MapActionState> {
   await requireStaff()
   const gameId = String(formData.get('gameId') ?? '')

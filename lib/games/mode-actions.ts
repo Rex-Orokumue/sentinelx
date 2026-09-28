@@ -147,6 +147,21 @@ export async function deleteMode(_prev: ModeActionState, formData: FormData): Pr
   return { success: true }
 }
 
+export async function reactivateMode(_prev: ModeActionState, formData: FormData): Promise<ModeActionState> {
+  await requireStaff()
+  const id = String(formData.get('id') ?? '')
+  const gameId = String(formData.get('gameId') ?? '')
+  if (!id || !gameId) return { error: 'Missing mode.' }
+
+  const supabase = createClient()
+  const { error } = await supabase.from('game_modes').update({ active: true }).eq('id', id)
+  if (error) return { error: 'Could not reactivate the mode.' }
+
+  revalidatePath(`/admin/games/${gameId}`)
+  revalidatePath('/admin/tournaments/new')
+  return { success: true }
+}
+
 export async function reorderModes(_prev: ModeActionState, formData: FormData): Promise<ModeActionState> {
   await requireStaff()
   const gameId = String(formData.get('gameId') ?? '')

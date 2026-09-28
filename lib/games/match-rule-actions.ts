@@ -94,6 +94,21 @@ export async function deleteMatchRule(_prev: MatchRuleActionState, formData: For
   return { success: true }
 }
 
+export async function reactivateMatchRule(_prev: MatchRuleActionState, formData: FormData): Promise<MatchRuleActionState> {
+  await requireStaff()
+  const id = String(formData.get('id') ?? '')
+  const gameId = String(formData.get('gameId') ?? '')
+  if (!id || !gameId) return { error: 'Missing match rule.' }
+
+  const supabase = createClient()
+  const { error } = await supabase.from('game_mode_match_rules').update({ active: true }).eq('id', id)
+  if (error) return { error: 'Could not reactivate the match rule.' }
+
+  revalidatePath(`/admin/games/${gameId}`)
+  revalidatePath('/admin/tournaments/new')
+  return { success: true }
+}
+
 export async function reorderMatchRules(_prev: MatchRuleActionState, formData: FormData): Promise<MatchRuleActionState> {
   await requireStaff()
   const gameId = String(formData.get('gameId') ?? '')

@@ -110,6 +110,21 @@ export async function deleteFormat(_prev: FormatActionState, formData: FormData)
   return { success: true }
 }
 
+export async function reactivateFormat(_prev: FormatActionState, formData: FormData): Promise<FormatActionState> {
+  await requireStaff()
+  const id = String(formData.get('id') ?? '')
+  const gameId = String(formData.get('gameId') ?? '')
+  if (!id || !gameId) return { error: 'Missing format.' }
+
+  const supabase = createClient()
+  const { error } = await supabase.from('game_mode_formats').update({ active: true }).eq('id', id)
+  if (error) return { error: 'Could not reactivate the format.' }
+
+  revalidatePath(`/admin/games/${gameId}`)
+  revalidatePath('/admin/tournaments/new')
+  return { success: true }
+}
+
 export async function reorderFormats(_prev: FormatActionState, formData: FormData): Promise<FormatActionState> {
   await requireStaff()
   const gameId = String(formData.get('gameId') ?? '')

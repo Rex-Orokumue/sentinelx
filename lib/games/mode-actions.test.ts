@@ -4,7 +4,7 @@ vi.mock('@/lib/admin/auth', () => ({ requireStaff: vi.fn().mockResolvedValue({ i
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
-import { createMode, updateMode, deleteMode, reorderModes } from './mode-actions'
+import { createMode, updateMode, deleteMode, reactivateMode, reorderModes } from './mode-actions'
 
 function formDataFrom(obj: Record<string, string>): FormData {
   const fd = new FormData()
@@ -242,6 +242,22 @@ describe('deleteMode', () => {
     expect(result?.success).toBe(true)
     expect(updateFn).toHaveBeenCalled()
     expect(deleteFn).not.toHaveBeenCalled()
+  })
+})
+
+describe('reactivateMode', () => {
+  it('requires an id', async () => {
+    const result = await reactivateMode(undefined, formDataFrom({ gameId: 'g1' }))
+    expect(result?.error).toBeTruthy()
+  })
+
+  it('sets active back to true', async () => {
+    const updateFn = vi.fn(() => ({ eq: async () => ({ error: null }) }))
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockReturnValue({ from: () => ({ update: updateFn }) } as never)
+    const result = await reactivateMode(undefined, formDataFrom({ id: 'm1', gameId: 'g1' }))
+    expect(result?.success).toBe(true)
+    expect(updateFn).toHaveBeenCalledWith({ active: true })
   })
 })
 

@@ -4,7 +4,7 @@ vi.mock('@/lib/admin/auth', () => ({ requireStaff: vi.fn().mockResolvedValue({ i
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
-import { createMatchRule, updateMatchRule, deleteMatchRule, reorderMatchRules } from './match-rule-actions'
+import { createMatchRule, updateMatchRule, deleteMatchRule, reactivateMatchRule, reorderMatchRules } from './match-rule-actions'
 
 function formDataFrom(obj: Record<string, string>): FormData {
   const fd = new FormData()
@@ -128,6 +128,22 @@ describe('deleteMatchRule', () => {
     expect(result?.success).toBe(true)
     expect(updateFn).toHaveBeenCalled()
     expect(deleteFn).not.toHaveBeenCalled()
+  })
+})
+
+describe('reactivateMatchRule', () => {
+  it('requires an id', async () => {
+    const result = await reactivateMatchRule(undefined, formDataFrom({ gameId: 'g1' }))
+    expect(result?.error).toBeTruthy()
+  })
+
+  it('sets active back to true', async () => {
+    const updateFn = vi.fn(() => ({ eq: async () => ({ error: null }) }))
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockReturnValue({ from: () => ({ update: updateFn }) } as never)
+    const result = await reactivateMatchRule(undefined, formDataFrom({ id: 'r1', gameId: 'g1' }))
+    expect(result?.success).toBe(true)
+    expect(updateFn).toHaveBeenCalledWith({ active: true })
   })
 })
 

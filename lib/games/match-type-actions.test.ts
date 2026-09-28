@@ -4,7 +4,7 @@ vi.mock('@/lib/admin/auth', () => ({ requireStaff: vi.fn().mockResolvedValue({ i
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
-import { createMatchType, updateMatchType, deleteMatchType, reorderMatchTypes } from './match-type-actions'
+import { createMatchType, updateMatchType, deleteMatchType, reactivateMatchType, reorderMatchTypes } from './match-type-actions'
 
 function formDataFrom(obj: Record<string, string>): FormData {
   const fd = new FormData()
@@ -128,6 +128,22 @@ describe('deleteMatchType', () => {
     expect(result?.success).toBe(true)
     expect(updateFn).toHaveBeenCalled()
     expect(deleteFn).not.toHaveBeenCalled()
+  })
+})
+
+describe('reactivateMatchType', () => {
+  it('requires an id', async () => {
+    const result = await reactivateMatchType(undefined, formDataFrom({}))
+    expect(result?.error).toBeTruthy()
+  })
+
+  it('sets active back to true', async () => {
+    const updateFn = vi.fn(() => ({ eq: async () => ({ error: null }) }))
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockReturnValue({ from: () => ({ update: updateFn }) } as never)
+    const result = await reactivateMatchType(undefined, formDataFrom({ id: 'mt1' }))
+    expect(result?.success).toBe(true)
+    expect(updateFn).toHaveBeenCalledWith({ active: true })
   })
 })
 

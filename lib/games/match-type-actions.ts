@@ -91,6 +91,20 @@ export async function deleteMatchType(_prev: MatchTypeActionState, formData: For
   return { success: true }
 }
 
+export async function reactivateMatchType(_prev: MatchTypeActionState, formData: FormData): Promise<MatchTypeActionState> {
+  await requireStaff()
+  const id = String(formData.get('id') ?? '')
+  if (!id) return { error: 'Missing match type.' }
+
+  const supabase = createClient()
+  const { error } = await supabase.from('match_types').update({ active: true }).eq('id', id)
+  if (error) return { error: 'Could not reactivate the match type.' }
+
+  revalidatePath('/admin/games')
+  revalidatePath('/admin/tournaments/new')
+  return { success: true }
+}
+
 export async function reorderMatchTypes(_prev: MatchTypeActionState, formData: FormData): Promise<MatchTypeActionState> {
   await requireStaff()
   const orderedIds = JSON.parse(String(formData.get('orderedIds') ?? '[]')) as string[]
