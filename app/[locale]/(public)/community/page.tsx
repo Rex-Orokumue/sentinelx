@@ -70,7 +70,7 @@ export default async function CommunityPage() {
     statusRings,
     followingIds,
   ] = await Promise.all([
-    fetchFeedPage({ offset: 0, limit: PAGE_SIZE, viewerId }),
+    fetchFeedPage(supabase, { offset: 0, limit: PAGE_SIZE, viewerId }),
     fetchChallengeWidget(viewerId),
     fetchBestPlayBanner(viewerId),
     fetchComposerViewer(viewerId),
@@ -78,7 +78,7 @@ export default async function CommunityPage() {
     fetchTopCommunityMembers(5),
     fetchUpcomingCommunityEvents(3),
     fetchCommunityGallery(0, 8),
-    fetchStatusRings(viewerId),
+    fetchStatusRings(supabase, viewerId),
     viewerId ? fetchFollowingIds(viewerId) : Promise.resolve([] as string[]),
   ])
 

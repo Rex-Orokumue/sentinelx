@@ -29,6 +29,34 @@ import { playersSearchEndpoint, playerProfileEndpoint, playerFollowersEndpoint, 
 import { myFollowsEndpoint, followEndpoint, unfollowEndpoint } from './follows'
 import { myProgressEndpoint } from './progress'
 import { xpEventsEndpoint, sxScoreEventsEndpoint, coinTransactionsEndpoint } from './histories'
+import {
+  communityFeedEndpoint,
+  communityPostDetailEndpoint,
+  communityCommentsEndpoint,
+  communityChallengesEndpoint,
+  communityBestPlayEndpoint,
+  communityStatusesEndpoint,
+  communityStatusViewersEndpoint,
+  communityTopMembersEndpoint,
+  communityUpcomingEventsEndpoint,
+  communityGalleryEndpoint,
+  communityStatsEndpoint,
+} from './community-reads'
+import {
+  createCommunityPostEndpoint,
+  deleteCommunityPostEndpoint,
+  boostCommunityPostEndpoint,
+  setCommunityReactionEndpoint,
+  removeCommunityReactionEndpoint,
+  createCommunityCommentEndpoint,
+  deleteCommunityCommentEndpoint,
+  createCommunityStatusEndpoint,
+  deleteCommunityStatusEndpoint,
+  viewCommunityStatusEndpoint,
+  voteCommunityBestPlayEndpoint,
+  reportCommunityPostEndpoint,
+  reportCommunityCommentEndpoint,
+} from './community-writes'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -79,4 +107,28 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   xpEventsEndpoint,
   sxScoreEventsEndpoint,
   coinTransactionsEndpoint,
+  communityFeedEndpoint,
+  communityPostDetailEndpoint,
+  communityCommentsEndpoint,
+  communityChallengesEndpoint,
+  communityBestPlayEndpoint,
+  communityStatusesEndpoint,
+  communityStatusViewersEndpoint,
+  communityTopMembersEndpoint,
+  communityUpcomingEventsEndpoint,
+  communityGalleryEndpoint,
+  communityStatsEndpoint,
+  createCommunityPostEndpoint,
+  deleteCommunityPostEndpoint,
+  boostCommunityPostEndpoint,
+  setCommunityReactionEndpoint,
+  removeCommunityReactionEndpoint,
+  createCommunityCommentEndpoint,
+  deleteCommunityCommentEndpoint,
+  createCommunityStatusEndpoint,
+  deleteCommunityStatusEndpoint,
+  viewCommunityStatusEndpoint,
+  voteCommunityBestPlayEndpoint,
+  reportCommunityPostEndpoint,
+  reportCommunityCommentEndpoint,
 ]

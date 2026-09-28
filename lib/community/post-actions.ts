@@ -1,11 +1,8 @@
 'use server'
-import { isBoostLive, BOOST_DURATION_MS } from './boost'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { postContentSchema, clampImageUrls } from './schema'
-import { incrementChallenge } from './challenges'
-import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
+import { performCreatePost, performBoostPost } from './post-service'
 
 export type DeleteState = { error?: string } | undefined
 
@@ -13,7 +10,10 @@ export type DeleteState = { error?: string } | undefined
 // button disabled" — this is the server-side twin of that client check). Up
 // to 5 images: the first is written to the legacy community_posts.image_url
 // column (every existing reader — CommunityGallery, AnnouncementCard, admin —
-// keeps working unchanged); the rest go to community_post_images.
+// keeps working unchanged); the rest go to community_post_images. Core logic
+// lives in post-service.ts (performCreatePost), shared with the mobile-api
+// endpoint — this wrapper only derives the cookie-session client/user, same
+// relationship as lib/tournaments/actions.ts to register-service.ts.
 export async function createPost(input: { content: string; imageUrls?: string[] }): Promise<{ id?: string; error?: string }> {
   const supabase = createClient()
   const {
@@ -21,52 +21,22 @@ export async function createPost(input: { content: string; imageUrls?: string[] 
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to post.' }
 
-  const parsed = postContentSchema.safeParse(input.content)
-  if (!parsed.success) return { error: parsed.error.issues[0].message }
-  const content = parsed.data
-  const imageUrls = clampImageUrls(input.imageUrls ?? [])
-  const firstImageUrl = imageUrls[0] ?? null
-  if (!content && !firstImageUrl) return { error: 'Write something or add a screenshot first.' }
-
-  const { data: post, error } = await supabase
-    .from('community_posts')
-    .insert({ author_id: user.id, content, image_url: firstImageUrl, post_type: 'manual' })
-    .select('id')
-    .single()
-  if (error || !post) {
-    console.error('[createPost] community_posts insert failed', { authorId: user.id, code: error?.code, message: error?.message })
-    return { error: 'Could not post. Please try again.' }
-  }
-
-  if (imageUrls.length > 1) {
-    const extraImages = imageUrls.slice(1).map((image_url, i) => ({
-      post_id: post.id,
-      image_url,
-      display_order: i + 1,
-    }))
-    const { error: imagesError } = await supabase.from('community_post_images').insert(extraImages)
-    // Don't fail the post over this — the post itself succeeded and has its
-    // first image; a partial-image post is a smaller problem than losing the
-    // player's post entirely.
-    if (imagesError) {
-      console.error('[createPost] community_post_images insert failed', { postId: post.id, code: imagesError.code, message: imagesError.message })
-    }
-  }
-
-  // Weekly "Community Voice" challenge — needs the service-role client since
-  // player_challenge_progress has no client write policy (system-only writes).
-  const admin = createAdminClient()
-  await incrementChallenge(admin, user.id, 'post_created')
-
+  const result = await performCreatePost(supabase, createAdminClient(), user.id, input)
+  if (!result.ok) return { error: result.error }
   revalidatePath('/community')
-  return { id: post.id }
+  return { id: result.id }
 }
 
+// NOT delegated to post-service.ts's performDeletePost: that function is
+// author-only by design (Ruling 5 — mobile deliberately excludes the staff
+// branch, left to Phase 8's own admin-scoped endpoint). This web action must
+// keep permitting staff too, via community_posts_staff_manage RLS, so it
+// stays a blind RLS-scoped update exactly as before rather than reusing the
+// mobile-only ownership gate.
 export async function deletePost(_prev: DeleteState, formData: FormData): Promise<DeleteState> {
   const id = String(formData.get('id') ?? '')
   if (!id) return { error: 'Missing post.' }
   const supabase = createClient()
-  // RLS permits the author (manual posts only) or staff; anyone else's UPDATE affects 0 rows.
   const { error } = await supabase.from('community_posts').update({ is_deleted: true }).eq('id', id)
   if (error) return { error: 'Could not delete this post.' }
   revalidatePath('/community')
@@ -76,16 +46,10 @@ export async function deletePost(_prev: DeleteState, formData: FormData): Promis
 
 export type BoostState = { error?: string; success?: boolean } | undefined
 
-const BOOST_COST_COINS = 200
-
-
 // Spec §6: 200 coins pins one manual post the player authored to the top of
-// the feed for 24h; only one active boost per player at a time. Goes
-// through createAdminClient() throughout — community_posts has no
-// player-facing UPDATE policy that would permit writing boosted_until
-// directly (community_posts_player_delete's WITH CHECK requires
-// is_deleted = true on the new row), same reason purchaseStoreItem
-// (lib/coins/actions.ts) uses the admin client for its writes.
+// the feed for 24h; only one active boost per player at a time. Core logic
+// lives in post-service.ts (performBoostPost), shared with the mobile-api
+// endpoint.
 export async function boostPost(_prev: BoostState, formData: FormData): Promise<BoostState> {
   const postId = String(formData.get('id') ?? '')
   if (!postId) return { error: 'Missing post.' }
@@ -96,39 +60,16 @@ export async function boostPost(_prev: BoostState, formData: FormData): Promise<
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in.' }
 
-  const admin = createAdminClient()
-  const { data: post } = await admin
-    .from('community_posts')
-    .select('id, author_id, post_type, boosted_until')
-    .eq('id', postId)
-    .maybeSingle()
-  if (!post || post.author_id !== user.id || post.post_type !== 'manual') {
-    return { error: 'You can only boost your own post.' }
-  }
-
-  const now = new Date()
-  if (isBoostLive(post.boosted_until, now)) {
-    return { error: 'This post is already boosted.' }
-  }
-  const { count: activeBoostCount } = await admin
-    .from('community_posts')
-    .select('id', { count: 'exact', head: true })
-    .eq('author_id', user.id)
-    .gt('boosted_until', now.toISOString())
-  if (activeBoostCount && activeBoostCount > 0) {
-    return { error: 'You already have an active boost on another post.' }
-  }
-
-  const balance = await getCoinBalance(admin, user.id)
-  if (balance < BOOST_COST_COINS) return { error: 'Not enough SX Coins to boost.' }
-
-  await recordCoinTransaction(admin, user.id, -BOOST_COST_COINS, 'post_boost', postId, 'Boosted a community post')
-  const boostedUntil = new Date(now.getTime() + BOOST_DURATION_MS).toISOString()
-  const { error } = await admin.from('community_posts').update({ boosted_until: boostedUntil }).eq('id', postId)
-  if (error) {
-    // Refund — mirrors purchaseStoreItem's already-owned rollback pattern.
-    await recordCoinTransaction(admin, user.id, BOOST_COST_COINS, 'post_boost', postId, 'Boost failed — auto-reversed')
-    return { error: 'Could not boost this post. Please try again.' }
+  const result = await performBoostPost(createAdminClient(), user.id, postId)
+  if (!result.ok) {
+    const message: Record<typeof result.errorCode, string> = {
+      not_found: 'You can only boost your own post.',
+      already_boosted: 'This post is already boosted.',
+      active_boost_exists: 'You already have an active boost on another post.',
+      insufficient_coins: 'Not enough SX Coins to boost.',
+      boost_failed: 'Could not boost this post. Please try again.',
+    }
+    return { error: message[result.errorCode] }
   }
 
   revalidatePath('/community')

@@ -1,3 +1,4 @@
+import { createClient } from '@/lib/supabase/server'
 import { fetchPostDetail } from '@/lib/community/feed-query'
 import { renderCommunityPostCard } from '@/lib/og/community-post-card'
 import { renderMatchCard } from '@/lib/og/match-card'
@@ -27,7 +28,7 @@ function toCardPlayer(p: PlayerRef | null): CardPlayer {
 // (lib/og/match-card.tsx) instead actually shows the match: both players,
 // avatars, and the score.
 export default async function Image({ params }: { params: { postId: string } }) {
-  const result = await fetchPostDetail(params.postId, null)
+  const result = await fetchPostDetail(createClient(), params.postId, null)
   if (!result) {
     return renderCommunityPostCard({
       authorName: 'Sentinel X',
