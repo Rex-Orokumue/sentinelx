@@ -1,9 +1,12 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/supabase/types'
 import { isBoostLive } from './boost'
 import { frameUrlFor } from '@/lib/store/cosmetics'
-import { createClient } from '@/lib/supabase/server'
 import { ROUND_LABELS } from '@/lib/tournaments/bracket'
 import type { ReactionType } from './schema'
 import { REACTIONS } from './schema'
+
+type Client = SupabaseClient<Database>
 
 export type PostType = 'manual' | 'match_result' | 'achievement' | 'announcement'
 
@@ -111,8 +114,7 @@ type RawPost = {
 // profiles + reaction counts + comment counts + (for match_result posts)
 // the underlying match in a fixed small number of round trips — never one
 // query per post (spec §14).
-async function hydratePosts(rows: RawPost[], viewerId: string | null): Promise<PostView[]> {
-  const supabase = createClient()
+async function hydratePosts(supabase: Client, rows: RawPost[], viewerId: string | null): Promise<PostView[]> {
   const postIds = rows.map((r) => r.id)
   if (postIds.length === 0) return []
 
@@ -242,9 +244,7 @@ export interface FeedPage {
 // Pinned announcements always first (spec §4 "Feed order"), then the rest
 // reverse-chronological, paginated. Pinned posts are fetched separately and
 // excluded from the paginated set so "Load more" never re-shows them.
-export async function fetchFeedPage(opts: { offset: number; limit: number; viewerId: string | null }): Promise<FeedPage> {
-  const supabase = createClient()
-
+export async function fetchFeedPage(supabase: Client, opts: { offset: number; limit: number; viewerId: string | null }): Promise<FeedPage> {
   // Live boosts are fetched separately, exactly as pinned posts are, because
   // PostgREST cannot order by an expression. The previous single query used
   // `.order('boosted_until', { nullsFirst: false })`, which ranked ANY
@@ -282,9 +282,9 @@ export async function fetchFeedPage(opts: { offset: number; limit: number; viewe
   const pageRows = hasMore ? rawRows.slice(0, opts.limit) : rawRows
 
   const [pinned, boosted, posts] = await Promise.all([
-    hydratePosts((pinnedRows ?? []) as unknown as RawPost[], opts.viewerId),
-    hydratePosts((boostedRows ?? []) as unknown as RawPost[], opts.viewerId),
-    hydratePosts(pageRows, opts.viewerId),
+    hydratePosts(supabase, (pinnedRows ?? []) as unknown as RawPost[], opts.viewerId),
+    hydratePosts(supabase, (boostedRows ?? []) as unknown as RawPost[], opts.viewerId),
+    hydratePosts(supabase, pageRows, opts.viewerId),
   ])
 
   return { pinned, posts: [...boosted, ...posts], hasMore }
@@ -299,13 +299,13 @@ export interface CommentView {
 }
 
 export async function fetchPostDetail(
+  supabase: Client,
   postId: string,
   viewerId: string | null,
 ): Promise<{ post: PostView; comments: CommentView[] } | null> {
-  const supabase = createClient()
   const { data: postRow } = await supabase.from('community_posts').select(POST_SELECT).eq('id', postId).eq('is_deleted', false).maybeSingle()
   if (!postRow) return null
-  const [post] = await hydratePosts([postRow as unknown as RawPost], viewerId)
+  const [post] = await hydratePosts(supabase, [postRow as unknown as RawPost], viewerId)
 
   const { data: commentRows } = await supabase
     .from('post_comments')

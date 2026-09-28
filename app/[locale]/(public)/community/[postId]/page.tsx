@@ -22,7 +22,7 @@ import { buildBreadcrumbJsonLd } from '@/lib/seo/schema/breadcrumb'
 // lib/og/community-post-card.tsx) instead of losing it, so nothing is
 // visually lost by removing this override.
 export async function generateMetadata({ params }: { params: { postId: string; locale: Locale } }): Promise<Metadata> {
-  const { post } = (await fetchPostDetail(params.postId, null)) ?? {}
+  const { post } = (await fetchPostDetail(createClient(), params.postId, null)) ?? {}
   return buildMetadata({
     title: post ? `${post.content.slice(0, 80)} — Sentinel X Community` : 'Community Post — Sentinel X',
     description: post?.content.slice(0, 160) ?? 'A post from the SentinelX community feed.',
@@ -44,7 +44,7 @@ export default async function PostDetailPage({ params }: { params: { postId: str
   } = await supabase.auth.getUser()
   const viewerId = user?.id ?? null
 
-  const result = await fetchPostDetail(params.postId, viewerId)
+  const result = await fetchPostDetail(supabase, params.postId, viewerId)
   if (!result) notFound()
   const { post, comments } = result
 

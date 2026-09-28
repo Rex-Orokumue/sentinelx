@@ -1,5 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/supabase/types'
 import { groupIntoRings, type StatusRing, type StatusRow } from './statuses'
+
+type Client = SupabaseClient<Database>
 
 const PROFILE_FIELDS = 'id, username, display_name, avatar_url'
 
@@ -24,8 +27,7 @@ type RawStatus = {
 
 // Live statuses only — expires_at > now() is the mechanism, not a job. One
 // query for the statuses + authors, one for this viewer's own view rows.
-export async function fetchStatusRings(viewerId: string | null): Promise<StatusRing[]> {
-  const supabase = createClient()
+export async function fetchStatusRings(supabase: Client, viewerId: string | null): Promise<StatusRing[]> {
   const nowIso = new Date().toISOString()
 
   const { data: rows, error } = await supabase
@@ -78,8 +80,7 @@ export type StatusViewerRow = {
 
 // RLS (status_views_author_or_self_read + status_views_staff_read) returns rows
 // only to the status's author or staff; anyone else gets an empty list.
-export async function fetchStatusViewers(statusId: string): Promise<StatusViewerRow[]> {
-  const supabase = createClient()
+export async function fetchStatusViewers(supabase: Client, statusId: string): Promise<StatusViewerRow[]> {
   const { data } = await supabase
     .from('status_views')
     .select(

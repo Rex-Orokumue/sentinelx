@@ -11,5 +11,5 @@ export async function loadMorePosts(offset: number): Promise<FeedPage> {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  return fetchFeedPage({ offset, limit: PAGE_SIZE, viewerId: user?.id ?? null })
+  return fetchFeedPage(supabase, { offset, limit: PAGE_SIZE, viewerId: user?.id ?? null })
 }
