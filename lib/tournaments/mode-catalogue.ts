@@ -6,7 +6,7 @@ export interface ModeCatalogue {
   formats: (FormatOption & { modeId: string })[]
   maps: { id: string; name: string; modeId: string }[]
   matchRules: { id: string; name: string; modeId: string }[]
-  matchTypes: { slug: string; name: string; available: boolean }[]
+  matchTypes: { id: string; slug: string; name: string; available: boolean }[]
 }
 
 // One read for the whole catalogue. It is small (a handful of modes, formats,
@@ -28,7 +28,7 @@ export async function fetchModeCatalogue(): Promise<ModeCatalogue> {
       .order('seq'),
     supabase.from('game_mode_maps').select('id, mode_id, name').eq('active', true).order('seq'),
     supabase.from('game_mode_match_rules').select('id, mode_id, name').eq('active', true).order('seq'),
-    supabase.from('match_types').select('slug, name, available').eq('active', true).order('seq'),
+    supabase.from('match_types').select('id, slug, name, available').eq('active', true).order('seq'),
   ])
 
   return {
@@ -51,6 +51,7 @@ export async function fetchModeCatalogue(): Promise<ModeCatalogue> {
     maps: (maps.data ?? []).map((m) => ({ id: m.id, name: m.name, modeId: m.mode_id })),
     matchRules: (matchRules.data ?? []).map((r) => ({ id: r.id, name: r.name, modeId: r.mode_id })),
     matchTypes: (matchTypes.data ?? []).map((t) => ({
+      id: t.id,
       slug: t.slug,
       name: t.name,
       available: t.available,

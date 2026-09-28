@@ -53,10 +53,13 @@ export const tournamentSchema = z
     // for the chosen mode is the catalogue's job, not an enum here — a fixed
     // enum is exactly what would make PUBG's TPP/FPP a code change.
     matchRuleId: z.union([z.literal(''), z.string().uuid()]).default(''),
-    // Accepts every value the CHECK permits. Availability is gated by
-    // match_types.available, never by validation — a schema that rejected bo3
-    // would make enabling it a code change rather than a data flip.
-    matchType: z.union([z.literal(''), z.enum(['bo1', 'bo3', 'bo5'])]).default(''),
+    // An FK into match_types, same trust model as modeId/formatId/
+    // defaultMapId/matchRuleId: the schema checks shape only, and which
+    // match types are valid (and which are merely "coming soon") is the
+    // catalogue's job — match_types.available gates selectability, not this
+    // schema, so enabling Bo3 or adding a new option is a data change, not a
+    // code change.
+    matchTypeId: z.union([z.literal(''), z.string().uuid()]).default(''),
     manualKnockoutPairing: z
       .union([z.literal('true'), z.literal('false'), z.literal(''), z.boolean()])
       .transform((v) => v === true || v === 'true')

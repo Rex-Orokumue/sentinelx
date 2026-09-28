@@ -44,7 +44,7 @@ export interface TournamentFormValues {
   formatId: string
   defaultMapId: string
   matchRuleId: string
-  matchType: string
+  matchTypeId: string
 }
 
 type Action = (prev: TournamentFormState, fd: FormData) => Promise<TournamentFormState>
@@ -334,15 +334,15 @@ export function TournamentForm({
               has no series length at all. */}
           {selectedMode?.competitionFormat === 'head_to_head' && (
             <div className="space-y-1.5">
-              <label htmlFor="matchType" className="text-sm font-medium text-slate-300">Match type</label>
+              <label htmlFor="matchTypeId" className="text-sm font-medium text-slate-300">Match type</label>
               <select
-                id="matchType"
-                name="matchType"
-                defaultValue={initial.matchType || 'bo1'}
+                id="matchTypeId"
+                name="matchTypeId"
+                defaultValue={initial.matchTypeId || catalogue.matchTypes.find((t) => t.slug === 'bo1')?.id || ''}
                 className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-violet-500 focus:outline-none"
               >
                 {catalogue.matchTypes.map((t) => (
-                  <option key={t.slug} value={t.slug} disabled={!t.available}>
+                  <option key={t.id} value={t.id} disabled={!t.available}>
                     {t.name}{t.available ? '' : ' — coming soon'}
                   </option>
                 ))}

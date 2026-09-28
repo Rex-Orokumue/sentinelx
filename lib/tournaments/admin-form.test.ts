@@ -179,11 +179,11 @@ describe('parseForm — mode, format, map, rules, match type', () => {
       expect(r.data.formatId).toBe('')
       expect(r.data.defaultMapId).toBe('')
       expect(r.data.matchRuleId).toBe('')
-      expect(r.data.matchType).toBe('')
+      expect(r.data.matchTypeId).toBe('')
     }
   })
 
-  it('carries the four selections through to the parsed result', () => {
+  it('carries the five selections through to the parsed result', () => {
     // The bug this guards: parseForm hand-picks fields, so one added to the
     // schema but not here is dropped and the default silently wins.
     const fd = footballForm()
@@ -191,7 +191,7 @@ describe('parseForm — mode, format, map, rules, match type', () => {
     fd.set('formatId', '44444444-4444-4444-8444-444444444444')
     fd.set('defaultMapId', '55555555-5555-4555-8555-555555555555')
     fd.set('matchRuleId', '66666666-6666-4666-8666-666666666666')
-    fd.set('matchType', 'bo1')
+    fd.set('matchTypeId', '77777777-7777-4777-8777-777777777777')
     const r = parseForm(fd)
 
     expect(r.success).toBe(true)
@@ -200,30 +200,20 @@ describe('parseForm — mode, format, map, rules, match type', () => {
       expect(r.data.formatId).toBe('44444444-4444-4444-8444-444444444444')
       expect(r.data.defaultMapId).toBe('55555555-5555-4555-8555-555555555555')
       expect(r.data.matchRuleId).toBe('66666666-6666-4666-8666-666666666666')
-      expect(r.data.matchType).toBe('bo1')
+      expect(r.data.matchTypeId).toBe('77777777-7777-4777-8777-777777777777')
     }
   })
 
-  it('accepts every match type the CHECK permits, not only the selectable one', () => {
-    // Availability is gated by match_types.available, NOT by validation. A
-    // schema that rejected bo3 would make enabling it a code change.
-    for (const matchType of ['bo1', 'bo3', 'bo5']) {
-      const fd = footballForm()
-      fd.set('matchType', matchType)
-      expect(parseForm(fd).success, matchType).toBe(true)
-    }
-  })
-
-  it('rejects a match type the database would refuse', () => {
+  it('rejects a match type id that is not a uuid', () => {
+    // matchTypeId is an FK into match_types, same trust model as
+    // modeId/formatId/defaultMapId/matchRuleId: the schema only checks
+    // shape, and whether it names a real, available row is the DB's job.
     const fd = footballForm()
-    fd.set('matchType', 'bo7')
+    fd.set('matchTypeId', 'nonsense')
     expect(parseForm(fd).success).toBe(false)
   })
 
   it('rejects a match rule id that is not a uuid', () => {
-    // matchRuleId is an FK into game_mode_match_rules, same trust model as
-    // modeId/formatId/defaultMapId: the schema only checks shape, and
-    // whether it names a real row for the chosen mode is the DB's job.
     const fd = footballForm()
     fd.set('matchRuleId', 'nonsense')
     expect(parseForm(fd).success).toBe(false)

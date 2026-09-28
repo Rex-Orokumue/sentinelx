@@ -38,7 +38,7 @@ const EMPTY: TournamentFormValues = {
   formatId: '',
   defaultMapId: '',
   matchRuleId: '',
-  matchType: '',
+  matchTypeId: '',
 }
 
 export default async function NewTournamentPage() {

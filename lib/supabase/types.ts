@@ -158,15 +158,7 @@ export type Database = {
           status_code?: number | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "api_idempotency_keys_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       banned_identifiers: {
         Row: {
@@ -3611,7 +3603,7 @@ export type Database = {
           invitation_only: boolean
           manual_knockout_pairing: boolean
           match_rule_id: string | null
-          match_type: string | null
+          match_type_id: string | null
           max_players: number | null
           mode_id: string | null
           prize_pool: number
@@ -3651,7 +3643,7 @@ export type Database = {
           invitation_only?: boolean
           manual_knockout_pairing?: boolean
           match_rule_id?: string | null
-          match_type?: string | null
+          match_type_id?: string | null
           max_players?: number | null
           mode_id?: string | null
           prize_pool?: number
@@ -3691,7 +3683,7 @@ export type Database = {
           invitation_only?: boolean
           manual_knockout_pairing?: boolean
           match_rule_id?: string | null
-          match_type?: string | null
+          match_type_id?: string | null
           max_players?: number | null
           mode_id?: string | null
           prize_pool?: number
@@ -3741,6 +3733,13 @@ export type Database = {
             columns: ["match_rule_id"]
             isOneToOne: false
             referencedRelation: "game_mode_match_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournaments_match_type_id_fkey"
+            columns: ["match_type_id"]
+            isOneToOne: false
+            referencedRelation: "match_types"
             referencedColumns: ["id"]
           },
           {
