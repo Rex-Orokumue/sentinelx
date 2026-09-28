@@ -6,6 +6,7 @@ import { requireStaff } from '@/lib/admin/auth'
 import { updateTournament } from '@/lib/tournaments/admin-actions'
 import { TournamentForm, type TournamentFormValues } from '@/components/admin/TournamentForm'
 import { fetchModeCatalogue } from '@/lib/tournaments/mode-catalogue'
+import { withRetiredSelections } from '@/lib/tournaments/edit-catalogue'
 
 export const metadata: Metadata = { title: 'Edit tournament · Admin · SentinelX' }
 
@@ -27,6 +28,38 @@ export default async function EditTournamentPage({ params }: { params: { id: str
     fetchModeCatalogue(),
   ])
   if (!t) notFound()
+
+  // A tournament's own mode/format/map/rule/match-type can have gone
+  // inactive since it was saved (retired via the Game Designer) —
+  // fetchModeCatalogue() only returns active rows, so without this the
+  // form's <select> would have no matching <option> and an unrelated save
+  // would silently drop or swap it. Only looked up when the id isn't
+  // already in the active catalogue, and scoped to this render only.
+  const [modeLookup, formatLookup, mapLookup, matchRuleLookup, matchTypeLookup] = await Promise.all([
+    t.mode_id && !catalogue.modes.some((m) => m.id === t.mode_id)
+      ? supabase.from('game_modes').select('id, game_id, slug, name, competition_format').eq('id', t.mode_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    t.format_id && !catalogue.formats.some((f) => f.id === t.format_id)
+      ? supabase.from('game_mode_formats').select('id, mode_id, slug, name, entry_unit, team_size, available').eq('id', t.format_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    t.default_map_id && !catalogue.maps.some((m) => m.id === t.default_map_id)
+      ? supabase.from('game_mode_maps').select('id, mode_id, name').eq('id', t.default_map_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    t.match_rule_id && !catalogue.matchRules.some((r) => r.id === t.match_rule_id)
+      ? supabase.from('game_mode_match_rules').select('id, mode_id, name').eq('id', t.match_rule_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    t.match_type_id && !catalogue.matchTypes.some((mt) => mt.id === t.match_type_id)
+      ? supabase.from('match_types').select('id, slug, name, available').eq('id', t.match_type_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ])
+
+  const enrichedCatalogue = withRetiredSelections(catalogue, {
+    mode: modeLookup.data,
+    format: formatLookup.data,
+    map: mapLookup.data,
+    matchRule: matchRuleLookup.data,
+    matchType: matchTypeLookup.data,
+  })
 
   const initial: TournamentFormValues = {
     id: t.id,
@@ -103,7 +136,7 @@ export default async function EditTournamentPage({ params }: { params: { id: str
           supportedFormats: g.supported_formats ?? [],
         }))}
         seasons={seasons ?? []}
-        catalogue={catalogue}
+        catalogue={enrichedCatalogue}
         initial={initial}
         slugLocked={t.status !== 'draft'}
         submitLabel="Save changes"
