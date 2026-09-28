@@ -24,12 +24,22 @@ export async function createMatchRule(_prev: MatchRuleActionState, formData: For
   if (!slug) return { error: 'Enter a name that produces a valid key.' }
 
   const supabase = createClient()
-  const { count } = await supabase.from('game_mode_match_rules').select('*', { count: 'exact', head: true }).eq('mode_id', modeId)
+
+  // Uniqueness is enforced on the derived slug, but a hand-seeded slug (e.g.
+  // PUBG's 'tpp') and a typed name that slugifies differently can collide on
+  // display name without colliding on slug — checked here directly, reusing
+  // the read for the next seq.
+  const { data: siblingRows } = await supabase.from('game_mode_match_rules').select('id, name').eq('mode_id', modeId)
+  const siblings = siblingRows ?? []
+  if (siblings.some((r) => r.name.trim().toLowerCase() === parsed.data.name.trim().toLowerCase())) {
+    return { error: 'A match rule with this name already exists for this mode.' }
+  }
+
   const { error } = await supabase.from('game_mode_match_rules').insert({
     mode_id: modeId,
     slug,
     name: parsed.data.name,
-    seq: (count ?? 0) + 1,
+    seq: siblings.length + 1,
   })
   if (error) return { error: error.code === '23505' ? 'A match rule with this name already exists for this mode.' : 'Could not create the match rule.' }
 
@@ -42,14 +52,22 @@ export async function updateMatchRule(_prev: MatchRuleActionState, formData: For
   await requireStaff()
   const id = String(formData.get('id') ?? '')
   const gameId = String(formData.get('gameId') ?? '')
+  const modeId = String(formData.get('modeId') ?? '')
   if (!id || !gameId) return { error: 'Missing match rule.' }
 
   const parsed = parseForm(formData)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const supabase = createClient()
+
+  if (modeId) {
+    const { data: siblingRows } = await supabase.from('game_mode_match_rules').select('id, name').eq('mode_id', modeId)
+    const dupe = (siblingRows ?? []).some((r) => r.id !== id && r.name.trim().toLowerCase() === parsed.data.name.trim().toLowerCase())
+    if (dupe) return { error: 'A match rule with this name already exists for this mode.' }
+  }
+
   const { error } = await supabase.from('game_mode_match_rules').update({ name: parsed.data.name }).eq('id', id)
-  if (error) return { error: 'Could not update the match rule.' }
+  if (error) return { error: error.code === '23505' ? 'A match rule with this name already exists for this mode.' : 'Could not update the match rule.' }
 
   revalidatePath(`/admin/games/${gameId}`)
   revalidatePath('/admin/tournaments/new')

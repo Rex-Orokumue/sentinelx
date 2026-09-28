@@ -26,13 +26,26 @@ export async function createMode(_prev: ModeActionState, formData: FormData): Pr
   if (!slug) return { error: 'Enter a name that produces a valid key.' }
 
   const supabase = createClient()
-  const { count } = await supabase.from('game_modes').select('*', { count: 'exact', head: true }).eq('game_id', gameId)
+
+  // Uniqueness is enforced on the derived slug, but a hand-seeded slug (e.g.
+  // Free Fire's 'battle_royale') and a typed name that slugifies differently
+  // can collide on display name without colliding on slug, and the 23505
+  // fallback below only catches a slug collision — so this reads the scope's
+  // rows once and checks the name directly, reusing the same read for the
+  // next seq (mirrors deleteRegistrationField's "read a page, check in
+  // application code" shape).
+  const { data: siblingRows } = await supabase.from('game_modes').select('id, name').eq('game_id', gameId)
+  const siblings = siblingRows ?? []
+  if (siblings.some((r) => r.name.trim().toLowerCase() === parsed.data.name.trim().toLowerCase())) {
+    return { error: 'A mode with this name already exists for this game.' }
+  }
+
   const { error } = await supabase.from('game_modes').insert({
     game_id: gameId,
     slug,
     name: parsed.data.name,
     competition_format: parsed.data.competitionFormat,
-    seq: (count ?? 0) + 1,
+    seq: siblings.length + 1,
   })
   if (error) return { error: error.code === '23505' ? 'A mode with this name already exists for this game.' : 'Could not create the mode.' }
 
@@ -51,11 +64,30 @@ export async function updateMode(_prev: ModeActionState, formData: FormData): Pr
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const supabase = createClient()
+
+  const { data: siblingRows } = await supabase.from('game_modes').select('id, name').eq('game_id', gameId)
+  const dupe = (siblingRows ?? []).some((r) => r.id !== id && r.name.trim().toLowerCase() === parsed.data.name.trim().toLowerCase())
+  if (dupe) return { error: 'A mode with this name already exists for this game.' }
+
+  // A mode's competition_format decides the engine (points-race vs
+  // head-to-head) every tournament using it runs. Changing it under a mode a
+  // tournament already references would silently flip that tournament's
+  // engine the next time it's saved — renaming stays free, but the engine
+  // only changes on a mode nothing has used yet.
+  const { data: referencingTournaments } = await supabase.from('tournaments').select('id').eq('mode_id', id).limit(1)
+  if ((referencingTournaments ?? []).length > 0) {
+    const { data: currentRows } = await supabase.from('game_modes').select('competition_format').eq('id', id).limit(1)
+    const current = (currentRows ?? [])[0]
+    if (current && current.competition_format !== parsed.data.competitionFormat) {
+      return { error: "This mode is used by a tournament — its competition format can't change. Rename it or create a new mode instead." }
+    }
+  }
+
   const { error } = await supabase
     .from('game_modes')
     .update({ name: parsed.data.name, competition_format: parsed.data.competitionFormat })
     .eq('id', id)
-  if (error) return { error: 'Could not update the mode.' }
+  if (error) return { error: error.code === '23505' ? 'A mode with this name already exists for this game.' : 'Could not update the mode.' }
 
   revalidatePath(`/admin/games/${gameId}`)
   revalidatePath('/admin/tournaments/new')

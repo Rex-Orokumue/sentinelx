@@ -4,7 +4,7 @@ vi.mock('@/lib/admin/auth', () => ({ requireStaff: vi.fn().mockResolvedValue({ i
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
-import { createMode, deleteMode, reorderModes } from './mode-actions'
+import { createMode, updateMode, deleteMode, reorderModes } from './mode-actions'
 
 function formDataFrom(obj: Record<string, string>): FormData {
   const fd = new FormData()
@@ -23,16 +23,125 @@ describe('createMode', () => {
     expect(result?.error).toBeTruthy()
   })
 
-  it('maps a duplicate name to a friendly error', async () => {
+  it('maps a slug-only collision (23505) to a friendly error, for names that clash after slugifying but were not caught by the name check', async () => {
     const { createClient } = await import('@/lib/supabase/server')
     vi.mocked(createClient).mockReturnValue({
       from: () => ({
-        select: () => ({ eq: async () => ({ count: 0 }) }),
+        select: () => ({ eq: async () => ({ data: [] }) }),
         insert: async () => ({ error: { code: '23505' } }),
       }),
     } as never)
     const result = await createMode(undefined, formDataFrom({ gameId: 'g1', name: 'Battle Royale', competitionFormat: 'points_race' }))
     expect(result?.error).toMatch(/already exists/)
+  })
+
+  it('rejects a name that already exists for this game, even when it would slugify differently than the existing row\'s (hand-seeded) slug', async () => {
+    // Free Fire's Battle Royale mode was seeded with slug 'battle_royale' by
+    // migration; typing "Battle Royale" again would slugify to the SAME
+    // thing here, but a seeded slug like 'bo3' for "Best of 3" would not —
+    // the name check must catch the collision the slug-based 23505 misses.
+    const insertFn = vi.fn(async () => ({ error: null }))
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockReturnValue({
+      from: () => ({
+        select: () => ({ eq: async () => ({ data: [{ id: 'm0', name: 'Battle Royale' }] }) }),
+        insert: insertFn,
+      }),
+    } as never)
+    const result = await createMode(undefined, formDataFrom({ gameId: 'g1', name: 'battle royale', competitionFormat: 'points_race' }))
+    expect(result?.error).toMatch(/already exists/)
+    expect(insertFn).not.toHaveBeenCalled()
+  })
+})
+
+describe('updateMode', () => {
+  it('rejects renaming to a name another mode in this game already has', async () => {
+    const updateFn = vi.fn(() => ({ eq: async () => ({ error: null }) }))
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockReturnValue({
+      from: (table: string) => {
+        if (table === 'game_modes') {
+          return {
+            select: () => ({ eq: async () => ({ data: [{ id: 'm2', name: 'Clash Squad' }] }) }),
+            update: updateFn,
+          }
+        }
+        if (table === 'tournaments') return { select: () => ({ eq: () => ({ limit: async () => ({ data: [] }) }) }) }
+        throw new Error(`unexpected table ${table}`)
+      },
+    } as never)
+    const result = await updateMode(undefined, formDataFrom({ id: 'm1', gameId: 'g1', name: 'Clash Squad', competitionFormat: 'head_to_head' }))
+    expect(result?.error).toMatch(/already exists/)
+    expect(updateFn).not.toHaveBeenCalled()
+  })
+
+  it('refuses to change competition_format when the mode is referenced by a tournament', async () => {
+    const updateFn = vi.fn(() => ({ eq: async () => ({ error: null }) }))
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockReturnValue({
+      from: (table: string) => {
+        if (table === 'game_modes') {
+          return {
+            select: (cols: string) =>
+              cols === 'competition_format'
+                ? { eq: () => ({ limit: async () => ({ data: [{ competition_format: 'head_to_head' }] }) }) }
+                : { eq: async () => ({ data: [] }) },
+            update: updateFn,
+          }
+        }
+        if (table === 'tournaments') return { select: () => ({ eq: () => ({ limit: async () => ({ data: [{ id: 't1' }] }) }) }) }
+        throw new Error(`unexpected table ${table}`)
+      },
+    } as never)
+    const result = await updateMode(undefined, formDataFrom({ id: 'm1', gameId: 'g1', name: 'Clash Squad', competitionFormat: 'points_race' }))
+    expect(result?.error).toMatch(/competition format/)
+    expect(updateFn).not.toHaveBeenCalled()
+  })
+
+  it('allows renaming a referenced mode as long as competition_format is unchanged', async () => {
+    const updateFn = vi.fn(() => ({ eq: async () => ({ error: null }) }))
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockReturnValue({
+      from: (table: string) => {
+        if (table === 'game_modes') {
+          return {
+            select: (cols: string) =>
+              cols === 'competition_format'
+                ? { eq: () => ({ limit: async () => ({ data: [{ competition_format: 'head_to_head' }] }) }) }
+                : { eq: async () => ({ data: [] }) },
+            update: updateFn,
+          }
+        }
+        if (table === 'tournaments') return { select: () => ({ eq: () => ({ limit: async () => ({ data: [{ id: 't1' }] }) }) }) }
+        throw new Error(`unexpected table ${table}`)
+      },
+    } as never)
+    const result = await updateMode(undefined, formDataFrom({ id: 'm1', gameId: 'g1', name: 'Clash Squad Renamed', competitionFormat: 'head_to_head' }))
+    expect(result?.success).toBe(true)
+    expect(updateFn).toHaveBeenCalled()
+  })
+
+  it('allows changing competition_format on a mode no tournament references', async () => {
+    const updateFn = vi.fn(() => ({ eq: async () => ({ error: null }) }))
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockReturnValue({
+      from: (table: string) => {
+        if (table === 'game_modes') {
+          return {
+            select: (cols: string) =>
+              cols === 'competition_format'
+                ? { eq: () => ({ limit: async () => ({ data: [{ competition_format: 'head_to_head' }] }) }) }
+                : { eq: async () => ({ data: [] }) },
+            update: updateFn,
+          }
+        }
+        if (table === 'tournaments') return { select: () => ({ eq: () => ({ limit: async () => ({ data: [] }) }) }) }
+        throw new Error(`unexpected table ${table}`)
+      },
+    } as never)
+    const result = await updateMode(undefined, formDataFrom({ id: 'm1', gameId: 'g1', name: 'Clash Squad', competitionFormat: 'points_race' }))
+    expect(result?.success).toBe(true)
+    expect(updateFn).toHaveBeenCalled()
   })
 })
 

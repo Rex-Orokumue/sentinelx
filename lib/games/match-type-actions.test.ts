@@ -4,7 +4,7 @@ vi.mock('@/lib/admin/auth', () => ({ requireStaff: vi.fn().mockResolvedValue({ i
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
-import { createMatchType, deleteMatchType, reorderMatchTypes } from './match-type-actions'
+import { createMatchType, updateMatchType, deleteMatchType, reorderMatchTypes } from './match-type-actions'
 
 function formDataFrom(obj: Record<string, string>): FormData {
   const fd = new FormData()
@@ -18,16 +18,63 @@ describe('createMatchType', () => {
     expect(result?.error).toBeTruthy()
   })
 
-  it('maps a duplicate name to a friendly error', async () => {
+  it('maps a slug-only collision (23505) to a friendly error, for names not caught by the name check', async () => {
     const { createClient } = await import('@/lib/supabase/server')
     vi.mocked(createClient).mockReturnValue({
       from: () => ({
-        select: async () => ({ count: 0 }),
+        select: async () => ({ data: [] }),
         insert: async () => ({ error: { code: '23505' } }),
       }),
     } as never)
     const result = await createMatchType(undefined, formDataFrom({ name: 'Best of 7', available: 'false' }))
     expect(result?.error).toMatch(/already exists/)
+  })
+
+  it('rejects a name that already exists, even when it would slugify differently than the existing row\'s (hand-seeded) slug', async () => {
+    // Seeded rows use bo1/bo3/bo5 as their slug; typing "Best of 3" would
+    // slugify to 'best_of_3', missing the seeded slug entirely, so the name
+    // check has to catch what the slug-based 23505 fallback can't.
+    const insertFn = vi.fn(async () => ({ error: null }))
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockReturnValue({
+      from: () => ({
+        select: async () => ({ data: [{ id: 'mt0', name: 'Best of 3' }] }),
+        insert: insertFn,
+      }),
+    } as never)
+    const result = await createMatchType(undefined, formDataFrom({ name: 'best of 3', available: 'false' }))
+    expect(result?.error).toMatch(/already exists/)
+    expect(insertFn).not.toHaveBeenCalled()
+  })
+})
+
+describe('updateMatchType', () => {
+  it('rejects renaming to a name another match type already has', async () => {
+    const updateFn = vi.fn(() => ({ eq: async () => ({ error: null }) }))
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockReturnValue({
+      from: () => ({
+        select: async () => ({ data: [{ id: 'mt2', name: 'Best of 5' }] }),
+        update: updateFn,
+      }),
+    } as never)
+    const result = await updateMatchType(undefined, formDataFrom({ id: 'mt1', name: 'Best of 5', available: 'true' }))
+    expect(result?.error).toMatch(/already exists/)
+    expect(updateFn).not.toHaveBeenCalled()
+  })
+
+  it('updates when the name is unique', async () => {
+    const updateFn = vi.fn(() => ({ eq: async () => ({ error: null }) }))
+    const { createClient } = await import('@/lib/supabase/server')
+    vi.mocked(createClient).mockReturnValue({
+      from: () => ({
+        select: async () => ({ data: [{ id: 'mt1', name: 'Best of 5' }] }),
+        update: updateFn,
+      }),
+    } as never)
+    const result = await updateMatchType(undefined, formDataFrom({ id: 'mt1', name: 'Best of 5 (Grand Final)', available: 'true' }))
+    expect(result?.success).toBe(true)
+    expect(updateFn).toHaveBeenCalled()
   })
 })
 

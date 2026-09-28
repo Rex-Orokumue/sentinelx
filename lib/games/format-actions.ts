@@ -29,7 +29,17 @@ export async function createFormat(_prev: FormatActionState, formData: FormData)
   if (!slug) return { error: 'Enter a name that produces a valid key.' }
 
   const supabase = createClient()
-  const { count } = await supabase.from('game_mode_formats').select('*', { count: 'exact', head: true }).eq('mode_id', modeId)
+
+  // Uniqueness is enforced on the derived slug, but a hand-seeded slug and a
+  // typed name that slugifies differently can collide on display name
+  // without colliding on slug — checked here directly, reusing the read for
+  // the next seq.
+  const { data: siblingRows } = await supabase.from('game_mode_formats').select('id, name').eq('mode_id', modeId)
+  const siblings = siblingRows ?? []
+  if (siblings.some((r) => r.name.trim().toLowerCase() === parsed.data.name.trim().toLowerCase())) {
+    return { error: 'A format with this name already exists for this mode.' }
+  }
+
   const { error } = await supabase.from('game_mode_formats').insert({
     mode_id: modeId,
     slug,
@@ -37,7 +47,7 @@ export async function createFormat(_prev: FormatActionState, formData: FormData)
     entry_unit: parsed.data.entryUnit,
     team_size: parsed.data.teamSize,
     available: parsed.data.available,
-    seq: (count ?? 0) + 1,
+    seq: siblings.length + 1,
   })
   if (error) return { error: error.code === '23505' ? 'A format with this name already exists for this mode.' : 'Could not create the format.' }
 
@@ -50,12 +60,20 @@ export async function updateFormat(_prev: FormatActionState, formData: FormData)
   await requireStaff()
   const id = String(formData.get('id') ?? '')
   const gameId = String(formData.get('gameId') ?? '')
+  const modeId = String(formData.get('modeId') ?? '')
   if (!id || !gameId) return { error: 'Missing format.' }
 
   const parsed = parseForm(formData)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const supabase = createClient()
+
+  if (modeId) {
+    const { data: siblingRows } = await supabase.from('game_mode_formats').select('id, name').eq('mode_id', modeId)
+    const dupe = (siblingRows ?? []).some((r) => r.id !== id && r.name.trim().toLowerCase() === parsed.data.name.trim().toLowerCase())
+    if (dupe) return { error: 'A format with this name already exists for this mode.' }
+  }
+
   const { error } = await supabase
     .from('game_mode_formats')
     .update({
@@ -65,7 +83,7 @@ export async function updateFormat(_prev: FormatActionState, formData: FormData)
       available: parsed.data.available,
     })
     .eq('id', id)
-  if (error) return { error: 'Could not update the format.' }
+  if (error) return { error: error.code === '23505' ? 'A format with this name already exists for this mode.' : 'Could not update the format.' }
 
   revalidatePath(`/admin/games/${gameId}`)
   revalidatePath('/admin/tournaments/new')

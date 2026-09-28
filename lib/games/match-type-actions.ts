@@ -26,12 +26,22 @@ export async function createMatchType(_prev: MatchTypeActionState, formData: For
   if (!slug) return { error: 'Enter a name that produces a valid key.' }
 
   const supabase = createClient()
-  const { count } = await supabase.from('match_types').select('*', { count: 'exact', head: true })
+
+  // Uniqueness is enforced on the derived slug, but the seeded rows use
+  // hand-picked slugs (bo1/bo3/bo5) that a typed name like "Best of 3" would
+  // not reproduce by slugifying — checked here directly, reusing the read
+  // for the next seq.
+  const { data: existingRows } = await supabase.from('match_types').select('id, name')
+  const existing = existingRows ?? []
+  if (existing.some((r) => r.name.trim().toLowerCase() === parsed.data.name.trim().toLowerCase())) {
+    return { error: 'A match type with this name already exists.' }
+  }
+
   const { error } = await supabase.from('match_types').insert({
     slug,
     name: parsed.data.name,
     available: parsed.data.available,
-    seq: (count ?? 0) + 1,
+    seq: existing.length + 1,
   })
   if (error) return { error: error.code === '23505' ? 'A match type with this name already exists.' : 'Could not create the match type.' }
 
@@ -49,8 +59,13 @@ export async function updateMatchType(_prev: MatchTypeActionState, formData: For
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const supabase = createClient()
+
+  const { data: existingRows } = await supabase.from('match_types').select('id, name')
+  const dupe = (existingRows ?? []).some((r) => r.id !== id && r.name.trim().toLowerCase() === parsed.data.name.trim().toLowerCase())
+  if (dupe) return { error: 'A match type with this name already exists.' }
+
   const { error } = await supabase.from('match_types').update({ name: parsed.data.name, available: parsed.data.available }).eq('id', id)
-  if (error) return { error: 'Could not update the match type.' }
+  if (error) return { error: error.code === '23505' ? 'A match type with this name already exists.' : 'Could not update the match type.' }
 
   revalidatePath('/admin/games')
   revalidatePath('/admin/tournaments/new')
