@@ -152,7 +152,8 @@
       "forgotPassword": "Forgot password · SentinelX Esports",
       "resetPassword": "Set new password · SentinelX Esports",
       "username": "Choose your username · SentinelX Esports",
-      "phone": "Verify your phone · SentinelX Esports"
+      "phone": "Verify your phone · SentinelX Esports",
+      "profile": "Complete your profile · SentinelX Esports"
     },
     "common": {
       "email": "Email",
@@ -219,6 +220,10 @@
     "phoneStep": {
       "title": "Verify your phone",
       "subtitle": "We go send 6-digit code for WhatsApp so we fit reach you about fixtures and results."
+    },
+    "profileStep": {
+      "title": "Complete your profile",
+      "subtitle": "Tell us where you dey play and which games you like — we go only reach out about tournaments wey concern you."
     },
     "availability": {
       "taken": "Person don take dat username.",
