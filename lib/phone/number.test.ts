@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { toWhatsAppNumber, parsePlayerPhone, countryToRegion } from './number'
+import { toWhatsAppNumber, parsePlayerPhone, countryToRegion, listCountries } from './number'
 
 describe('countryToRegion', () => {
   it('resolves country names from the full ISO list', () => {
@@ -107,5 +107,20 @@ describe('parsePlayerPhone', () => {
 
   it('returns null rather than a partial result for an invalid number', () => {
     expect(parsePlayerPhone('0704123456', { country: 'Nigeria' })).toBeNull()
+  })
+})
+
+describe('listCountries', () => {
+  it('returns every ISO country code with a display name, sorted alphabetically by name', () => {
+    const countries = listCountries()
+    expect(countries.length).toBeGreaterThan(200)
+    expect(countries).toContainEqual({ code: 'NG', name: 'Nigeria' })
+    const names = countries.map((c) => c.name)
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)))
+  })
+
+  it('has no duplicate codes', () => {
+    const codes = listCountries().map((c) => c.code)
+    expect(new Set(codes).size).toBe(codes.length)
   })
 })

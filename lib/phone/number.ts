@@ -82,6 +82,14 @@ export function countryToRegion(country: string | null | undefined): CountryCode
   return ALIASES[key] ?? REGION_BY_NAME.get(key) ?? DEFAULT_REGION
 }
 
+/** Every ISO country as a `{code, name}` pair, sorted by display name — backs the onboarding/Settings country `<select>`. */
+export function listCountries(): { code: CountryCode; name: string }[] {
+  const display = new Intl.DisplayNames(['en'], { type: 'region' })
+  return getCountries()
+    .map((code) => ({ code, name: display.of(code) ?? code }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
 export interface PlayerPhone {
   /** Digits only, no '+' — the form wa.me requires: "2348012345678". */
   waNumber: string
