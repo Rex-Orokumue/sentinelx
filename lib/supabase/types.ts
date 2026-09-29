@@ -2698,6 +2698,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          consent_whatsapp_updates: boolean
           country: string | null
           created_at: string
           deleted_at: string | null
@@ -2717,6 +2718,7 @@ export type Database = {
           notification_prefs: Json
           phone: string | null
           phone_verified_at: string | null
+          profile_completed_at: string | null
           referred_by: string | null
           sentinel_tier: string | null
           sx_score: number
@@ -2732,6 +2734,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          consent_whatsapp_updates?: boolean
           country?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -2751,6 +2754,7 @@ export type Database = {
           notification_prefs?: Json
           phone?: string | null
           phone_verified_at?: string | null
+          profile_completed_at?: string | null
           referred_by?: string | null
           sentinel_tier?: string | null
           sx_score?: number
@@ -2766,6 +2770,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          consent_whatsapp_updates?: boolean
           country?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -2785,6 +2790,7 @@ export type Database = {
           notification_prefs?: Json
           phone?: string | null
           phone_verified_at?: string | null
+          profile_completed_at?: string | null
           referred_by?: string | null
           sentinel_tier?: string | null
           sx_score?: number

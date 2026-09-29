@@ -21,7 +21,7 @@ const SERVER_ONLY_WRITE_TABLES = [
   'friendly_match_results',
 ]
 // Hidden from anon/authenticated by the same migration.
-const PRIVATE_PROFILE_COLUMNS = ['phone', 'whatsapp_number', 'notification_prefs', 'referred_by', 'deletion_requested_at']
+const PRIVATE_PROFILE_COLUMNS = ['phone', 'whatsapp_number', 'notification_prefs', 'referred_by', 'deletion_requested_at', 'consent_whatsapp_updates']
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
