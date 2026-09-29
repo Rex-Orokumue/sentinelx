@@ -1,4 +1,4 @@
-export type OnboardingGate = '/onboarding/username' | '/onboarding/phone' | null
+export type OnboardingGate = '/onboarding/username' | '/onboarding/phone' | '/onboarding/profile' | null
 
 // Phone verification is fully built (lib/phone/*, /onboarding/phone, the
 // dashboard settings card) but not enforced yet — the Meta WhatsApp Business
@@ -11,8 +11,10 @@ export const ENFORCE_PHONE_VERIFICATION = false
 export function resolveOnboardingGate(profile: {
   username: string | null
   phoneVerifiedAt: string | null
+  profileCompletedAt: string | null
 }): OnboardingGate {
   if (profile.username === null) return '/onboarding/username'
   if (ENFORCE_PHONE_VERIFICATION && profile.phoneVerifiedAt === null) return '/onboarding/phone'
+  if (profile.profileCompletedAt === null) return '/onboarding/profile'
   return null
 }
