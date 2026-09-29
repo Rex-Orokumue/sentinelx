@@ -39,7 +39,7 @@ const AUTH_PAGES = ['/login', '/signup']
 // choice, and it's already the real gate regardless.
 const SESSION_CHECK_TIMEOUT_MS = 4000
 
-type OnboardingProfile = { username: string | null; phone_verified_at: string | null }
+type OnboardingProfile = { username: string | null; phone_verified_at: string | null; profile_completed_at: string | null }
 
 // Same bound-and-fail-open treatment as sessionUser() above, one query
 // later: this backs resolveOnboardingGate() and previously had no timeout
@@ -51,11 +51,11 @@ async function onboardingProfile(
 ): Promise<OnboardingProfile | 'unresolved'> {
   try {
     const result = await Promise.race([
-      supabase.from('profiles').select('username, phone_verified_at').eq('id', userId).maybeSingle(),
+      supabase.from('profiles').select('username, phone_verified_at, profile_completed_at').eq('id', userId).maybeSingle(),
       new Promise<'unresolved'>((resolve) => setTimeout(() => resolve('unresolved'), SESSION_CHECK_TIMEOUT_MS)),
     ])
     if (result === 'unresolved') return 'unresolved'
-    return result.data ?? { username: null, phone_verified_at: null }
+    return result.data ?? { username: null, phone_verified_at: null, profile_completed_at: null }
   } catch {
     return 'unresolved'
   }
@@ -129,6 +129,7 @@ export async function updateSession(
       const gate = resolveOnboardingGate({
         username: profile.username,
         phoneVerifiedAt: profile.phone_verified_at,
+        profileCompletedAt: profile.profile_completed_at,
       })
       if (gate) return redirectTo(gate)
     }

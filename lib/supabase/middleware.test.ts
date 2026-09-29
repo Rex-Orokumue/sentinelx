@@ -3,10 +3,11 @@ import { NextRequest } from 'next/server'
 
 const getSession = vi.fn()
 const maybeSingle = vi.fn()
+const select = vi.fn(() => ({ eq: () => ({ maybeSingle }) }))
 vi.mock('@supabase/ssr', () => ({
   createServerClient: () => ({
     auth: { getSession },
-    from: () => ({ select: () => ({ eq: () => ({ maybeSingle }) }) }),
+    from: () => ({ select }),
   }),
 }))
 vi.mock('@/lib/onboarding/gate', () => ({ resolveOnboardingGate: () => null }))
@@ -29,13 +30,14 @@ describe('updateSession locale-aware redirects', () => {
     expect(result.response.headers.get('location')).toBe('https://sentinelx.gg/login?next=%2Fdashboard')
   })
 
-  it('does not redirect an authenticated request to a protected path', async () => {
+  it('does not redirect an authenticated request to a protected path, and fetches profile_completed_at alongside the existing columns', async () => {
     getSession.mockResolvedValueOnce({ data: { session: { user: { id: 'u1' } } } })
-    maybeSingle.mockResolvedValueOnce({ data: { username: 'x', phone_verified_at: '2026-01-01' } })
+    maybeSingle.mockResolvedValueOnce({ data: { username: 'x', phone_verified_at: '2026-01-01', profile_completed_at: '2026-01-01' } })
     const { updateSession } = await import('./middleware')
     const request = new NextRequest('https://sentinelx.gg/fr/dashboard')
     const result = await updateSession(request, '/dashboard', 'fr')
     expect(result.redirected).toBe(false)
+    expect(select).toHaveBeenCalledWith('username, phone_verified_at, profile_completed_at')
   })
 })
 
