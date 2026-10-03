@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { checkAndUnlockAchievements } from '@/lib/achievements/unlock'
 import { profileEditSchema } from './schema'
+import { parseProfileEditFormData } from './form-data'
 import { performUpdateProfile, type UpdateProfileErrorCode } from './update-profile-service'
 
 export type ProfileEditState = { error?: string; success?: boolean } | undefined
@@ -24,13 +25,7 @@ export async function updateProfile(
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in.' }
 
-  const parsed = profileEditSchema.safeParse({
-    displayName: formData.get('displayName') ?? '',
-    username: formData.get('username') ?? '',
-    whatsapp: formData.get('whatsapp') ?? '',
-    country: formData.get('country') ?? '',
-    bio: formData.get('bio') ?? '',
-  })
+  const parsed = profileEditSchema.safeParse(parseProfileEditFormData(formData))
   if (!parsed.success) return { error: parsed.error.issues[0].message }
 
   const avatarUrl = formData.get('avatarUrl')

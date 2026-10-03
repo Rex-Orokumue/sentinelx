@@ -5,7 +5,7 @@ import { errorsEndpoint } from './client-errors'
 import { registerDeviceEndpoint, unregisterDeviceEndpoint } from './devices'
 import { sessionStartEndpoint } from './session'
 import { signupEndpoint, resendConfirmationEndpoint, requestResetEndpoint } from './auth'
-import { claimUsernameEndpoint } from './onboarding'
+import { claimUsernameEndpoint, completeProfileEndpoint } from './onboarding'
 import { homeEndpoint } from './home'
 import { rankingsEndpoint, rankingsMeEndpoint } from './rankings'
 import { seasonsListEndpoint, seasonDetailEndpoint } from './seasons'
@@ -81,6 +81,7 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   resendConfirmationEndpoint,
   requestResetEndpoint,
   claimUsernameEndpoint,
+  completeProfileEndpoint,
   homeEndpoint,
   rankingsEndpoint,
   rankingsMeEndpoint,

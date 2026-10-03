@@ -48,3 +48,25 @@ describe('profileEditSchema', () => {
     expect(profileEditSchema.safeParse({ ...base, gameInterests: ['not-a-uuid'] }).success).toBe(false)
   })
 })
+
+describe('profileEditSchema — optional mobile additions', () => {
+  it('still accepts an old client body that omits gameInterests and consentWhatsappUpdates', () => {
+    const result = profileEditSchema.safeParse(base)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.gameInterests).toBeUndefined()
+      expect(result.data.consentWhatsappUpdates).toBeUndefined()
+    }
+  })
+
+  it('rejects an empty gameInterests array (a player never drops below one game)', () => {
+    const result = profileEditSchema.safeParse({ ...base, gameInterests: [] })
+    expect(result.success).toBe(false)
+  })
+
+  it('keeps consentWhatsappUpdates false as false', () => {
+    const result = profileEditSchema.safeParse({ ...base, consentWhatsappUpdates: false })
+    expect(result.success && result.data.consentWhatsappUpdates).toBe(false)
+  })
+})
+

@@ -22,6 +22,10 @@ const meResponse = z.object({
       membershipTier: z.string().nullable(),
       kycVerified: z.boolean(),
       deletionRequestedAt: z.string().nullable(),
+      // Server-owned onboarding gate input: null until the player completes the compulsory profile step.
+      profileCompletedAt: z.string().nullable(),
+      consentWhatsappUpdates: z.boolean(),
+      gameInterests: z.array(z.string().uuid()),
     })
     .nullable(),
 })
@@ -36,9 +40,15 @@ interface ProfileRow {
   membership_tier: string | null
   kyc_verified: boolean
   deletion_requested_at: string | null
+  profile_completed_at: string | null
+  consent_whatsapp_updates: boolean
 }
 
-export function toMeResponse(ctx: Pick<MobileCtx, 'userId' | 'email' | 'roles' | 'isStaff' | 'isAdmin'>, row: ProfileRow | null) {
+export function toMeResponse(
+  ctx: Pick<MobileCtx, 'userId' | 'email' | 'roles' | 'isStaff' | 'isAdmin'>,
+  row: ProfileRow | null,
+  gameInterestIds: string[] = [],
+) {
   return {
     id: ctx.userId,
     email: ctx.email,
@@ -55,6 +65,9 @@ export function toMeResponse(ctx: Pick<MobileCtx, 'userId' | 'email' | 'roles' |
       membershipTier: row.membership_tier,
       kycVerified: row.kyc_verified,
       deletionRequestedAt: row.deletion_requested_at,
+      profileCompletedAt: row.profile_completed_at,
+      consentWhatsappUpdates: row.consent_whatsapp_updates,
+      gameInterests: gameInterestIds,
     },
   }
 }
@@ -69,12 +82,17 @@ export const meEndpoint = defineEndpoint({
   handler: async ({ ctx }) => {
     // Own row only, id from the verified token. Service role because whatsapp_number and
     // deletion_requested_at are private columns (plan 2026-09-18-mobile-phase0a-security-hardening.md).
-    const { data } = await ctx.admin
-      .from('profiles')
-      .select('username, display_name, avatar_url, whatsapp_number, country, locale, membership_tier, kyc_verified, deletion_requested_at')
-      .eq('id', ctx.userId)
-      .maybeSingle()
-    return toMeResponse(ctx, data)
+    const [{ data }, { data: interests }] = await Promise.all([
+      ctx.admin
+        .from('profiles')
+        .select(
+          'username, display_name, avatar_url, whatsapp_number, country, locale, membership_tier, kyc_verified, deletion_requested_at, profile_completed_at, consent_whatsapp_updates',
+        )
+        .eq('id', ctx.userId)
+        .maybeSingle(),
+      ctx.admin.from('game_interest').select('game_id').eq('user_id', ctx.userId),
+    ])
+    return toMeResponse(ctx, data, (interests ?? []).map((r) => r.game_id))
   },
 })
 

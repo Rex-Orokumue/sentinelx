@@ -74,12 +74,17 @@ const ALIASES: Record<string, CountryCode> = {
   brazilian: 'BR',
 }
 
+/** Free-text country → ISO region, or null when the text names no known country (no Nigeria fallback). */
+export function knownCountryRegion(country: string | null | undefined): CountryCode | null {
+  if (!country) return null
+  const key = normalizeName(country)
+  if (!key) return null
+  return ALIASES[key] ?? REGION_BY_NAME.get(key) ?? null
+}
+
 /** Free-text country → ISO region for phone parsing. Falls back to Nigeria. */
 export function countryToRegion(country: string | null | undefined): CountryCode {
-  if (!country) return DEFAULT_REGION
-  const key = normalizeName(country)
-  if (!key) return DEFAULT_REGION
-  return ALIASES[key] ?? REGION_BY_NAME.get(key) ?? DEFAULT_REGION
+  return knownCountryRegion(country) ?? DEFAULT_REGION
 }
 
 /** Every ISO country as a `{code, name}` pair, sorted by display name — backs the onboarding/Settings country `<select>`. */

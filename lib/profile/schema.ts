@@ -9,7 +9,9 @@ export const profileEditSchema = z
     whatsapp: z.union([z.literal(''), z.string().trim().max(30)]),
     country: z.union([z.literal(''), z.string().trim().max(60, 'Country is too long')]),
     bio: z.union([z.literal(''), z.string().trim().max(280, 'Bio must be 280 characters or fewer')]),
-    gameInterests: z.array(z.string().uuid()).optional(), // omitted = leave unchanged
+    // omitted = leave unchanged. When sent it must name at least one game: a player who has
+    // completed onboarding is never allowed to drop below one interest.
+    gameInterests: z.array(z.string().uuid()).min(1, 'Select at least one game').optional(),
     consentWhatsappUpdates: z.boolean().optional(), // omitted = leave unchanged
   })
   .superRefine((val, ctx) => {

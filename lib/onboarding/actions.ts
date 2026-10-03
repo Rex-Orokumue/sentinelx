@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { safeInternalPath } from './safe-path'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { performClaimUsername } from './claim-username-service'
-import { parseOnboardingProfileFormData } from './profile-schema'
+import { onboardingProfileSchema, parseOnboardingProfileFormData, toOnboardingCore } from './profile-schema'
 import { performCompleteProfileOnboarding, type CompleteProfileOnboardingErrorCode } from './profile-completion-service'
 
 // Codes, translated by the onboarding form under `auth.errors` — same
@@ -46,7 +46,10 @@ export async function completeProfileOnboarding(
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/onboarding/profile')
 
-  const result = await performCompleteProfileOnboarding(supabase, createAdminClient(), user.id, parseOnboardingProfileFormData(formData))
+  const parsed = onboardingProfileSchema.safeParse(parseOnboardingProfileFormData(formData))
+  if (!parsed.success) return { errorCode: 'invalid_input' }
+
+  const result = await performCompleteProfileOnboarding(createAdminClient(), user.id, toOnboardingCore(parsed.data))
   if (!result.ok) return { errorCode: result.errorCode }
 
   redirect(safeInternalPath(formData.get('next') as string | null, '/dashboard'))

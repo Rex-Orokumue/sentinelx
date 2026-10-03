@@ -4098,6 +4098,16 @@ export type Database = {
     }
     Functions: {
       anonymise_account: { Args: { p_id: string }; Returns: undefined }
+      complete_profile_onboarding: {
+        Args: {
+          p_user_id: string
+          p_country: string
+          p_whatsapp: string
+          p_consent: boolean
+          p_game_ids: string[]
+        }
+        Returns: undefined
+      }
       dm_can_message: {
         Args: { p_sender: string; p_thread: string }
         Returns: boolean

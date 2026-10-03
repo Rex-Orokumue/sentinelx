@@ -9,7 +9,9 @@ import { Label } from '@/components/ui/label'
 
 const ERROR_MESSAGES: Record<string, string> = {
   invalid_input: 'Please fill in every field and pick at least one game.',
+  invalid_country: 'Select a country from the list.',
   invalid_whatsapp: 'Enter a valid WhatsApp number for the selected country.',
+  unknown_game: 'One of the games you picked is no longer available. Reload and try again.',
   save_failed: 'Could not save your profile. Please try again.',
 }
 

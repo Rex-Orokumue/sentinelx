@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
 import type { createAdminClient } from '@/lib/supabase/admin'
 import type { ProfileEditInput } from './schema'
+import { replaceGameInterests } from '@/lib/games/game-interest-service'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -39,6 +40,7 @@ export async function performUpdateProfile(
       whatsapp_number: input.whatsapp || null,
       country: input.country || null,
       bio: input.bio || null,
+      ...(input.consentWhatsappUpdates !== undefined ? { consent_whatsapp_updates: input.consentWhatsappUpdates } : {}),
       ...avatarPatch,
       ...usernamePatch,
     })
@@ -47,6 +49,13 @@ export async function performUpdateProfile(
     if ((error as { code?: string }).code === '23505') return { ok: false, errorCode: 'username_taken' }
     console.error('performUpdateProfile: update failed', error)
     return { ok: false, errorCode: 'save_failed' }
+  }
+
+  if (input.gameInterests !== undefined) {
+    // The profile fields above are already saved; surface a failed interests write
+    // instead of reporting success. Saving again is idempotent.
+    const replaced = await replaceGameInterests(supabase, userId, input.gameInterests)
+    if (!replaced.ok) return { ok: false, errorCode: 'save_failed' }
   }
 
   return { ok: true }

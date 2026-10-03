@@ -50,3 +50,68 @@ describe('performUpdateProfile', () => {
     expect(update).toHaveBeenCalledWith(expect.objectContaining({ avatar_url: 'https://cdn/a.webp' }))
   })
 })
+
+describe('performUpdateProfile — game interests and consent', () => {
+  const GAME = '11111111-1111-4111-8111-111111111111'
+
+  function fakeSupabaseWithGameInterest(opts: { upsertError?: object | null } = {}) {
+    const not = vi.fn().mockResolvedValue({ error: null })
+    const del = vi.fn(() => ({ eq: vi.fn(() => ({ not })) }))
+    const upsert = vi.fn().mockResolvedValue({ error: opts.upsertError ?? null })
+    return {
+      supabase: {
+        from: (table: string) => {
+          if (table === 'profiles') return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { username: 'x', username_changed_at: null } }) }) }) }
+          if (table === 'game_interest') return { delete: del, upsert }
+          throw new Error('unexpected table ' + table)
+        },
+      } as never,
+      del,
+      upsert,
+    }
+  }
+
+  it('writes consent_whatsapp_updates when provided', async () => {
+    const { admin, update } = fakeAdmin()
+    const { supabase } = fakeSupabaseWithGameInterest()
+    await performUpdateProfile(supabase, admin, 'u1', { ...baseInput, consentWhatsappUpdates: true })
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ consent_whatsapp_updates: true }))
+  })
+
+  it('writes an explicit consent false (not omitted, not coerced)', async () => {
+    const { admin, update } = fakeAdmin()
+    const { supabase } = fakeSupabaseWithGameInterest()
+    await performUpdateProfile(supabase, admin, 'u1', { ...baseInput, consentWhatsappUpdates: false })
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ consent_whatsapp_updates: false }))
+  })
+
+  it('omits consent_whatsapp_updates from the patch entirely when not provided (old mobile clients)', async () => {
+    const { admin, update } = fakeAdmin()
+    await performUpdateProfile(fakeSupabase({ username: 'x', username_changed_at: null }), admin, 'u1', baseInput)
+    const patch = (update.mock.calls[0] as unknown[])[0]
+    expect(patch).not.toHaveProperty('consent_whatsapp_updates')
+  })
+
+  it('replaces game interests when gameInterests is provided', async () => {
+    const { admin } = fakeAdmin()
+    const { supabase, upsert } = fakeSupabaseWithGameInterest()
+    const result = await performUpdateProfile(supabase, admin, 'u1', { ...baseInput, gameInterests: [GAME] })
+    expect(result).toEqual({ ok: true })
+    expect(upsert).toHaveBeenCalledWith([{ user_id: 'u1', game_id: GAME }], expect.anything())
+  })
+
+  it('does not touch game_interest when gameInterests is omitted (old mobile clients)', async () => {
+    const { admin } = fakeAdmin()
+    // fakeSupabase's from() ignores the table name — if replaceGameInterests were called it would
+    // try .upsert() on this stub and throw, since it only implements .select().
+    const result = await performUpdateProfile(fakeSupabase({ username: 'x', username_changed_at: null }), admin, 'u1', baseInput)
+    expect(result).toEqual({ ok: true })
+  })
+
+  it('does NOT report success when the game-interest write fails', async () => {
+    const { admin } = fakeAdmin()
+    const { supabase } = fakeSupabaseWithGameInterest({ upsertError: { message: 'boom' } })
+    const result = await performUpdateProfile(supabase, admin, 'u1', { ...baseInput, gameInterests: [GAME] })
+    expect(result).toEqual({ ok: false, errorCode: 'save_failed' })
+  })
+})
