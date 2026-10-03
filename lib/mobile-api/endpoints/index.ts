@@ -57,6 +57,16 @@ import {
   reportCommunityPostEndpoint,
   reportCommunityCommentEndpoint,
 } from './community-writes'
+import {
+  getNotificationPrefsEndpoint,
+  patchNotificationPrefsEndpoint,
+  getNotificationMutesEndpoint,
+  postNotificationMuteEndpoint,
+  deleteNotificationMuteEndpoint,
+  postNotificationReadEndpoint,
+  postNotificationsReadAllEndpoint,
+  postTestPushEndpoint,
+} from './notifications'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -131,4 +141,12 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   voteCommunityBestPlayEndpoint,
   reportCommunityPostEndpoint,
   reportCommunityCommentEndpoint,
+  getNotificationPrefsEndpoint,
+  patchNotificationPrefsEndpoint,
+  getNotificationMutesEndpoint,
+  postNotificationMuteEndpoint,
+  deleteNotificationMuteEndpoint,
+  postNotificationReadEndpoint,
+  postNotificationsReadAllEndpoint,
+  postTestPushEndpoint,
 ]

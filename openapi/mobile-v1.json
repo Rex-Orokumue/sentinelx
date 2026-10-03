@@ -7465,6 +7465,1028 @@
         }
       }
     },
+    "/api/mobile/v1/notifications/{id}/read": {
+      "post": {
+        "operationId": "postNotificationRead",
+        "summary": "Mark one of your notifications read. Already read is a success; an unknown or someone else’s id is 404.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "ok"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/notifications/mutes": {
+      "delete": {
+        "operationId": "deleteNotificationMute",
+        "summary": "Unmute a type (clears the timed row and any \"always\" flag) or a post thread. Naturally idempotent.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "scope": {
+                        "type": "string",
+                        "const": "type"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "match_reminder",
+                          "result_confirmed",
+                          "achievement_unlocked",
+                          "challenge_completed",
+                          "new_announcement",
+                          "tournament_announced",
+                          "wager_settled",
+                          "referral_converted",
+                          "post_comment",
+                          "post_reaction",
+                          "bracket_released",
+                          "match_assigned",
+                          "prize_credited",
+                          "status_from_friend",
+                          "status_viewed",
+                          "new_follower",
+                          "direct_message"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "scope",
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "scope": {
+                        "type": "string",
+                        "const": "post"
+                      },
+                      "postId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      }
+                    },
+                    "required": [
+                      "scope",
+                      "postId"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "ok"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getNotificationMutes",
+        "summary": "Live (unexpired) timed mutes. A type muted \"always\" is not listed here; it is push[type] = false in the prefs.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "types": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string"
+                              },
+                              "mutedUntil": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "mutedUntil"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "posts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "postId": {
+                                "type": "string"
+                              },
+                              "mutedUntil": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "postId",
+                              "mutedUntil"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "types",
+                        "posts"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      },
+      "post": {
+        "operationId": "postNotificationMute",
+        "summary": "Mute a notification type or a post thread for 1h, 1w or always. \"always\" for a type flips push[type] = false (and clears any timed row); \"always\" for a post is a far-future expiry.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "scope": {
+                        "type": "string",
+                        "const": "type"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "match_reminder",
+                          "result_confirmed",
+                          "achievement_unlocked",
+                          "challenge_completed",
+                          "new_announcement",
+                          "tournament_announced",
+                          "wager_settled",
+                          "referral_converted",
+                          "post_comment",
+                          "post_reaction",
+                          "bracket_released",
+                          "match_assigned",
+                          "prize_credited",
+                          "status_from_friend",
+                          "status_viewed",
+                          "new_follower",
+                          "direct_message"
+                        ]
+                      },
+                      "duration": {
+                        "type": "string",
+                        "enum": [
+                          "1h",
+                          "1w",
+                          "always"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "scope",
+                      "type",
+                      "duration"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "scope": {
+                        "type": "string",
+                        "const": "post"
+                      },
+                      "postId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                      },
+                      "duration": {
+                        "type": "string",
+                        "enum": [
+                          "1h",
+                          "1w",
+                          "always"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "scope",
+                      "postId",
+                      "duration"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "ok"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/notifications/prefs": {
+      "get": {
+        "operationId": "getNotificationPrefs",
+        "summary": "Effective notification preferences (push 17, WhatsApp 6, achievement sharing 5). An absent stored key resolves to its default; a type muted \"always\" shows as push[type] = false.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "push": {
+                          "type": "object",
+                          "properties": {
+                            "match_reminder": {
+                              "type": "boolean"
+                            },
+                            "result_confirmed": {
+                              "type": "boolean"
+                            },
+                            "achievement_unlocked": {
+                              "type": "boolean"
+                            },
+                            "challenge_completed": {
+                              "type": "boolean"
+                            },
+                            "new_announcement": {
+                              "type": "boolean"
+                            },
+                            "tournament_announced": {
+                              "type": "boolean"
+                            },
+                            "wager_settled": {
+                              "type": "boolean"
+                            },
+                            "referral_converted": {
+                              "type": "boolean"
+                            },
+                            "post_comment": {
+                              "type": "boolean"
+                            },
+                            "post_reaction": {
+                              "type": "boolean"
+                            },
+                            "bracket_released": {
+                              "type": "boolean"
+                            },
+                            "match_assigned": {
+                              "type": "boolean"
+                            },
+                            "prize_credited": {
+                              "type": "boolean"
+                            },
+                            "status_from_friend": {
+                              "type": "boolean"
+                            },
+                            "status_viewed": {
+                              "type": "boolean"
+                            },
+                            "new_follower": {
+                              "type": "boolean"
+                            },
+                            "direct_message": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "match_reminder",
+                            "result_confirmed",
+                            "achievement_unlocked",
+                            "challenge_completed",
+                            "new_announcement",
+                            "tournament_announced",
+                            "wager_settled",
+                            "referral_converted",
+                            "post_comment",
+                            "post_reaction",
+                            "bracket_released",
+                            "match_assigned",
+                            "prize_credited",
+                            "status_from_friend",
+                            "status_viewed",
+                            "new_follower",
+                            "direct_message"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "whatsapp": {
+                          "type": "object",
+                          "properties": {
+                            "match_reminder": {
+                              "type": "boolean"
+                            },
+                            "result_confirmed": {
+                              "type": "boolean"
+                            },
+                            "prize_credited": {
+                              "type": "boolean"
+                            },
+                            "challenge_completed": {
+                              "type": "boolean"
+                            },
+                            "achievement_unlocked": {
+                              "type": "boolean"
+                            },
+                            "registration_confirmed": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "match_reminder",
+                            "result_confirmed",
+                            "prize_credited",
+                            "challenge_completed",
+                            "achievement_unlocked",
+                            "registration_confirmed"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "achievementSharing": {
+                          "type": "object",
+                          "properties": {
+                            "tournament": {
+                              "type": "boolean"
+                            },
+                            "milestone": {
+                              "type": "boolean"
+                            },
+                            "streak": {
+                              "type": "boolean"
+                            },
+                            "social": {
+                              "type": "boolean"
+                            },
+                            "other": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "tournament",
+                            "milestone",
+                            "streak",
+                            "social",
+                            "other"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "push",
+                        "whatsapp",
+                        "achievementSharing"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patchNotificationPrefs",
+        "summary": "Merge-patch any subset of the preference sections; each present section is merged atomically. Unknown keys or non-booleans are rejected. Returns the full effective prefs.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "push": {
+                    "type": "object",
+                    "properties": {
+                      "match_reminder": {
+                        "type": "boolean"
+                      },
+                      "result_confirmed": {
+                        "type": "boolean"
+                      },
+                      "achievement_unlocked": {
+                        "type": "boolean"
+                      },
+                      "challenge_completed": {
+                        "type": "boolean"
+                      },
+                      "new_announcement": {
+                        "type": "boolean"
+                      },
+                      "tournament_announced": {
+                        "type": "boolean"
+                      },
+                      "wager_settled": {
+                        "type": "boolean"
+                      },
+                      "referral_converted": {
+                        "type": "boolean"
+                      },
+                      "post_comment": {
+                        "type": "boolean"
+                      },
+                      "post_reaction": {
+                        "type": "boolean"
+                      },
+                      "bracket_released": {
+                        "type": "boolean"
+                      },
+                      "match_assigned": {
+                        "type": "boolean"
+                      },
+                      "prize_credited": {
+                        "type": "boolean"
+                      },
+                      "status_from_friend": {
+                        "type": "boolean"
+                      },
+                      "status_viewed": {
+                        "type": "boolean"
+                      },
+                      "new_follower": {
+                        "type": "boolean"
+                      },
+                      "direct_message": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "whatsapp": {
+                    "type": "object",
+                    "properties": {
+                      "match_reminder": {
+                        "type": "boolean"
+                      },
+                      "result_confirmed": {
+                        "type": "boolean"
+                      },
+                      "prize_credited": {
+                        "type": "boolean"
+                      },
+                      "challenge_completed": {
+                        "type": "boolean"
+                      },
+                      "achievement_unlocked": {
+                        "type": "boolean"
+                      },
+                      "registration_confirmed": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "achievementSharing": {
+                    "type": "object",
+                    "properties": {
+                      "tournament": {
+                        "type": "boolean"
+                      },
+                      "milestone": {
+                        "type": "boolean"
+                      },
+                      "streak": {
+                        "type": "boolean"
+                      },
+                      "social": {
+                        "type": "boolean"
+                      },
+                      "other": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "push": {
+                          "type": "object",
+                          "properties": {
+                            "match_reminder": {
+                              "type": "boolean"
+                            },
+                            "result_confirmed": {
+                              "type": "boolean"
+                            },
+                            "achievement_unlocked": {
+                              "type": "boolean"
+                            },
+                            "challenge_completed": {
+                              "type": "boolean"
+                            },
+                            "new_announcement": {
+                              "type": "boolean"
+                            },
+                            "tournament_announced": {
+                              "type": "boolean"
+                            },
+                            "wager_settled": {
+                              "type": "boolean"
+                            },
+                            "referral_converted": {
+                              "type": "boolean"
+                            },
+                            "post_comment": {
+                              "type": "boolean"
+                            },
+                            "post_reaction": {
+                              "type": "boolean"
+                            },
+                            "bracket_released": {
+                              "type": "boolean"
+                            },
+                            "match_assigned": {
+                              "type": "boolean"
+                            },
+                            "prize_credited": {
+                              "type": "boolean"
+                            },
+                            "status_from_friend": {
+                              "type": "boolean"
+                            },
+                            "status_viewed": {
+                              "type": "boolean"
+                            },
+                            "new_follower": {
+                              "type": "boolean"
+                            },
+                            "direct_message": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "match_reminder",
+                            "result_confirmed",
+                            "achievement_unlocked",
+                            "challenge_completed",
+                            "new_announcement",
+                            "tournament_announced",
+                            "wager_settled",
+                            "referral_converted",
+                            "post_comment",
+                            "post_reaction",
+                            "bracket_released",
+                            "match_assigned",
+                            "prize_credited",
+                            "status_from_friend",
+                            "status_viewed",
+                            "new_follower",
+                            "direct_message"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "whatsapp": {
+                          "type": "object",
+                          "properties": {
+                            "match_reminder": {
+                              "type": "boolean"
+                            },
+                            "result_confirmed": {
+                              "type": "boolean"
+                            },
+                            "prize_credited": {
+                              "type": "boolean"
+                            },
+                            "challenge_completed": {
+                              "type": "boolean"
+                            },
+                            "achievement_unlocked": {
+                              "type": "boolean"
+                            },
+                            "registration_confirmed": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "match_reminder",
+                            "result_confirmed",
+                            "prize_credited",
+                            "challenge_completed",
+                            "achievement_unlocked",
+                            "registration_confirmed"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "achievementSharing": {
+                          "type": "object",
+                          "properties": {
+                            "tournament": {
+                              "type": "boolean"
+                            },
+                            "milestone": {
+                              "type": "boolean"
+                            },
+                            "streak": {
+                              "type": "boolean"
+                            },
+                            "social": {
+                              "type": "boolean"
+                            },
+                            "other": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "tournament",
+                            "milestone",
+                            "streak",
+                            "social",
+                            "other"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "push",
+                        "whatsapp",
+                        "achievementSharing"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/notifications/read-all": {
+      "post": {
+        "operationId": "postNotificationsReadAll",
+        "summary": "Mark all of your unread notifications read; returns how many were updated.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "updated": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "updated"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/notifications/test-push": {
+      "post": {
+        "operationId": "postTestPush",
+        "summary": "Send a clearly labelled test push to your own registered devices through the real sender. 404 if you have no registered device; 500 if nothing could be delivered.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "ok"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/onboarding/username": {
       "post": {
         "operationId": "postOnboardingUsername",

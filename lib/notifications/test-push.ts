@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendToTokens } from './fcm'
 import { DEVICE_TOKEN_COOKIE } from './device-cookie'
+import { TEST_PUSH_DATA, TEST_PUSH_NOTIFICATION } from './test-push-service'
 
 export type TestPushResult =
   | { ok: true }
@@ -43,11 +44,7 @@ export async function sendTestPush(): Promise<TestPushResult> {
   if (!row) return { ok: false, reason: 'no-device-token' }
 
   try {
-    await sendToTokens(
-      [{ id: row.id, token: row.token }],
-      { title: 'SentinelX test', body: 'Push notifications are working on this device 🎮' },
-      { url: '/dashboard/settings', type: 'result_confirmed' },
-    )
+    await sendToTokens([{ id: row.id, token: row.token }], TEST_PUSH_NOTIFICATION, TEST_PUSH_DATA)
     return { ok: true }
   } catch (err) {
     console.error('[FCM] test push threw', err)
