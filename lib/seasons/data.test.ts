@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { fakeSupabase } from '@/lib/testing/fake-supabase'
-import { getMonthlyLeaderboard, getSeasonLeaderboard } from './data'
+import { getMastersQualificationLeaderboard, getMonthlyLeaderboard, getSeasonLeaderboard } from './data'
 
 function fakeAdmin(opts: {
   // game_id is optional so every pre-existing fixture (none of which cares
@@ -257,5 +257,124 @@ describe('season leaderboards - exposed field set (admin client: no RLS backstop
     expect(rows.length).toBe(1)
     for (const row of rows) expect(Object.keys(row).sort()).toEqual(ROW_KEYS)
     expect(JSON.stringify(rows)).not.toContain('whatsapp')
+  })
+})
+
+describe('getMastersQualificationLeaderboard', () => {
+  const SEASON = 's1'
+  const GAME = 'dls'
+  const profile = (id: string) => ({ id, username: id, display_name: id, avatar_url: null, sx_score: 1000 })
+  const cup = (id: string, start: string, over: Record<string, unknown> = {}) => ({
+    id,
+    season_id: SEASON,
+    game_id: GAME,
+    tournament_type: 'community_club',
+    tournament_start: start,
+    ...over,
+  })
+  const pts = (tournament_id: string, player_id: string, points: number) => ({ season_id: SEASON, tournament_id, player_id, points })
+
+  it('scores qualifiers from the previous month when the Masters starts at the start of a new month', async () => {
+    const { client } = fakeSupabase({
+      tournaments: [
+        cup('aug', '2026-08-11T00:00:00.000Z'),
+        cup('sep', '2026-09-07T00:00:00.000Z'),
+        cup('masters', '2026-10-06T00:00:00.000Z', { tournament_type: 'masters' }),
+      ],
+      season_ranking_points: [pts('aug', 'a', 20), pts('sep', 'a', 10), pts('sep', 'b', 25)],
+      matches: [],
+      season_noshow_penalties: [],
+      profiles: [profile('a'), profile('b')],
+    })
+    const rows = await getMastersQualificationLeaderboard(client as never, {
+      seasonId: SEASON,
+      gameId: GAME,
+      mastersId: 'masters',
+      mastersStart: new Date('2026-10-06T00:00:00.000Z'),
+    })
+    expect(rows.map((r) => [r.playerId, r.points])).toEqual([
+      ['a', 30],
+      ['b', 25],
+    ])
+  })
+
+  it('only counts cups after the previous Masters of the same season and game', async () => {
+    const { client } = fakeSupabase({
+      tournaments: [
+        cup('old-cup', '2026-08-11T00:00:00.000Z'),
+        cup('prev-masters', '2026-08-30T00:00:00.000Z', { tournament_type: 'masters' }),
+        cup('new-cup', '2026-09-07T00:00:00.000Z'),
+        cup('masters', '2026-10-06T00:00:00.000Z', { tournament_type: 'masters' }),
+      ],
+      season_ranking_points: [pts('old-cup', 'a', 100), pts('new-cup', 'b', 5)],
+      matches: [],
+      season_noshow_penalties: [],
+      profiles: [profile('a'), profile('b')],
+    })
+    const rows = await getMastersQualificationLeaderboard(client as never, {
+      seasonId: SEASON,
+      gameId: GAME,
+      mastersId: 'masters',
+      mastersStart: new Date('2026-10-06T00:00:00.000Z'),
+    })
+    expect(rows.map((r) => r.playerId)).toEqual(['b'])
+  })
+
+  it('ignores cups that start on/after the Masters, other games, and non-community-club tournaments', async () => {
+    const { client } = fakeSupabase({
+      tournaments: [
+        cup('before', '2026-09-07T00:00:00.000Z'),
+        cup('after', '2026-10-20T00:00:00.000Z'),
+        cup('other-game', '2026-09-08T00:00:00.000Z', { game_id: 'efootball' }),
+        cup('champs', '2026-09-09T00:00:00.000Z', { tournament_type: 'champions_cup' }),
+        cup('masters', '2026-10-06T00:00:00.000Z', { tournament_type: 'masters' }),
+      ],
+      season_ranking_points: [pts('before', 'a', 5), pts('after', 'b', 50), pts('other-game', 'c', 50), pts('champs', 'd', 50)],
+      matches: [],
+      season_noshow_penalties: [],
+      profiles: ['a', 'b', 'c', 'd'].map(profile),
+    })
+    const rows = await getMastersQualificationLeaderboard(client as never, {
+      seasonId: SEASON,
+      gameId: GAME,
+      mastersId: 'masters',
+      mastersStart: new Date('2026-10-06T00:00:00.000Z'),
+    })
+    expect(rows.map((r) => r.playerId)).toEqual(['a'])
+  })
+
+  it('nets no-show penalties from the window matches against points', async () => {
+    const { client } = fakeSupabase({
+      tournaments: [cup('sep', '2026-09-07T00:00:00.000Z'), cup('masters', '2026-10-06T00:00:00.000Z', { tournament_type: 'masters' })],
+      season_ranking_points: [pts('sep', 'a', 45)],
+      matches: [{ id: 'm1', tournament_id: 'sep' }],
+      season_noshow_penalties: [{ season_id: SEASON, match_id: 'm1', player_id: 'a', points: -10 }],
+      profiles: [profile('a')],
+    })
+    const rows = await getMastersQualificationLeaderboard(client as never, {
+      seasonId: SEASON,
+      gameId: GAME,
+      mastersId: 'masters',
+      mastersStart: new Date('2026-10-06T00:00:00.000Z'),
+    })
+    expect(rows[0]).toMatchObject({ playerId: 'a', points: 35 })
+  })
+
+  it('returns an empty list when no qualifier has run', async () => {
+    const { client } = fakeSupabase({
+      tournaments: [cup('masters', '2026-10-06T00:00:00.000Z', { tournament_type: 'masters' })],
+      season_ranking_points: [],
+      matches: [],
+      season_noshow_penalties: [],
+      profiles: [],
+    })
+    expect(
+      await getMastersQualificationLeaderboard(client as never, {
+        seasonId: SEASON,
+        gameId: GAME,
+        mastersId: 'masters',
+        mastersStart: new Date('2026-10-06T00:00:00.000Z'),
+      }),
+    ).toEqual([])
   })
 })

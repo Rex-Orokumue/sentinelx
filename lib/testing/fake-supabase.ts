@@ -15,7 +15,12 @@ function cmp(a: unknown, b: unknown): number {
  */
 export function fakeSupabase(
   tables: Record<string, Row[]>,
-  opts: { user?: { id: string } | null; rpc?: Record<string, (args: never) => unknown> } = {},
+  opts: {
+    user?: { id: string } | null
+    rpc?: Record<string, (args: never) => unknown>
+    // table -> column list that must be jointly unique; a violating insert resolves with error.code '23505'.
+    unique?: Record<string, string[]>
+  } = {},
 ) {
   const queries: string[] = []
 
@@ -24,6 +29,9 @@ export function fakeSupabase(
     let head = false
     let wantCount = false
     let single = false
+    let mutation: 'insert' | 'update' | null = null
+    let mutationError: { code: string; message: string } | null = null
+    let affected: Row[] = []
     const ops: string[] = []
 
     const filter = (name: string, col: string, pred: (v: unknown) => boolean) => {
@@ -42,6 +50,38 @@ export function fakeSupabase(
       eq: (col: string, val: unknown) => filter('eq', col, (v) => v === val),
       neq: (col: string, val: unknown) => filter('neq', col, (v) => v !== val),
       gte: (col: string, val: unknown) => filter('gte', col, (v) => cmp(v, val) >= 0),
+      gt: (col: string, val: unknown) => filter('gt', col, (v) => cmp(v, val) > 0),
+      lte: (col: string, val: unknown) => filter('lte', col, (v) => cmp(v, val) <= 0),
+      // ILIKE with no wildcards = case-insensitive equality. `\_` / `\%` escapes are honoured; real wildcards are not.
+      ilike: (col: string, val: string) => {
+        const lit = String(val).replace(/\\([_%\\])/g, '$1').toLowerCase()
+        return filter('ilike', col, (v) => String(v ?? '').toLowerCase() === lit)
+      },
+      // Mutations apply to the shared fixture arrays so a test can assert what was written.
+      insert: (payload: Row | Row[]) => {
+        ops.push('insert')
+        mutation = 'insert'
+        const list = Array.isArray(payload) ? payload : [payload]
+        const target = (tables[table] ??= [])
+        const uniq = opts.unique?.[table]
+        for (const r of list) {
+          if (uniq && target.some((e) => uniq.every((c) => e[c] === r[c]))) {
+            mutationError = { code: '23505', message: `duplicate key on ${table}` }
+            break
+          }
+          const row = { ...r }
+          target.push(row)
+          affected.push(row)
+        }
+        return proxy
+      },
+      update: (patch: Row) => {
+        ops.push('update')
+        mutation = 'update'
+        // filters chained after update() narrow `rows`; apply the patch lazily in then().
+        impl.__patch = patch
+        return proxy
+      },
       lt: (col: string, val: unknown) => filter('lt', col, (v) => cmp(v, val) < 0),
       in: (col: string, vals: unknown[]) => filter('in', col, (v) => vals.includes(v)),
       is: (col: string, val: unknown) => filter('is', col, (v) => (v ?? null) === val),
@@ -64,8 +104,13 @@ export function fakeSupabase(
       },
       then(resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) {
         queries.push(`${table}:${ops.join('|')}`)
-        const data = head ? null : single ? rows[0] ?? null : rows
-        return Promise.resolve({ data, count: wantCount ? rows.length : null, error: null }).then(resolve, reject)
+        if (mutation === 'update') {
+          for (const r of rows) Object.assign(r, impl.__patch as Row)
+          affected = rows
+        }
+        const out = mutation ? affected : rows
+        const data = head ? null : single ? out[0] ?? null : out
+        return Promise.resolve({ data, count: wantCount ? out.length : null, error: mutationError }).then(resolve, reject)
       },
     }
 

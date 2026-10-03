@@ -176,6 +176,12 @@ export async function getMonthlyLeaderboard(
   const tournamentIds = (tournaments ?? []).map((t) => t.id)
   if (tournamentIds.length === 0) return []
 
+  return lockedInLeaderboard(admin, seasonId, tournamentIds)
+}
+
+// Locked-in points + no-show penalties for a fixed set of tournaments, ranked.
+// Shared by the calendar-month and since-the-last-Masters qualification windows.
+async function lockedInLeaderboard(admin: Admin, seasonId: string, tournamentIds: string[]): Promise<SeasonLeaderboardRow[]> {
   const { data: matches } = await admin.from('matches').select('id').in('tournament_id', tournamentIds)
   const matchIds = (matches ?? []).map((m) => m.id)
 
@@ -196,4 +202,42 @@ export async function getMonthlyLeaderboard(
   const totals = sumPointsByPlayer(rows)
   const profiles = await playerProfiles(admin, Array.from(totals.keys()))
   return toRows(totals, profiles, new Set())
+}
+
+// Masters qualification pool: every community_club tournament this season+game
+// that started AFTER the previous Masters (or since the season began, if there
+// is none) and BEFORE this Masters. The old calendar-month window scored the
+// month the Masters itself starts in, which is empty whenever the Masters sits
+// at the start of a month and its qualifiers ran in the previous one.
+export async function getMastersQualificationLeaderboard(
+  admin: Admin,
+  args: { seasonId: string; gameId: string; mastersId: string; mastersStart: Date },
+): Promise<SeasonLeaderboardRow[]> {
+  const { seasonId, gameId, mastersId, mastersStart } = args
+
+  const { data: previousMasters } = await admin
+    .from('tournaments')
+    .select('tournament_start')
+    .eq('season_id', seasonId)
+    .eq('game_id', gameId)
+    .eq('tournament_type', 'masters')
+    .neq('id', mastersId)
+    .lt('tournament_start', mastersStart.toISOString())
+    .order('tournament_start', { ascending: false })
+    .limit(1)
+  const windowStart = previousMasters?.[0]?.tournament_start ?? null
+
+  let query = admin
+    .from('tournaments')
+    .select('id')
+    .eq('season_id', seasonId)
+    .eq('game_id', gameId)
+    .eq('tournament_type', 'community_club')
+    .lt('tournament_start', mastersStart.toISOString())
+  if (windowStart) query = query.gt('tournament_start', windowStart)
+  const { data: tournaments } = await query
+  const tournamentIds = (tournaments ?? []).map((t) => t.id)
+  if (tournamentIds.length === 0) return []
+
+  return lockedInLeaderboard(admin, seasonId, tournamentIds)
 }

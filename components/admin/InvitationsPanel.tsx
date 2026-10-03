@@ -3,6 +3,7 @@ import { useFormState, useFormStatus } from 'react-dom'
 import {
   sendInvitations,
   triggerCascadeNow,
+  reinviteExpiredInvitations,
   manuallyAddInvitee,
   type InvitationActionState,
 } from '@/lib/seasons/invitation-actions'
@@ -39,6 +40,7 @@ function ActionButton({ label, pendingLabel }: { label: string; pendingLabel: st
 export function InvitationsPanel({ tournamentId, invitations }: { tournamentId: string; invitations: InvitationRow[] }) {
   const [sendState, sendAction] = useFormState<InvitationActionState, FormData>(sendInvitations, undefined)
   const [cascadeState, cascadeAction] = useFormState<InvitationActionState, FormData>(triggerCascadeNow, undefined)
+  const [reinviteState, reinviteAction] = useFormState<InvitationActionState, FormData>(reinviteExpiredInvitations, undefined)
   const [addState, addAction] = useFormState<InvitationActionState, FormData>(manuallyAddInvitee, undefined)
 
   return (
@@ -52,11 +54,21 @@ export function InvitationsPanel({ tournamentId, invitations }: { tournamentId: 
           <input type="hidden" name="tournamentId" value={tournamentId} />
           <ActionButton label="Check & Cascade Now" pendingLabel="Checking…" />
         </form>
+        <form action={reinviteAction}>
+          <input type="hidden" name="tournamentId" value={tournamentId} />
+          <ActionButton label="Re-invite expired & fill" pendingLabel="Re-inviting…" />
+        </form>
       </div>
       {sendState?.error && <p className="text-sm text-red-400">{sendState.error}</p>}
       {sendState?.success && <p className="text-sm text-emerald-400">Invited {sendState.invited} players.</p>}
       {cascadeState?.error && <p className="text-sm text-red-400">{cascadeState.error}</p>}
-      {cascadeState?.success && <p className="text-sm text-emerald-400">Cascade checked.</p>}
+      {cascadeState?.success && (
+        <p className="text-sm text-emerald-400">Cascade checked — {cascadeState.invited ?? 0} new invitation(s) sent.</p>
+      )}
+      {reinviteState?.error && <p className="text-sm text-red-400">{reinviteState.error}</p>}
+      {reinviteState?.success && (
+        <p className="text-sm text-emerald-400">{reinviteState.invited ?? 0} player(s) invited or re-invited by rank.</p>
+      )}
 
       <div className="overflow-x-auto rounded-2xl border border-slate-800">
         <table className="w-full text-sm">
