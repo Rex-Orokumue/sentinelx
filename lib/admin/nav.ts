@@ -14,6 +14,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: 'Games', href: '/admin/games', adminOnly: false },
   { label: 'Results', href: '/admin/results', adminOnly: false },
   { label: 'Players', href: '/admin/players', adminOnly: false },
+  { label: 'Game Interest', href: '/admin/players/game-interest', adminOnly: true },
   { label: 'Community', href: '/admin/community', adminOnly: false },
   { label: 'Challenges', href: '/admin/community/challenges', adminOnly: true },
   { label: 'Messages', href: '/admin/messages', adminOnly: false },
