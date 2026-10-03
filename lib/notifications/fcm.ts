@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { cert, getApps, initializeApp, type App } from 'firebase-admin/app'
-import { getMessaging, type Messaging } from 'firebase-admin/messaging'
+import { getMessaging, type Messaging, type MulticastMessage } from 'firebase-admin/messaging'
+import { channelFor } from './channels'
 
 export interface FCMNotification {
   title: string
@@ -39,90 +40,171 @@ function getFirebaseMessaging(): Messaging | null {
   return cachedMessaging
 }
 
-// Shared by sendFCMToPlayer, broadcastFCM and broadcastPush (push.ts) so
-// stale-token cleanup (FCM reporting a token as unregistered/invalid) lives
-// in exactly one place. Batches in groups of 500 — the FCM multicast limit.
-export async function sendToTokens(
-  tokens: { id: string; token: string }[],
+export interface PushToken {
+  id: string
+  token: string
+  // fcm_tokens.platform. Anything other than 'android'/'ios' (null, missing, unknown) is treated as web: the
+  // column defaults to 'web' and a row must never be dropped for want of a recognised value.
+  platform?: string | null
+}
+export type TokenPlatform = 'web' | 'android' | 'ios'
+export interface SendSummary {
+  attempted: number
+  succeeded: number
+}
+
+export function platformOf(p: string | null | undefined): TokenPlatform {
+  return p === 'android' || p === 'ios' ? p : 'web'
+}
+
+// One multicast message per platform. title/body travel inside `data` on every platform (the web service
+// worker and the app's foreground handler both read them there).
+export function buildMulticast(
+  platform: TokenPlatform,
+  tokens: string[],
   notification: FCMNotification,
   data: Record<string, string>,
-): Promise<void> {
-  const messaging = getFirebaseMessaging()
-  if (!messaging) return
-  // Distinguished from a successful send on purpose. A player with no tokens
-  // is the most common reason a push "doesn't arrive" — 90 of 102 players
-  // were in that state — and silence made it indistinguishable from delivery.
-  if (tokens.length === 0) {
-    console.info('[FCM] no tokens for this recipient — nothing sent', { type: data.type })
-    return
+): MulticastMessage {
+  const payloadData = { ...data, title: notification.title, body: notification.body }
+
+  if (platform === 'android') {
+    // A top-level `notification` is correct HERE, unlike web (see below): the duplicate-display bug is a
+    // browser service-worker problem and does not exist in a native app, and an OS-displayed notification
+    // survives Doze and a killed app, which a data-only message does not. The channel id comes from
+    // channels.ts; an unknown type sends without one (Android then uses its default channel) rather than
+    // failing.
+    const channelId = channelFor(data.type)
+    return {
+      tokens,
+      data: payloadData,
+      notification: { title: notification.title, body: notification.body },
+      android: { priority: 'high', ttl: 86_400_000, notification: channelId ? { channelId } : {} },
+    }
   }
-  const admin = createAdminClient()
+
+  if (platform === 'ios') {
+    // Shape only: there is no iOS build or APNs credential yet (Phase 10), so delivery is unverified. Without
+    // an alert block a data-only message would silently render nothing on iOS.
+    return {
+      tokens,
+      data: payloadData,
+      apns: {
+        headers: { 'apns-priority': '10' },
+        payload: {
+          aps: { alert: { title: notification.title, body: notification.body }, sound: 'default', 'thread-id': data.type },
+        },
+      },
+    }
+  }
+
   // title/body travel inside `data`, never as a top-level `notification`
   // field — a `notification` payload makes the browser auto-display the
   // push itself, on top of the display our own onBackgroundMessage/
   // onMessage handlers (sw.js, useFCM.ts) already trigger, producing a
   // duplicate notification. Data-only leaves exactly one code path in
   // control of showNotification().
-  const payloadData = { ...data, title: notification.title, body: notification.body }
-
-  for (let i = 0; i < tokens.length; i += 500) {
-    const chunk = tokens.slice(i, i + 500)
-    const res = await messaging.sendEachForMulticast({
-      tokens: chunk.map((t) => t.token),
-      data: payloadData,
-      webpush: {
-        // Data-only messages default to normal urgency, which Android Doze
-        // batches and defers — a Galaxy S22 received test pushes minutes to
-        // hours late while a laptop got them instantly, and OS-level Chrome
-        // notification permission was already granted. Normal urgency is
-        // right for background sync; it is wrong for a fixture assignment or
-        // a result the player is waiting on, so every push here is high.
-        //
-        // Samsung's own battery management can still defer beyond this; a
-        // player seeing persistent delay may also need Chrome excluded from
-        // "Put app to sleep".
-        //
-        // TTL keeps a push queued for 24h rather than dropping it when the
-        // device is unreachable at that instant.
-        headers: { Urgency: 'high', TTL: '86400' },
-        fcmOptions: { link: data.url },
-      },
-    })
-    const staleIds: string[] = []
-    // Every non-stale failure used to vanish here. A credentials error, a
-    // quota rejection, a malformed payload — all silently discarded, which is
-    // why "push never arrives" was indistinguishable from "push was never
-    // attempted" and took a production DevTools session to diagnose.
-    const otherErrors: string[] = []
-    res.responses.forEach((r, idx) => {
-      const code = r.error?.code
-      if (r.success) return
-      if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') {
-        staleIds.push(chunk[idx].id)
-      } else {
-        otherErrors.push(code ?? 'unknown')
-      }
-    })
-
-    const succeeded = res.responses.filter((r) => r.success).length
-    console.info('[FCM] send complete', {
-      type: data.type,
-      attempted: chunk.length,
-      succeeded,
-      stale: staleIds.length,
-      failed: otherErrors.length,
-    })
-    if (otherErrors.length > 0) {
-      console.error('[FCM] send failed for reasons other than a stale token', {
-        type: data.type,
-        // Array.from rather than spreading the Set: the project's TS target
-        // predates downlevelIteration.
-        codes: Array.from(new Set(otherErrors)),
-      })
-    }
-
-    if (staleIds.length > 0) await admin.from('fcm_tokens').delete().in('id', staleIds)
+  return {
+    tokens,
+    data: payloadData,
+    webpush: {
+      // Data-only messages default to normal urgency, which Android Doze
+      // batches and defers — a Galaxy S22 received test pushes minutes to
+      // hours late while a laptop got them instantly, and OS-level Chrome
+      // notification permission was already granted. Normal urgency is
+      // right for background sync; it is wrong for a fixture assignment or
+      // a result the player is waiting on, so every push here is high.
+      //
+      // Samsung's own battery management can still defer beyond this; a
+      // player seeing persistent delay may also need Chrome excluded from
+      // "Put app to sleep".
+      //
+      // TTL keeps a push queued for 24h rather than dropping it when the
+      // device is unreachable at that instant.
+      headers: { Urgency: 'high', TTL: '86400' },
+      fcmOptions: { link: data.url },
+    },
   }
+}
+
+// Shared by sendFCMToPlayer, broadcastFCM and broadcastPush (push.ts) so
+// stale-token cleanup (FCM reporting a token as unregistered/invalid) lives
+// in exactly one place. Tokens are partitioned by platform, then batched in
+// groups of 500 — the FCM multicast limit. A failing batch never stops the
+// others.
+export async function sendToTokens(
+  tokens: PushToken[],
+  notification: FCMNotification,
+  data: Record<string, string>,
+): Promise<SendSummary> {
+  const summary: SendSummary = { attempted: 0, succeeded: 0 }
+  const messaging = getFirebaseMessaging()
+  if (!messaging) return summary
+  // Distinguished from a successful send on purpose. A player with no tokens
+  // is the most common reason a push "doesn't arrive" — 90 of 102 players
+  // were in that state — and silence made it indistinguishable from delivery.
+  if (tokens.length === 0) {
+    console.info('[FCM] no tokens for this recipient — nothing sent', { type: data.type })
+    return summary
+  }
+  const admin = createAdminClient()
+
+  const byPlatform = new Map<TokenPlatform, PushToken[]>()
+  for (const t of tokens) {
+    const platform = platformOf(t.platform)
+    byPlatform.set(platform, [...(byPlatform.get(platform) ?? []), t])
+  }
+
+  for (const [platform, group] of Array.from(byPlatform.entries())) {
+    for (let i = 0; i < group.length; i += 500) {
+      const chunk = group.slice(i, i + 500)
+      summary.attempted += chunk.length
+      let res
+      try {
+        res = await messaging.sendEachForMulticast(buildMulticast(platform, chunk.map((t) => t.token), notification, data))
+      } catch (err) {
+        console.error('[FCM] multicast threw', { type: data.type, platform, err })
+        continue
+      }
+      const staleIds: string[] = []
+      // Every non-stale failure used to vanish here. A credentials error, a
+      // quota rejection, a malformed payload — all silently discarded, which is
+      // why "push never arrives" was indistinguishable from "push was never
+      // attempted" and took a production DevTools session to diagnose.
+      const otherErrors: string[] = []
+      res.responses.forEach((r, idx) => {
+        const code = r.error?.code
+        if (r.success) return
+        if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') {
+          staleIds.push(chunk[idx].id)
+        } else {
+          otherErrors.push(code ?? 'unknown')
+        }
+      })
+
+      const succeeded = res.responses.filter((r) => r.success).length
+      summary.succeeded += succeeded
+      console.info('[FCM] send complete', {
+        type: data.type,
+        platform,
+        attempted: chunk.length,
+        succeeded,
+        stale: staleIds.length,
+        failed: otherErrors.length,
+      })
+      if (otherErrors.length > 0) {
+        console.error('[FCM] send failed for reasons other than a stale token', {
+          type: data.type,
+          platform,
+          // Array.from rather than spreading the Set: the project's TS target
+          // predates downlevelIteration.
+          codes: Array.from(new Set(otherErrors)),
+        })
+      }
+
+      if (staleIds.length > 0) await admin.from('fcm_tokens').delete().in('id', staleIds)
+    }
+  }
+  return summary
 }
 
 export async function sendFCMToPlayer(
@@ -133,7 +215,7 @@ export async function sendFCMToPlayer(
   const messaging = getFirebaseMessaging()
   if (!messaging) return
   const admin = createAdminClient()
-  const { data: tokens } = await admin.from('fcm_tokens').select('id, token').eq('player_id', playerId)
+  const { data: tokens } = await admin.from('fcm_tokens').select('id, token, platform').eq('player_id', playerId)
   await sendToTokens(tokens ?? [], notification, data)
 }
 
@@ -144,6 +226,6 @@ export async function broadcastFCM(notification: FCMNotification, data: Record<s
   const messaging = getFirebaseMessaging()
   if (!messaging) return
   const admin = createAdminClient()
-  const { data: tokens } = await admin.from('fcm_tokens').select('id, token')
+  const { data: tokens } = await admin.from('fcm_tokens').select('id, token, platform')
   await sendToTokens(tokens ?? [], notification, data)
 }
