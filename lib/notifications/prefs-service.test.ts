@@ -11,6 +11,10 @@ describe('getPrefs', () => {
     expect(p.push.post_reaction).toBe(false)
     expect(p.push.match_reminder).toBe(true)
   })
+  it('throws on a read error instead of returning defaults', async () => {
+    const { admin } = fakeAdmin(() => ({ data: null, error: { message: 'x' } }))
+    await expect(getPrefs(admin, 'u1')).rejects.toThrow()
+  })
   it('returns all defaults when the profile row is missing', async () => {
     const { admin } = fakeAdmin(() => ({ data: null }))
     expect((await getPrefs(admin, 'u1')).whatsapp.challenge_completed).toBe(false)

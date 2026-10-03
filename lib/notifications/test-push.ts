@@ -44,7 +44,9 @@ export async function sendTestPush(): Promise<TestPushResult> {
   if (!row) return { ok: false, reason: 'no-device-token' }
 
   try {
-    await sendToTokens([{ id: row.id, token: row.token }], TEST_PUSH_NOTIFICATION, TEST_PUSH_DATA)
+    const summary = await sendToTokens([{ id: row.id, token: row.token }], TEST_PUSH_NOTIFICATION, TEST_PUSH_DATA)
+    // sendToTokens contains per-batch failures; only a message FCM accepted counts as sent.
+    if (summary.succeeded === 0) return { ok: false, reason: 'send-failed' }
     return { ok: true }
   } catch (err) {
     console.error('[FCM] test push threw', err)

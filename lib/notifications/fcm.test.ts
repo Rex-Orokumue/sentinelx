@@ -290,7 +290,7 @@ describe('sendToTokens platform partition', () => {
     sendEachForMulticast
       .mockResolvedValueOnce(ok(1)) // web
       .mockRejectedValueOnce(new Error('boom')) // android
-      .mockResolvedValueOnce(ok(1)) // ios
+      .mockResolvedValueOnce({ responses: [{ success: false, error: { code: 'messaging/invalid-registration-token' } }] }) // ios
     const { sendToTokens } = await import('./fcm')
     const summary = await sendToTokens(
       [
@@ -302,7 +302,9 @@ describe('sendToTokens platform partition', () => {
       { url: '/x', type: 'match_assigned' },
     )
     expect(sendEachForMulticast).toHaveBeenCalledTimes(3)
-    expect(summary).toEqual({ attempted: 3, succeeded: 2 })
+    expect(summary).toEqual({ attempted: 3, succeeded: 1 })
+    // stale cleanup for a later platform still runs after an earlier one threw
+    expect(deleteIn).toHaveBeenCalledWith('id', ['i'])
     err.mockRestore()
   })
 

@@ -7,7 +7,9 @@ type Admin = ReturnType<typeof createAdminClient>
 // Shared by the mobile endpoints and the web Server Actions in lib/settings/notification-prefs.ts, so the
 // two cannot drift on what a save does or what "effective" means.
 export async function getPrefs(admin: Admin, userId: string): Promise<EffectivePrefs> {
-  const { data } = await admin.from('profiles').select('notification_prefs').eq('id', userId).maybeSingle()
+  const { data, error } = await admin.from('profiles').select('notification_prefs').eq('id', userId).maybeSingle()
+  // A failed read must not masquerade as "everything is on".
+  if (error) throw new Error('could not read notification preferences')
   return effectivePrefs((data as { notification_prefs?: unknown } | null)?.notification_prefs)
 }
 
