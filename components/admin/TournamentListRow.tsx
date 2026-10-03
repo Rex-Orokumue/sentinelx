@@ -35,6 +35,7 @@ export interface AdminTournamentRow {
   gameCategory: string | null
   publishBlockers: string[] // from missingForPublish; only meaningful when status === 'draft'
   paidRegistrations: number
+  acceptsInvitations: boolean // Masters / Champions Cup: shows the Invitations shortcut
   hasDisputedFinal: boolean // true when this tournament's final match is status 'disputed'
 }
 
@@ -109,6 +110,14 @@ export function TournamentListRow({ t, isAdmin }: { t: AdminTournamentRow; isAdm
           >
             Results
           </Link>
+          {t.acceptsInvitations && (
+            <Link
+              href={`/admin/tournaments/${t.id}/invitations`}
+              className="rounded-lg border border-violet-500/40 px-3 py-1.5 text-xs font-bold text-violet-300 hover:bg-violet-500/10"
+            >
+              Invitations
+            </Link>
+          )}
           {isDraft && (
             <form action={openAction}>
               <input type="hidden" name="id" value={t.id} />

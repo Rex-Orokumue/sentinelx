@@ -45,7 +45,7 @@ export default async function AdminTournamentsPage({ searchParams }: { searchPar
   let query = supabase
     .from('tournaments')
     .select(
-      'id, title, slug, status, game_id, card_image_url, max_players, registration_fee, prize_pool, registration_start, registration_end, tournament_start, tournament_end, games(name, icon_url, slug, category)',
+      'id, title, slug, status, tournament_type, game_id, card_image_url, max_players, registration_fee, prize_pool, registration_start, registration_end, tournament_start, tournament_end, games(name, icon_url, slug, category)',
     )
     .order('created_at', { ascending: false })
 
@@ -74,6 +74,7 @@ export default async function AdminTournamentsPage({ searchParams }: { searchPar
       title: string
       slug: string
       status: string
+      tournament_type: string
       game_id: string | null
       card_image_url: string | null
       max_players: number | null
@@ -91,6 +92,7 @@ export default async function AdminTournamentsPage({ searchParams }: { searchPar
       title: t.title,
       slug: t.slug,
       status: t.status,
+      acceptsInvitations: t.tournament_type === 'masters' || t.tournament_type === 'champions_cup',
       gameName: g?.name ?? null,
       gameIconUrl: resolveTournamentImageUrl(t.card_image_url, g),
       gameCategory: g?.category ?? null,
