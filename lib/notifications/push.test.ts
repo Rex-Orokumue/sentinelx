@@ -52,6 +52,16 @@ describe('pushToPlayer', () => {
     await pushToPlayer('p1', WAGER, { url: '/x' })
     expect(sendFCMToPlayer).not.toHaveBeenCalled()
   })
+
+  // Only a boolean false is an opt-out; stored junk must never silently disable a push.
+  it('sends when the stored value is not a boolean false or the prefs are junk', async () => {
+    maybeSingle.mockResolvedValueOnce({ data: { notification_prefs: { push: { wager_settled: 'false' } } } })
+    maybeSingle.mockResolvedValueOnce({ data: { notification_prefs: 'oops' } })
+    const { pushToPlayer } = await import('./push')
+    await pushToPlayer('p1', WAGER, { url: '/x' })
+    await pushToPlayer('p1', WAGER, { url: '/x' })
+    expect(sendFCMToPlayer).toHaveBeenCalledTimes(2)
+  })
 })
 
 // Reactions push by default now, which is the easiest way to make someone

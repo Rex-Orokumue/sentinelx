@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendFCMToPlayer, sendToTokens, type FCMNotification } from './fcm'
 import { isMuted } from './mutes'
+import { isPushEnabled } from './prefs'
 import { deferNotification } from './defer'
 import { renderNotification, pushTypeFor, type NotificationInput } from './copy'
 import type { PushNotificationType } from './push-types'
@@ -50,8 +51,7 @@ async function sendPushToPlayer(
       .select('notification_prefs, locale')
       .eq('id', playerId)
       .maybeSingle()
-    const push = (profile?.notification_prefs as { push?: Record<string, boolean> } | null)?.push
-    if (push?.[type] === false) return
+    if (!isPushEnabled(profile?.notification_prefs, type)) return
 
     // Temporary mutes (migration 082). Deliberately only silences the push —
     // the in-app bell still records it, because muting means "stop
@@ -90,22 +90,19 @@ async function sendBroadcastPush(
     const admin = createAdminClient()
     const { data: rows } = await admin
       .from('fcm_tokens')
-      .select('id, token, profiles!inner(notification_prefs, locale)')
+      .select('id, token, platform, profiles!inner(notification_prefs, locale)')
 
     // A broadcast cannot be rendered once: it goes to everyone, and everyone
     // gets their own language. Group the eligible tokens by locale and send one
     // batch per locale — today that is two batches, and it costs one extra FCM
     // call per additional language in use rather than one per recipient.
-    const byLocale = new Map<Locale, { id: string; token: string }[]>()
+    const byLocale = new Map<Locale, { id: string; token: string; platform: string | null }[]>()
     for (const r of rows ?? []) {
-      const profile = r.profiles as {
-        notification_prefs?: { push?: Record<string, boolean> }
-        locale?: string | null
-      } | null
-      if (profile?.notification_prefs?.push?.[type] === false) continue
+      const profile = r.profiles as { notification_prefs?: unknown; locale?: string | null } | null
+      if (!isPushEnabled(profile?.notification_prefs, type)) continue
       const locale = toLocale(profile?.locale)
       const bucket = byLocale.get(locale) ?? []
-      bucket.push({ id: r.id as string, token: r.token as string })
+      bucket.push({ id: r.id as string, token: r.token as string, platform: (r.platform as string | null) ?? null })
       byLocale.set(locale, bucket)
     }
 
@@ -151,8 +148,7 @@ async function sendPrerendered(
       .select('notification_prefs')
       .eq('id', playerId)
       .maybeSingle()
-    const push = (profile?.notification_prefs as { push?: Record<string, boolean> } | null)?.push
-    if (push?.[type] === false) return
+    if (!isPushEnabled(profile?.notification_prefs, type)) return
     await sendFCMToPlayer(playerId, notification, { ...data, type })
   } catch (err) {
     console.error('[push] pushPrerendered failed (non-blocking)', { playerId, type, err })
