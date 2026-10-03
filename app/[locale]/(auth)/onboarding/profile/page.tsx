@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server'
 import type { Locale } from '@/i18n/locales'
 import { createClient } from '@/lib/supabase/server'
 import { safeInternalPath } from '@/lib/onboarding/safe-path'
+import { listCountries } from '@/lib/phone/number'
 import { OnboardingProfileForm } from '@/components/onboarding/OnboardingProfileForm'
 
 export async function generateMetadata({ params }: { params: { locale: Locale } }) {
@@ -42,6 +43,7 @@ export default async function OnboardingProfilePage({
       <p className="mb-6 text-sm text-slate-400">{t('subtitle')}</p>
       <OnboardingProfileForm
         games={games ?? []}
+        countries={listCountries()}
         selectedGameIds={(existingInterest ?? []).map((row) => row.game_id)}
         next={next || undefined}
       />

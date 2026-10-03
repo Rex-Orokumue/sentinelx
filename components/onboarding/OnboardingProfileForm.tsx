@@ -2,7 +2,6 @@
 import { useState } from 'react'
 import { useFormState, useFormStatus } from 'react-dom'
 import { completeProfileOnboarding, type CompleteProfileOnboardingState } from '@/lib/onboarding/actions'
-import { listCountries } from '@/lib/phone/number'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -26,17 +25,21 @@ function SubmitButton() {
 
 export function OnboardingProfileForm({
   games,
+  countries,
   selectedGameIds,
   next,
 }: {
   games: { id: string; name: string; icon_url: string | null }[]
+  // Built by the server page, never here: Node and each browser name a few
+  // countries differently, which breaks hydration and lets the saved value vary
+  // by browser. See lib/phone/country-list-server-only.test.ts.
+  countries: { code: string; name: string }[]
   selectedGameIds: string[]
   next?: string
 }) {
   const [state, formAction] = useFormState<CompleteProfileOnboardingState, FormData>(completeProfileOnboarding, undefined)
   const [selected, setSelected] = useState<Set<string>>(new Set(selectedGameIds))
   const [consent, setConsent] = useState(false)
-  const countries = listCountries()
 
   function toggleGame(id: string) {
     setSelected((prev) => {
