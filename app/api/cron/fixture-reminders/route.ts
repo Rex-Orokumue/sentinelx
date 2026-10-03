@@ -39,6 +39,21 @@ type ReminderRow = {
   tournament: TitleRef
 }
 
+type Admin = ReturnType<typeof createAdminClient>
+
+// The WhatsApp send dedupes itself on this key, but the bell and push (notifyBoth)
+// have no key of their own. Without this gate every run inside a match's 65-minute
+// window would re-send them. notify() inserts the keyed row before anything else,
+// so its presence means this player was already reminded for this match.
+async function alreadyReminded(admin: Admin, matchId: string, playerId: string): Promise<boolean> {
+  const { data } = await admin
+    .from('notifications')
+    .select('id')
+    .eq('dedupe_key', reminderKey(matchId, playerId))
+    .maybeSingle()
+  return !!data
+}
+
 export async function POST(req: Request) {
   const secret = process.env.CRON_SECRET
   if (!secret || req.headers.get('authorization') !== `Bearer ${secret}`) {
@@ -81,6 +96,7 @@ export async function POST(req: Request) {
       const { rosterA, rosterB } = await matchRosters(admin, m.team_a_id, m.team_b_id)
       const rosterASet = new Set(rosterA)
       for (const pid of [...rosterA, ...rosterB]) {
+        if (await alreadyReminded(admin, m.id, pid)) continue
         await notify({ type: 'fixture_reminder', playerId: pid, dedupeKey: reminderKey(m.id, pid), playerA: a, playerB: b, tournament, matchUrl })
         const opponent = rosterASet.has(pid) ? b : a
         void notifyBoth(pid, { type: 'match_reminder', tournament, opponent }, 'match_reminder', { link: matchUrl })
@@ -90,6 +106,7 @@ export async function POST(req: Request) {
     }
 
     for (const pid of [m.player_a_id as string, m.player_b_id as string]) {
+      if (await alreadyReminded(admin, m.id, pid)) continue
       await notify({ type: 'fixture_reminder', playerId: pid, dedupeKey: reminderKey(m.id, pid), playerA: a, playerB: b, tournament, matchUrl })
       const opponent = pid === m.player_a_id ? b : a
       void notifyBoth(pid, { type: 'match_reminder', tournament, opponent }, 'match_reminder', { link: matchUrl })
