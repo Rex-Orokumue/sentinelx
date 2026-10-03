@@ -13,6 +13,7 @@ import { AccountSection } from '@/components/settings/AccountSection'
 import { hasPasswordIdentity } from '@/lib/auth/reauth'
 import { SignInMethodsSection } from '@/components/settings/SignInMethodsSection'
 import type { MembershipTier } from '@/lib/membership/tiers'
+import { settingsCountryOptions } from '@/lib/profile/country-options'
 
 export const metadata: Metadata = { title: 'Settings · SentinelX Esports', robots: { index: false, follow: false } }
 
@@ -35,11 +36,11 @@ export default async function DashboardSettingsPage({
     email: (identity.identity_data?.email as string | undefined) ?? null,
   }))
 
-  const [{ data: row }, { data: kyc }, { count: fcmTokenCount }] = await Promise.all([
+  const [{ data: row }, { data: kyc }, { count: fcmTokenCount }, { data: games }, { data: gameInterestRows }] = await Promise.all([
     createAdminClient()
       .from('profiles')
       .select(
-        'display_name, username, avatar_url, membership_tier, whatsapp_number, country, bio, kyc_verified, username_changed_at, notification_prefs, deletion_requested_at, equipped_avatar_border',
+        'display_name, username, avatar_url, membership_tier, whatsapp_number, country, bio, kyc_verified, username_changed_at, notification_prefs, deletion_requested_at, equipped_avatar_border, consent_whatsapp_updates',
       )
       .eq('id', user.id)
       .maybeSingle(),
@@ -49,6 +50,9 @@ export default async function DashboardSettingsPage({
     // (it would still read 'granted' even after the player clicked
     // Disable and their token was deleted).
     supabase.from('fcm_tokens').select('id', { count: 'exact', head: true }).eq('player_id', user.id),
+    // Same two reads as the onboarding page, so both screens offer the same games.
+    supabase.from('games').select('id, name').order('name'),
+    supabase.from('game_interest').select('game_id').eq('user_id', user.id),
   ])
 
   const prefs = (row?.notification_prefs ?? {}) as {
@@ -90,7 +94,11 @@ export default async function DashboardSettingsPage({
             whatsapp: row?.whatsapp_number ?? null,
             country: row?.country ?? null,
             bio: row?.bio ?? null,
+            consentWhatsappUpdates: row?.consent_whatsapp_updates ?? false,
+            gameInterestIds: (gameInterestRows ?? []).map((r) => r.game_id),
           }}
+          games={(games ?? []).map((g) => ({ id: g.id, name: g.name }))}
+          countryOptions={settingsCountryOptions(row?.country)}
         />
         </div>
         <NotificationPrefsForm

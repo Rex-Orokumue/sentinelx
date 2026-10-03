@@ -6,13 +6,14 @@ import { updateProfile, type ProfileEditState } from '@/lib/profile/actions'
 import { compressImageToWebp } from '@/lib/avatars/compress'
 import { HexAvatar } from '@/components/shared/HexAvatar'
 import type { MembershipTier } from '@/lib/membership/tiers'
+import type { SettingsCountryOptions } from '@/lib/profile/country-options'
 
-function SaveButton({ uploading }: { uploading: boolean }) {
+function SaveButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus()
   return (
     <button
       type="submit"
-      disabled={uploading || pending}
+      disabled={disabled || pending}
       className="rounded-lg bg-sx-purple px-5 py-2.5 text-sm font-bold text-white hover:bg-sx-purple-light disabled:opacity-50"
     >
       {pending ? 'Saving…' : 'Save Changes'}
@@ -30,15 +31,49 @@ export interface SettingsProfile {
   whatsapp: string | null
   country: string | null
   bio: string | null
+  consentWhatsappUpdates: boolean
+  gameInterestIds: string[]
 }
 
-export function ProfileForm({ profile }: { profile: SettingsProfile }) {
+export interface SettingsGame {
+  id: string
+  name: string
+}
+
+export function ProfileForm({
+  profile,
+  games,
+  countryOptions,
+}: {
+  profile: SettingsProfile
+  games: SettingsGame[]
+  // Built by the server page: Node and each browser name a few countries
+  // differently, so building it here breaks hydration and lets the saved value
+  // vary by browser.
+  countryOptions: SettingsCountryOptions
+}) {
   const [state, formAction] = useFormState<ProfileEditState, FormData>(updateProfile, undefined)
   const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const usernameLocked = !!profile.usernameChangedAt
   const [usernameValue, setUsernameValue] = useState(profile.username)
+  const [selectedGames, setSelectedGames] = useState<Set<string>>(new Set(profile.gameInterestIds))
+  const [consent, setConsent] = useState(profile.consentWhatsappUpdates)
+  const { countries, selected: selectedCountry, legacyOption } = countryOptions
+
+  // A player never drops below one game, so the last checked box ignores a click
+  // instead of being disabled — a disabled checkbox is left out of the FormData,
+  // which would submit zero games.
+  function toggleGame(id: string) {
+    setSelectedGames((prev) => {
+      if (prev.has(id) && prev.size === 1) return prev
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   async function onAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -111,12 +146,61 @@ export function ProfileForm({ profile }: { profile: SettingsProfile }) {
         </div>
 
         <Field label="Bio" name="bio" defaultValue={profile.bio ?? ''} textarea maxLength={280} />
-        <Field label="Country" name="country" defaultValue={profile.country ?? ''} />
+        <div className="space-y-1.5">
+          <label htmlFor="country" className="text-sm font-medium text-sx-gray">Country</label>
+          <select
+            id="country"
+            name="country"
+            defaultValue={selectedCountry}
+            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-sx-purple focus:outline-none"
+          >
+            <option value="">Select your country</option>
+            {legacyOption && <option value={legacyOption}>{legacyOption}</option>}
+            {countries.map((c) => (
+              <option key={c.code} value={c.name}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <Field label="WhatsApp" name="whatsapp" defaultValue={profile.whatsapp ?? ''} type="tel" placeholder="+2348012345678" />
+
+        <fieldset className="space-y-1.5">
+          <legend className="text-sm font-medium text-sx-gray">Game interests</legend>
+          <div className="space-y-2 rounded-lg border border-slate-700 bg-slate-950 p-3">
+            {games.map((game) => (
+              <label key={game.id} className="flex items-center gap-2 text-sm text-white">
+                <input
+                  type="checkbox"
+                  name="gameInterests"
+                  value={game.id}
+                  checked={selectedGames.has(game.id)}
+                  onChange={() => toggleGame(game.id)}
+                  className="h-4 w-4 accent-sx-purple"
+                />
+                {game.name}
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-sx-gray">Keep at least one game selected.</p>
+        </fieldset>
+
+        <label className="flex items-start gap-2 text-sm text-sx-gray">
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-sx-purple"
+          />
+          I agree to receive tournament updates on WhatsApp
+        </label>
+        {/* An unchecked box sends nothing, which the server would read as "leave
+            unchanged". The hidden input makes a genuine "no" arrive as 'false'. */}
+        <input type="hidden" name="consentWhatsappUpdates" value={consent ? 'true' : 'false'} />
 
         {state?.error && <p className="text-sm text-red-400">{state.error}</p>}
         {state?.success && <p className="text-sm text-emerald-400">Profile updated.</p>}
-        <SaveButton uploading={uploading} />
+        <SaveButton disabled={uploading || selectedGames.size === 0} />
       </form>
     </section>
   )
