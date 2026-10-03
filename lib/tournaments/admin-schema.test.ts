@@ -155,17 +155,22 @@ describe('tournamentSchema — competition format', () => {
     if (!r.success) expect(r.error.issues[0].path).toContain('squadSize')
   })
 
-  it('rejects squads on a head-to-head tournament', () => {
-    // Mirrors the DB CHECK. Squads are a points-race concept until roadmap
-    // #21b; letting the form accept it would fail at insert time with a raw
-    // Postgres error instead of a readable message.
+  it('accepts squads on a head-to-head tournament (team-vs-team)', () => {
+    // Migration 20260913154729 dropped tournaments_squads_are_points_race, and the
+    // catalogue offers Clash Squad 2v2/4v4 as available. This schema still carried
+    // the old rule, so the admin form could pick those formats and then refuse to
+    // create the tournament.
     const r = tournamentSchema.safeParse({
       ...valid,
       competitionFormat: 'head_to_head',
       entryUnit: 'squad',
-      squadSize: '4',
+      squadSize: '2',
     })
-    expect(r.success).toBe(false)
+    expect(r.success).toBe(true)
+    if (r.success) {
+      expect(r.data.entryUnit).toBe('squad')
+      expect(r.data.squadSize).toBe(2)
+    }
   })
 
   it('rejects a squad size outside 2-6', () => {

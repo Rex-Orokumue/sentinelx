@@ -75,12 +75,9 @@ export const tournamentSchema = z
     message: 'Enter how many players are in a squad.',
     path: ['squadSize'],
   })
-  // Mirrors tournaments_squads_are_points_race. Caught here so the admin gets
-  // a sentence instead of a Postgres constraint name.
-  .refine((d) => d.competitionFormat === 'points_race' || d.entryUnit === 'solo', {
-    message: 'Squads are only available for points-race tournaments.',
-    path: ['entryUnit'],
-  })
+  // (No "squads are points-race only" rule: the DB constraint behind it was
+  // dropped in 20260913154729 for team-vs-team, and a head-to-head squad
+  // tournament is now a supported shape.)
   // A knockout bracket is power-of-two bounded, so head-to-head stops at 64.
   // Enforced here rather than in the field so a points race is not limited by
   // a constraint that belongs to the other engine — closeRegistration applies
