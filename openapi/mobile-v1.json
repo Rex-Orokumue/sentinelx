@@ -6497,6 +6497,27 @@
                                       "type": "null"
                                     }
                                   ]
+                                },
+                                "profileCompletedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "consentWhatsappUpdates": {
+                                  "type": "boolean"
+                                },
+                                "gameInterests": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string",
+                                    "format": "uuid",
+                                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                  }
                                 }
                               },
                               "required": [
@@ -6508,7 +6529,10 @@
                                 "locale",
                                 "membershipTier",
                                 "kycVerified",
-                                "deletionRequestedAt"
+                                "deletionRequestedAt",
+                                "profileCompletedAt",
+                                "consentWhatsappUpdates",
+                                "gameInterests"
                               ],
                               "additionalProperties": false
                             },
@@ -6764,7 +6788,7 @@
                       },
                       {
                         "type": "string",
-                        "pattern": "^\\+?[0-9]{10,15}$"
+                        "maxLength": 30
                       }
                     ]
                   },
@@ -6791,6 +6815,18 @@
                         "maxLength": 280
                       }
                     ]
+                  },
+                  "gameInterests": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  },
+                  "consentWhatsappUpdates": {
+                    "type": "boolean"
                   },
                   "avatarUrl": {
                     "type": "string",
@@ -8461,6 +8497,100 @@
                       },
                       "required": [
                         "ok"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/onboarding/profile": {
+      "post": {
+        "operationId": "postOnboardingProfile",
+        "summary": "Complete the compulsory profile step — country, WhatsApp number (normalised to E.164 for the chosen country), WhatsApp-updates consent and at least one game interest. Atomic: stamps profileCompletedAt only if every field was saved.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "country": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "whatsapp": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "consentWhatsappUpdates": {
+                    "type": "boolean"
+                  },
+                  "gameInterests": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    }
+                  }
+                },
+                "required": [
+                  "country",
+                  "whatsapp",
+                  "consentWhatsappUpdates",
+                  "gameInterests"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "profileCompletedAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "profileCompletedAt"
                       ],
                       "additionalProperties": false
                     }
