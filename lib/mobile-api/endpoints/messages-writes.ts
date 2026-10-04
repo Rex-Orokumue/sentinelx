@@ -32,6 +32,8 @@ const STATUS: Record<MessageErrorCode, number> = {
   not_forwardable: 409,
   send_failed: 500,
   action_failed: 500,
+  request_pending_limit: 409,
+  request_media_not_allowed: 400,
 }
 function throwFailure(f: Failure): never {
   throw new ApiError(STATUS[f.errorCode], f.errorCode, f.message)

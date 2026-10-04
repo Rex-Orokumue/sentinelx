@@ -1,7 +1,7 @@
 import { decodeCursor, encodeCursor, keysetFilterOn } from '@/lib/mobile-api/history-cursor'
 import { isBlockedBetween, resolveParticipantContent, type BlockRow } from './predicates'
 import { stickerById } from './stickers'
-import type { MessageCtx } from './service'
+import type { MessageCtx, RequestState } from './service'
 
 // API-served DM reads for the mobile app: paged, media signed server-side, no reliance on direct profile reads.
 export const THREAD_PAGE_SIZE = 20
@@ -9,6 +9,14 @@ export const MESSAGE_PAGE_SIZE = 40
 
 const PROFILE = 'id, username, display_name, avatar_url'
 type ProfileRow = { id: string; username: string | null; display_name: string | null; avatar_url: string | null }
+
+export type Direction = 'incoming' | 'outgoing' | null
+// Only a PENDING request has a direction: who started it decides whether the viewer answers it or waits for an answer.
+function directionOf(state: RequestState, createdBy: string | null | undefined, userId: string): Direction {
+  if (state !== 'pending' || !createdBy) return null
+  return createdBy === userId ? 'outgoing' : 'incoming'
+}
+const stateOf = (v: unknown): RequestState => (v === 'pending' || v === 'declined' ? v : 'accepted')
 
 export type Participant = { id: string; name: string; username: string | null; avatarUrl: string | null }
 export type ThreadPreview = {
@@ -22,8 +30,17 @@ export type ThreadItem = {
   preview: ThreadPreview
   lastMessageAt: string
   unread: number
+  requestState: RequestState
+  direction: Direction
 }
-export type ThreadHeader = { threadId: string; other: Participant; blockedByMe: boolean; blockedByThem: boolean }
+export type ThreadHeader = {
+  threadId: string
+  other: Participant
+  blockedByMe: boolean
+  blockedByThem: boolean
+  requestState: RequestState
+  direction: Direction
+}
 export type MessageItem = {
   id: string
   senderId: string
@@ -95,22 +112,43 @@ async function blocksFor(ctx: MessageCtx): Promise<BlockRow[]> {
   return (data ?? []).map((b) => ({ blockerId: b.blocker_id, blockedId: b.blocked_id }))
 }
 
+export type Box = 'inbox' | 'requests'
+
 export async function listThreads(
   ctx: MessageCtx,
-  opts: { cursor?: string },
-): Promise<{ threads: ThreadItem[]; nextCursor: string | null }> {
+  opts: { cursor?: string; box?: Box },
+): Promise<{ threads: ThreadItem[]; nextCursor: string | null; requestCount: number }> {
   const { supabase, userId } = ctx
+  const box: Box = opts.box ?? 'inbox'
   const cursor = opts.cursor ? decodeCursor(opts.cursor) : null
+  const participantFilter = `player_a.eq.${userId},player_b.eq.${userId}`
 
   let query = supabase
     .from('dm_threads')
-    .select('id, player_a, player_b, last_message_at')
-    .or(`player_a.eq.${userId},player_b.eq.${userId}`)
+    .select('id, player_a, player_b, last_message_at, request_state, created_by')
+    .or(participantFilter)
+  // inbox: accepted threads plus every thread the viewer started (their own pending / declined requests).
+  // requests: incoming pending only. A declined thread the viewer did NOT start appears in neither box.
+  query = box === 'requests' ? query.eq('request_state', 'pending').neq('created_by', userId) : query.or(`request_state.eq.accepted,created_by.eq.${userId}`)
   if (cursor) query = query.or(keysetFilterOn('last_message_at', cursor))
-  const { data } = await query
-    .order('last_message_at', { ascending: false })
-    .order('id', { ascending: false })
-    .limit(THREAD_PAGE_SIZE + 1)
+
+  const [{ data }, blocks, incoming] = await Promise.all([
+    query
+      .order('last_message_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(THREAD_PAGE_SIZE + 1),
+    blocksFor(ctx),
+    supabase
+      .from('dm_threads')
+      .select('id, player_a, player_b')
+      .eq('request_state', 'pending')
+      .neq('created_by', userId)
+      .or(participantFilter)
+      .limit(100),
+  ])
+
+  const otherOf = (t: { player_a: string; player_b: string }) => (t.player_a === userId ? t.player_b : t.player_a)
+  const requestCount = (incoming.data ?? []).filter((t) => !isBlockedBetween(blocks, userId, otherOf(t))).length
 
   const rows = data ?? []
   const page = rows.slice(0, THREAD_PAGE_SIZE)
@@ -118,10 +156,9 @@ export async function listThreads(
     rows.length > THREAD_PAGE_SIZE
       ? encodeCursor({ created_at: page[page.length - 1].last_message_at, id: page[page.length - 1].id })
       : null
-  if (page.length === 0) return { threads: [], nextCursor }
+  if (page.length === 0) return { threads: [], nextCursor, requestCount }
 
-  const otherOf = (t: { player_a: string; player_b: string }) => (t.player_a === userId ? t.player_b : t.player_a)
-  const [profiles, blocks] = await Promise.all([profilesById(ctx, page.map(otherOf)), blocksFor(ctx)])
+  const profiles = await profilesById(ctx, page.map(otherOf))
   const visible = page.filter((t) => !isBlockedBetween(blocks, userId, otherOf(t)))
 
   // One last-message and one unread-count query per visible thread (page size <= 20, both indexed).
@@ -143,33 +180,39 @@ export async function listThreads(
           .is('read_at', null),
       ])
       const otherId = otherOf(t)
+      const requestState = stateOf(t.request_state)
       return {
         threadId: t.id,
         other: participant(otherId, profiles.get(otherId)),
         preview: previewOf((last as LastRow | null) ?? null),
         lastMessageAt: t.last_message_at,
         unread: count ?? 0,
+        requestState,
+        direction: directionOf(requestState, t.created_by, userId),
       }
     }),
   )
-  return { threads, nextCursor }
+  return { threads, nextCursor, requestCount }
 }
 
 export async function getThreadHeader(ctx: MessageCtx, threadId: string): Promise<ThreadHeader | null> {
   const { supabase, userId } = ctx
   const { data: thread } = await supabase
     .from('dm_threads')
-    .select('id, player_a, player_b')
+    .select('id, player_a, player_b, request_state, created_by')
     .eq('id', threadId)
     .maybeSingle()
   if (!thread || (thread.player_a !== userId && thread.player_b !== userId)) return null
   const otherId = thread.player_a === userId ? thread.player_b : thread.player_a
   const [profiles, blocks] = await Promise.all([profilesById(ctx, [otherId]), blocksFor(ctx)])
+  const requestState = stateOf(thread.request_state)
   return {
     threadId,
     other: participant(otherId, profiles.get(otherId)),
     blockedByMe: blocks.some((b) => b.blockerId === userId && b.blockedId === otherId),
     blockedByThem: blocks.some((b) => b.blockerId === otherId && b.blockedId === userId),
+    requestState,
+    direction: directionOf(requestState, thread.created_by, userId),
   }
 }
 

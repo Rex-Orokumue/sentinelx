@@ -7,7 +7,7 @@ const ME = 'me'
 const uuid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 const eqVal = (op: Op, col: string) => op.ops.find(([m, a]) => m === 'eq' && a[0] === col)?.[1][1]
 
-type ThreadRow = { id: string; player_a: string; player_b: string; last_message_at: string }
+type ThreadRow = { id: string; player_a: string; player_b: string; last_message_at: string; request_state?: string; created_by?: string }
 type Over = {
   threads?: ThreadRow[]
   blocks?: { blocker_id: string; blocked_id: string }[]
@@ -16,12 +16,18 @@ type Over = {
   messages?: Record<string, unknown>[]
   replyTargets?: Record<string, unknown>[]
   headerThread?: ThreadRow | null
+  incoming?: { id: string; player_a: string; player_b: string }[]
 }
 
 function build(over: Over) {
   const sess = fakeAdmin((op) => {
     const ms = methods(op)
-    if (op.table === 'dm_threads') return { data: ms.includes('maybeSingle') ? (over.headerThread ?? null) : (over.threads ?? []) }
+    if (op.table === 'dm_threads') {
+      if (ms.includes('maybeSingle')) return { data: over.headerThread ?? null }
+      const cols = String(op.ops.find(([m]) => m === 'select')?.[1][0] ?? '')
+      if (cols === 'id, player_a, player_b') return { data: over.incoming ?? [] }
+      return { data: over.threads ?? [] }
+    }
     if (op.table === 'dm_blocks') return { data: over.blocks ?? [] }
     if (op.table === 'dm_messages') {
       const tid = String(eqVal(op, 'thread_id'))
@@ -64,6 +70,8 @@ describe('listThreads', () => {
         preview: { kind: 'text', text: 'gg', stickerId: null },
         lastMessageAt: '2026-10-04T10:00:00Z',
         unread: 3,
+        requestState: 'accepted',
+        direction: null,
       },
     ])
     expect(res.nextCursor).toBeNull()
@@ -182,5 +190,56 @@ describe('listMessages', () => {
   it('rejects a malformed cursor', async () => {
     const { ctx } = build({ headerThread: t(1) })
     await expect(listMessages(ctx, uuid(1), { before: 'nope' })).rejects.toMatchObject({ code: 'invalid_cursor' })
+  })
+})
+
+describe('listThreads message requests', () => {
+  const req = (n: number, extra: Partial<ThreadRow> = {}): ThreadRow => ({ ...t(n), request_state: 'pending', created_by: 'other', ...extra })
+
+  it('marks an incoming pending thread, and an outgoing one', async () => {
+    const incoming = build({ threads: [req(1)] })
+    expect((await listThreads(incoming.ctx, { box: 'requests' })).threads[0]).toMatchObject({ requestState: 'pending', direction: 'incoming' })
+    const outgoing = build({ threads: [req(2, { created_by: ME })] })
+    expect((await listThreads(outgoing.ctx, {})).threads[0]).toMatchObject({ requestState: 'pending', direction: 'outgoing' })
+  })
+
+  it('direction is null once a thread is accepted', async () => {
+    const { ctx } = build({ threads: [req(1, { request_state: 'accepted' })] })
+    expect((await listThreads(ctx, {})).threads[0]).toMatchObject({ requestState: 'accepted', direction: null })
+  })
+
+  it('the inbox shows accepted threads and the viewer own requests only', async () => {
+    const { ctx, sess } = build({ threads: [] })
+    await listThreads(ctx, { box: 'inbox' })
+    const q = sess.calls.find((c) => c.table === 'dm_threads')!
+    expect(JSON.stringify(q.ops)).toContain(`request_state.eq.accepted,created_by.eq.${ME}`)
+  })
+
+  it('the requests box shows incoming pending threads only', async () => {
+    const { ctx, sess } = build({ threads: [] })
+    await listThreads(ctx, { box: 'requests' })
+    const q = sess.calls.find((c) => c.table === 'dm_threads')!
+    const ops = JSON.stringify(q.ops)
+    expect(ops).toContain('"request_state","pending"')
+    expect(ops).toContain(`"created_by","${ME}"`)
+    expect(ops).toContain('neq')
+  })
+
+  it('requestCount counts incoming pending threads and skips blocked ones', async () => {
+    const incoming = [
+      { id: uuid(1), player_a: ME, player_b: 'other' },
+      { id: uuid(2), player_a: ME, player_b: 'blocked-one' },
+    ]
+    const { ctx } = build({ threads: [], incoming, blocks: [{ blocker_id: ME, blocked_id: 'blocked-one' }] })
+    expect((await listThreads(ctx, {})).requestCount).toBe(1)
+  })
+})
+
+describe('getThreadHeader request info', () => {
+  it('reports the request state and who started it', async () => {
+    const { ctx } = build({ headerThread: { ...t(1), request_state: 'pending', created_by: 'other' } })
+    expect(await getThreadHeader(ctx, uuid(1))).toMatchObject({ requestState: 'pending', direction: 'incoming' })
+    const mine = build({ headerThread: { ...t(1), request_state: 'pending', created_by: ME } })
+    expect(await getThreadHeader(mine.ctx, uuid(1))).toMatchObject({ requestState: 'pending', direction: 'outgoing' })
   })
 })

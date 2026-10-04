@@ -6,6 +6,7 @@ import { messageBodySchema, reportReasonSchema, audioDurationSchema } from './sc
 import { canEditOrUnsend, canForward } from './predicates'
 import { isValidStickerId, stickerById } from './stickers'
 import { notifyBoth } from '@/lib/notifications/send'
+import { notifyInAppOf } from '@/lib/notifications/inbox'
 import { isOwnMediaPath } from './media-paths'
 
 // Every DM mutation lives here, taking an explicit context, so the Server Actions (web) and the
@@ -28,6 +29,8 @@ export type MessageErrorCode =
   | 'not_forwardable'
   | 'send_failed'
   | 'action_failed'
+  | 'request_pending_limit'
+  | 'request_media_not_allowed'
 
 export type Failure = { ok: false; errorCode: MessageErrorCode; message: string }
 const fail = (errorCode: MessageErrorCode, message: string): Failure => ({ ok: false, errorCode, message })
@@ -44,45 +47,57 @@ export type SendInput = {
   forwarded?: boolean
 }
 
+export type RequestState = 'pending' | 'accepted' | 'declined'
+// Anything unknown (including a row from before the column existed) reads as accepted: grandfathered threads are open.
+const asState = (v: unknown): RequestState => (v === 'pending' || v === 'declined' ? v : 'accepted')
+
+type ResolvedThread = { ok: true; threadId: string; requestState: RequestState; createdBy: string }
+
 // Existing thread id, or a new one. Service-role — dm_threads has no client INSERT policy. No rate limit
 // (decision 2026-09-09); abuse is handled by the admin mute + the report-queue signal.
-async function resolveOrCreateThread(
-  ctx: MessageCtx,
-  viewerId: string,
-  otherId: string,
-): Promise<{ ok: true; threadId: string } | Failure> {
+// A NEW thread starts 'pending' unless dm_is_exempt (staff sender or accepted friends).
+async function resolveOrCreateThread(ctx: MessageCtx, viewerId: string, otherId: string): Promise<ResolvedThread | Failure> {
   const admin = ctx.admin
   const { playerA, playerB } = orderedPair(viewerId, otherId)
-
-  const { data: existing } = await admin
-    .from('dm_threads')
-    .select('id')
-    .eq('player_a', playerA)
-    .eq('player_b', playerB)
-    .maybeSingle()
-  if (existing) return { ok: true, threadId: existing.id }
-
-  const { data: created, error } = await admin
-    .from('dm_threads')
-    .insert({ player_a: playerA, player_b: playerB, created_by: viewerId })
-    .select('id')
-    .single()
-  if (error?.code === '23505') {
-    const { data: raced } = await admin
+  const lookup = () =>
+    admin
       .from('dm_threads')
-      .select('id')
+      .select('id, request_state, created_by')
       .eq('player_a', playerA)
       .eq('player_b', playerB)
       .maybeSingle()
-    if (raced) return { ok: true, threadId: raced.id }
+  const existingOf = (row: { id: string; request_state?: string | null; created_by?: string | null }): ResolvedThread => ({
+    ok: true,
+    threadId: row.id,
+    requestState: asState(row.request_state),
+    createdBy: row.created_by ?? viewerId,
+  })
+
+  const { data: existing } = await lookup()
+  if (existing) return existingOf(existing)
+
+  const { data: exempt } = await admin.rpc('dm_is_exempt', { p_sender: viewerId, p_other: otherId })
+  const requestState: RequestState = exempt ? 'accepted' : 'pending'
+  const { data: created, error } = await admin
+    .from('dm_threads')
+    .insert({ player_a: playerA, player_b: playerB, created_by: viewerId, request_state: requestState })
+    .select('id')
+    .single()
+  if (error?.code === '23505') {
+    const { data: raced } = await lookup()
+    if (raced) return existingOf(raced)
   }
   if (error || !created) return fail('action_failed', 'Could not start this conversation. Please try again.')
-  return { ok: true, threadId: created.id }
+  return { ok: true, threadId: created.id, requestState, createdBy: viewerId }
 }
 
-export async function startConversation(ctx: MessageCtx, otherId: string): Promise<{ ok: true; threadId: string } | Failure> {
+export async function startConversation(
+  ctx: MessageCtx,
+  otherId: string,
+): Promise<{ ok: true; threadId: string; requestState: RequestState } | Failure> {
   if (!otherId || otherId === ctx.userId) return fail('validation', 'Pick someone to message.')
-  return resolveOrCreateThread(ctx, ctx.userId, otherId)
+  const res = await resolveOrCreateThread(ctx, ctx.userId, otherId)
+  return res.ok ? { ok: true, threadId: res.threadId, requestState: res.requestState } : res
 }
 
 // The trusted core. forwardMessageCore reuses it with a path read from the database row (the original
@@ -119,21 +134,27 @@ export async function sendMessageCore(
 
   let threadId = input.threadId
   let otherId: string
+  let requestState: RequestState = 'accepted'
+  let createdBy: string | null = null
 
   if (threadId) {
     const { data: t } = await admin
       .from('dm_threads')
-      .select('player_a, player_b')
+      .select('player_a, player_b, request_state, created_by')
       .eq('id', threadId)
       .maybeSingle()
     if (!t || (t.player_a !== userId && t.player_b !== userId)) return fail('not_found', 'Conversation not found.')
     otherId = t.player_a === userId ? t.player_b : t.player_a
+    requestState = asState(t.request_state)
+    createdBy = t.created_by ?? null
   } else {
     if (!input.recipientId || input.recipientId === userId) return fail('validation', 'Pick someone to message.')
     otherId = input.recipientId
     const resolved = await resolveOrCreateThread(ctx, userId, otherId)
     if (!resolved.ok) return resolved
     threadId = resolved.threadId
+    requestState = resolved.requestState
+    createdBy = resolved.createdBy
   }
 
   // Friendly pre-checks (RLS dm_can_message() is the real guard).
@@ -154,6 +175,12 @@ export async function sendMessageCore(
     return iBlocked
       ? fail('blocked_by_me', 'Unblock this player to message them.')
       : fail('blocked', 'You can no longer message this player.')
+  }
+
+  // The initiator of a declined request is told exactly what a block would say, so a decline is not its own signal.
+  // (dm_can_message in the database is the real guard; this is the friendly pre-check.)
+  if (requestState === 'declined' && createdBy === userId) {
+    return fail('blocked', 'You can no longer message this player.')
   }
 
   // A reply target must belong to THIS thread — a client could otherwise pass an arbitrary message id from
@@ -188,6 +215,12 @@ export async function sendMessageCore(
     .select('id, created_at')
     .single()
   if (insErr) {
+    // The request gate lives in the database (triggers raise these); translate for the person sending.
+    const reason = insErr.message ?? ''
+    if (reason.includes('request_pending_limit')) return fail('request_pending_limit', 'Wait for a reply before sending more.')
+    if (reason.includes('request_media_not_allowed')) {
+      return fail('request_media_not_allowed', 'Only text can be sent until they accept.')
+    }
     console.error('[sendMessage] insert failed', { userId, threadId, code: insErr.code, message: insErr.message })
     return fail('send_failed', 'Could not send your message. Please try again.')
   }
@@ -200,10 +233,15 @@ export async function sendMessageCore(
   const kind: 'text' | 'sticker' | 'voice' | 'photo' = body ? 'text' : stickerId ? 'sticker' : audioUrl ? 'voice' : 'photo'
   const excerpt = body ? (body.length > 80 ? `${body.slice(0, 80)}…` : body) : undefined
   const emoji = stickerId ? (stickerById(stickerId)?.emoji ?? '🙂') : undefined
-  void notifyBoth(otherId, { type: 'direct_message', fromName, kind, excerpt, emoji }, 'direct_message', {
-    link: `/messages/${threadId}`,
-    data: { threadId },
-  })
+  const notification = { type: 'direct_message' as const, fromName, kind, excerpt, emoji }
+  const link = `/messages/${threadId}`
+  if (requestState === 'pending' && createdBy === userId) {
+    // A request from a stranger still lands in the bell (so it is findable) but does not push: no stranger's message
+    // on a lock screen until the thread is accepted. No new notification type is needed for this.
+    void notifyInAppOf(otherId, notification, 'direct_message', link)
+  } else {
+    void notifyBoth(otherId, notification, 'direct_message', { link, data: { threadId } })
+  }
 
   return { ok: true, threadId, messageId: inserted.id, createdAt: inserted.created_at ?? new Date().toISOString() }
 }
@@ -219,15 +257,25 @@ export async function sendClientMessage(
   return sendMessageCore(ctx, { ...input, forwarded: false })
 }
 
-// No thread_id filter needed: the recipient-mark-read RLS policy already restricts the update to rows on
-// threads the caller is a participant of, across all of their threads at once.
+// The recipient-mark-read RLS policy restricts the update to rows on threads the caller participates in, across all
+// of their threads at once. Messages in a still-PENDING incoming request are excluded: reading a request must not
+// tell the sender anything until it is accepted.
 export async function markAllDelivered(ctx: MessageCtx): Promise<void> {
   try {
-    await ctx.supabase
+    const { data: pending } = await ctx.admin
+      .from('dm_threads')
+      .select('id')
+      .eq('request_state', 'pending')
+      .neq('created_by', ctx.userId)
+      .or(`player_a.eq.${ctx.userId},player_b.eq.${ctx.userId}`)
+    const pendingIds = (pending ?? []).map((r) => r.id)
+    let update = ctx.supabase
       .from('dm_messages')
       .update({ delivered_at: new Date().toISOString() })
       .neq('sender_id', ctx.userId)
       .is('delivered_at', null)
+    if (pendingIds.length > 0) update = update.not('thread_id', 'in', `(${pendingIds.join(',')})`)
+    await update
   } catch {
     // best-effort
   }
@@ -235,15 +283,19 @@ export async function markAllDelivered(ctx: MessageCtx): Promise<void> {
 
 export async function markThreadRead(ctx: MessageCtx, threadId: string): Promise<void> {
   try {
-    // Reading implies delivered — stamping both covers the deep-link case (opening a thread straight from a
-    // push notification) where the list-page realtime subscription that normally marks delivered_at never mounted.
-    const now = new Date().toISOString()
-    await ctx.supabase
-      .from('dm_messages')
-      .update({ read_at: now, delivered_at: now })
-      .eq('thread_id', threadId)
-      .neq('sender_id', ctx.userId)
-      .is('read_at', null)
+    const { data: t } = await ctx.admin.from('dm_threads').select('request_state, created_by').eq('id', threadId).maybeSingle()
+    const pendingIncoming = asState(t?.request_state) === 'pending' && !!t?.created_by && t.created_by !== ctx.userId
+    if (!pendingIncoming) {
+      // Reading implies delivered — stamping both covers the deep-link case (opening a thread straight from a
+      // push notification) where the list-page realtime subscription that normally marks delivered_at never mounted.
+      const now = new Date().toISOString()
+      await ctx.supabase
+        .from('dm_messages')
+        .update({ read_at: now, delivered_at: now })
+        .eq('thread_id', threadId)
+        .neq('sender_id', ctx.userId)
+        .is('read_at', null)
+    }
     await ctx.admin
       .from('player_notifications')
       .update({ read: true })
@@ -400,4 +452,38 @@ export async function forwardMessageCore(
     forwarded: true,
   })
   return res.ok ? { ok: true, messageId: res.messageId } : res
+}
+
+// Only the NON-creator participant may answer a request. Both are idempotent, and neither can undo the other: an
+// accepted thread is never declined, and a declined one is reopened only by the recipient writing (database trigger).
+async function loadRequestThread(ctx: MessageCtx, threadId: string) {
+  const { data: t } = await ctx.admin
+    .from('dm_threads')
+    .select('player_a, player_b, created_by, request_state')
+    .eq('id', threadId)
+    .maybeSingle()
+  if (!t || (t.player_a !== ctx.userId && t.player_b !== ctx.userId) || t.created_by === ctx.userId) return null
+  return t
+}
+
+export async function acceptRequest(ctx: MessageCtx, threadId: string): Promise<{ ok: true } | Failure> {
+  const t = await loadRequestThread(ctx, threadId)
+  if (!t) return fail('not_found', 'Conversation not found.')
+  if (asState(t.request_state) === 'accepted') return { ok: true }
+  const { error } = await ctx.admin.from('dm_threads').update({ request_state: 'accepted' }).eq('id', threadId)
+  if (error) return fail('action_failed', 'Could not accept this request. Please try again.')
+  return { ok: true }
+}
+
+export async function declineRequest(ctx: MessageCtx, threadId: string): Promise<{ ok: true } | Failure> {
+  const t = await loadRequestThread(ctx, threadId)
+  if (!t) return fail('not_found', 'Conversation not found.')
+  if (asState(t.request_state) !== 'pending') return { ok: true }
+  const { error } = await ctx.admin
+    .from('dm_threads')
+    .update({ request_state: 'declined' })
+    .eq('id', threadId)
+    .eq('request_state', 'pending')
+  if (error) return fail('action_failed', 'Could not decline this request. Please try again.')
+  return { ok: true }
 }
