@@ -1,5 +1,24 @@
 import { describe, it, expect } from 'vitest'
-import { canCheckIn, checkInVerdict, soleAttendee } from './check-in'
+import { canCheckIn, checkInSummary, checkInVerdict, soleAttendee } from './check-in'
+
+describe('checkInSummary', () => {
+  const side = (name: string, flags: boolean[]) => ({
+    name,
+    roster: flags.map((checkedIn) => ({ checkedIn })),
+  })
+  it('solo: keeps the player wording', () => {
+    expect(checkInSummary('both', null, null)).toBe('Both players checked in.')
+    expect(checkInSummary('none', null, null)).toBe('Neither player checked in.')
+  })
+  it('team both: reports how many of each roster are present', () => {
+    expect(checkInSummary('both', side('Alpha', [true, false]), side('Beta', [true, true]))).toBe(
+      'Both squads have players checked in — Alpha 1 of 2, Beta 2 of 2.',
+    )
+  })
+  it('team none: names squads, not players', () => {
+    expect(checkInSummary('none', side('Alpha', [false]), side('Beta', [false]))).toBe('Neither squad checked in.')
+  })
+})
 
 const base = {
   isParticipant: true,

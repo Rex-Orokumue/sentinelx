@@ -41,3 +41,14 @@ export function soleAttendee(
   if (checkInVerdict(state) !== 'one') return null
   return state.playerACheckedIn ? playerAId : playerBId
 }
+
+// Admin-facing sentence for the 'both'/'none' verdicts. Squad sides (non-null)
+// get squad wording plus per-roster counts, since one present teammate is enough
+// for a side to count as checked in but isn't the whole squad.
+type SummarySide = { name: string; roster: { checkedIn: boolean }[] }
+export function checkInSummary(verdict: 'both' | 'none', sideA: SummarySide | null, sideB: SummarySide | null): string {
+  if (!sideA || !sideB) return verdict === 'both' ? 'Both players checked in.' : 'Neither player checked in.'
+  if (verdict === 'none') return 'Neither squad checked in.'
+  const count = (s: SummarySide) => `${s.name} ${s.roster.filter((r) => r.checkedIn).length} of ${s.roster.length}`
+  return `Both squads have players checked in — ${count(sideA)}, ${count(sideB)}.`
+}

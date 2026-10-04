@@ -4,15 +4,13 @@ import { requireStaff } from '@/lib/admin/auth'
 import { bucketReviewQueue, type ReviewMatchInput } from '@/lib/matches/review-queue'
 import { hasScoreMismatch } from '@/lib/matches/verify'
 import { AdminResultsQueue } from '@/components/admin/AdminResultsQueue'
+import { sideName, type SquadRef } from '@/lib/matches/sides'
 import { safeFetchRegistrationFields, pickDisplayValue } from '@/lib/tournaments/registration-fields'
 
 export const metadata: Metadata = { title: 'Results · Admin · SentinelX' }
 
 type ProfileRef = { id?: string; username: string | null; display_name: string | null } | null
 type TournamentRef = { title: string; slug: string } | { title: string; slug: string }[] | null
-function nameOf(p: ProfileRef): string {
-  return p?.display_name ?? p?.username ?? 'TBD'
-}
 function firstT(t: TournamentRef): { title: string; slug: string } | null {
   return Array.isArray(t) ? t[0] ?? null : t
 }
@@ -26,6 +24,8 @@ export default async function AdminResultsPage() {
       'id, round, status, scheduled_at, is_full_day, noshow_flagged_at, tournament_id, ' +
         'player_a:profiles!matches_player_a_id_fkey(id, username, display_name), ' +
         'player_b:profiles!matches_player_b_id_fkey(id, username, display_name), ' +
+        'team_a:squads!matches_team_a_id_fkey(id, name), ' +
+        'team_b:squads!matches_team_b_id_fkey(id, name), ' +
         'tournament:tournaments(title, slug), ' +
         'match_results(score_a, score_b)',
     )
@@ -73,6 +73,8 @@ export default async function AdminResultsPage() {
       tournament_id: string
       player_a: ProfileRef
       player_b: ProfileRef
+      team_a: SquadRef
+      team_b: SquadRef
       tournament: TournamentRef
       match_results: { score_a: number; score_b: number }[]
     }
@@ -86,8 +88,8 @@ export default async function AdminResultsPage() {
       submissionCount: submissions.length,
       hasMismatch: hasScoreMismatch(submissions.map((s) => ({ scoreA: s.score_a, scoreB: s.score_b }))),
       round: m.round,
-      playerAName: nameOf(m.player_a),
-      playerBName: nameOf(m.player_b),
+      playerAName: sideName(m.player_a, m.team_a),
+      playerBName: sideName(m.player_b, m.team_b),
       playerAClubName: m.player_a?.id ? clubByKey.get(`${m.tournament_id}:${m.player_a.id}`) ?? null : null,
       playerBClubName: m.player_b?.id ? clubByKey.get(`${m.tournament_id}:${m.player_b.id}`) ?? null : null,
       tournamentTitle: t?.title ?? 'Tournament',

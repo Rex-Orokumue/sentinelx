@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { sideName, type SquadRef } from '@/lib/matches/sides'
 import { bucketReviewQueue, type ReviewMatchInput } from '@/lib/matches/review-queue'
 import {
   exchangeListingNotification,
@@ -74,6 +75,8 @@ async function fetchResultItems(supabase: SupabaseClient): Promise<AdminNotifica
     created_at: string
     player_a: NameRef
     player_b: NameRef
+    team_a: SquadRef
+    team_b: SquadRef
     tournament: TournamentRef
     match_results: { count: number }[]
   }
@@ -84,6 +87,8 @@ async function fetchResultItems(supabase: SupabaseClient): Promise<AdminNotifica
       'id, round, status, scheduled_at, is_full_day, noshow_flagged_at, created_at, ' +
         'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
         'player_b:profiles!matches_player_b_id_fkey(username, display_name), ' +
+        'team_a:squads!matches_team_a_id_fkey(id, name), ' +
+        'team_b:squads!matches_team_b_id_fkey(id, name), ' +
         'tournament:tournaments(title), match_results(count)',
     )
     .in('status', ['scheduled', 'live', 'disputed'])
@@ -101,8 +106,8 @@ async function fetchResultItems(supabase: SupabaseClient): Promise<AdminNotifica
       submissionCount: m.match_results?.[0]?.count ?? 0,
       hasMismatch: false, // this call site only counts for the notification bell, never displays the flag
       round: m.round,
-      playerAName: nameOf(m.player_a),
-      playerBName: nameOf(m.player_b),
+      playerAName: sideName(m.player_a, m.team_a, 'Player'),
+      playerBName: sideName(m.player_b, m.team_b, 'Player'),
       tournamentTitle: t?.title ?? 'Tournament',
       tournamentSlug: '',
       noshowFlaggedAt: m.noshow_flagged_at,

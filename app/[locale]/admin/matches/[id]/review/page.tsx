@@ -10,7 +10,7 @@ import { DeclareNoShowWinnerForm } from '@/components/admin/DeclareNoShowWinnerF
 import { MarkBothNoShowForm } from '@/components/admin/MarkBothNoShowForm'
 import { canMarkBothNoShow } from '@/lib/matches/noshow-eligibility'
 import { resolveBackLink } from '@/lib/nav/back-link'
-import { checkInVerdict, soleAttendee } from '@/lib/matches/check-in'
+import { checkInSummary, checkInVerdict, soleAttendee } from '@/lib/matches/check-in'
 import { RosterAttendanceGrid, type SideInfo } from '@/components/admin/RosterAttendanceGrid'
 
 export const metadata: Metadata = { title: 'Review · Admin · SentinelX' }
@@ -198,10 +198,8 @@ export default async function ReviewMatchPage({
               Only <span className="font-bold">{attendeeName}</span> checked in — their opponent never
               marked themselves present.
             </>
-          ) : verdict === 'both' ? (
-            'Both players checked in.'
           ) : (
-            'Neither player checked in.'
+            checkInSummary(verdict, sideA, sideB)
           )}
         </p>
       </div>
