@@ -13,11 +13,12 @@ export function notifyBoth(
   playerId: string,
   input: NotificationInput,
   inAppType: NotificationType,
-  opts: { link?: string; url?: string; postId?: string | null } = {},
+  // `data` rides along in the push payload (e.g. a DM's threadId); it can never override `url`.
+  opts: { link?: string; url?: string; postId?: string | null; data?: Record<string, string> } = {},
 ): Promise<void> {
   const url = opts.url ?? opts.link
   return Promise.all([
     notifyInAppOf(playerId, input, inAppType, opts.link),
-    pushToPlayer(playerId, input, url ? { url } : {}, { postId: opts.postId }),
+    pushToPlayer(playerId, input, { ...(opts.data ?? {}), ...(url ? { url } : {}) }, { postId: opts.postId }),
   ]).then(() => undefined)
 }

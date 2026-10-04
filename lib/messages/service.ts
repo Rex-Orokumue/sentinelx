@@ -202,6 +202,7 @@ export async function sendMessageCore(
   const emoji = stickerId ? (stickerById(stickerId)?.emoji ?? '🙂') : undefined
   void notifyBoth(otherId, { type: 'direct_message', fromName, kind, excerpt, emoji }, 'direct_message', {
     link: `/messages/${threadId}`,
+    data: { threadId },
   })
 
   return { ok: true, threadId, messageId: inserted.id, createdAt: inserted.created_at ?? new Date().toISOString() }

@@ -53,3 +53,18 @@ describe('forwarding is NOT subject to the path rule (regression guard)', () => 
     expect(await forwardMessageCore(c, { messageId: 'm1', toThreadId: 't' })).toMatchObject({ ok: true })
   })
 })
+
+describe('DM push data', () => {
+  it('passes the thread id to notifyBoth so a push tap can open the right thread', async () => {
+    const { notifyBoth } = await import('@/lib/notifications/send')
+    ;(notifyBoth as unknown as { mockClear: () => void }).mockClear()
+    const { c } = ctx()
+    await sendClientMessage(c, { threadId: 't-xyz', body: 'hello' })
+    expect(notifyBoth).toHaveBeenCalledWith(
+      V,
+      expect.objectContaining({ type: 'direct_message' }),
+      'direct_message',
+      { link: '/messages/t-xyz', data: { threadId: 't-xyz' } },
+    )
+  })
+})

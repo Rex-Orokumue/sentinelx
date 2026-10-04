@@ -65,7 +65,7 @@ describe('sendMessage (current behaviour)', () => {
     expect(notifyBoth).toHaveBeenCalledTimes(1)
     expect(notifyBoth.mock.calls[0][0]).toBe('u2')
     expect(notifyBoth.mock.calls[0][1]).toMatchObject({ type: 'direct_message', kind: 'text', excerpt: 'hello there' })
-    expect(notifyBoth.mock.calls[0][3]).toEqual({ link: `/messages/${T}` })
+    expect(notifyBoth.mock.calls[0][3]).toEqual({ link: `/messages/${T}`, data: { threadId: T } })
   })
 })
 
