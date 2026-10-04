@@ -36,3 +36,10 @@ export function pageOf<T extends { created_at: string; id: string }>(rows: T[]):
   const items = rows.slice(0, HISTORY_PAGE_SIZE)
   return { items, nextCursor: rows.length > HISTORY_PAGE_SIZE ? encodeCursor(items[items.length - 1]) : null }
 }
+
+// Same keyset as keysetFilter but on a differently named timestamp column (e.g. dm_threads.last_message_at). The column
+// is interpolated into a PostgREST `.or()` string, so it is restricted to plain identifiers.
+export function keysetFilterOn(column: string, c: { t: string; id: string }): string {
+  if (!/^[a-z_]+$/.test(column)) throw new Error('invalid keyset column')
+  return `${column}.lt."${c.t}",and(${column}.eq."${c.t}",id.lt.${c.id})`
+}

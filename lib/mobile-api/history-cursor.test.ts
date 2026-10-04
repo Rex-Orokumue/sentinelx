@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { encodeCursor, decodeCursor, keysetFilter, pageOf, HISTORY_PAGE_SIZE } from './history-cursor'
+import { encodeCursor, decodeCursor, keysetFilter, keysetFilterOn, pageOf, HISTORY_PAGE_SIZE } from './history-cursor'
 
 const ID = '11111111-1111-4111-8111-111111111111'
 const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url')
@@ -26,6 +26,18 @@ describe('cursor', () => {
     expect(keysetFilter({ t: '2026-09-24T10:00:00.123456+00:00', id: ID })).toBe(
       `created_at.lt."2026-09-24T10:00:00.123456+00:00",and(created_at.eq."2026-09-24T10:00:00.123456+00:00",id.lt.${ID})`,
     )
+  })
+})
+
+describe('keysetFilterOn', () => {
+  it('orders on a named column', () => {
+    expect(keysetFilterOn('last_message_at', { t: '2026-09-24T10:00:00Z', id: ID })).toBe(
+      `last_message_at.lt."2026-09-24T10:00:00Z",and(last_message_at.eq."2026-09-24T10:00:00Z",id.lt.${ID})`,
+    )
+  })
+  it('refuses a column that could inject filter syntax', () => {
+    expect(() => keysetFilterOn('created_at"),id.eq.1', { t: '2026-09-24T10:00:00Z', id: ID })).toThrow()
+    expect(() => keysetFilterOn('a b', { t: '2026-09-24T10:00:00Z', id: ID })).toThrow()
   })
 })
 
