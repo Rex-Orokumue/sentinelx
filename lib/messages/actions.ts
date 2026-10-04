@@ -26,7 +26,7 @@ export async function startConversation(otherId: string): Promise<{ threadId?: s
 export async function sendMessage(input: service.SendInput): Promise<{ threadId?: string; messageId?: string; error?: string }> {
   const ctx = await authed()
   if (!ctx) return LOGIN
-  const res = await service.sendMessageCore(ctx, input)
+  const res = await service.sendClientMessage(ctx, input)
   if (!res.ok) return { error: res.message }
   revalidatePath('/messages')
   revalidatePath(`/messages/${res.threadId}`)

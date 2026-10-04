@@ -6,6 +6,7 @@ import { messageBodySchema, reportReasonSchema, audioDurationSchema } from './sc
 import { canEditOrUnsend, canForward } from './predicates'
 import { isValidStickerId, stickerById } from './stickers'
 import { notifyBoth } from '@/lib/notifications/send'
+import { isOwnMediaPath } from './media-paths'
 
 // Every DM mutation lives here, taking an explicit context, so the Server Actions (web) and the
 // /api/mobile/v1 endpoints share ONE implementation (mobile API conventions §7.1).
@@ -204,6 +205,17 @@ export async function sendMessageCore(
   })
 
   return { ok: true, threadId, messageId: inserted.id, createdAt: inserted.created_at ?? new Date().toISOString() }
+}
+
+// The ONLY entry point for content that came from a client: media paths must be the caller's own upload,
+// and a client can never claim `forwarded`. Forwarding uses sendMessageCore directly (see its comment).
+export async function sendClientMessage(
+  ctx: MessageCtx,
+  input: SendInput,
+): Promise<{ ok: true; threadId: string; messageId: string; createdAt: string } | Failure> {
+  if (input.imageUrl && !isOwnMediaPath(input.imageUrl.trim(), ctx.userId)) return fail('validation', 'Invalid attachment.')
+  if (input.audioUrl && !isOwnMediaPath(input.audioUrl.trim(), ctx.userId)) return fail('validation', 'Invalid attachment.')
+  return sendMessageCore(ctx, { ...input, forwarded: false })
 }
 
 // No thread_id filter needed: the recipient-mark-read RLS policy already restricts the update to rows on
