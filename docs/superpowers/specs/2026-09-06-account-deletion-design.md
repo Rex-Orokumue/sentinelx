@@ -306,7 +306,11 @@ same pepper, and deletes the matching row. The input is the plaintext value
 because the stored hash cannot be reversed. It reports whether a row
 matched, which is the only way to confirm the entry existed.
 
-Both actions write to the existing admin audit trail.
+There is no general admin audit trail in the codebase today — `admin_flags`
+records player conduct, not staff actions. Since both of these reverse a
+permanent decision, this design adds a minimal `admin_recovery_log`
+(`id`, `actor_id`, `action`, `target`, `created_at`) written by both, rather
+than leaving the reversals untraceable.
 
 ---
 
