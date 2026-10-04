@@ -186,8 +186,14 @@ with Accept, Decline and Block-and-report. The initiator sees "Waiting for X to 
 text-only composer that disables after the one message. Web strings en, fr, pcm; mobile en, fr.
 
 **Known limits.** The initiator is not told when a request is accepted by button (no new
-notification type, and `dm_threads` is not in the realtime publication); they learn on refetch or
-when the other player writes. Non-friend opponents reach each other as push-silent requests, which
+notification type, and `dm_threads` is not in the realtime publication). Mitigation in the app,
+not the database: while an **outgoing-pending thread is open and visible**, the client polls the
+thread header every 20-30 s; nothing polls in any other state; refetch on resume covers a player
+who left the app. Most recipients reply, and a reply arrives as a normal message and flips the
+thread. **Not adding `dm_threads` to the realtime publication:** every message bumps
+`last_message_at`, so it would fire a thread UPDATE to both participants on every message
+(doubling realtime events on the free plan) and need client filtering for `request_state`
+changes. If the beta shows the delay matters, the publication migration is the upgrade path. Non-friend opponents reach each other as push-silent requests, which
 hurts fixture coordination: watch this in the beta and add the fixture exemption to `dm_is_exempt`.
 
 ### 3.8 Mobile structure
@@ -235,7 +241,12 @@ Decline hides the thread from the recipient and the initiator gets the block wor
 open a new thread; accepted friends and staff start `accepted`; a follower who is not a friend
 starts `pending`; grandfathered threads are unaffected; no receipts stamped on a pending thread;
 a pending message writes the bell row but sends no push; an unsent message still counts toward
-the cap.
+the cap (the trigger counts rows regardless of `deleted_at`; test: send, unsend, send again, the
+second send is rejected); the friends exemption requires `status = 'accepted'` (a pending friend
+request does not exempt the pair); `dm_is_exempt` and `is_staff()` agree on who is staff for every
+role in the schema (the function reads the sender's role directly, so it is a second
+implementation of the same rule and is tested against the first). Mobile: the outgoing-pending
+header poll runs only while that thread is open and visible, and stops otherwise.
 
 Web (vitest): service characterization (send, forward, edit/unsend windows, read, block+follow
 sever, report); each endpoint's auth, validation and error codes; send idempotency (retry returns
