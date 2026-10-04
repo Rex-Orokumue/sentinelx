@@ -230,4 +230,19 @@ describe('computeTournamentStatus', () => {
       awaitingOpponent: false,
     })
   })
+
+  it('treats a squad id as the competitor in a team knockout (win -> next round, loss -> eliminated)', () => {
+    const squadMatch = (over: Partial<KnockoutMatchInput>) =>
+      knockoutMatch({ player_a_id: null, player_b_id: null, team_a_id: 'squadMe', team_b_id: 'squadOpp', ...over })
+    const won = computeTournamentStatus(
+      'squadMe',
+      baseInput({ knockoutMatches: [squadMatch({ round: 'quarter_final', score_a: 3, score_b: 1 })] }),
+    )
+    expect(won).toMatchObject({ kind: 'qualified', round: 'semi_final', awaitingOpponent: true })
+    const lost = computeTournamentStatus(
+      'squadMe',
+      baseInput({ knockoutMatches: [squadMatch({ round: 'quarter_final', score_a: 0, score_b: 2 })] }),
+    )
+    expect(lost).toMatchObject({ kind: 'eliminated', round: 'quarter_final' })
+  })
 })

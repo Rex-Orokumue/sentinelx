@@ -24,4 +24,8 @@ describe('mapRecentMatches', () => {
   it('skips rows with a null score', () => {
     expect(mapRecentMatches([{ ...base, score_a: null }], 'me')).toEqual([])
   })
+  it('resolves my side by squad id in a team match', () => {
+    const row = { ...base, player_a_id: null, player_b_id: null, team_a_id: 'sqOpp', team_b_id: 'sqMe', score_a: 0, score_b: 2 }
+    expect(mapRecentMatches([row], 'me', ['sqMe'])[0]).toMatchObject({ outcome: 'win', myScore: 2, opponentScore: 0 })
+  })
 })

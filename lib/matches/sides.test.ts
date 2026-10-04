@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { sideName, myMatchesFilter, isMySide, pickOpponent } from './sides'
+import { sideName, myMatchesFilter, isMySide, mySideId, pickOpponent } from './sides'
 
 describe('sideName', () => {
   it('prefers the squad name', () => expect(sideName(null, { name: 'Alpha' })).toBe('Alpha'))
@@ -37,13 +37,13 @@ describe('pickOpponent', () => {
     ...squadMatch,
     player_a: null,
     player_b: null,
-    team_a: { id: 's1', name: 'Alpha' },
-    team_b: { id: 's2', name: 'Beta' },
+    team_a: { id: 's1', name: 'Alpha', captain_id: 'capA' },
+    team_b: { id: 's2', name: 'Beta', captain_id: 'capB' },
   }
   it('squad match: user on side B sees side A squad, no player id', () =>
-    expect(pickOpponent(base, 'u1', ['s2'])).toEqual({ name: 'Alpha', playerId: null, squadId: 's1' }))
+    expect(pickOpponent(base, 'u1', ['s2'])).toEqual({ name: 'Alpha', playerId: null, squadId: 's1', contactPlayerId: 'capA' }))
   it('squad match: user on side A sees side B squad', () =>
-    expect(pickOpponent(base, 'u1', ['s1'])).toEqual({ name: 'Beta', playerId: null, squadId: 's2' }))
+    expect(pickOpponent(base, 'u1', ['s1'])).toEqual({ name: 'Beta', playerId: null, squadId: 's2', contactPlayerId: 'capB' }))
   it('solo match: opponent is the other player', () =>
     expect(
       pickOpponent(
@@ -56,9 +56,16 @@ describe('pickOpponent', () => {
         'u1',
         [],
       ),
-    ).toEqual({ name: 'Them', playerId: 'u2', squadId: null }))
+    ).toEqual({ name: 'Them', playerId: 'u2', squadId: null, contactPlayerId: 'u2' }))
   it('squad vs TBD (null side) renders TBD', () =>
     expect(pickOpponent({ ...base, team_b_id: null, team_b: null }, 'u1', ['s1'])).toEqual({
-      name: 'TBD', playerId: null, squadId: null,
+      name: 'TBD', playerId: null, squadId: null, contactPlayerId: null,
     }))
+})
+
+describe('mySideId', () => {
+  it('is the squad id for a squad match', () => expect(mySideId(squadMatch, 'u1', ['s2'])).toBe('s2'))
+  it('is the user id for a solo match', () =>
+    expect(mySideId({ ...squadMatch, player_a_id: 'u1', team_a_id: null }, 'u1', [])).toBe('u1'))
+  it('is null for a bystander', () => expect(mySideId(squadMatch, 'u1', [])).toBeNull())
 })

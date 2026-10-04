@@ -14,6 +14,15 @@ import {
 import type { MembershipInput } from '@/lib/tournaments/standings'
 import { computeDataSupportEligibility } from '@/lib/dashboard/data-support'
 import { DashboardShell } from '@/components/dashboard/DashboardShell'
+import {
+  MATCH_SIDES_SELECT,
+  getMySquadIds,
+  isMySide,
+  mySideId,
+  myMatchesFilter,
+  pickOpponent,
+  type SquadRef,
+} from '@/lib/matches/sides'
 
 export const metadata: Metadata = { title: 'My Matches · SentinelX Esports', robots: { index: false, follow: false } }
 
@@ -23,9 +32,6 @@ type TournamentRef =
   | { title: string; slug: string; status: string; data_support_text: string | null; data_support_whatsapp: string | null }[]
   | null
 
-function nameOf(p: ProfileRef): string {
-  return p?.display_name ?? p?.username ?? 'TBD'
-}
 function countryOf(p: ProfileRef): string | null {
   return p?.country ?? null
 }
@@ -43,27 +49,39 @@ export default async function DashboardMatchesPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/dashboard/matches')
 
+  // Squad matches have no player ids on them, so "my matches" needs the squads
+  // I'm on as well as my own id.
+  const squadIds = await getMySquadIds(supabase, user.id)
+
   const [profileRes, matchesRes, resultsRes, myGroupMembershipsRes] = await Promise.all([
     supabase.from('profiles').select('username').eq('id', user.id).maybeSingle(),
     supabase
       .from('matches')
       .select(
-        'id, status, scheduled_at, is_full_day, round, tournament_id, player_a_id, player_b_id, score_a, score_b, ' +
-          'player_a:profiles!matches_player_a_id_fkey(id, username, display_name, country), ' +
-          'player_b:profiles!matches_player_b_id_fkey(id, username, display_name, country), ' +
-          'tournament:tournaments(title, slug, status, data_support_text, data_support_whatsapp)',
+        'id, status, scheduled_at, is_full_day, round, tournament_id, player_a_id, player_b_id, team_a_id, team_b_id, score_a, score_b, ' +
+          MATCH_SIDES_SELECT +
+          ', tournament:tournaments(title, slug, status, data_support_text, data_support_whatsapp)',
       )
-      .or(`player_a_id.eq.${user.id},player_b_id.eq.${user.id}`),
+      .or(myMatchesFilter(user.id, squadIds)),
     supabase.from('match_results').select('match_id').eq('submitted_by', user.id),
-    supabase.from('group_memberships').select('group_id, groups(tournament_id)').eq('player_id', user.id),
+    // A squad's group membership is keyed by team_id, not player_id.
+    supabase
+      .from('group_memberships')
+      .select('group_id, player_id, team_id, groups(tournament_id)')
+      .or(
+        squadIds.length > 0
+          ? `player_id.eq.${user.id},team_id.in.(${squadIds.join(',')})`
+          : `player_id.eq.${user.id}`,
+      ),
   ])
 
   const submittedMatchIds = new Set((resultsRes.data ?? []).map((r) => r.match_id))
 
   const rawMatches = ((matchesRes.data as unknown[] | null) ?? []) as {
     id: string; status: string; scheduled_at: string | null; is_full_day: boolean; round: string
-    tournament_id: string; player_a_id: string; player_b_id: string; score_a: number | null; score_b: number | null
-    player_a: ProfileRef; player_b: ProfileRef; tournament: TournamentRef
+    tournament_id: string; player_a_id: string | null; player_b_id: string | null
+    team_a_id: string | null; team_b_id: string | null; score_a: number | null; score_b: number | null
+    player_a: ProfileRef; player_b: ProfileRef; team_a: SquadRef; team_b: SquadRef; tournament: TournamentRef
   }[]
 
   // A bracket generated at registration close (status 'registration_closed') is a
@@ -78,8 +96,13 @@ export default async function DashboardMatchesPage() {
   // scoped to exactly the opponents in this player's own visible matches
   // (never a blanket read of every registration).
   const matchTournamentIds = Array.from(new Set(visibleMatches.map((mm) => mm.tournament_id)))
+  // A squad opponent's contact is its captain (a squad has no number of its own).
   const opponentIds = Array.from(
-    new Set(visibleMatches.map((mm) => (mm.player_a_id === user.id ? mm.player_b_id : mm.player_a_id))),
+    new Set(
+      visibleMatches
+        .map((mm) => pickOpponent(mm, user.id, squadIds).contactPlayerId)
+        .filter((id): id is string => id != null),
+    ),
   )
   const { data: regRows } =
     matchTournamentIds.length > 0 && opponentIds.length > 0
@@ -92,8 +115,8 @@ export default async function DashboardMatchesPage() {
   const whatsappByKey = new Map((regRows ?? []).map((r) => [`${r.tournament_id}:${r.player_id}`, r.reg_whatsapp]))
 
   const matches: DashboardMatchInput[] = visibleMatches.map((mm) => {
-    const opponentId = mm.player_a_id === user.id ? mm.player_b_id : mm.player_a_id
-    const opponent = mm.player_a_id === user.id ? mm.player_b : mm.player_a
+    const opponent = pickOpponent(mm, user.id, squadIds)
+    const opponentProfile = isMySide(mm, user.id, squadIds) === 'b' ? mm.player_a : mm.player_b
     const t = firstTournament(mm.tournament)
     return {
       id: mm.id,
@@ -101,9 +124,11 @@ export default async function DashboardMatchesPage() {
       scheduledAt: mm.scheduled_at,
       isFullDay: mm.is_full_day,
       round: mm.round,
-      opponentName: nameOf(opponent),
-      opponentWhatsapp: whatsappByKey.get(`${mm.tournament_id}:${opponentId}`) ?? null,
-      opponentCountry: countryOf(opponent),
+      opponentName: opponent.name,
+      opponentWhatsapp: opponent.contactPlayerId
+        ? whatsappByKey.get(`${mm.tournament_id}:${opponent.contactPlayerId}`) ?? null
+        : null,
+      opponentCountry: countryOf(opponentProfile),
       tournamentTitle: t?.title ?? 'Tournament',
       tournamentSlug: t?.slug ?? '',
     }
@@ -117,12 +142,18 @@ export default async function DashboardMatchesPage() {
   }
 
   const myGroupRows = ((myGroupMembershipsRes.data as unknown[] | null) ?? []) as {
-    group_id: string; groups: GroupTournamentRef
+    group_id: string; player_id: string | null; team_id: string | null; groups: GroupTournamentRef
   }[]
   const groupIdByTournamentId = new Map<string, string>()
+  // The id that stands for this user in a tournament's results: their squad id
+  // in a team tournament, their own id in a solo one.
+  const competitorIdByTournamentId = new Map<string, string>()
   for (const r of myGroupRows) {
     const tId = firstGroupTournamentId(r.groups)
-    if (tId) groupIdByTournamentId.set(tId, r.group_id)
+    if (tId) {
+      groupIdByTournamentId.set(tId, r.group_id)
+      competitorIdByTournamentId.set(tId, r.team_id ?? r.player_id ?? user.id)
+    }
   }
   const myGroupIds = Array.from(new Set(myGroupRows.map((r) => r.group_id)))
 
@@ -131,12 +162,12 @@ export default async function DashboardMatchesPage() {
       ? await Promise.all([
           supabase
             .from('group_memberships')
-            .select('group_id, player_id, wins, draws, losses, goals_for, goals_against, points')
+            .select('group_id, player_id, team_id, wins, draws, losses, goals_for, goals_against, points')
             .in('group_id', myGroupIds),
           supabase.from('matches').select('group_id, status').in('group_id', myGroupIds).eq('round', 'group'),
         ])
       : [
-          { data: [] as { group_id: string; player_id: string; wins: number; draws: number; losses: number; goals_for: number; goals_against: number; points: number }[] },
+          { data: [] as { group_id: string; player_id: string | null; team_id: string | null; wins: number; draws: number; losses: number; goals_for: number; goals_against: number; points: number }[] },
           { data: [] as { group_id: string; status: string }[] },
         ]
 
@@ -148,9 +179,9 @@ export default async function DashboardMatchesPage() {
     groupStandingsById.set(
       groupId,
       (groupStandingsRes.data ?? [])
-        .filter((r) => r.group_id === groupId && r.player_id != null)
+        .filter((r) => r.group_id === groupId && (r.player_id ?? r.team_id) != null)
         .map((r) => ({
-          playerId: r.player_id as string, name: '', wins: r.wins, draws: r.draws, losses: r.losses,
+          playerId: (r.player_id ?? r.team_id) as string, name: '', wins: r.wins, draws: r.draws, losses: r.losses,
           goalsFor: r.goals_for, goalsAgainst: r.goals_against, points: r.points,
         })),
     )
@@ -163,7 +194,12 @@ export default async function DashboardMatchesPage() {
     list.push({
       round: mm.round, status: mm.status, score_a: mm.score_a, score_b: mm.score_b,
       player_a_id: mm.player_a_id, player_b_id: mm.player_b_id,
+      team_a_id: mm.team_a_id, team_b_id: mm.team_b_id,
     })
+    const mine = mySideId(mm, user.id, squadIds)
+    if (mine && !competitorIdByTournamentId.has(mm.tournament_id)) {
+      competitorIdByTournamentId.set(mm.tournament_id, mine)
+    }
     knockoutMatchesByTournament.set(mm.tournament_id, list)
   }
 
@@ -186,7 +222,7 @@ export default async function DashboardMatchesPage() {
     const ref = tournamentRefById.get(tournamentId)
     if (!ref || !isTournamentPublished(ref.status)) continue
     const groupId = groupIdByTournamentId.get(tournamentId) ?? null
-    const banner = computeTournamentStatus(user.id, {
+    const banner = computeTournamentStatus(competitorIdByTournamentId.get(tournamentId) ?? user.id, {
       tournamentId, tournamentTitle: ref.title, tournamentSlug: ref.slug, tournamentStatus: ref.status,
       groupId, groupComplete: groupId ? groupCompleteById.get(groupId) ?? false : false,
       groupStandings: groupId ? groupStandingsById.get(groupId) ?? [] : [],

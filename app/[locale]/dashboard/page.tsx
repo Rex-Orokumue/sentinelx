@@ -18,6 +18,7 @@ import { MyItemsCard } from '@/components/dashboard/MyItemsCard'
 import { RecentMatchesCard } from '@/components/dashboard/RecentMatchesCard'
 import { QuickActions } from '@/components/dashboard/QuickActions'
 import { DashboardShell } from '@/components/dashboard/DashboardShell'
+import { getMySquadIds, isMySide, myMatchesFilter } from '@/lib/matches/sides'
 import { mapRecentMatches } from '@/lib/dashboard/recent-matches'
 import { mapOwnedItems } from '@/lib/dashboard/owned-items'
 import { getSeasonLeaderboard, getMonthlyLeaderboard } from '@/lib/seasons/data'
@@ -37,6 +38,10 @@ export default async function DashboardPage() {
   if (!user) redirect('/login?next=/dashboard')
 
   await recordDailyLogin(createAdminClient(), user.id)
+
+  // Squad matches carry no player ids, so "my matches" needs my squads too.
+  const squadIds = await getMySquadIds(supabase, user.id)
+  const myMatches = myMatchesFilter(user.id, squadIds)
 
   const [
     profileRes,
@@ -70,24 +75,28 @@ export default async function DashboardPage() {
     supabase
       .from('matches')
       .select(
-        'id, status, round, scheduled_at, is_full_day, ' +
+        'id, status, round, scheduled_at, is_full_day, player_a_id, player_b_id, team_a_id, team_b_id, ' +
           'tournament:tournaments(title), ' +
+          'team_a:squads!matches_team_a_id_fkey(id, name), ' +
+          'team_b:squads!matches_team_b_id_fkey(id, name), ' +
           'opponent_a:profiles!matches_player_a_id_fkey(id, display_name, username, avatar_url, membership_tier, equipped_avatar_border), ' +
           'opponent_b:profiles!matches_player_b_id_fkey(id, display_name, username, avatar_url, membership_tier, equipped_avatar_border)',
       )
-      .or(`player_a_id.eq.${user.id},player_b_id.eq.${user.id}`)
+      .or(myMatches)
       .in('status', ['scheduled', 'live'])
       .order('scheduled_at', { ascending: true })
       .limit(1),
     supabase
       .from('matches')
       .select(
-        'id, player_a_id, player_b_id, score_a, score_b, updated_at, ' +
+        'id, player_a_id, player_b_id, team_a_id, team_b_id, score_a, score_b, updated_at, ' +
           'tournament:tournaments(title), ' +
           'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
-          'player_b:profiles!matches_player_b_id_fkey(username, display_name)',
+          'player_b:profiles!matches_player_b_id_fkey(username, display_name), ' +
+          'team_a:squads!matches_team_a_id_fkey(id, name), ' +
+          'team_b:squads!matches_team_b_id_fkey(id, name)',
       )
-      .or(`player_a_id.eq.${user.id},player_b_id.eq.${user.id}`)
+      .or(myMatches)
       .eq('status', 'completed')
       .order('updated_at', { ascending: false })
       .limit(5),
@@ -98,7 +107,7 @@ export default async function DashboardPage() {
     supabase
       .from('matches')
       .select('id, status, scheduled_at')
-      .or(`player_a_id.eq.${user.id},player_b_id.eq.${user.id}`)
+      .or(myMatches)
       .in('status', ['scheduled', 'live']),
     supabase
       .from('player_store_items')
@@ -185,11 +194,14 @@ export default async function DashboardPage() {
   type NextMatchOpponentRef = {
     id: string; display_name: string | null; username: string | null; avatar_url: string | null; membership_tier: string | null; equipped_avatar_border: string | null
   }
+  type SquadNameRef = { id?: string; name: string } | { id?: string; name: string }[] | null
   type NextMatchRow = {
     id: string; status: string; round: string; scheduled_at: string | null; is_full_day: boolean
     tournament: { title: string } | { title: string }[] | null
     opponent_a: NextMatchOpponentRef | NextMatchOpponentRef[] | null
     opponent_b: NextMatchOpponentRef | NextMatchOpponentRef[] | null
+    player_a_id: string | null; player_b_id: string | null; team_a_id: string | null; team_b_id: string | null
+    team_a: SquadNameRef; team_b: SquadNameRef
   }
   const nextLobby = await fetchNextLobby(user.id)
 
@@ -199,7 +211,10 @@ export default async function DashboardPage() {
         const a = Array.isArray(nextMatchRow.opponent_a) ? nextMatchRow.opponent_a[0] : nextMatchRow.opponent_a
         const b = Array.isArray(nextMatchRow.opponent_b) ? nextMatchRow.opponent_b[0] : nextMatchRow.opponent_b
         const t = Array.isArray(nextMatchRow.tournament) ? nextMatchRow.tournament[0] : nextMatchRow.tournament
-        const opponent = a?.id === user.id ? b : a
+        const oppIsA = isMySide(nextMatchRow, user.id, squadIds) === 'b'
+        const opponent = oppIsA ? a : b
+        const oppSquadRaw = oppIsA ? nextMatchRow.team_a : nextMatchRow.team_b
+        const oppSquad = Array.isArray(oppSquadRaw) ? oppSquadRaw[0] ?? null : oppSquadRaw
         return {
           id: nextMatchRow.id,
           status: nextMatchRow.status,
@@ -212,7 +227,7 @@ export default async function DashboardPage() {
           myTier: (profile?.membership_tier ?? 'recruit') as MembershipTier,
           myFrameUrl: avatarFrameUrl,
           opponentAvatarUrl: opponent?.avatar_url ?? null,
-          opponentDisplayName: opponent?.display_name ?? opponent?.username ?? 'Opponent',
+          opponentDisplayName: oppSquad?.name ?? opponent?.display_name ?? opponent?.username ?? 'Opponent',
           opponentTier: (opponent?.membership_tier ?? 'recruit') as MembershipTier,
           opponentFrameUrl: frameUrlFor(opponent?.equipped_avatar_border),
           submitted: submittedMatchIds.has(nextMatchRow.id),
@@ -225,22 +240,27 @@ export default async function DashboardPage() {
   type RecentTournamentRef = { title: string } | { title: string }[] | null
   const recentMatchRows = ((recentMatchesRes.data as unknown[] | null) ?? []).map((raw) => {
     const r = raw as {
-      id: string; player_a_id: string | null; player_b_id: string | null; score_a: number | null; score_b: number | null
+      id: string; player_a_id: string | null; player_b_id: string | null
+      team_a_id: string | null; team_b_id: string | null; score_a: number | null; score_b: number | null
       updated_at: string | null; tournament: RecentTournamentRef; player_a: RecentRawRef; player_b: RecentRawRef
+      team_a: SquadNameRef; team_b: SquadNameRef
     }
-    const isA = r.player_a_id === user.id
-    const opp = isA ? r.player_b : r.player_a
+    const oppIsA = isMySide(r, user.id, squadIds) === 'b'
+    const opp = oppIsA ? r.player_a : r.player_b
     const oppRow = Array.isArray(opp) ? opp[0] ?? null : opp
+    const oppSquadRaw = oppIsA ? r.team_a : r.team_b
+    const oppSquad = Array.isArray(oppSquadRaw) ? oppSquadRaw[0] ?? null : oppSquadRaw
     const t = Array.isArray(r.tournament) ? r.tournament[0] : r.tournament
     return {
-      id: r.id, player_a_id: r.player_a_id, player_b_id: r.player_b_id, score_a: r.score_a, score_b: r.score_b,
+      id: r.id, player_a_id: r.player_a_id, player_b_id: r.player_b_id,
+      team_a_id: r.team_a_id, team_b_id: r.team_b_id, score_a: r.score_a, score_b: r.score_b,
       updated_at: r.updated_at,
-      opponentName: oppRow?.display_name ?? oppRow?.username ?? 'Opponent',
+      opponentName: oppSquad?.name ?? oppRow?.display_name ?? oppRow?.username ?? 'Opponent',
       opponentUsername: oppRow?.username ?? null,
       tournamentTitle: t?.title ?? 'Tournament',
     }
   })
-  const recentMatches = mapRecentMatches(recentMatchRows, user.id)
+  const recentMatches = mapRecentMatches(recentMatchRows, user.id, squadIds)
 
   const achievementSlugs = ((achievementSlugsRes.data as unknown[] | null) ?? []).flatMap((raw) => {
     const r = raw as { achievements: { slug: string } | { slug: string }[] | null }
