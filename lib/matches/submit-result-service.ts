@@ -4,7 +4,7 @@ import type { createAdminClient } from '@/lib/supabase/admin'
 import { submitResultSchema } from './schema'
 import { notifyStaff } from '@/lib/admin/staff'
 import { resultNotification } from '@/lib/admin/notification-copy'
-import { opponentSubmissionNotice } from './submission-notice'
+import { opponentSubmissionNotice, squadSubmissionNotices } from './submission-notice'
 import { isMatchParticipant } from './participant'
 import { sideName, type SquadRef } from './sides'
 import { notifyBoth } from '@/lib/notifications/send'
@@ -106,6 +106,24 @@ export async function performSubmitMatchResult(
       isResubmission: Boolean(existing),
     })
     if (notice) await notifyBoth(notice.recipientId, notice.notification, 'result_submitted', { link: notice.link })
+
+    // Team match: there are no player ids on the match, so the solo notice above
+    // is null — tell the whole opposing roster instead.
+    if (match.team_a_id || match.team_b_id) {
+      const squadIds = [match.team_a_id, match.team_b_id].filter((id): id is string => id != null)
+      const { data: members } = await admin.from('squad_members').select('squad_id, player_id').in('squad_id', squadIds)
+      const rosterOf = (squadId: string | null) =>
+        (members ?? []).filter((m) => m.squad_id === squadId).map((m) => m.player_id as string)
+      const squadNotices = squadSubmissionNotices({
+        matchId, submitterId: userId,
+        squadAName: sideName(md.player_a, md.team_a), squadBName: sideName(md.player_b, md.team_b),
+        rosterA: rosterOf(match.team_a_id), rosterB: rosterOf(match.team_b_id),
+        tournamentTitle, scoreA: parsed.data.scoreA, scoreB: parsed.data.scoreB, isResubmission: Boolean(existing),
+      })
+      await Promise.all(
+        squadNotices.map((n) => notifyBoth(n.recipientId, n.notification, 'result_submitted', { link: n.link })),
+      )
+    }
   }
 
   return { ok: true }

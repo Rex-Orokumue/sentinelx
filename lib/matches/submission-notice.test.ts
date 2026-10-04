@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { opponentSubmissionNotice } from './submission-notice'
+import { opponentSubmissionNotice, squadSubmissionNotices } from './submission-notice'
 
 const base = {
   matchId: 'm1',
@@ -62,5 +62,41 @@ describe('opponentSubmissionNotice', () => {
     const notice = opponentSubmissionNotice({ ...base, submitterId: 'a', playerBName: null })
 
     expect(notice?.notification.scoreline).toBe('Kelvin_G 3 – 1 Player')
+  })
+})
+
+describe('squadSubmissionNotices', () => {
+  const squad = {
+    matchId: 'm9',
+    squadAName: 'Squad 2',
+    squadBName: 'Squad 1',
+    rosterA: ['a1', 'a2'],
+    rosterB: ['b1', 'b2'],
+    tournamentTitle: 'Clash Cup',
+    scoreA: 2,
+    scoreB: 1,
+    isResubmission: false,
+  }
+  it('tells every member of the opposing squad when a teammate submits', () => {
+    const notices = squadSubmissionNotices({ ...squad, submitterId: 'a2' })
+    expect(notices.map((n) => n.recipientId)).toEqual(['b1', 'b2'])
+    expect(notices[0].notification).toEqual({
+      type: 'result_submitted',
+      scoreline: 'Squad 2 2 – 1 Squad 1',
+      tournament: 'Clash Cup',
+      isResubmission: false,
+    })
+    expect(notices[0].link).toBe('/matches/m9')
+  })
+  it('works from side B too, keeping the same A-first scoreline', () => {
+    const notices = squadSubmissionNotices({ ...squad, submitterId: 'b1' })
+    expect(notices.map((n) => n.recipientId)).toEqual(['a1', 'a2'])
+    expect(notices[0].notification.scoreline).toBe('Squad 2 2 – 1 Squad 1')
+  })
+  it('tells nobody when the submitter is on neither roster', () => {
+    expect(squadSubmissionNotices({ ...squad, submitterId: 'stranger' })).toEqual([])
+  })
+  it('tells nobody when the opposing roster is empty', () => {
+    expect(squadSubmissionNotices({ ...squad, rosterB: [], submitterId: 'a1' })).toEqual([])
   })
 })

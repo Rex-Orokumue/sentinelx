@@ -58,3 +58,37 @@ export function opponentSubmissionNotice(input: {
     link: `/matches/${input.matchId}`,
   }
 }
+
+// Team matches: the opposing squad's whole roster is told, not one person —
+// any of them may be the one who knows the score is wrong (spec §7.1: any
+// roster member can submit, so any can dispute). Same A-first scoreline as the
+// solo notice and the admin review queue.
+export function squadSubmissionNotices(input: {
+  matchId: string
+  submitterId: string
+  squadAName: string
+  squadBName: string
+  rosterA: string[]
+  rosterB: string[]
+  tournamentTitle: string
+  scoreA: number
+  scoreB: number
+  isResubmission: boolean
+}): SubmissionNotice[] {
+  const recipients = input.rosterA.includes(input.submitterId)
+    ? input.rosterB
+    : input.rosterB.includes(input.submitterId)
+      ? input.rosterA
+      : []
+  const scoreline = `${input.squadAName} ${input.scoreA} – ${input.scoreB} ${input.squadBName}`
+  return recipients.map((recipientId) => ({
+    recipientId,
+    notification: {
+      type: 'result_submitted' as const,
+      scoreline,
+      tournament: input.tournamentTitle,
+      isResubmission: input.isResubmission,
+    },
+    link: `/matches/${input.matchId}`,
+  }))
+}
