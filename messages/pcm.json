@@ -879,5 +879,19 @@
     "summaryLabel": "For plain English",
     "contactCtaHeading": "You still get question?",
     "contactCtaButton": "Contact Us"
+  },
+  "dmRequests": {
+    "requestsTab": "Requests",
+    "requestsCount": "{count, plural, one {# request} other {# requests}}",
+    "requestsEmpty": "No message request dey.",
+    "backToMessages": "Go back to messages",
+    "incomingTitle": "{name} wan message you",
+    "incomingHint": "Na only you sabi say you don read am. Dem no go see read receipt till you accept.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "blockAndReport": "Block and report",
+    "waiting": "Dey wait make {name} accept",
+    "waitingHint": "You fit send one text message till dem accept.",
+    "actionFailed": "E no work. Abeg try again."
   }
 }

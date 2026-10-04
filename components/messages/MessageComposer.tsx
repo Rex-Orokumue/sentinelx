@@ -31,6 +31,7 @@ export function MessageComposer({
   otherName,
   disabled,
   disabledReason,
+  textOnly,
   onTyping,
   mode,
   onClearMode,
@@ -43,6 +44,8 @@ export function MessageComposer({
   otherName: string
   disabled?: boolean
   disabledReason?: string
+  // A pending message request allows one plain text message: hide photo, sticker and voice note.
+  textOnly?: boolean
   onTyping?: () => void
   mode: ComposerMode
   onClearMode: () => void
@@ -345,7 +348,7 @@ export function MessageComposer({
         <VoiceNoteRecorder onSend={handleRecorded} onCancel={() => setRecording(false)} />
       ) : (
         <div className="flex items-end gap-2">
-          {mode?.type !== 'edit' && (
+          {mode?.type !== 'edit' && !textOnly && (
             <>
               <label className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-lg text-sx-gray hover:text-white">
                 <ImagePlus className="h-5 w-5" />
@@ -401,7 +404,7 @@ export function MessageComposer({
               more reliable on mobile (see VoiceNoteRecorder). Hidden once
               there's text/an image to send, same slot the send button then
               takes over, matching WhatsApp's mic-becomes-send behaviour. */}
-          {mode?.type !== 'edit' && !ok && (
+          {mode?.type !== 'edit' && !textOnly && !ok && (
             <button
               type="button"
               onClick={() => setRecording(true)}

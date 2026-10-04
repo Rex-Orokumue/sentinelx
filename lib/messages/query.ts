@@ -5,6 +5,16 @@ import { unreadCount, isBlockedBetween, resolveParticipantContent, type BlockRow
 import { stickerById } from './stickers'
 
 const PROFILE = 'id, username, display_name, avatar_url'
+export type RequestState = 'pending' | 'accepted' | 'declined'
+export type RequestDirection = 'incoming' | 'outgoing' | null
+// Unknown (including a row from before message requests existed) reads as accepted: grandfathered threads are open.
+const asState = (v: unknown): RequestState => (v === 'pending' || v === 'declined' ? v : 'accepted')
+// Only a PENDING request has a direction: it says whether the viewer answers it or waits for an answer.
+function directionOf(state: RequestState, createdBy: string | null | undefined, viewerId: string): RequestDirection {
+  if (state !== 'pending' || !createdBy) return null
+  return createdBy === viewerId ? 'outgoing' : 'incoming'
+}
+
 type ProfileRow = { id: string; username: string | null; display_name: string | null; avatar_url: string | null }
 
 async function signPaths(bucket: 'dm-images' | 'dm-audio', paths: string[]): Promise<Map<string, string>> {
@@ -33,13 +43,17 @@ export type ThreadSummary = {
   lastRemoved: boolean
   lastMessageAt: string
   unread: number
+  requestState: RequestState
+  direction: RequestDirection
 }
 
-export async function fetchThreadList(viewerId: string): Promise<ThreadSummary[]> {
+// box 'inbox' = accepted threads plus every thread the viewer started; 'requests' = incoming pending only. A declined
+// thread the viewer did not start is in neither box.
+export async function fetchThreadList(viewerId: string, box: 'inbox' | 'requests' = 'inbox'): Promise<ThreadSummary[]> {
   const supabase = createClient()
   const { data: threads } = await supabase
     .from('dm_threads')
-    .select('id, player_a, player_b, last_message_at')
+    .select('id, player_a, player_b, last_message_at, request_state, created_by')
     .or(`player_a.eq.${viewerId},player_b.eq.${viewerId}`)
     .order('last_message_at', { ascending: false })
   if (!threads || threads.length === 0) return []
@@ -76,6 +90,10 @@ export async function fetchThreadList(viewerId: string): Promise<ThreadSummary[]
   for (const t of threads) {
     const otherId = t.player_a === viewerId ? t.player_b : t.player_a
     if (isBlockedBetween(blockRows, viewerId, otherId)) continue
+    const requestState = asState(t.request_state)
+    const inInbox = requestState === 'accepted' || t.created_by === viewerId
+    const inRequests = requestState === 'pending' && t.created_by !== viewerId
+    if (box === 'inbox' ? !inInbox : !inRequests) continue
     const list = byThread.get(t.id) ?? []
     const last = list[list.length - 1]
     const other = profileById.get(otherId)
@@ -101,6 +119,8 @@ export async function fetchThreadList(viewerId: string): Promise<ThreadSummary[]
       lastRemoved: lastContent?.removed ?? false,
       lastMessageAt: t.last_message_at,
       unread: unreadCount(list.map((m) => ({ senderId: m.sender_id, readAt: m.read_at })), viewerId),
+      requestState,
+      direction: directionOf(requestState, t.created_by, viewerId),
     })
   }
   return out
@@ -129,13 +149,15 @@ export type ThreadDetail = {
   messages: ConversationMessage[]
   blockedByMe: boolean
   blockedByThem: boolean
+  requestState: RequestState
+  direction: RequestDirection
 }
 
 export async function fetchThread(threadId: string, viewerId: string): Promise<ThreadDetail | null> {
   const supabase = createClient()
   const { data: thread } = await supabase
     .from('dm_threads')
-    .select('id, player_a, player_b')
+    .select('id, player_a, player_b, request_state, created_by')
     .eq('id', threadId)
     .maybeSingle()
   if (!thread) return null
@@ -238,6 +260,8 @@ export async function fetchThread(threadId: string, viewerId: string): Promise<T
     }),
     blockedByMe: blockRows.some((b) => b.blocker_id === viewerId && b.blocked_id === otherId),
     blockedByThem: blockRows.some((b) => b.blocker_id === otherId && b.blocked_id === viewerId),
+    requestState: asState(thread.request_state),
+    direction: directionOf(asState(thread.request_state), thread.created_by, viewerId),
   }
 }
 

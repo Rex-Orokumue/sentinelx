@@ -879,5 +879,19 @@
     "summaryLabel": "In plain English",
     "contactCtaHeading": "Still have questions?",
     "contactCtaButton": "Contact us"
+  },
+  "dmRequests": {
+    "requestsTab": "Requests",
+    "requestsCount": "{count, plural, one {# request} other {# requests}}",
+    "requestsEmpty": "No message requests.",
+    "backToMessages": "Back to messages",
+    "incomingTitle": "{name} wants to message you",
+    "incomingHint": "Only you can see that you have read this. They get no read receipt until you accept.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "blockAndReport": "Block and report",
+    "waiting": "Waiting for {name} to accept",
+    "waitingHint": "You can send one text message until they accept.",
+    "actionFailed": "That did not work. Please try again."
   }
 }

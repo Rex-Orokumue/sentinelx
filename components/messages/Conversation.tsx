@@ -11,6 +11,8 @@ import { MessageComposer } from './MessageComposer'
 import { MessageBubble } from './MessageBubble'
 import { ForwardSheet } from './ForwardSheet'
 import { useThreadTyping } from './useThreadTyping'
+import { RequestBanner } from './RequestBanner'
+import { useTranslations } from 'next-intl'
 
 // A subtle crosshatch, WhatsApp-doodle-wallpaper-style — CSS only, no image
 // asset, and not user-selectable/buyable (that's a future Store feature, not
@@ -246,13 +248,22 @@ export function Conversation({
     bottomRef.current?.scrollIntoView({ block: 'end' })
   }, [messages.length])
 
-  const disabled = detail.blockedByMe || detail.blockedByThem
-  const { typing, notifyTyping } = useThreadTyping(detail.threadId, viewerId, detail.other.id, !disabled)
+  const t = useTranslations('dmRequests')
+  const incomingRequest = detail.direction === 'incoming'
+  const outgoingRequest = detail.direction === 'outgoing'
+  // The initiator of a pending request gets ONE text message; after that they wait for the other player.
+  const waiting = outgoingRequest && messages.some((m) => m.senderId === viewerId)
+  const blocked = detail.blockedByMe || detail.blockedByThem
+  const disabled = blocked || waiting
+  // No typing signal while a request is pending: it would tell a stranger the recipient is looking.
+  const { typing, notifyTyping } = useThreadTyping(detail.threadId, viewerId, detail.other.id, !blocked && detail.requestState !== 'pending')
   const disabledReason = detail.blockedByMe
     ? 'You blocked this player. Unblock from the menu to message them.'
     : detail.blockedByThem
       ? 'You can no longer message this player.'
-      : undefined
+      : waiting
+        ? t('waiting', { name: detail.other.name })
+        : undefined
 
   return (
     <div>
@@ -287,19 +298,27 @@ export function Conversation({
           {detail.other.name} is typing…
         </p>
       )}
-      <MessageComposer
-        threadId={detail.threadId}
-        viewerId={viewerId}
-        otherName={detail.other.name}
-        disabled={disabled}
-        disabledReason={disabledReason}
-        onTyping={notifyTyping}
-        mode={composerMode}
-        onClearMode={() => setComposerMode(null)}
-        onAddPending={addPending}
-        onUpdateLocal={updateLocal}
-        onRemoveLocal={removeLocal}
-      />
+      {outgoingRequest && !waiting && !blocked && (
+        <p className="px-4 pb-1 text-xs text-sx-gray">{t('waitingHint')}</p>
+      )}
+      {incomingRequest ? (
+        <RequestBanner threadId={detail.threadId} otherId={detail.other.id} otherName={detail.other.name} />
+      ) : (
+        <MessageComposer
+          threadId={detail.threadId}
+          viewerId={viewerId}
+          otherName={detail.other.name}
+          disabled={disabled}
+          disabledReason={disabledReason}
+          textOnly={outgoingRequest}
+          onTyping={notifyTyping}
+          mode={composerMode}
+          onClearMode={() => setComposerMode(null)}
+          onAddPending={addPending}
+          onUpdateLocal={updateLocal}
+          onRemoveLocal={removeLocal}
+        />
+      )}
       {forwardTarget && (
         <ForwardSheet messageId={forwardTarget.id} threads={threads} onClose={() => setForwardTarget(null)} />
       )}

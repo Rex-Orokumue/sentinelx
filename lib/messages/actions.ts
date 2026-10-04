@@ -98,3 +98,23 @@ export async function forwardMessage(input: { messageId: string; toThreadId: str
   const res = await service.forwardMessageCore(ctx, input)
   return res.ok ? {} : { error: res.message }
 }
+
+export async function acceptMessageRequest(threadId: string): Promise<{ error?: string }> {
+  const ctx = await authed()
+  if (!ctx) return LOGIN
+  const res = await service.acceptRequest(ctx, threadId)
+  if (!res.ok) return { error: res.message }
+  revalidatePath('/messages')
+  revalidatePath(`/messages/${threadId}`)
+  return {}
+}
+
+export async function declineMessageRequest(threadId: string): Promise<{ error?: string }> {
+  const ctx = await authed()
+  if (!ctx) return LOGIN
+  const res = await service.declineRequest(ctx, threadId)
+  if (!res.ok) return { error: res.message }
+  revalidatePath('/messages')
+  revalidatePath(`/messages/${threadId}`)
+  return {}
+}

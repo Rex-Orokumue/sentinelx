@@ -879,5 +879,19 @@
     "summaryLabel": "En clair",
     "contactCtaHeading": "D’autres questions ?",
     "contactCtaButton": "Nous contacter"
+  },
+  "dmRequests": {
+    "requestsTab": "Demandes",
+    "requestsCount": "{count, plural, one {# demande} other {# demandes}}",
+    "requestsEmpty": "Aucune demande de message.",
+    "backToMessages": "Retour aux messages",
+    "incomingTitle": "{name} souhaite vous écrire",
+    "incomingHint": "Vous seul savez que vous l'avez lu. Aucun accusé de lecture n'est envoyé tant que vous n'acceptez pas.",
+    "accept": "Accepter",
+    "decline": "Refuser",
+    "blockAndReport": "Bloquer et signaler",
+    "waiting": "En attente de la réponse de {name}",
+    "waitingHint": "Vous pouvez envoyer un seul message texte en attendant qu'il soit accepté.",
+    "actionFailed": "Cela n'a pas fonctionné. Veuillez réessayer."
   }
 }
