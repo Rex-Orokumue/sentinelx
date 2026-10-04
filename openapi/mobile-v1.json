@@ -7501,6 +7501,536 @@
         }
       }
     },
+    "/api/mobile/v1/messages/threads": {
+      "get": {
+        "operationId": "getMessageThreads",
+        "summary": "One keyset page of the caller's conversations, newest activity first (blocked threads hidden).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "threads": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "threadId": {
+                                "type": "string"
+                              },
+                              "other": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "username": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "avatarUrl": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "name",
+                                  "username",
+                                  "avatarUrl"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "preview": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string"
+                                  },
+                                  "text": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  },
+                                  "stickerId": {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "null"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "text",
+                                  "stickerId"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "lastMessageAt": {
+                                "type": "string"
+                              },
+                              "unread": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "threadId",
+                              "other",
+                              "preview",
+                              "lastMessageAt",
+                              "unread"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "nextCursor": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "threads",
+                        "nextCursor"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/messages/threads/{id}": {
+      "get": {
+        "operationId": "getMessageThread",
+        "summary": "Thread header: the other player and who has blocked whom. 404 if the caller is not a participant.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "threadId": {
+                          "type": "string"
+                        },
+                        "other": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "username": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "avatarUrl": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name",
+                            "username",
+                            "avatarUrl"
+                          ],
+                          "additionalProperties": false
+                        },
+                        "blockedByMe": {
+                          "type": "boolean"
+                        },
+                        "blockedByThem": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "threadId",
+                        "other",
+                        "blockedByMe",
+                        "blockedByThem"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/messages/threads/{id}/messages": {
+      "get": {
+        "operationId": "getThreadMessages",
+        "summary": "One page of messages, newest first, with signed media URLs and resolved reply previews.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "senderId": {
+                                "type": "string"
+                              },
+                              "body": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "imageUrl": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "stickerId": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "audioUrl": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "audioDurationSeconds": {
+                                "anyOf": [
+                                  {
+                                    "type": "number"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "forwarded": {
+                                "type": "boolean"
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              },
+                              "deliveredAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "readAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "editedAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "deletedAt": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "replyTo": {
+                                "anyOf": [
+                                  {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "string"
+                                      },
+                                      "senderName": {
+                                        "type": "string"
+                                      },
+                                      "body": {
+                                        "anyOf": [
+                                          {
+                                            "type": "string"
+                                          },
+                                          {
+                                            "type": "null"
+                                          }
+                                        ]
+                                      },
+                                      "removed": {
+                                        "type": "boolean"
+                                      }
+                                    },
+                                    "required": [
+                                      "id",
+                                      "senderName",
+                                      "body",
+                                      "removed"
+                                    ],
+                                    "additionalProperties": false
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "senderId",
+                              "body",
+                              "imageUrl",
+                              "stickerId",
+                              "audioUrl",
+                              "audioDurationSeconds",
+                              "forwarded",
+                              "createdAt",
+                              "deliveredAt",
+                              "readAt",
+                              "editedAt",
+                              "deletedAt",
+                              "replyTo"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "nextBefore": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "messages",
+                        "nextBefore"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/notifications/{id}/read": {
       "post": {
         "operationId": "postNotificationRead",

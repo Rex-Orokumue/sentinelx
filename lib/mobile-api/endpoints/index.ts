@@ -67,6 +67,7 @@ import {
   postNotificationsReadAllEndpoint,
   postTestPushEndpoint,
 } from './notifications'
+import { getMessageThreadsEndpoint, getMessageThreadEndpoint, getThreadMessagesEndpoint } from './messages-reads'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -150,4 +151,7 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   postNotificationReadEndpoint,
   postNotificationsReadAllEndpoint,
   postTestPushEndpoint,
+  getMessageThreadsEndpoint,
+  getMessageThreadEndpoint,
+  getThreadMessagesEndpoint,
 ]
