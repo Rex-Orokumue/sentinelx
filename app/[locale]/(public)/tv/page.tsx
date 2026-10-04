@@ -12,6 +12,7 @@ import { JsonLd } from '@/components/seo/JsonLd'
 import { buildVideoJsonLd } from '@/lib/seo/schema/video'
 import { parseYouTubeId } from '@/lib/matches/youtube'
 import { tvDescription } from '@/lib/seo/tv-description'
+import { sideName, type SquadRef } from '@/lib/matches/sides'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
   const { data: liveMatch } = await supabase
     .from('matches')
     .select(
-      'player_a:profiles!matches_player_a_id_fkey(username, display_name), player_b:profiles!matches_player_b_id_fkey(username, display_name)',
+      'player_a:profiles!matches_player_a_id_fkey(username, display_name), player_b:profiles!matches_player_b_id_fkey(username, display_name), team_a:squads!matches_team_a_id_fkey(name), team_b:squads!matches_team_b_id_fkey(name)',
     )
     .eq('status', 'live')
     .not('youtube_stream_url', 'is', null)
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
     .limit(1)
     .maybeSingle()
 
-  const liveTitle = liveMatch ? `${nameOf(liveMatch.player_a)} vs ${nameOf(liveMatch.player_b)}` : null
+  const liveTitle = liveMatch ? `${sideName(liveMatch.player_a, liveMatch.team_a)} vs ${sideName(liveMatch.player_b, liveMatch.team_b)}` : null
 
   return buildMetadata({
     title: 'Sentinel X TV — Live, Highlights & Replays',
@@ -41,16 +42,14 @@ const MATCH_COLS =
   'id, status, round, score_a, score_b, youtube_stream_url, replay_url, completed_at, ' +
   'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
   'player_b:profiles!matches_player_b_id_fkey(username, display_name), ' +
+  'team_a:squads!matches_team_a_id_fkey(name), ' +
+  'team_b:squads!matches_team_b_id_fkey(name), ' +
   'tournament:tournaments(title)'
 
 type NameRef =
   | { username: string | null; display_name: string | null }
   | { username: string | null; display_name: string | null }[]
   | null
-function nameOf(x: NameRef): string {
-  const r = Array.isArray(x) ? x[0] ?? null : x
-  return r?.display_name ?? r?.username ?? 'TBD'
-}
 type TitleRef = { title: string } | { title: string }[] | null
 function titleOf(x: TitleRef): string | null {
   const r = Array.isArray(x) ? x[0] ?? null : x
@@ -68,12 +67,14 @@ type MatchRow = {
   completed_at: string | null
   player_a: NameRef
   player_b: NameRef
+  team_a: SquadRef
+  team_b: SquadRef
   tournament: TitleRef
 }
 
 function toMatchVideo(m: MatchRow, live: boolean): MatchVideo {
-  const a = nameOf(m.player_a)
-  const b = nameOf(m.player_b)
+  const a = sideName(m.player_a, m.team_a)
+  const b = sideName(m.player_b, m.team_b)
   const scored = m.score_a != null && m.score_b != null
   const t = titleOf(m.tournament)
   const subtitle = scored ? `${t ? `${t} · ` : ''}${m.score_a}–${m.score_b}` : t
@@ -156,7 +157,7 @@ export default async function TvPage() {
       const id = parseYouTubeId(m.replay_url)
       if (!id || !m.completed_at) return null
       return buildVideoJsonLd({
-        name: `${nameOf(m.player_a)} vs ${nameOf(m.player_b)}`,
+        name: `${sideName(m.player_a, m.team_a)} vs ${sideName(m.player_b, m.team_b)}`,
         description: `Final — ${titleOf(m.tournament) ?? 'Sentinel X'}.`,
         thumbnailUrl: youtubeThumbnail(m.replay_url),
         embedUrl: `https://www.youtube.com/embed/${id}`,
@@ -187,7 +188,7 @@ export default async function TvPage() {
             href={`/matches/${hero.id}?from=tv`}
             className="mt-2 inline-block text-sm font-semibold text-violet-400 hover:text-violet-300"
           >
-            {nameOf(hero.player_a)} vs {nameOf(hero.player_b)} — open Match Centre →
+            {sideName(hero.player_a, hero.team_a)} vs {sideName(hero.player_b, hero.team_b)} — open Match Centre →
           </Link>
           {live.length > 1 && (
             <div className="mt-4">

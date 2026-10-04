@@ -5,6 +5,7 @@
 // currency formatting, and defaulting are unit-testable without a database.
 import type { createAdminClient } from '@/lib/supabase/admin'
 import { formatNaira } from '@/lib/format'
+import { isMySide, myMatchesFilter, sideName } from '@/lib/matches/sides'
 
 type Admin = ReturnType<typeof createAdminClient>
 
@@ -26,6 +27,7 @@ export interface AccountSnapshot {
 }
 
 type ProfileRef = { username: string | null; display_name: string | null } | { username: string | null; display_name: string | null }[] | null
+type SquadRef = { name: string } | { name: string }[] | null
 type TournamentRef = { title: string } | { title: string }[] | null
 
 // Supabase sometimes returns a single-row embed as an array (same gotcha
@@ -33,6 +35,16 @@ type TournamentRef = { title: string } | { title: string }[] | null
 function nameOf(p: ProfileRef): string {
   const one = Array.isArray(p) ? (p[0] ?? null) : p
   return one?.display_name ?? one?.username ?? 'Opponent'
+}
+function opponentNameOf(m: RawMatchRow, playerId: string, squadIds: string[]): string {
+  const ids = {
+    player_a_id: m.player_a_id,
+    player_b_id: m.player_b_id,
+    team_a_id: m.team_a_id ?? null,
+    team_b_id: m.team_b_id ?? null,
+  }
+  const oppIsA = isMySide(ids, playerId, squadIds) === 'b'
+  return oppIsA ? sideName(m.player_a, m.team_a, 'Opponent') : sideName(m.player_b, m.team_b, 'Opponent')
 }
 function titleOf(t: TournamentRef): string {
   const one = Array.isArray(t) ? (t[0] ?? null) : t
@@ -42,10 +54,15 @@ function titleOf(t: TournamentRef): string {
 export interface RawMatchRow {
   status: string
   scheduled_at: string | null
-  player_a_id: string
-  player_b_id: string
+  player_a_id: string | null
+  player_b_id: string | null
+  // Squad (team-vs-team) matches carry team ids instead of player ids.
+  team_a_id?: string | null
+  team_b_id?: string | null
   player_a: ProfileRef
   player_b: ProfileRef
+  team_a?: SquadRef
+  team_b?: SquadRef
   tournament: TournamentRef
 }
 export interface RawRegistrationRow {
@@ -69,6 +86,8 @@ export interface RawFriendlyMatchRow {
 
 export interface AccountSnapshotRawInput {
   playerId: string
+  // Squads the player is on, so squad matches resolve their side.
+  squadIds?: string[]
   matches: RawMatchRow[]
   registrations: RawRegistrationRow[]
   walletBalance: number
@@ -84,7 +103,7 @@ export interface AccountSnapshotRawInput {
 export function buildAccountSnapshot(input: AccountSnapshotRawInput): AccountSnapshot {
   return {
     upcomingMatches: input.matches.map((m) => ({
-      opponentName: nameOf(m.player_a_id === input.playerId ? m.player_b : m.player_a),
+      opponentName: opponentNameOf(m, input.playerId, input.squadIds ?? []),
       scheduledAt: m.scheduled_at,
       tournamentName: titleOf(m.tournament),
       status: m.status,
@@ -119,17 +138,21 @@ export function buildAccountSnapshot(input: AccountSnapshotRawInput): AccountSna
 // degrades to an empty/default value on that one query's error, matching
 // spec §7 "get_account_snapshot() partial failure".
 export async function getAccountSnapshot(admin: Admin, playerId: string): Promise<AccountSnapshot> {
+  const { data: squadRows } = await admin.from('squad_members').select('squad_id').eq('player_id', playerId)
+  const squadIds = (squadRows ?? []).map((r) => r.squad_id as string)
   const [matchesRes, registrationsRes, walletRes, coinsRes, profileRes, kycRes, withdrawalsRes, friendlyRes, notifRes] =
     await Promise.all([
       admin
         .from('matches')
         .select(
-          'status, scheduled_at, player_a_id, player_b_id, ' +
+          'status, scheduled_at, player_a_id, player_b_id, team_a_id, team_b_id, ' +
             'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
             'player_b:profiles!matches_player_b_id_fkey(username, display_name), ' +
+            'team_a:squads!matches_team_a_id_fkey(name), ' +
+            'team_b:squads!matches_team_b_id_fkey(name), ' +
             'tournament:tournaments(title)',
         )
-        .or(`player_a_id.eq.${playerId},player_b_id.eq.${playerId}`)
+        .or(myMatchesFilter(playerId, squadIds))
         .in('status', ['scheduled', 'live']),
       admin
         .from('tournament_registrations')
@@ -165,6 +188,7 @@ export async function getAccountSnapshot(admin: Admin, playerId: string): Promis
 
   return buildAccountSnapshot({
     playerId,
+    squadIds,
     matches: matchesRes.error ? [] : ((matchesRes.data as unknown as RawMatchRow[]) ?? []),
     registrations: registrationsRes.error ? [] : ((registrationsRes.data as unknown as RawRegistrationRow[]) ?? []),
     walletBalance: walletRes.error ? 0 : (walletRes.data?.balance ?? 0),

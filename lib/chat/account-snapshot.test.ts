@@ -149,4 +149,37 @@ describe('buildAccountSnapshot', () => {
     })
     expect(snapshot.friendlyMatches).toEqual([{ opponentName: 'buddy', status: 'active', stakeAmountNaira: null }])
   })
+
+  it('resolves the opposing squad name for a squad match', () => {
+    const snapshot = buildAccountSnapshot({
+      playerId: PLAYER_ID,
+      squadIds: ['sqMe'],
+      matches: [
+        {
+          status: 'scheduled',
+          scheduled_at: '2026-09-01T10:00:00Z',
+          player_a_id: null,
+          player_b_id: null,
+          team_a_id: 'sqOpp',
+          team_b_id: 'sqMe',
+          player_a: null,
+          player_b: null,
+          team_a: { name: 'Rival Squad' },
+          team_b: { name: 'My Squad' },
+          tournament: { title: 'Clash Squad Cup' },
+        },
+      ],
+      registrations: [],
+      walletBalance: 0,
+      sxCoinBalance: 0,
+      profile: null,
+      kycStatus: 'not_started',
+      withdrawals: [],
+      friendlyMatches: [],
+      unreadNotificationCount: 0,
+    })
+    expect(snapshot.upcomingMatches).toEqual([
+      { opponentName: 'Rival Squad', scheduledAt: '2026-09-01T10:00:00Z', tournamentName: 'Clash Squad Cup', status: 'scheduled' },
+    ])
+  })
 })
