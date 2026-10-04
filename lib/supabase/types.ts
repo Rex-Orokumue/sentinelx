@@ -835,6 +835,7 @@ export type Database = {
           last_message_at: string
           player_a: string
           player_b: string
+          request_state: string
         }
         Insert: {
           created_at?: string
@@ -843,6 +844,7 @@ export type Database = {
           last_message_at?: string
           player_a: string
           player_b: string
+          request_state?: string
         }
         Update: {
           created_at?: string
@@ -851,6 +853,7 @@ export type Database = {
           last_message_at?: string
           player_a?: string
           player_b?: string
+          request_state?: string
         }
         Relationships: [
           {
@@ -4112,6 +4115,9 @@ export type Database = {
         Args: { p_sender: string; p_thread: string }
         Returns: boolean
       }
+      dm_is_exempt: { Args: { p_other: string; p_sender: string }; Returns: boolean }
+      dm_pending_message_cap: { Args: never; Returns: number }
+      dm_typing_topic_allowed: { Args: { p_topic: string; p_user: string }; Returns: boolean }
       expire_unconfirmed_signups: { Args: never; Returns: undefined }
       increment_listing_view: {
         Args: { p_listing_id: string }
