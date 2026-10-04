@@ -8,7 +8,7 @@ import { prefillScore, hasScoreMismatch } from '@/lib/matches/verify'
 import { ResultReviewForms } from '@/components/admin/ResultReviewForms'
 import { DeclareNoShowWinnerForm } from '@/components/admin/DeclareNoShowWinnerForm'
 import { MarkBothNoShowForm } from '@/components/admin/MarkBothNoShowForm'
-import { canMarkBothNoShow } from '@/lib/matches/noshow-eligibility'
+import { canMarkBothNoShow, mutualNoShowNotice } from '@/lib/matches/noshow-eligibility'
 import { resolveBackLink } from '@/lib/nav/back-link'
 import { checkInSummary, checkInVerdict, soleAttendee } from '@/lib/matches/check-in'
 import { RosterAttendanceGrid, type SideInfo } from '@/components/admin/RosterAttendanceGrid'
@@ -19,6 +19,13 @@ type ProfileRef = { id: string; username: string | null; display_name: string | 
 function nameOf(p: ProfileRef): string {
   return p?.display_name ?? p?.username ?? 'TBD'
 }
+
+// Server actions run under this page's route config. Confirming a result or
+// closing/publishing a bracket does a long sequential chain (scores, events,
+// advancement, notifications) that grows with roster size — a 4v4 final touches
+// 8 players. 60 s is the most every Vercel plan allows; the platform default is
+// shorter and a timeout here would cut an action off partway through.
+export const maxDuration = 60
 
 export default async function ReviewMatchPage({
   params,
@@ -156,6 +163,7 @@ export default async function ReviewMatchPage({
   const sideBId = isTeamMatch ? m.team_b_id : (m.player_b?.id ?? null)
   const attendee = soleAttendee(checkInState, sideAId, sideBId)
   const attendeeName = attendee === sideAId ? playerA : attendee === sideBId ? playerB : null
+  const mutualNoShow = mutualNoShowNotice({ status: m.status, resolution: m.resolution, adminNote: m.admin_note })
   const eligibleForMutualNoShow = canMarkBothNoShow({
     status: m.status,
     noshowFlaggedAt: m.noshow_flagged_at,
@@ -172,7 +180,13 @@ export default async function ReviewMatchPage({
       </h2>
       <p className="mb-4 text-xs text-slate-500">Status: {m.status}</p>
 
-      {m.admin_note && (
+      {mutualNoShow && (
+        <p className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm font-semibold text-red-300">
+          {mutualNoShow}
+        </p>
+      )}
+
+      {m.admin_note && !mutualNoShow && (
         <p className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
           Dispute note: {m.admin_note}
         </p>
