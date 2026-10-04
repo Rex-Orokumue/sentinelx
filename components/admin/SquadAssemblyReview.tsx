@@ -1,6 +1,6 @@
 'use client'
 import { useFormState } from 'react-dom'
-import { moveSquadMember, removeSquadMember, type SquadMoveState } from '@/lib/tournaments/squad-actions'
+import { moveSquadMember, refundUnplacedPlayer, removeSquadMember, type SquadMoveState } from '@/lib/tournaments/squad-actions'
 
 type SquadRow = {
   id: string
@@ -101,7 +101,9 @@ function UnassignedRow({
   squads: SquadRow[]
 }) {
   const [state, formAction] = useFormState<SquadMoveState, FormData>(moveSquadMember, undefined)
+  const [refundState, refundAction] = useFormState<SquadMoveState, FormData>(refundUnplacedPlayer, undefined)
   return (
+    <div className="space-y-1">
     <form action={formAction} className="flex items-center gap-2 text-sm">
       <input type="hidden" name="tournamentId" value={tournamentId} />
       <input type="hidden" name="playerId" value={playerId} />
@@ -119,5 +121,15 @@ function UnassignedRow({
       </button>
       {state?.error && <p className="text-xs text-red-400">{state.error}</p>}
     </form>
+    <form action={refundAction} className="flex items-center justify-end gap-2 text-xs">
+      <input type="hidden" name="tournamentId" value={tournamentId} />
+      <input type="hidden" name="playerId" value={playerId} />
+      <span className="text-slate-500">No room in any squad?</span>
+      <button type="submit" className="font-semibold text-red-400 hover:text-red-300">
+        Refund &amp; remove
+      </button>
+      {refundState?.error && <p className="text-red-400">{refundState.error}</p>}
+    </form>
+    </div>
   )
 }

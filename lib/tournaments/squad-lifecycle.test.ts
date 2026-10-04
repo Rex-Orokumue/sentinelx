@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { generateInviteCode, isValidInviteCodeShape, autoGroupIntoSquads, squadNameFor } from './squad-lifecycle'
+import { generateInviteCode, isValidInviteCodeShape, autoGroupIntoSquads, squadNameFor, unplacedPlayerIds } from './squad-lifecycle'
 
 describe('generateInviteCode', () => {
   it('produces an 8-character code from the unambiguous alphabet', () => {
@@ -63,5 +63,17 @@ describe('squadNameFor', () => {
   it('numbers squads sequentially', () => {
     expect(squadNameFor(1)).toBe('Squad 1')
     expect(squadNameFor(12)).toBe('Squad 12')
+  })
+})
+
+describe('unplacedPlayerIds', () => {
+  it('returns paid players with no squad seat', () => {
+    expect(unplacedPlayerIds(['a', 'b', 'c'], ['a', 'c'])).toEqual(['b'])
+  })
+  it('is empty when everyone is seated', () => {
+    expect(unplacedPlayerIds(['a', 'b'], ['b', 'a', 'x'])).toEqual([])
+  })
+  it('is empty when nobody paid', () => {
+    expect(unplacedPlayerIds([], ['a'])).toEqual([])
   })
 })

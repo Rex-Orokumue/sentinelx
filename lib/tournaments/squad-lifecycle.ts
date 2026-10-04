@@ -42,3 +42,11 @@ export function autoGroupIntoSquads(
 export function squadNameFor(n: number): string {
   return `Squad ${n}`
 }
+
+// Paid registrants who hold no squad seat — the odd player an admin-arranged
+// draw can't place. They must be moved into a squad with room or refunded
+// before the bracket goes live.
+export function unplacedPlayerIds(paidPlayerIds: string[], placedPlayerIds: string[]): string[] {
+  const placed = new Set(placedPlayerIds)
+  return paidPlayerIds.filter((id) => !placed.has(id))
+}

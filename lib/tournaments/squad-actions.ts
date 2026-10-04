@@ -5,6 +5,9 @@ import { createClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/lib/admin/auth'
 import { squadNameSchema, inviteCodeSchema } from './squad-schema'
 import { maybeCompleteSquad } from './squad-membership'
+import { refundUnplacedRegistration } from './squad-refund'
+import { notifyInApp } from '@/lib/notifications/inbox'
+import { formatNaira } from '@/lib/format'
 import { performCreateSquad, type CreateSquadErrorCode } from './create-squad-service'
 import { performLookupSquad, type LookupSquadErrorCode } from './lookup-squad-service'
 
@@ -158,5 +161,40 @@ export async function moveSquadMember(_prev: SquadMoveState, formData: FormData)
   await maybeCompleteSquad(admin, toSquadId, teamSize)
 
   revalidatePath(`/admin/tournaments/${tournamentId}/squads`)
+  return { success: true }
+}
+
+// The other way to resolve an unassigned player when no squad has room (the
+// odd player out of an admin-arranged draw): take them out of the tournament
+// and give back what they paid. Admin-only and only before go-live, like
+// every other squad edit; the money movement is explicit, never automatic.
+export async function refundUnplacedPlayer(_prev: SquadMoveState, formData: FormData): Promise<SquadMoveState> {
+  await requireAdmin()
+  const tournamentId = String(formData.get('tournamentId') ?? '')
+  const playerId = String(formData.get('playerId') ?? '')
+  if (!tournamentId || !playerId) return { error: 'Missing player.' }
+
+  const admin = createAdminClient()
+  const { data: t } = await admin.from('tournaments').select('status, title').eq('id', tournamentId).maybeSingle()
+  if (!t) return { error: 'Tournament not found.' }
+  if (t.status !== 'registration_closed') return { error: 'Squads can only be edited before the tournament goes live.' }
+
+  const result = await refundUnplacedRegistration(admin, tournamentId, playerId)
+  if (!result.ok) return { error: result.error }
+
+  const parts = [
+    result.cashNaira > 0 ? `${formatNaira(result.cashNaira)} was returned to your wallet` : null,
+    result.coinsReturned > 0 ? `${result.coinsReturned} SX Coins were returned` : null,
+  ].filter(Boolean)
+  await notifyInApp({
+    playerId,
+    type: 'wallet_credited',
+    title: 'Registration refunded',
+    body: `There was no squad place left for you in ${t.title}.${parts.length > 0 ? ` ${parts.join(' and ')}.` : ''}`,
+    link: '/dashboard#wallet',
+  })
+
+  revalidatePath(`/admin/tournaments/${tournamentId}/squads`)
+  revalidatePath(`/admin/tournaments/${tournamentId}/registrations`)
   return { success: true }
 }

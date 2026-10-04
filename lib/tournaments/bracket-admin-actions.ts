@@ -6,7 +6,7 @@ import { resolveGroupCount, snakeDistribute, roundRobinPairs, knockoutRound1 } f
 import { nextRoundScheduledAt } from './round-schedule'
 import { seededPaidPlayers, seededPaidSquads } from './seeded-players'
 import { soloEntrantRows, squadEntrantRows } from './entrants'
-import { autoGroupIntoSquads, squadNameFor } from './squad-lifecycle'
+import { autoGroupIntoSquads, squadNameFor, unplacedPlayerIds } from './squad-lifecycle'
 import { uniqueInviteCode } from './squad-membership'
 import { refundFormingSquads } from './squad-refund'
 import { notifyNewFixtures } from '@/lib/notifications/fixture-created'
@@ -493,12 +493,36 @@ export async function publishBracket(
   const admin = createAdminClient()
   const { data: t } = await admin
     .from('tournaments')
-    .select('status, slug, title')
+    .select('status, slug, title, entry_unit')
     .eq('id', id)
     .maybeSingle()
   if (!t) return { error: 'Tournament not found.' }
   if (t.status !== 'registration_closed')
     return { error: 'Only a finalized bracket can be published.' }
+
+  // A paid squad registrant with no seat (the odd player out of the draw)
+  // would get "Bracket is live!" but no fixture. Make the admin resolve them —
+  // move into a squad with room, or refund — before the bracket goes live.
+  if (t.entry_unit === 'squad') {
+    const [{ data: paid }, { data: seated }] = await Promise.all([
+      admin
+        .from('tournament_registrations')
+        .select('player_id')
+        .eq('tournament_id', id)
+        .eq('payment_status', 'paid')
+        .eq('status', 'active'),
+      admin.from('squad_members').select('player_id').eq('tournament_id', id),
+    ])
+    const unplaced = unplacedPlayerIds(
+      (paid ?? []).map((r) => r.player_id as string),
+      (seated ?? []).map((r) => r.player_id as string),
+    )
+    if (unplaced.length > 0) {
+      return {
+        error: `${unplaced.length} paid player${unplaced.length === 1 ? ' is' : 's are'} not in a squad. Move them into a squad or refund them on the Squads page before publishing.`,
+      }
+    }
+  }
 
   const { count } = await admin
     .from('matches')
