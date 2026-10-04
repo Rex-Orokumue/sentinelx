@@ -11,6 +11,7 @@ import { ResolvePendingMatchesButton } from '@/components/admin/ResolvePendingMa
 import { NoShowBanner, type FlaggedMatchRow } from '@/components/admin/NoShowBanner'
 import { buildAdminPlayerWhatsAppUrl, resolvePlayerPhone } from '@/lib/matches/admin-whatsapp'
 import { toDateTimeLocal } from '@/lib/format'
+import { sideName } from '@/lib/matches/sides'
 
 export const metadata: Metadata = { title: 'Matches · Admin · SentinelX' }
 
@@ -19,6 +20,11 @@ type ProfileRef = { username: string | null; display_name: string | null } | nul
 // can WhatsApp either side of a fixture straight from the row.
 type PlayerRef =
   | (ProfileRef & { id: string; whatsapp_number: string | null; country: string | null })
+  | null
+// A squad side is reached through its captain (a squad has no number of its own).
+type SquadRef =
+  | { name: string; captain: PlayerRef | PlayerRef[] }
+  | { name: string; captain: PlayerRef | PlayerRef[] }[]
   | null
 type GroupRef = { name: string } | { name: string }[] | null
 function nameOf(p: ProfileRef): string | null {
@@ -46,6 +52,8 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
         'id, round, group_id, status, scheduled_at, is_full_day, youtube_stream_url, replay_url, ' +
           'player_a:profiles!matches_player_a_id_fkey(id, username, display_name, whatsapp_number, country), ' +
           'player_b:profiles!matches_player_b_id_fkey(id, username, display_name, whatsapp_number, country), ' +
+          'team_a:squads!matches_team_a_id_fkey(name, captain:profiles!squads_captain_id_fkey(id, username, display_name, whatsapp_number, country)), ' +
+          'team_b:squads!matches_team_b_id_fkey(name, captain:profiles!squads_captain_id_fkey(id, username, display_name, whatsapp_number, country)), ' +
           'groups(name)',
       )
       .eq('tournament_id', t.id),
@@ -89,21 +97,38 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
       replay_url: string | null
       player_a: PlayerRef
       player_b: PlayerRef
+      team_a: SquadRef
+      team_b: SquadRef
       groups: GroupRef
     }
+    // One side of the fixture: the display name (null = no competitor, i.e. a
+    // bye) and who to WhatsApp about it — the player, or the squad's captain.
+    const sideOf = (player: PlayerRef, squad: SquadRef): { name: string | null; contact: PlayerRef } => {
+      const sq = Array.isArray(squad) ? squad[0] ?? null : squad
+      if (sq) {
+        const captain = Array.isArray(sq.captain) ? sq.captain[0] ?? null : sq.captain
+        return { name: sq.name, contact: captain }
+      }
+      return { name: nameOf(player), contact: player }
+    }
+    const sideA = sideOf(m.player_a, m.team_a)
+    const sideB = sideOf(m.player_b, m.team_b)
     const contactInputFor = (player: NonNullable<PlayerRef>) => ({
       regWhatsapp: regWhatsappByPlayer.get(player.id),
       profileWhatsapp: player.whatsapp_number,
       country: player.country,
     })
-    const whatsAppUrlFor = (player: PlayerRef, opponent: PlayerRef): string | null =>
-      player &&
+    const whatsAppUrlFor = (
+      side: { name: string | null; contact: PlayerRef },
+      opponent: { name: string | null; contact: PlayerRef },
+    ): string | null =>
+      side.contact &&
       buildAdminPlayerWhatsAppUrl({
-        player: contactInputFor(player),
-        playerName: nameOf(player) ?? 'there',
-        opponentName: nameOf(opponent),
+        player: contactInputFor(side.contact),
+        playerName: nameOf(side.contact) ?? 'there',
+        opponentName: opponent.name,
         // So the player can reach their opponent straight from the message.
-        opponentPhone: opponent && resolvePlayerPhone(contactInputFor(opponent)),
+        opponentPhone: opponent.contact && resolvePlayerPhone(contactInputFor(opponent.contact)),
         tournamentTitle: t.title,
         scheduledAt: m.scheduled_at,
         isFullDay: m.is_full_day,
@@ -114,10 +139,10 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
       row: {
         id: m.id,
         round: m.round,
-        playerAName: nameOf(m.player_a) ?? 'TBD',
-        playerBName: nameOf(m.player_b),
-        playerAWhatsAppUrl: whatsAppUrlFor(m.player_a, m.player_b),
-        playerBWhatsAppUrl: whatsAppUrlFor(m.player_b, m.player_a),
+        playerAName: sideA.name ?? 'TBD',
+        playerBName: sideB.name,
+        playerAWhatsAppUrl: whatsAppUrlFor(sideA, sideB),
+        playerBWhatsAppUrl: whatsAppUrlFor(sideB, sideA),
         status: m.status,
         scheduledAt: toDateTimeLocal(m.scheduled_at),
         isFullDay: m.is_full_day,
@@ -132,18 +157,23 @@ export default async function AdminMatchesPage({ params }: { params: { id: strin
     .select(
       'id, round, ' +
         'player_a:profiles!matches_player_a_id_fkey(username, display_name), ' +
-        'player_b:profiles!matches_player_b_id_fkey(username, display_name)',
+        'player_b:profiles!matches_player_b_id_fkey(username, display_name), ' +
+        'team_a:squads!matches_team_a_id_fkey(name), ' +
+        'team_b:squads!matches_team_b_id_fkey(name)',
     )
     .eq('tournament_id', t.id)
     .not('noshow_flagged_at', 'is', null)
     .in('status', ['scheduled', 'live'])
 
   const flagged: FlaggedMatchRow[] = ((flaggedRaw as unknown[] | null) ?? []).map((raw) => {
-    const m = raw as { id: string; round: string; player_a: ProfileRef; player_b: ProfileRef }
+    const m = raw as {
+      id: string; round: string; player_a: ProfileRef; player_b: ProfileRef
+      team_a: { name: string } | { name: string }[] | null; team_b: { name: string } | { name: string }[] | null
+    }
     return {
       id: m.id,
-      playerAName: nameOf(m.player_a) ?? 'TBD',
-      playerBName: nameOf(m.player_b) ?? 'TBD',
+      playerAName: sideName(m.player_a, m.team_a),
+      playerBName: sideName(m.player_b, m.team_b),
       round: m.round,
     }
   })
