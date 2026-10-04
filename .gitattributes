@@ -1,0 +1,8 @@
+# Vitest always writes snapshot files with LF. Git for Windows (core.autocrlf=true,
+# the default) checks every text file out as CRLF, so the first test run after a
+# checkout, pull or new worktree rewrote each *.snap as LF and `git status` then
+# showed them as modified with no real change. Checking snapshots out as LF in the
+# first place means a run never has anything to rewrite.
+#
+# Scoped to snapshots on purpose: it does not renormalize the rest of the repo.
+*.snap text eol=lf
