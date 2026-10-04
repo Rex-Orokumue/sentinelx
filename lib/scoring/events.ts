@@ -13,7 +13,7 @@ export interface NewMatchEvent {
   match_id: string
   event_type: AutoMatchEventType
   points_delta: number
-  note: null
+  note: string | null
 }
 
 interface MatchInput {
@@ -24,6 +24,9 @@ interface MatchInput {
   score_b: number | null
   status: string
   resolution: string | null
+  // Set (and never cleared) when an admin disputes the result. A win ruled
+  // after a dispute keeps its win event but not the +90 "no dispute" bonus.
+  disputed_at?: string | null
 }
 
 export function matchEventsFor(match: MatchInput): NewMatchEvent[] {
@@ -57,15 +60,25 @@ export function matchEventsFor(match: MatchInput): NewMatchEvent[] {
 
   if (score_a !== score_b) {
     const winnerId = score_a > score_b ? player_a_id : player_b_id
-    events.push({
-      player_id: winnerId,
-      match_id: id,
-      event_type: 'win_no_dispute',
-      points_delta: WIN_DELTA,
-      note: null,
-    })
+    events.push(winEvent(winnerId, id, Boolean(match.disputed_at)))
   }
   return events
+}
+
+export const DISPUTED_WIN_NOTE = 'Win ruled after a dispute - the no-dispute bonus is withheld'
+
+// The +90 is a "no dispute" bonus, so a win ruled after an admin dispute earns
+// 0 points. The event row is still written: the win itself is real, and the
+// winner's coins, XP and "won" achievement flag (lib/matches/economy-hooks.ts)
+// are derived from this row's existence, not from its points.
+function winEvent(playerId: string, matchId: string, disputed: boolean): NewMatchEvent {
+  return {
+    player_id: playerId,
+    match_id: matchId,
+    event_type: 'win_no_dispute',
+    points_delta: disputed ? 0 : WIN_DELTA,
+    note: disputed ? DISPUTED_WIN_NOTE : null,
+  }
 }
 
 function completedEvent(playerId: string, matchId: string): NewMatchEvent {
@@ -96,6 +109,7 @@ interface TeamMatchInput {
   score_b: number | null
   status: string
   resolution: string | null
+  disputed_at?: string | null
 }
 
 // Team-vs-team sibling of matchEventsFor (spec §7.4). Solo matches never
@@ -150,7 +164,7 @@ export function teamMatchEventsFor(
     if (checkedInPlayerIds.has(pid)) {
       events.push(completedEvent(pid, id))
       if (winningRoster?.includes(pid)) {
-        events.push({ player_id: pid, match_id: id, event_type: 'win_no_dispute', points_delta: WIN_DELTA, note: null })
+        events.push(winEvent(pid, id, Boolean(match.disputed_at)))
       }
     } else {
       events.push(noShowEvent(pid, id))

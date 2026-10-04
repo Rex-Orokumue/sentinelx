@@ -18,6 +18,7 @@ interface MatchRow {
   score_b: number | null
   status: string
   resolution: string | null
+  disputed_at: string | null
   tournament_id: string
   tournament:
     | { tournament_type: string; season_id: string | null }
@@ -26,7 +27,7 @@ interface MatchRow {
 }
 
 const MATCH_COLS =
-  'id, player_a_id, player_b_id, team_a_id, team_b_id, score_a, score_b, status, resolution, tournament_id, tournament:tournaments(tournament_type, season_id)'
+  'id, player_a_id, player_b_id, team_a_id, team_b_id, score_a, score_b, status, resolution, disputed_at, tournament_id, tournament:tournaments(tournament_type, season_id)'
 
 // Reuse getChampion's winner rule by shaping a raw final row into a BracketMatch.
 // Only ids are compared, so names are irrelevant.

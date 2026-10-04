@@ -678,7 +678,10 @@ export async function disputeResult(_prev: VerifyState, formData: FormData): Pro
 
   const { error } = await admin
     .from('matches')
-    .update({ status: 'disputed', admin_note: note })
+    // disputed_at is the permanent record that this match was ever disputed: status
+    // is overwritten when the admin rules, but a win ruled after a dispute must still
+    // be scored without the 'no dispute' bonus (lib/scoring/events.ts).
+    .update({ status: 'disputed', admin_note: note, disputed_at: new Date().toISOString() })
     .eq('id', id)
   if (error) return { error: 'Could not save the dispute.' }
   await admin.from('match_results').update({ status: 'disputed' }).eq('match_id', id)
