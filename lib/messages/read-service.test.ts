@@ -208,11 +208,13 @@ describe('listThreads message requests', () => {
     expect((await listThreads(ctx, {})).threads[0]).toMatchObject({ requestState: 'accepted', direction: null })
   })
 
-  it('the inbox shows accepted threads and the viewer own requests only', async () => {
+  it('the inbox shows accepted threads and the viewer own PENDING requests only', async () => {
     const { ctx, sess } = build({ threads: [] })
     await listThreads(ctx, { box: 'inbox' })
     const q = sess.calls.find((c) => c.table === 'dm_threads')!
-    expect(JSON.stringify(q.ops)).toContain(`request_state.eq.accepted,created_by.eq.${ME}`)
+    expect(JSON.stringify(q.ops)).toContain(`request_state.eq.accepted,and(request_state.eq.pending,created_by.eq.${ME})`)
+    // a declined thread is in no inbox, for either side: that is what a block does too
+    expect(JSON.stringify(q.ops)).not.toContain('declined')
   })
 
   it('the requests box shows incoming pending threads only', async () => {
@@ -241,5 +243,16 @@ describe('getThreadHeader request info', () => {
     expect(await getThreadHeader(ctx, uuid(1))).toMatchObject({ requestState: 'pending', direction: 'incoming' })
     const mine = build({ headerThread: { ...t(1), request_state: 'pending', created_by: ME } })
     expect(await getThreadHeader(mine.ctx, uuid(1))).toMatchObject({ requestState: 'pending', direction: 'outgoing' })
+  })
+})
+
+describe('a declined request looks like a block to the person who sent it', () => {
+  it('the initiator header reports blockedByThem and an accepted state, never declined', async () => {
+    const { ctx } = build({ headerThread: { ...t(1), request_state: 'declined', created_by: ME } })
+    expect(await getThreadHeader(ctx, uuid(1))).toMatchObject({ blockedByThem: true, blockedByMe: false, requestState: 'accepted', direction: null })
+  })
+  it('the recipient who declined still sees the real state', async () => {
+    const { ctx } = build({ headerThread: { ...t(1), request_state: 'declined', created_by: 'other' } })
+    expect(await getThreadHeader(ctx, uuid(1))).toMatchObject({ blockedByThem: false, requestState: 'declined' })
   })
 })

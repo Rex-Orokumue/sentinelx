@@ -41,10 +41,10 @@ describe('fetchThreadList boxes', () => {
     row('in-declined', 'declined', 'x'),
     row('legacy', undefined, 'x'),
   ]
-  it('the inbox holds accepted threads and the viewer own requests, with their direction', async () => {
+  it('the inbox holds accepted threads and the viewer own pending requests, with their direction', async () => {
     useThreads(rows)
     const list = await fetchThreadList(ME)
-    expect(list.map((t) => t.threadId).sort()).toEqual(['acc', 'legacy', 'out-declined', 'out-pending'])
+    expect(list.map((t) => t.threadId).sort()).toEqual(['acc', 'legacy', 'out-pending'])
     expect(list.find((t) => t.threadId === 'out-pending')).toMatchObject({ requestState: 'pending', direction: 'outgoing' })
     expect(list.find((t) => t.threadId === 'acc')).toMatchObject({ requestState: 'accepted', direction: null })
   })
@@ -58,9 +58,9 @@ describe('fetchThreadList boxes', () => {
     expect(list.map((t) => t.threadId)).toEqual(['in-pending'])
     expect(list[0]).toMatchObject({ direction: 'incoming' })
   })
-  it('a declined thread the viewer did not start is in neither box', async () => {
+  it('a declined thread is in neither box, for either side (a block hides a thread the same way)', async () => {
     useThreads(rows)
-    expect((await fetchThreadList(ME)).some((t) => t.threadId === 'in-declined')).toBe(false)
+    expect((await fetchThreadList(ME)).some((t) => t.threadId === 'in-declined' || t.threadId === 'out-declined')).toBe(false)
     expect((await fetchThreadList(ME, 'requests')).some((t) => t.threadId === 'in-declined')).toBe(false)
   })
 })
@@ -73,5 +73,18 @@ describe('fetchThread request info', () => {
     const mine = row('t2', 'pending', ME)
     useThreads([mine], mine)
     expect(await fetchThread('t2', ME)).toMatchObject({ requestState: 'pending', direction: 'outgoing' })
+  })
+})
+
+describe('fetchThread for the initiator of a declined request', () => {
+  it('reports it as a block, not as a decline', async () => {
+    const r = row('t3', 'declined', ME)
+    useThreads([r], r)
+    expect(await fetchThread('t3', ME)).toMatchObject({ blockedByThem: true, requestState: 'accepted', direction: null })
+  })
+  it('the recipient keeps the real state', async () => {
+    const r = row('t4', 'declined', 'x')
+    useThreads([r], r)
+    expect(await fetchThread('t4', ME)).toMatchObject({ blockedByThem: false, requestState: 'declined' })
   })
 })

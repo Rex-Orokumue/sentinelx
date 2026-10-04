@@ -47,8 +47,8 @@ export type ThreadSummary = {
   direction: RequestDirection
 }
 
-// box 'inbox' = accepted threads plus every thread the viewer started; 'requests' = incoming pending only. A declined
-// thread the viewer did not start is in neither box.
+// box 'inbox' = accepted threads plus the viewer's own PENDING requests; 'requests' = incoming pending only. A declined
+// thread is in neither box for either side: a block hides a thread the same way, so a decline is not its own signal.
 export async function fetchThreadList(viewerId: string, box: 'inbox' | 'requests' = 'inbox'): Promise<ThreadSummary[]> {
   const supabase = createClient()
   const { data: threads } = await supabase
@@ -91,7 +91,7 @@ export async function fetchThreadList(viewerId: string, box: 'inbox' | 'requests
     const otherId = t.player_a === viewerId ? t.player_b : t.player_a
     if (isBlockedBetween(blockRows, viewerId, otherId)) continue
     const requestState = asState(t.request_state)
-    const inInbox = requestState === 'accepted' || t.created_by === viewerId
+    const inInbox = requestState === 'accepted' || (requestState === 'pending' && t.created_by === viewerId)
     const inRequests = requestState === 'pending' && t.created_by !== viewerId
     if (box === 'inbox' ? !inInbox : !inRequests) continue
     const list = byThread.get(t.id) ?? []
@@ -224,6 +224,9 @@ export async function fetchThread(threadId: string, viewerId: string): Promise<T
   }
 
   const blockRows = (blocks ?? []) as { blocker_id: string; blocked_id: string }[]
+  const rawState = asState(thread.request_state)
+  const declinedForSender = rawState === 'declined' && thread.created_by === viewerId
+  const shownState: RequestState = declinedForSender ? 'accepted' : rawState
 
   return {
     threadId,
@@ -259,9 +262,10 @@ export async function fetchThread(threadId: string, viewerId: string): Promise<T
       }
     }),
     blockedByMe: blockRows.some((b) => b.blocker_id === viewerId && b.blocked_id === otherId),
-    blockedByThem: blockRows.some((b) => b.blocker_id === otherId && b.blocked_id === viewerId),
-    requestState: asState(thread.request_state),
-    direction: directionOf(asState(thread.request_state), thread.created_by, viewerId),
+    // To the player who SENT a declined request it is indistinguishable from a block: blockedByThem, never 'declined'.
+    blockedByThem: declinedForSender || blockRows.some((b) => b.blocker_id === otherId && b.blocked_id === viewerId),
+    requestState: shownState,
+    direction: directionOf(shownState, thread.created_by, viewerId),
   }
 }
 

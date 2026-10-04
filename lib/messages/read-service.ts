@@ -127,9 +127,10 @@ export async function listThreads(
     .from('dm_threads')
     .select('id, player_a, player_b, last_message_at, request_state, created_by')
     .or(participantFilter)
-  // inbox: accepted threads plus every thread the viewer started (their own pending / declined requests).
-  // requests: incoming pending only. A declined thread the viewer did NOT start appears in neither box.
-  query = box === 'requests' ? query.eq('request_state', 'pending').neq('created_by', userId) : query.or(`request_state.eq.accepted,created_by.eq.${userId}`)
+  // inbox: accepted threads plus the viewer's own PENDING requests. requests: incoming pending only.
+  // A DECLINED thread is in neither box for either side: a block hides a thread from both players, and a decline must not
+  // be a separate signal to the person who sent the request.
+  query = box === 'requests' ? query.eq('request_state', 'pending').neq('created_by', userId) : query.or(`request_state.eq.accepted,and(request_state.eq.pending,created_by.eq.${userId})`)
   if (cursor) query = query.or(keysetFilterOn('last_message_at', cursor))
 
   const [{ data }, blocks, incoming] = await Promise.all([
@@ -205,12 +206,15 @@ export async function getThreadHeader(ctx: MessageCtx, threadId: string): Promis
   if (!thread || (thread.player_a !== userId && thread.player_b !== userId)) return null
   const otherId = thread.player_a === userId ? thread.player_b : thread.player_a
   const [profiles, blocks] = await Promise.all([profilesById(ctx, [otherId]), blocksFor(ctx)])
-  const requestState = stateOf(thread.request_state)
+  const rawState = stateOf(thread.request_state)
+  // To the player who SENT a declined request it is indistinguishable from a block: blockedByThem, never 'declined'.
+  const declinedForSender = rawState === 'declined' && thread.created_by === userId
+  const requestState: RequestState = declinedForSender ? 'accepted' : rawState
   return {
     threadId,
     other: participant(otherId, profiles.get(otherId)),
     blockedByMe: blocks.some((b) => b.blockerId === userId && b.blockedId === otherId),
-    blockedByThem: blocks.some((b) => b.blockerId === otherId && b.blockedId === userId),
+    blockedByThem: declinedForSender || blocks.some((b) => b.blockerId === otherId && b.blockedId === userId),
     requestState,
     direction: directionOf(requestState, thread.created_by, userId),
   }

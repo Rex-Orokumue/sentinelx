@@ -52,9 +52,12 @@ Date: 2026-10-05. Branch `feat/mobile-5b-dm` (worktree `C:\Users\gorok\Videos\se
    Cost: one extra function.
 2. Request gate trigger locks the thread row on every insert (not only pending) — simplest correct. Cost: minor per-thread
    serialisation of sends.
-3. Inbox = accepted OR started-by-viewer; a declined thread the viewer did not start is in neither box. Cost: a declined
-   recipient cannot re-find it (they can reopen only by the sender writing again? no — only by the recipient writing, which
-   needs the thread; add a "declined" box later if wanted).
+3. Inbox = accepted threads plus the viewer's own PENDING requests. A DECLINED thread is in no inbox for either side, and
+   to the player who sent a declined request the thread header reports `blockedByThem` (state shown as accepted), never
+   `declined` — so a decline is indistinguishable from a block, as the spec requires. (Changed by the review fix below; the
+   first version showed the initiator a visible thread and `requestState: declined`.) Cost: the recipient has no UI to find a
+   thread they declined; reopening is by the recipient messaging that player again (the database accepts a thread when its
+   non-creator writes). A "Declined" box can be added later.
 4. `requestCount` from a separate query capped at 100, blocked threads excluded. Cost: count tops out at 100.
 5. No typing signal while a request is pending (would tell a stranger the recipient is looking).
 6. Staging concurrency harness replaced by the (inconclusive) SQL-session check; see NOT verified.
@@ -65,3 +68,16 @@ Date: 2026-10-05. Branch `feat/mobile-5b-dm` (worktree `C:\Users\gorok\Videos\se
 Apply both migrations to production first (`dm_typing_broadcast_policies`, then `dm_message_requests`), then deploy the web
 build — **together**. A stricter `dm_can_message`/triggers without this web code would show senders a generic failure at the
 cap. Then regenerate `lib/supabase/types.ts` if desired.
+
+## Final review (fresh context, most capable model) and what was done
+Reviewer found no Critical/Important issues; I re-graded by effect:
+- **Fixed (re-graded Important):** a decline was distinguishable from a block for the sender (visible thread in their inbox,
+  `requestState: declined` on the header API, composer still enabled in the web UI). Tests written first (5 RED), then
+  fixed in `lib/messages/read-service.ts` and `lib/messages/query.ts`; suite green. The web composer now disables for the
+  sender through `blockedByThem`, exactly as for a block.
+- **Deferred minors:** (1) path-param ids (`threadId`/`messageId`) are not UUID-validated on the write endpoints; a malformed id
+  falls through to `not_found`, no security effect. (2) Typing is switched off for pending threads in the client only; the
+  database broadcast policy checks thread membership, not request state (not exploitable against the protected player
+  without a modified client).
+- Reviewer could not verify (same as above): true concurrent behaviour of the cap lock, the PostgREST error-message path over
+  HTTP, the web UI rendering.
