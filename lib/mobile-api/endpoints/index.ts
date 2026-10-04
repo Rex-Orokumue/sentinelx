@@ -68,6 +68,7 @@ import {
   postTestPushEndpoint,
 } from './notifications'
 import { getMessageThreadsEndpoint, getMessageThreadEndpoint, getThreadMessagesEndpoint } from './messages-reads'
+import { startMessageThreadEndpoint, sendMessageEndpoint, editMessageEndpoint, unsendMessageEndpoint, forwardMessageEndpoint, markThreadReadEndpoint, markAllDeliveredEndpoint, blockPlayerEndpoint, unblockPlayerEndpoint, reportThreadEndpoint } from './messages-writes'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -154,4 +155,14 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   getMessageThreadsEndpoint,
   getMessageThreadEndpoint,
   getThreadMessagesEndpoint,
+  startMessageThreadEndpoint,
+  sendMessageEndpoint,
+  editMessageEndpoint,
+  unsendMessageEndpoint,
+  forwardMessageEndpoint,
+  markThreadReadEndpoint,
+  markAllDeliveredEndpoint,
+  blockPlayerEndpoint,
+  unblockPlayerEndpoint,
+  reportThreadEndpoint,
 ]
