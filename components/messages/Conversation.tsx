@@ -10,6 +10,7 @@ import type { ThreadDetail, ConversationMessage, ThreadSummary } from '@/lib/mes
 import { MessageComposer } from './MessageComposer'
 import { MessageBubble } from './MessageBubble'
 import { ForwardSheet } from './ForwardSheet'
+import { useThreadTyping } from './useThreadTyping'
 
 // A subtle crosshatch, WhatsApp-doodle-wallpaper-style — CSS only, no image
 // asset, and not user-selectable/buyable (that's a future Store feature, not
@@ -246,6 +247,7 @@ export function Conversation({
   }, [messages.length])
 
   const disabled = detail.blockedByMe || detail.blockedByThem
+  const { typing, notifyTyping } = useThreadTyping(detail.threadId, viewerId, detail.other.id, !disabled)
   const disabledReason = detail.blockedByMe
     ? 'You blocked this player. Unblock from the menu to message them.'
     : detail.blockedByThem
@@ -280,12 +282,18 @@ export function Conversation({
         })}
         <div ref={bottomRef} />
       </div>
+      {typing && (
+        <p className="px-4 pb-1 text-xs italic text-sx-gray" aria-live="polite">
+          {detail.other.name} is typing…
+        </p>
+      )}
       <MessageComposer
         threadId={detail.threadId}
         viewerId={viewerId}
         otherName={detail.other.name}
         disabled={disabled}
         disabledReason={disabledReason}
+        onTyping={notifyTyping}
         mode={composerMode}
         onClearMode={() => setComposerMode(null)}
         onAddPending={addPending}

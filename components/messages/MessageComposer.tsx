@@ -31,6 +31,7 @@ export function MessageComposer({
   otherName,
   disabled,
   disabledReason,
+  onTyping,
   mode,
   onClearMode,
   onAddPending,
@@ -42,6 +43,7 @@ export function MessageComposer({
   otherName: string
   disabled?: boolean
   disabledReason?: string
+  onTyping?: () => void
   mode: ComposerMode
   onClearMode: () => void
   onAddPending: (message: DisplayMessage) => void
@@ -380,7 +382,10 @@ export function MessageComposer({
           <textarea
             ref={textRef}
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => {
+              setBody(e.target.value)
+              onTyping?.()
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
