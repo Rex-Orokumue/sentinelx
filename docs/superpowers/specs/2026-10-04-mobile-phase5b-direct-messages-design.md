@@ -10,16 +10,17 @@ Full-parity direct messages in the Flutter app: inbox, conversation, text / phot
 sticker, reply, edit and unsend (10-minute window), forward, delivered/read receipts, online dot,
 **typing indicator**, block, report, start-from-profile, DM push and tap routing.
 
-Owner decisions (2026-10-04): web parity in one phase, **plus typing**. Out of scope: message
-requests (the web has none), per-thread mute (the web has none), guide/chatbot (5c), any new
-notification type.
+Owner decisions (2026-10-04): web parity in one phase, **plus typing, plus message requests**
+(both new on web and mobile; the web has neither today). Out of scope: per-thread mute (the web
+has none), guide/chatbot (5c), any new notification type. Requests are their own stage in the
+plan, built after core DM works (section 3.9), so a delay there does not hold up the rest.
 
 ## 2. Ground truth (web, `origin/main`)
 
 | Fact | Where |
 |---|---|
 | Thread identity is the ordered pair (`player_a < player_b`, unique). Created only service-role. | `20260909204325_direct_messages.sql`, `lib/messages/thread-key.ts`, `actions.ts` |
-| `dm_can_message(thread, sender)` = sender is a participant AND not staff-muted AND no block in either direction. **No requests concept exists**; the master spec's "Requests rules via `dm_can_message`" line describes nothing that is implemented. | migration, `actions.ts` |
+| `dm_can_message(thread, sender)` = sender is a participant AND not staff-muted AND no block in either direction. **No requests concept exists today**; the master spec's "Requests rules via `dm_can_message`" line describes nothing implemented. 5b adds it (3.9). | migration, `actions.ts` |
 | `dm_messages` columns: body (≤2000), image_url, sticker_id, audio_url (+`audio_duration_seconds`, >0), forwarded, reply_to_id, edited_at, deleted_at, read_at, delivered_at. At least one of body/image/sticker/audio. | migrations 0909, 0912, 0913 |
 | RLS: participant read; sender insert via `dm_can_message`; recipient may update any column of messages they did not send (read/delivered); sender may update own message only within 10 min (edit/unsend). | migrations |
 | Edit writes the old body to `dm_message_edits` (service-role only) before updating. Unsend sets `deleted_at`; participants see no content, staff always can. | `actions.ts`, `resolveParticipantContent` |
@@ -60,11 +61,13 @@ All `auth: 'user'`. Error codes reuse web `errorCode` strings where one exists.
 
 | Operation | Method and path | Request | Response | Notes |
 |---|---|---|---|---|
-| `getMessageThreads` | `GET /messages/threads?cursor&limit` | — | `{ threads: ThreadSummary[], nextCursor }` | Ordered by `last_message_at` desc. Blocked threads excluded. `ThreadSummary` = threadId, other {id, name, username, avatarUrl}, preview {kind: text/image/sticker/voice/removed, text?, stickerId?}, lastMessageAt, unread (count of `read_at IS NULL AND sender<>me`). |
-| `getMessageThread` | `GET /messages/threads/:id` | — | `{ threadId, other, blockedByMe, blockedByThem }` | 404 if not a participant. |
+| `getMessageThreads` | `GET /messages/threads?box=inbox\|requests&cursor&limit` | — | `{ threads: ThreadSummary[], nextCursor, requestCount }` | Ordered by `last_message_at` desc. Blocked and (for the recipient) declined threads excluded. `inbox` = accepted threads plus the viewer's own outgoing pending threads; `requests` = incoming pending. `ThreadSummary` = threadId, other {id, name, username, avatarUrl}, preview {kind: text/image/sticker/voice/removed, text?, stickerId?}, lastMessageAt, unread (count of `read_at IS NULL AND sender<>me`), `requestState` (pending/accepted/declined), `direction` (incoming/outgoing/null). |
+| `getMessageThread` | `GET /messages/threads/:id` | — | `{ threadId, other, blockedByMe, blockedByThem, requestState, direction }` | 404 if not a participant. |
+| `acceptMessageRequest` | `POST /messages/threads/:id/accept` | — | `{ ok }` | Only the non-creator. Naturally idempotent. |
+| `declineMessageRequest` | `POST /messages/threads/:id/decline` | — | `{ ok }` | Only the non-creator, only while pending. Naturally idempotent. |
 | `getThreadMessages` | `GET /messages/threads/:id/messages?before&limit` | — | `{ messages: Message[], nextBefore }` | Newest-first page (default 40, max 100). Media signed per page. `replyTo` resolved server-side. Deleted content redacted (`resolveParticipantContent`). |
-| `startMessageThread` | `POST /messages/threads` | `{ recipientId }` | `{ threadId }` | Get-or-create, naturally idempotent. 400 for self. |
-| `sendMessage` | `POST /messages/threads/:id/messages` | `{ body? , imagePath?, stickerId?, audioPath?, audioDurationSeconds?, replyToId? }` | `{ messageId, createdAt }` | **`idempotent: true`** (`Idempotency-Key` required): a retried send must not duplicate a bubble or push. Same validation as web. Block/mute errors reuse the web strings' codes. |
+| `startMessageThread` | `POST /messages/threads` | `{ recipientId }` | `{ threadId, requestState }` | Get-or-create, naturally idempotent. 400 for self. New threads are created `pending` unless exempt (3.9). |
+| `sendMessage` | `POST /messages/threads/:id/messages` | `{ body? , imagePath?, stickerId?, audioPath?, audioDurationSeconds?, replyToId? }` | `{ messageId, createdAt }` | **`idempotent: true`** (`Idempotency-Key` required): a retried send must not duplicate a bubble or push. Same validation as web. Block/mute errors reuse the web strings' codes. New codes `request_pending_limit`, `request_media_not_allowed` (3.9). |
 | `editMessage` | `PATCH /messages/:id` | `{ body }` | `{ ok }` | 10-minute window, history row written. |
 | `unsendMessage` | `DELETE /messages/:id` | — | `{ ok }` | Naturally idempotent. |
 | `forwardMessage` | `POST /messages/:id/forward` | `{ toThreadId }` | `{ messageId }` | **`idempotent: true`.** |
@@ -114,8 +117,8 @@ connected client.
   participant of that thread (via `dm_threads`). Participants only.
 - Client behaviour: send at most one `typing` per 3 s while composing; receiver shows the
   indicator for 5 s after the last event; nothing is stored. Both web composer and mobile use it.
-- **Schema-change note:** this is the only migration in 5b. It touches only `realtime.messages`
-  policies. Applied to staging first, then production by the owner, before the web code that uses it.
+- **Schema-change note:** this migration touches only `realtime.messages` policies; the other
+  5b migration is message requests (3.9). Applied to staging first, then production by the owner, before the web code that uses it.
 - If the owner would rather not ship a migration in 5b, typing is **cut from 5b**; it is not
   shipped over presence.
 
@@ -128,6 +131,64 @@ connected client.
 - App: a foreground DM for the open thread shows no banner; a foreground DM for any other thread
   shows the normal banner and bumps the bell. Tap routing: `/messages/<id>` opens the thread
   (pushed over the current tab).
+
+### 3.9 Message requests (new on both platforms)
+
+Built on the existing schema: `dm_threads.created_by` is the initiator and `friends.status`
+already has `accepted`. Rules:
+
+- A new thread starts `pending` **unless** the sender is staff or the two players are accepted
+  friends (either direction of the `friends` row). **Follows are not an exemption**: a stranger can
+  follow anyone.
+- While `pending`, the initiator may send **one text-only message** (no image, voice note or
+  sticker). The cap is one SQL constant, `dm_pending_message_cap()` returning 1. Unsent messages
+  still count, so unsend-and-resend is not a bypass. Editing the one message is allowed.
+- Any message from the **other** participant makes the thread `accepted`; replying is accepting.
+  The Accept button does the same. A recipient who previously declined and then sends a message
+  also flips it to `accepted` (their own decision, reversible by them).
+- **Decline** sets `declined`: hidden from the recipient; the initiator cannot send more and gets
+  the **block wording** ("You can no longer message this player"; same error code as a block), so a
+  decline is not a separate signal. The pair is unique, so the initiator cannot open a new thread.
+- **Grandfathering:** `request_state text NOT NULL DEFAULT 'accepted'` with
+  `CHECK (request_state IN ('pending','accepted','declined'))`; existing threads keep `accepted`
+  with no backfill. Only thread creation sets `pending`.
+
+**Migration** `…_dm_message_requests.sql` (additive): the column; `dm_is_exempt(a, b)` (one SQL
+function: either is staff by role, or an accepted `friends` row exists in either direction — so a
+later "opponents in an active fixture" exemption is a change in one place; staff is decided from
+the sender's role, not `auth.uid()`, because triggers must not depend on the session); an extended
+`dm_can_message` that understands the states; a `BEFORE INSERT` trigger on `dm_messages` and an
+`AFTER INSERT` trigger.
+
+**Enforcement lives in the database and in the core send path — the opposite of the upload-path
+rule (3.4).** That rule stays at the client-input boundary so forwarding works; the request gate
+must be in the core and the database so forwarding cannot get around it.
+
+- `BEFORE INSERT`: `SELECT … FOR UPDATE` on the `dm_threads` row (otherwise two parallel sends
+  both pass the cap), then reject media/sticker/voice and anything beyond the cap while the thread
+  is `pending` and the sender is `created_by`; reject any send from the initiator when `declined`.
+- `AFTER INSERT` (`SECURITY DEFINER`, since `dm_threads` has no client update policy): if the
+  sender is not `created_by`, set `request_state = 'accepted'`.
+- Forwarding an image into a pending thread is rejected by the trigger. The service keeps
+  friendly pre-checks (as it does for block/mute), but the database is the real guard.
+
+**Push, bell and receipts**
+- A message into a `pending` thread still writes the bell row, but the **push is suppressed**
+  until the thread is accepted. No new notification type, so the 25-type test, prefs and channels
+  are unchanged, and a stranger's message stays off a child's lock screen.
+- Opening an incoming request clears its bell rows but stamps **no** `read_at` / `delivered_at`
+  (and `markAllDelivered` skips pending-thread messages); the sender sees no receipts until
+  accepted. (A recipient writing receipts directly through the existing RLS policy remains
+  possible and only affects their own view.)
+
+**UI.** Web and mobile inboxes get a Requests section with a count. A request view is preview-only
+with Accept, Decline and Block-and-report. The initiator sees "Waiting for X to accept" and a
+text-only composer that disables after the one message. Web strings en, fr, pcm; mobile en, fr.
+
+**Known limits.** The initiator is not told when a request is accepted by button (no new
+notification type, and `dm_threads` is not in the realtime publication); they learn on refetch or
+when the other player writes. Non-friend opponents reach each other as push-silent requests, which
+hurts fixture coordination: watch this in the beta and add the fixture exemption to `dm_is_exempt`.
 
 ### 3.8 Mobile structure
 
@@ -149,8 +210,12 @@ connected client.
 
 1. **API reads with realtime as a nudge** (not direct RLS as master spec §6.3 allows). Cost: one
    extra round trip per event; reversible later by applying payloads in place.
-2. **No message requests.** Deviates from master spec text; the web has none. Cost: a later phase
-   needs a requests model on both sides.
+2. **Message requests are added on both platforms** (the web has none today), enforced in the
+   database, exempting staff and accepted friends only. Cost: 5b grows to two migrations and a web
+   UI surface, so requests are their own plan stage after core DM. Non-friend opponents are
+   slower to reach each other (fixture exemption deferred). **Rollout:** staging first, then
+   production, with the migration and web UI together; a stricter `dm_can_message` shipped
+   without the UI would show senders a generic failure at the cap.
 3. **Typing over a per-thread private broadcast channel with a policy migration; never presence.**
    Cost: one additive migration to coordinate; if skipped, typing is cut. Over presence it would
    expose DM relationships site-wide and add presence-diff load per keystroke burst.
@@ -162,6 +227,15 @@ connected client.
 6. **Stickers bundled, not served.** Cost: adding a sticker needs an app release; unknown ids degrade.
 
 ## 5. Tests
+
+Requests (run against staging, since they depend on triggers and locks): two parallel sends from
+the initiator yield one success; media/sticker/voice rejected while pending; forwarding an image
+into a pending thread is rejected; a reply flips the thread to `accepted`; Accept does the same;
+Decline hides the thread from the recipient and the initiator gets the block wording and cannot
+open a new thread; accepted friends and staff start `accepted`; a follower who is not a friend
+starts `pending`; grandfathered threads are unaffected; no receipts stamped on a pending thread;
+a pending message writes the bell row but sends no push; an unsent message still counts toward
+the cap.
 
 Web (vitest): service characterization (send, forward, edit/unsend windows, read, block+follow
 sever, report); each endpoint's auth, validation and error codes; send idempotency (retry returns
