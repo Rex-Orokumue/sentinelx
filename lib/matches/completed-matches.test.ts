@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { groupCompletedMatchesByDate, type CompletedMatchRow } from './completed-matches'
+import { groupCompletedMatchesByDate, toCompletedMatchRow, type CompletedMatchRow } from './completed-matches'
 
 function match(over: Partial<CompletedMatchRow> & { id: string }): CompletedMatchRow {
   return {
@@ -35,5 +35,29 @@ describe('groupCompletedMatchesByDate', () => {
 
   it('returns no groups for an empty list', () => {
     expect(groupCompletedMatchesByDate([])).toEqual([])
+  })
+})
+
+describe('toCompletedMatchRow', () => {
+  const base = {
+    id: 'm1', round: 'final', status: 'completed', resolution: null, score_a: 2, score_b: 1,
+    scheduled_at: null, is_full_day: false, groups: null,
+    player_a: null, player_b: null, team_a: null, team_b: null,
+  }
+  it('names a squad match by its squads, not TBD', () => {
+    const row = toCompletedMatchRow({ ...base, team_a: { name: 'Squad 2' }, team_b: [{ name: 'Squad 1' }] })
+    expect(row.playerAName).toBe('Squad 2')
+    expect(row.playerBName).toBe('Squad 1')
+  })
+  it('keeps solo player names', () => {
+    const row = toCompletedMatchRow({
+      ...base,
+      player_a: { display_name: 'Ada', username: 'ada' },
+      player_b: { display_name: null, username: 'bola' },
+    })
+    expect([row.playerAName, row.playerBName]).toEqual(['Ada', 'bola'])
+  })
+  it('falls back to TBD when a side is empty', () => {
+    expect(toCompletedMatchRow(base).playerAName).toBe('TBD')
   })
 })
