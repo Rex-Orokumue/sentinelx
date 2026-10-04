@@ -15,6 +15,13 @@ function firstT(t: TournamentRef): { title: string; slug: string } | null {
   return Array.isArray(t) ? t[0] ?? null : t
 }
 
+// Server actions run under this page's route config. Confirming a result or
+// closing/publishing a bracket does a long sequential chain (scores, events,
+// advancement, notifications) that grows with roster size — a 4v4 final touches
+// 8 players. 60 s is the most every Vercel plan allows; the platform default is
+// shorter and a timeout here would cut an action off partway through.
+export const maxDuration = 60
+
 export default async function AdminResultsPage() {
   await requireStaff()
   const supabase = createClient()

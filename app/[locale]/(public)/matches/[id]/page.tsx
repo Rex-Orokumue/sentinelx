@@ -171,6 +171,13 @@ async function TeamRosters({
   )
 }
 
+// Server actions run under this page's route config. Confirming a result or
+// closing/publishing a bracket does a long sequential chain (scores, events,
+// advancement, notifications) that grows with roster size — a 4v4 final touches
+// 8 players. 60 s is the most every Vercel plan allows; the platform default is
+// shorter and a timeout here would cut an action off partway through.
+export const maxDuration = 60
+
 export default async function MatchCentrePage({
   params,
   searchParams,

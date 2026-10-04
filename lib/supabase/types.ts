@@ -1960,6 +1960,7 @@ export type Database = {
           auto_expired: boolean
           completed_at: string | null
           created_at: string
+          disputed_at: string | null
           full_day_alert_sent_at: string | null
           group_id: string | null
           id: string
@@ -1985,6 +1986,7 @@ export type Database = {
           auto_expired?: boolean
           completed_at?: string | null
           created_at?: string
+          disputed_at?: string | null
           full_day_alert_sent_at?: string | null
           group_id?: string | null
           id?: string
@@ -2010,6 +2012,7 @@ export type Database = {
           auto_expired?: boolean
           completed_at?: string | null
           created_at?: string
+          disputed_at?: string | null
           full_day_alert_sent_at?: string | null
           group_id?: string | null
           id?: string

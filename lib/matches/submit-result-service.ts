@@ -4,8 +4,9 @@ import type { createAdminClient } from '@/lib/supabase/admin'
 import { submitResultSchema } from './schema'
 import { notifyStaff } from '@/lib/admin/staff'
 import { resultNotification } from '@/lib/admin/notification-copy'
-import { opponentSubmissionNotice } from './submission-notice'
+import { opponentSubmissionNotice, squadSubmissionNotices } from './submission-notice'
 import { isMatchParticipant } from './participant'
+import { sideName, type SquadRef } from './sides'
 import { notifyBoth } from '@/lib/notifications/send'
 
 type Admin = ReturnType<typeof createAdminClient>
@@ -16,7 +17,7 @@ export type SubmitResultErrorCode =
 export type SubmitResultResult = { ok: true } | { ok: false; errorCode: SubmitResultErrorCode }
 
 type NameRef = { display_name: string | null; username: string | null } | { display_name: string | null; username: string | null }[] | null
-type ReviewMatchRow = { player_a: NameRef; player_b: NameRef; tournament: { title: string } | { title: string }[] | null }
+type ReviewMatchRow = { player_a: NameRef; player_b: NameRef; team_a: SquadRef; team_b: SquadRef; tournament: { title: string } | { title: string }[] | null }
 
 export async function performSubmitMatchResult(
   supabase: SupabaseClient<Database>,
@@ -71,6 +72,8 @@ export async function performSubmitMatchResult(
     .select(
       'player_a:profiles!matches_player_a_id_fkey(display_name, username), ' +
         'player_b:profiles!matches_player_b_id_fkey(display_name, username), ' +
+        'team_a:squads!matches_team_a_id_fkey(name), ' +
+        'team_b:squads!matches_team_b_id_fkey(name), ' +
         'tournament:tournaments(title)',
     )
     .eq('id', matchId)
@@ -89,7 +92,10 @@ export async function performSubmitMatchResult(
     if (!priorSubmissionCount) {
       const notification = resultNotification({
         type: 'result_needs_review', tournamentTitle,
-        playerAName: playerAName ?? 'Player', playerBName: playerBName ?? 'Player', createdAt: new Date().toISOString(),
+        // A squad side is named by its squad; staff would otherwise read "Player vs Player".
+        playerAName: sideName(md.player_a, md.team_a, 'Player'),
+        playerBName: sideName(md.player_b, md.team_b, 'Player'),
+        createdAt: new Date().toISOString(),
       })
       await notifyStaff(admin, 'result_needs_review', { title: notification.title, body: notification.body, link: notification.link })
     }
@@ -100,6 +106,24 @@ export async function performSubmitMatchResult(
       isResubmission: Boolean(existing),
     })
     if (notice) await notifyBoth(notice.recipientId, notice.notification, 'result_submitted', { link: notice.link })
+
+    // Team match: there are no player ids on the match, so the solo notice above
+    // is null — tell the whole opposing roster instead.
+    if (match.team_a_id || match.team_b_id) {
+      const squadIds = [match.team_a_id, match.team_b_id].filter((id): id is string => id != null)
+      const { data: members } = await admin.from('squad_members').select('squad_id, player_id').in('squad_id', squadIds)
+      const rosterOf = (squadId: string | null) =>
+        (members ?? []).filter((m) => m.squad_id === squadId).map((m) => m.player_id as string)
+      const squadNotices = squadSubmissionNotices({
+        matchId, submitterId: userId,
+        squadAName: sideName(md.player_a, md.team_a), squadBName: sideName(md.player_b, md.team_b),
+        rosterA: rosterOf(match.team_a_id), rosterB: rosterOf(match.team_b_id),
+        tournamentTitle, scoreA: parsed.data.scoreA, scoreB: parsed.data.scoreB, isResubmission: Boolean(existing),
+      })
+      await Promise.all(
+        squadNotices.map((n) => notifyBoth(n.recipientId, n.notification, 'result_submitted', { link: n.link })),
+      )
+    }
   }
 
   return { ok: true }

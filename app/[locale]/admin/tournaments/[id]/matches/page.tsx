@@ -34,6 +34,13 @@ function groupNameOf(g: GroupRef): string | null {
   return Array.isArray(g) ? g[0]?.name ?? null : g?.name ?? null
 }
 
+// Server actions run under this page's route config. Confirming a result or
+// closing/publishing a bracket does a long sequential chain (scores, events,
+// advancement, notifications) that grows with roster size — a 4v4 final touches
+// 8 players. 60 s is the most every Vercel plan allows; the platform default is
+// shorter and a timeout here would cut an action off partway through.
+export const maxDuration = 60
+
 export default async function AdminMatchesPage({ params }: { params: { id: string } }) {
   await requireStaff()
   const supabase = createClient()

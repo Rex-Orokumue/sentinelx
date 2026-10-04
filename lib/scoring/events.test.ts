@@ -159,3 +159,57 @@ describe('teamMatchEventsFor — no-show resolutions', () => {
     expect(teamMatchEventsFor({ ...teamBase, team_b_id: null, score_b: null }, rosterA, [], allCheckedIn)).toEqual([])
   })
 })
+
+// A win ruled AFTER an admin dispute keeps its win event (so the winner's coins,
+// XP and "won" achievement flag, which key off it, are unaffected) but earns no
+// SX points: the +90 is a "no dispute" bonus. `disputed_at` is the durable
+// record that a dispute ever happened — status alone is gone once the admin rules.
+const DISPUTE_NOTE = 'Win ruled after a dispute - the no-dispute bonus is withheld'
+const disputed = '2026-10-04T18:24:24Z'
+
+describe('matchEventsFor — a disputed win withholds the bonus', () => {
+  it('keeps the win event but at 0 points, with a note', () => {
+    const events = matchEventsFor({ ...base, disputed_at: disputed })
+    expect(events.filter((e) => e.player_id === 'A')).toEqual([
+      { player_id: 'A', match_id: 'm1', event_type: 'match_completed', points_delta: 10, note: null },
+      { player_id: 'A', match_id: 'm1', event_type: 'win_no_dispute', points_delta: 0, note: DISPUTE_NOTE },
+    ])
+  })
+  it('does not touch the loser or a draw', () => {
+    const events = matchEventsFor({ ...base, disputed_at: disputed })
+    expect(events.filter((e) => e.player_id === 'B')).toEqual([
+      { player_id: 'B', match_id: 'm1', event_type: 'match_completed', points_delta: 10, note: null },
+    ])
+    expect(matchEventsFor({ ...base, score_a: 1, score_b: 1, disputed_at: disputed })).toHaveLength(2)
+  })
+  it('is unchanged when disputed_at is null or absent', () => {
+    expect(matchEventsFor({ ...base, disputed_at: null })).toEqual(matchEventsFor(base))
+    expect(matchEventsFor(base).find((e) => e.event_type === 'win_no_dispute')?.points_delta).toBe(90)
+  })
+  it('leaves a walkover and a mutual no-show alone', () => {
+    expect(matchEventsFor({ ...base, resolution: 'walkover', disputed_at: disputed })).toEqual(
+      matchEventsFor({ ...base, resolution: 'walkover' }),
+    )
+    expect(matchEventsFor({ ...base, resolution: 'no_show_draw', disputed_at: disputed })).toEqual(
+      matchEventsFor({ ...base, resolution: 'no_show_draw' }),
+    )
+  })
+})
+
+describe('teamMatchEventsFor — a disputed win withholds the bonus', () => {
+  it('gives checked-in winners a 0-point win event; completion and no-show are unchanged', () => {
+    const checkedIn = new Set(['a1', 'b1', 'b2']) // a2 never showed
+    const events = teamMatchEventsFor({ ...teamBase, disputed_at: disputed }, rosterA, rosterB, checkedIn)
+    expect(events).toContainEqual({ player_id: 'a1', match_id: 'm1', event_type: 'match_completed', points_delta: 10, note: null })
+    expect(events).toContainEqual({ player_id: 'a1', match_id: 'm1', event_type: 'win_no_dispute', points_delta: 0, note: DISPUTE_NOTE })
+    expect(events).toContainEqual({ player_id: 'a2', match_id: 'm1', event_type: 'no_show', points_delta: -100, note: null })
+    expect(events.filter((e) => e.player_id === 'b1')).toEqual([
+      { player_id: 'b1', match_id: 'm1', event_type: 'match_completed', points_delta: 10, note: null },
+    ])
+  })
+  it('is unchanged when never disputed', () => {
+    expect(teamMatchEventsFor({ ...teamBase, disputed_at: null }, rosterA, rosterB, allCheckedIn)).toEqual(
+      teamMatchEventsFor(teamBase, rosterA, rosterB, allCheckedIn),
+    )
+  })
+})

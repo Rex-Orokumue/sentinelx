@@ -27,6 +27,7 @@ import { squadRosterIds, matchRosters } from '@/lib/tournaments/squad-roster'
 import { settleMatchWagers, refundMatchWagers } from '@/lib/wagers/settle'
 import { revalidateAll, revalidateThirdPlaceCredit } from './revalidate'
 import { awardSeasonPoints } from './season-points'
+import { sideName } from './sides'
 import { awardMatchEconomy } from './economy-hooks'
 import { onMatchConfirmed } from '@/lib/community/feed-hooks'
 import { revalidatePath } from 'next/cache'
@@ -658,13 +659,17 @@ export async function disputeResult(_prev: VerifyState, formData: FormData): Pro
     tournament: { slug: string; title: string } | { slug: string; title: string }[] | null
     player_a: NameRef
     player_b: NameRef
+    team_a: { name: string } | { name: string }[] | null
+    team_b: { name: string } | { name: string }[] | null
   }
   const { data: mRaw } = await admin
     .from('matches')
     .select(
       'id, tournament_id, tournament:tournaments(slug, title), ' +
         'player_a:profiles!matches_player_a_id_fkey(display_name, username), ' +
-        'player_b:profiles!matches_player_b_id_fkey(display_name, username)',
+        'player_b:profiles!matches_player_b_id_fkey(display_name, username), ' +
+        'team_a:squads!matches_team_a_id_fkey(name), ' +
+        'team_b:squads!matches_team_b_id_fkey(name)',
     )
     .eq('id', id)
     .maybeSingle()
@@ -673,7 +678,10 @@ export async function disputeResult(_prev: VerifyState, formData: FormData): Pro
 
   const { error } = await admin
     .from('matches')
-    .update({ status: 'disputed', admin_note: note })
+    // disputed_at is the permanent record that this match was ever disputed: status
+    // is overwritten when the admin rules, but a win ruled after a dispute must still
+    // be scored without the 'no dispute' bonus (lib/scoring/events.ts).
+    .update({ status: 'disputed', admin_note: note, disputed_at: new Date().toISOString() })
     .eq('id', id)
   if (error) return { error: 'Could not save the dispute.' }
   await admin.from('match_results').update({ status: 'disputed' }).eq('match_id', id)
@@ -687,16 +695,12 @@ export async function disputeResult(_prev: VerifyState, formData: FormData): Pro
 
   await syncMatchEvents(admin, id)
 
-  const nameOf = (x: NameRef) => {
-    const r = Array.isArray(x) ? x[0] ?? null : x
-    return r?.display_name ?? r?.username ?? 'Player'
-  }
   const tRef = Array.isArray(m.tournament) ? m.tournament[0] : m.tournament
   const notification = resultNotification({
     type: 'result_disputed',
     tournamentTitle: tRef?.title ?? 'Tournament',
-    playerAName: nameOf(m.player_a as NameRef),
-    playerBName: nameOf(m.player_b as NameRef),
+    playerAName: sideName(m.player_a, m.team_a, 'Player'),
+    playerBName: sideName(m.player_b, m.team_b, 'Player'),
     createdAt: new Date().toISOString(),
   })
   void notifyStaff(admin, 'result_disputed', { title: notification.title, body: notification.body, link: notification.link }, staff.userId)

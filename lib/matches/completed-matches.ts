@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
 import { toDateTimeLocal, formatDate } from '@/lib/format'
+import { sideName, type ProfileRef, type SquadRef } from './sides'
 
 export interface CompletedMatchRow {
   id: string
@@ -16,10 +17,40 @@ export interface CompletedMatchRow {
   isFullDay: boolean
 }
 
-type ProfileRef = { display_name: string | null; username: string | null } | { display_name: string | null; username: string | null }[] | null
-function nameOf(p: ProfileRef): string {
-  const row = Array.isArray(p) ? p[0] ?? null : p
-  return row?.display_name ?? row?.username ?? 'TBD'
+type GroupRef = { name: string } | { name: string }[] | null
+const groupName = (g: GroupRef) => (Array.isArray(g) ? g[0]?.name ?? null : g?.name ?? null)
+
+export interface RawCompletedMatch {
+  id: string
+  round: string
+  status: string
+  resolution: string | null
+  score_a: number | null
+  score_b: number | null
+  scheduled_at: string | null
+  is_full_day: boolean
+  player_a: ProfileRef
+  player_b: ProfileRef
+  // A team match has squads on its sides instead of players.
+  team_a: SquadRef
+  team_b: SquadRef
+  groups: GroupRef
+}
+
+export function toCompletedMatchRow(m: RawCompletedMatch): CompletedMatchRow {
+  return {
+    id: m.id,
+    round: m.round,
+    groupName: groupName(m.groups),
+    status: m.status,
+    resolution: m.resolution,
+    scoreA: m.score_a,
+    scoreB: m.score_b,
+    playerAName: sideName(m.player_a, m.team_a),
+    playerBName: sideName(m.player_b, m.team_b),
+    scheduledAt: m.scheduled_at,
+    isFullDay: m.is_full_day,
+  }
 }
 
 // All played-out matches for a tournament — completed normally, walkover,
@@ -35,42 +66,14 @@ export async function listCompletedMatches(
       'id, round, status, resolution, score_a, score_b, scheduled_at, is_full_day, ' +
         'player_a:profiles!matches_player_a_id_fkey(display_name, username), ' +
         'player_b:profiles!matches_player_b_id_fkey(display_name, username), ' +
+        'team_a:squads!matches_team_a_id_fkey(name), ' +
+        'team_b:squads!matches_team_b_id_fkey(name), ' +
         'groups(name)',
     )
     .eq('tournament_id', tournamentId)
     .in('status', ['completed', 'forfeited'])
 
-  type GroupRef = { name: string } | { name: string }[] | null
-  const groupName = (g: GroupRef) => (Array.isArray(g) ? g[0]?.name ?? null : g?.name ?? null)
-
-  return ((data as unknown[] | null) ?? []).map((raw) => {
-    const m = raw as {
-      id: string
-      round: string
-      status: string
-      resolution: string | null
-      score_a: number | null
-      score_b: number | null
-      scheduled_at: string | null
-      is_full_day: boolean
-      player_a: ProfileRef
-      player_b: ProfileRef
-      groups: GroupRef
-    }
-    return {
-      id: m.id,
-      round: m.round,
-      groupName: groupName(m.groups),
-      status: m.status,
-      resolution: m.resolution,
-      scoreA: m.score_a,
-      scoreB: m.score_b,
-      playerAName: nameOf(m.player_a),
-      playerBName: nameOf(m.player_b),
-      scheduledAt: m.scheduled_at,
-      isFullDay: m.is_full_day,
-    }
-  })
+  return ((data as unknown[] | null) ?? []).map((raw) => toCompletedMatchRow(raw as RawCompletedMatch))
 }
 
 export interface CompletedMatchDateGroup {
