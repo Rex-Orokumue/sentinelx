@@ -27,18 +27,21 @@ describe('toMessageCtx', () => {
 describe('getMessageThreadsEndpoint', () => {
   it('lists threads and forwards the cursor', async () => {
     rs.listThreads.mockResolvedValue({
-      threads: [{ threadId: 't1', other, preview: { kind: 'text', text: 'hi', stickerId: null }, lastMessageAt: '2026-10-04T10:00:00Z', unread: 2 }],
+      threads: [{ threadId: 't1', other, preview: { kind: 'text', text: 'hi', stickerId: null }, lastMessageAt: '2026-10-04T10:00:00Z', unread: 2, requestState: 'accepted', direction: null }],
       nextCursor: 'c2',
+      requestCount: 3,
     })
     const res = await get(getMessageThreadsEndpoint, 'https://x.test/api/mobile/v1/messages/threads?cursor=abc')
     expect(res.status).toBe(200)
-    expect(rs.listThreads).toHaveBeenCalledWith({ supabase: 'sb', admin: 'adm', userId: 'u1' }, { cursor: 'abc' })
-    expect((await res.json()).data.nextCursor).toBe('c2')
+    expect(rs.listThreads).toHaveBeenCalledWith({ supabase: 'sb', admin: 'adm', userId: 'u1' }, { cursor: 'abc', box: 'inbox' })
+    const data = (await res.json()).data
+    expect(data.nextCursor).toBe('c2')
+    expect(data.requestCount).toBe(3)
   })
   it('passes no cursor when none is given', async () => {
-    rs.listThreads.mockResolvedValue({ threads: [], nextCursor: null })
+    rs.listThreads.mockResolvedValue({ threads: [], nextCursor: null, requestCount: 0 })
     await get(getMessageThreadsEndpoint, 'https://x.test/api/mobile/v1/messages/threads')
-    expect(rs.listThreads).toHaveBeenCalledWith(expect.anything(), { cursor: undefined })
+    expect(rs.listThreads).toHaveBeenCalledWith(expect.anything(), { cursor: undefined, box: 'inbox' })
   })
   it('surfaces a bad cursor as 400 invalid_cursor', async () => {
     rs.listThreads.mockRejectedValue(new ApiError(400, 'invalid_cursor', 'Invalid cursor.'))
@@ -55,10 +58,12 @@ describe('getMessageThreadsEndpoint', () => {
 
 describe('getMessageThreadEndpoint', () => {
   it('returns the header', async () => {
-    rs.getThreadHeader.mockResolvedValue({ threadId: 't1', other, blockedByMe: false, blockedByThem: true })
+    rs.getThreadHeader.mockResolvedValue({ threadId: 't1', other, blockedByMe: false, blockedByThem: true, requestState: 'pending', direction: 'incoming' })
     const res = await get(getMessageThreadEndpoint, 'https://x.test/x', { id: 't1' })
     expect(res.status).toBe(200)
-    expect((await res.json()).data.blockedByThem).toBe(true)
+    const header = (await res.json()).data
+    expect(header.blockedByThem).toBe(true)
+    expect(header).toMatchObject({ requestState: 'pending', direction: 'incoming' })
     expect(rs.getThreadHeader).toHaveBeenCalledWith(expect.anything(), 't1')
   })
   it('404s a thread the caller is not in', async () => {
@@ -86,5 +91,29 @@ describe('getThreadMessagesEndpoint', () => {
   it('500s (not leaks) when the service returns a shape that breaks the published contract', async () => {
     rs.listMessages.mockResolvedValue({ messages: [{ ...msg, createdAt: 5 }], nextBefore: null })
     expect((await get(getThreadMessagesEndpoint, 'https://x.test/x', { id: 't1' })).status).toBe(500)
+  })
+})
+
+describe('getMessageThreadsEndpoint box', () => {
+  it('forwards box=requests', async () => {
+    rs.listThreads.mockResolvedValue({ threads: [], nextCursor: null, requestCount: 0 })
+    await get(getMessageThreadsEndpoint, 'https://x.test/x?box=requests')
+    expect(rs.listThreads).toHaveBeenCalledWith(expect.anything(), { cursor: undefined, box: 'requests' })
+  })
+  it('rejects an unknown box with 400', async () => {
+    const res = await get(getMessageThreadsEndpoint, 'https://x.test/x?box=archive')
+    expect(res.status).toBe(400)
+    expect((await res.json()).error.code).toBe('validation_failed')
+    expect(rs.listThreads).not.toHaveBeenCalled()
+  })
+  it('keeps a request direction only for incoming or outgoing; an unknown state string passes through', async () => {
+    rs.listThreads.mockResolvedValue({
+      threads: [{ threadId: 't1', other, preview: { kind: 'text', text: 'x', stickerId: null }, lastMessageAt: 'z', unread: 0, requestState: 'future_state', direction: 'outgoing' }],
+      nextCursor: null,
+      requestCount: 0,
+    })
+    const res = await get(getMessageThreadsEndpoint, 'https://x.test/x')
+    expect(res.status).toBe(200)
+    expect((await res.json()).data.threads[0].requestState).toBe('future_state')
   })
 })

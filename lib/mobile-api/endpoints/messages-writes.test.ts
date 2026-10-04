@@ -6,6 +6,8 @@ const { runIdempotent } = vi.hoisted(() => ({ runIdempotent: vi.fn() }))
 vi.mock('../idempotency', () => ({ runIdempotent }))
 const svc = vi.hoisted(() => ({
   startConversation: vi.fn(),
+  acceptRequest: vi.fn(),
+  declineRequest: vi.fn(),
   sendClientMessage: vi.fn(),
   editMessageCore: vi.fn(),
   unsendMessageCore: vi.fn(),
@@ -29,6 +31,8 @@ import {
   blockPlayerEndpoint,
   unblockPlayerEndpoint,
   reportThreadEndpoint,
+  acceptMessageRequestEndpoint,
+  declineMessageRequestEndpoint,
 } from './messages-writes'
 
 const ctx = { userId: 'u1', admin: 'adm', userClient: 'sb' }
@@ -93,6 +97,8 @@ describe('sendMessageEndpoint', () => {
     ['not_found', 404],
     ['validation', 400],
     ['send_failed', 500],
+    ['request_pending_limit', 409],
+    ['request_media_not_allowed', 400],
   ])('maps failure %s to %i with its own code', async (errorCode, status) => {
     svc.sendClientMessage.mockResolvedValue(fail(errorCode, 'msg'))
     const res = await post(sendMessageEndpoint, { body: 'hi' }, { id: 't1' })
@@ -103,9 +109,9 @@ describe('sendMessageEndpoint', () => {
 
 describe('startMessageThreadEndpoint', () => {
   it('returns the thread id', async () => {
-    svc.startConversation.mockResolvedValue({ ok: true, threadId: 't9' })
+    svc.startConversation.mockResolvedValue({ ok: true, threadId: 't9', requestState: 'pending' })
     const res = await post(startMessageThreadEndpoint, { recipientId: U2 }, {}, null)
-    expect((await res.json()).data).toEqual({ threadId: 't9' })
+    expect((await res.json()).data).toEqual({ threadId: 't9', requestState: 'pending' })
     expect(svc.startConversation).toHaveBeenCalledWith(mctx, U2)
   })
   it('400s when messaging yourself', async () => {
@@ -196,5 +202,26 @@ describe('block / unblock / report', () => {
     expect((await post(reportThreadEndpoint, { reason: 'x'.repeat(1001) }, { id: 't1' }, null)).status).toBe(400)
     svc.reportThread.mockResolvedValue(fail('validation', 'Add a reason so staff can act on it'))
     expect((await post(reportThreadEndpoint, { reason: '  ' }, { id: 't1' }, null)).status).toBe(400)
+  })
+})
+
+describe('accept / decline a message request', () => {
+  it('accepts', async () => {
+    svc.acceptRequest.mockResolvedValue({ ok: true })
+    const res = await post(acceptMessageRequestEndpoint, undefined, { id: 't1' }, null)
+    expect(res.status).toBe(200)
+    expect(svc.acceptRequest).toHaveBeenCalledWith(mctx, 't1')
+  })
+  it('declines', async () => {
+    svc.declineRequest.mockResolvedValue({ ok: true })
+    const res = await post(declineMessageRequestEndpoint, undefined, { id: 't1' }, null)
+    expect(res.status).toBe(200)
+    expect(svc.declineRequest).toHaveBeenCalledWith(mctx, 't1')
+  })
+  it('404s for the initiator or a stranger (the service says not_found)', async () => {
+    svc.acceptRequest.mockResolvedValue(fail('not_found', 'Conversation not found.'))
+    expect((await post(acceptMessageRequestEndpoint, undefined, { id: 't1' }, null)).status).toBe(404)
+    svc.declineRequest.mockResolvedValue(fail('not_found', 'Conversation not found.'))
+    expect((await post(declineMessageRequestEndpoint, undefined, { id: 't1' }, null)).status).toBe(404)
   })
 })

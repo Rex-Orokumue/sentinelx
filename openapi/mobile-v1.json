@@ -7931,7 +7931,7 @@
     "/api/mobile/v1/messages/threads": {
       "get": {
         "operationId": "getMessageThreads",
-        "summary": "One keyset page of the caller's conversations, newest activity first (blocked threads hidden).",
+        "summary": "One keyset page of the caller's conversations, newest activity first (blocked threads hidden). box=inbox (default) or box=requests.",
         "security": [
           {
             "bearerAuth": []
@@ -7944,6 +7944,19 @@
             "required": false,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "box",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "inbox",
+                "requests"
+              ],
+              "default": "inbox"
             }
           }
         ],
@@ -8046,6 +8059,23 @@
                               },
                               "unread": {
                                 "type": "number"
+                              },
+                              "requestState": {
+                                "type": "string"
+                              },
+                              "direction": {
+                                "anyOf": [
+                                  {
+                                    "type": "string",
+                                    "enum": [
+                                      "incoming",
+                                      "outgoing"
+                                    ]
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
                               }
                             },
                             "required": [
@@ -8053,7 +8083,9 @@
                               "other",
                               "preview",
                               "lastMessageAt",
-                              "unread"
+                              "unread",
+                              "requestState",
+                              "direction"
                             ],
                             "additionalProperties": false
                           }
@@ -8067,11 +8099,15 @@
                               "type": "null"
                             }
                           ]
+                        },
+                        "requestCount": {
+                          "type": "number"
                         }
                       },
                       "required": [
                         "threads",
-                        "nextCursor"
+                        "nextCursor",
+                        "requestCount"
                       ],
                       "additionalProperties": false
                     }
@@ -8099,7 +8135,7 @@
       },
       "post": {
         "operationId": "startMessageThread",
-        "summary": "Get or create the 1:1 thread with a player. Naturally idempotent.",
+        "summary": "Get or create the 1:1 thread with a player. A new thread starts as a pending request unless the pair is exempt. Naturally idempotent.",
         "security": [
           {
             "bearerAuth": []
@@ -8142,10 +8178,14 @@
                       "properties": {
                         "threadId": {
                           "type": "string"
+                        },
+                        "requestState": {
+                          "type": "string"
                         }
                       },
                       "required": [
-                        "threadId"
+                        "threadId",
+                        "requestState"
                       ],
                       "additionalProperties": false
                     }
@@ -8252,13 +8292,166 @@
                         },
                         "blockedByThem": {
                           "type": "boolean"
+                        },
+                        "requestState": {
+                          "type": "string"
+                        },
+                        "direction": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "incoming",
+                                "outgoing"
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
                         }
                       },
                       "required": [
                         "threadId",
                         "other",
                         "blockedByMe",
-                        "blockedByThem"
+                        "blockedByThem",
+                        "requestState",
+                        "direction"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/messages/threads/{id}/accept": {
+      "post": {
+        "operationId": "acceptMessageRequest",
+        "summary": "Accept a pending message request. Only the player who did not start the thread may; naturally idempotent.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "ok"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/messages/threads/{id}/decline": {
+      "post": {
+        "operationId": "declineMessageRequest",
+        "summary": "Decline a pending message request. Only the player who did not start the thread may; naturally idempotent. The sender sees the same outcome as a block.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "ok"
                       ],
                       "additionalProperties": false
                     }

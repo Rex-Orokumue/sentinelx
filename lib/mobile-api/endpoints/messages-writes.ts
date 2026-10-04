@@ -4,6 +4,8 @@ import { ApiError, Errors } from '../errors'
 import { toMessageCtx } from './messages-reads'
 import {
   startConversation,
+  acceptRequest,
+  declineRequest,
   sendClientMessage,
   editMessageCore,
   unsendMessageCore,
@@ -50,14 +52,14 @@ export const startMessageThreadEndpoint = defineEndpoint({
   operationId: 'startMessageThread',
   method: 'POST',
   path: '/messages/threads',
-  summary: 'Get or create the 1:1 thread with a player. Naturally idempotent.',
+  summary: 'Get or create the 1:1 thread with a player. A new thread starts as a pending request unless the pair is exempt. Naturally idempotent.',
   auth: 'user',
   body: z.object({ recipientId: z.string().uuid() }),
-  response: z.object({ threadId: z.string() }),
+  response: z.object({ threadId: z.string(), requestState: z.string() }),
   handler: async ({ ctx, body }) => {
     const res = await startConversation(toMessageCtx(ctx), body.recipientId)
     if (!res.ok) throwFailure(res)
-    return { threadId: res.threadId }
+    return { threadId: res.threadId, requestState: res.requestState }
   },
 })
 
@@ -220,6 +222,36 @@ export const reportThreadEndpoint = defineEndpoint({
   response: ok,
   handler: async ({ ctx, body, params }) => {
     const res = await reportThread(toMessageCtx(ctx), { threadId: params.id, messageId: body.messageId, reason: body.reason })
+    if (!res.ok) throwFailure(res)
+    return { ok: true as const }
+  },
+})
+
+export const acceptMessageRequestEndpoint = defineEndpoint({
+  operationId: 'acceptMessageRequest',
+  method: 'POST',
+  path: '/messages/threads/{id}/accept',
+  summary: 'Accept a pending message request. Only the player who did not start the thread may; naturally idempotent.',
+  auth: 'user',
+  parameters: [idParam],
+  response: ok,
+  handler: async ({ ctx, params }) => {
+    const res = await acceptRequest(toMessageCtx(ctx), params.id)
+    if (!res.ok) throwFailure(res)
+    return { ok: true as const }
+  },
+})
+
+export const declineMessageRequestEndpoint = defineEndpoint({
+  operationId: 'declineMessageRequest',
+  method: 'POST',
+  path: '/messages/threads/{id}/decline',
+  summary: 'Decline a pending message request. Only the player who did not start the thread may; naturally idempotent. The sender sees the same outcome as a block.',
+  auth: 'user',
+  parameters: [idParam],
+  response: ok,
+  handler: async ({ ctx, params }) => {
+    const res = await declineRequest(toMessageCtx(ctx), params.id)
     if (!res.ok) throwFailure(res)
     return { ok: true as const }
   },

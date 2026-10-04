@@ -20,12 +20,19 @@ const participant = z.object({
 // `kind` is a plain string on the wire so a newer server can add kinds without failing an older app.
 const preview = z.object({ kind: z.string(), text: z.string().nullable(), stickerId: z.string().nullable() })
 
+// `requestState` is a plain string on the wire (a newer server may add states); `direction` is only set for a pending request.
+const requestInfo = {
+  requestState: z.string(),
+  direction: z.enum(['incoming', 'outgoing']).nullable(),
+}
+
 const threadItem = z.object({
   threadId: z.string(),
   other: participant,
   preview,
   lastMessageAt: z.string(),
   unread: z.number(),
+  ...requestInfo,
 })
 
 const messageItem = z.object({
@@ -45,19 +52,26 @@ const messageItem = z.object({
   replyTo: z.object({ id: z.string(), senderName: z.string(), body: z.string().nullable(), removed: z.boolean() }).nullable(),
 })
 
+const boxSchema = z.enum(['inbox', 'requests'])
+
 const idParam = { name: 'id', in: 'path' as const, required: true, schema: { type: 'string', format: 'uuid' } }
 
 export const getMessageThreadsEndpoint = defineEndpoint({
   operationId: 'getMessageThreads',
   method: 'GET',
   path: '/messages/threads',
-  summary: "One keyset page of the caller's conversations, newest activity first (blocked threads hidden).",
+  summary: "One keyset page of the caller's conversations, newest activity first (blocked threads hidden). box=inbox (default) or box=requests.",
   auth: 'user',
-  parameters: [{ name: 'cursor', in: 'query', required: false, schema: { type: 'string' } }],
-  response: z.object({ threads: z.array(threadItem), nextCursor: z.string().nullable() }),
+  parameters: [
+    { name: 'cursor', in: 'query', required: false, schema: { type: 'string' } },
+    { name: 'box', in: 'query', required: false, schema: { type: 'string', enum: ['inbox', 'requests'], default: 'inbox' } },
+  ],
+  response: z.object({ threads: z.array(threadItem), nextCursor: z.string().nullable(), requestCount: z.number() }),
   handler: async ({ ctx, req }) => {
-    const cursor = new URL(req.url).searchParams.get('cursor') ?? undefined
-    return listThreads(toMessageCtx(ctx), { cursor })
+    const params = new URL(req.url).searchParams
+    const box = boxSchema.safeParse(params.get('box') ?? 'inbox')
+    if (!box.success) throw Errors.validation({ box: 'Unknown box.' })
+    return listThreads(toMessageCtx(ctx), { cursor: params.get('cursor') ?? undefined, box: box.data })
   },
 })
 
@@ -68,7 +82,7 @@ export const getMessageThreadEndpoint = defineEndpoint({
   summary: 'Thread header: the other player and who has blocked whom. 404 if the caller is not a participant.',
   auth: 'user',
   parameters: [idParam],
-  response: z.object({ threadId: z.string(), other: participant, blockedByMe: z.boolean(), blockedByThem: z.boolean() }),
+  response: z.object({ threadId: z.string(), other: participant, blockedByMe: z.boolean(), blockedByThem: z.boolean(), ...requestInfo }),
   handler: async ({ ctx, params }) => {
     const header = await getThreadHeader(toMessageCtx(ctx), params.id)
     if (!header) throw Errors.notFound()
