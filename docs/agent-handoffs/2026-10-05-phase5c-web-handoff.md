@@ -18,6 +18,10 @@ Contract for mobile: `openapi/mobile-v1.json` (regenerated; mobile re-copies it,
 - Claim errors: `quest_incomplete` 409, `claim_in_progress` 409, `reward_unavailable` 503. `claimGuideBadge` needs no `Idempotency-Key`.
 - History: `GET /chat/history?before&limit` (default 40, max 100, 30-day window, oldest-first), `DELETE /chat/history` returns `{ok:true}`.
 
+## Staging status (updated)
+
+All three migrations are APPLIED and verified on staging (`ofxmoxpvwbemfouaowoa`): both assertion files end `ALL_PASSED_ROLLBACK`, the live `player_notifications_type_check` matched the prior migration before widening, and a parallel race check allowed exactly 5 of 15 completed calls at a limit of 5. Production is untouched.
+
 ## NOT done / needs the owner
 
 1. **No migration was applied anywhere.** DB writes (even to staging) were blocked in the authoring session. Apply to staging first, run `supabase/tests/chat_erasure.sql` and `supabase/tests/chat_5c.sql` (each must end with the error `ALL_PASSED_ROLLBACK`), then do the 20-parallel-call race check from plan Task 3 Step 5:
