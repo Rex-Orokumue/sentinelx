@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- loose fakes for the supabase chain */
 import { describe, it, expect, vi } from 'vitest'
 import { parseSections, unionSections, getAccountInfo } from './sections'
 
