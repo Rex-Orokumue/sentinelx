@@ -28,6 +28,7 @@ export const CHANNEL_FOR_TYPE: Record<PushNotificationType, AndroidChannelId> = 
   referral_converted: 'money_v1',
   // Staff-bound: only ever sent via notifyStaff or to staff ids (noshow-actions.ts).
   withdrawal_pending: 'admin_v1',
+  chat_budget_alert: 'admin_v1',
   exchange_listing_pending: 'admin_v1',
   result_needs_review: 'admin_v1',
   result_disputed: 'admin_v1',

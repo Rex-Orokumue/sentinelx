@@ -308,6 +308,7 @@ export type Database = {
       }
       chat_messages: {
         Row: {
+          client_turn_id: string | null
           content: string
           created_at: string
           id: string
@@ -315,6 +316,7 @@ export type Database = {
           role: string
         }
         Insert: {
+          client_turn_id?: string | null
           content: string
           created_at?: string
           id?: string
@@ -322,6 +324,7 @@ export type Database = {
           role: string
         }
         Update: {
+          client_turn_id?: string | null
           content?: string
           created_at?: string
           id?: string
@@ -2300,18 +2303,24 @@ export type Database = {
           achievement_id: string
           id: string
           player_id: string
+          reward_lease_until: string | null
+          rewards_granted_at: string | null
           unlocked_at: string
         }
         Insert: {
           achievement_id: string
           id?: string
           player_id: string
+          reward_lease_until?: string | null
+          rewards_granted_at?: string | null
           unlocked_at?: string
         }
         Update: {
           achievement_id?: string
           id?: string
           player_id?: string
+          reward_lease_until?: string | null
+          rewards_granted_at?: string | null
           unlocked_at?: string
         }
         Relationships: [
@@ -4113,6 +4122,14 @@ export type Database = {
           p_game_ids: string[]
         }
         Returns: undefined
+      }
+      chat_budget_hit: {
+        Args: { p_alert_pct: number; p_ceiling: number; p_scope: string }
+        Returns: { allowed: boolean; crossed_alert: boolean }[]
+      }
+      chat_rate_limit_hit: {
+        Args: { p_limit_long: number; p_limit_short: number; p_subject: string; p_window_long: number; p_window_short: number }
+        Returns: { allowed: boolean; retry_after_seconds: number }[]
       }
       dm_can_message: {
         Args: { p_sender: string; p_thread: string }

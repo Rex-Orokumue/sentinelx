@@ -29,6 +29,7 @@ export type PushNotificationType =
   | 'direct_message'
   | 'noshow_needs_decision'
   | 'withdrawal_pending'
+  | 'chat_budget_alert'
   | 'exchange_listing_pending'
   | 'result_needs_review'
   | 'result_disputed'

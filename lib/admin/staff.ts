@@ -51,7 +51,7 @@ export async function getStaffIds(admin: Admin): Promise<string[]> {
 // frozen mid-query with nothing yet handed to the platform.
 export function notifyStaff(
   admin: Admin,
-  type: Extract<NotificationType, 'withdrawal_pending' | 'exchange_listing_pending' | 'result_needs_review' | 'result_disputed' | 'result_no_submission'>,
+  type: Extract<NotificationType, 'withdrawal_pending' | 'chat_budget_alert' | 'exchange_listing_pending' | 'result_needs_review' | 'result_disputed' | 'result_no_submission'>,
   payload: { title: string; body: string; link: string },
   excludePlayerId?: string,
 ): Promise<void> {
@@ -60,7 +60,7 @@ export function notifyStaff(
 
 async function fanOutToStaff(
   admin: Admin,
-  type: Extract<NotificationType, 'withdrawal_pending' | 'exchange_listing_pending' | 'result_needs_review' | 'result_disputed' | 'result_no_submission'>,
+  type: Extract<NotificationType, 'withdrawal_pending' | 'chat_budget_alert' | 'exchange_listing_pending' | 'result_needs_review' | 'result_disputed' | 'result_no_submission'>,
   payload: { title: string; body: string; link: string },
   excludePlayerId?: string,
 ): Promise<void> {

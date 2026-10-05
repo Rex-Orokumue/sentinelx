@@ -38,6 +38,7 @@ export type NotificationType =
   | 'bracket_released'
   | 'match_reminder'
   | 'withdrawal_pending'
+  | 'chat_budget_alert'
   | 'exchange_listing_pending'
   | 'result_needs_review'
   | 'result_disputed'
