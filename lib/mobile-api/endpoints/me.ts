@@ -6,6 +6,7 @@ import { isOwnAvatarUrl } from '@/lib/profile/avatar-url'
 import { performUpdateProfile, type UpdateProfileErrorCode } from '@/lib/profile/update-profile-service'
 import { ApiError, Errors } from '../errors'
 import { postgresUuidSchema } from '@/lib/validation/postgres-uuid'
+import { bubbleSkinUrlFor } from '@/lib/store/cosmetics'
 
 export const meResponse = z.object({
   id: z.string(),
@@ -28,6 +29,9 @@ export const meResponse = z.object({
       profileCompletedAt: z.string().nullable(),
       consentWhatsappUpdates: z.boolean(),
       gameInterests: z.array(postgresUuidSchema),
+      // Mascot bubble skin: the equipped slug and its image as a relative path (same convention as frameUrl).
+      equippedBubbleSkin: z.string().nullable(),
+      bubbleSkinUrl: z.string().nullable(),
     })
     .nullable(),
 })
@@ -44,6 +48,7 @@ interface ProfileRow {
   deletion_requested_at: string | null
   profile_completed_at: string | null
   consent_whatsapp_updates: boolean
+  equipped_bubble_skin?: string | null
 }
 
 export function toMeResponse(
@@ -70,6 +75,8 @@ export function toMeResponse(
       profileCompletedAt: row.profile_completed_at,
       consentWhatsappUpdates: row.consent_whatsapp_updates,
       gameInterests: gameInterestIds,
+      equippedBubbleSkin: row.equipped_bubble_skin ?? null,
+      bubbleSkinUrl: bubbleSkinUrlFor(row.equipped_bubble_skin) ?? null,
     },
   }
 }
@@ -88,7 +95,7 @@ export const meEndpoint = defineEndpoint({
       ctx.admin
         .from('profiles')
         .select(
-          'username, display_name, avatar_url, whatsapp_number, country, locale, membership_tier, kyc_verified, deletion_requested_at, profile_completed_at, consent_whatsapp_updates',
+          'username, display_name, avatar_url, whatsapp_number, country, locale, membership_tier, kyc_verified, deletion_requested_at, profile_completed_at, consent_whatsapp_updates, equipped_bubble_skin',
         )
         .eq('id', ctx.userId)
         .maybeSingle(),

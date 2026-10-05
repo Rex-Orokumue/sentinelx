@@ -22,6 +22,12 @@ export const Errors = {
     new ApiError(400, 'idempotency_key_required', 'An Idempotency-Key header is required for this request.'),
   idempotencyInProgress: () =>
     new ApiError(409, 'idempotency_in_progress', 'Try again shortly with the same Idempotency-Key.'),
+  questIncomplete: () => new ApiError(409, 'quest_incomplete', 'Finish every quest step first.'),
+  claimInProgress: () => new ApiError(409, 'claim_in_progress', 'This reward is being processed. Try again shortly.'),
+  rewardUnavailable: () => new ApiError(503, 'reward_unavailable', 'This reward is unavailable right now.'),
+  chatRateLimited: (retryAfterSeconds: number) =>
+    new ApiError(429, 'chat_rate_limited', 'Too many messages. Try again shortly.', { retryAfterSeconds: String(retryAfterSeconds) }),
+  chatUnavailable: () => new ApiError(503, 'chat_unavailable', 'Support chat is unavailable right now.'),
 }
 
 export function errorBody(e: ApiError): {

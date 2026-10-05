@@ -5,6 +5,8 @@ import { errorsEndpoint } from './client-errors'
 import { registerDeviceEndpoint, unregisterDeviceEndpoint } from './devices'
 import { sessionStartEndpoint } from './session'
 import { signupEndpoint, resendConfirmationEndpoint, requestResetEndpoint } from './auth'
+import { getGuideQuestsEndpoint, claimGuideBadgeEndpoint } from './guide'
+import { postChatMessageEndpoint, getChatHistoryEndpoint, deleteChatHistoryEndpoint } from './chat'
 import { claimUsernameEndpoint, completeProfileEndpoint } from './onboarding'
 import { homeEndpoint } from './home'
 import { rankingsEndpoint, rankingsMeEndpoint } from './rankings'
@@ -167,4 +169,9 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   reportThreadEndpoint,
   acceptMessageRequestEndpoint,
   declineMessageRequestEndpoint,
+  getGuideQuestsEndpoint,
+  claimGuideBadgeEndpoint,
+  postChatMessageEndpoint,
+  getChatHistoryEndpoint,
+  deleteChatHistoryEndpoint,
 ]

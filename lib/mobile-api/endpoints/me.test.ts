@@ -20,6 +20,7 @@ describe('toMeResponse', () => {
         username: 'ada', displayName: 'Ada', avatarUrl: null, whatsappNumber: '+2348012345678', country: 'Nigeria',
         locale: 'en', membershipTier: 'guardian', kycVerified: false, deletionRequestedAt: null,
         profileCompletedAt: '2026-10-03T16:00:00.000Z', consentWhatsappUpdates: true, gameInterests: [GAME],
+        equippedBubbleSkin: null, bubbleSkinUrl: null,
       },
     })
   })

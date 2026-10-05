@@ -252,6 +252,403 @@
         }
       }
     },
+    "/api/mobile/v1/chat/history": {
+      "delete": {
+        "operationId": "deleteChatHistory",
+        "summary": "Delete the signed-in player's entire support-chat history. Naturally idempotent.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "ok": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "ok"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getChatHistory",
+        "summary": "The signed-in player's support-chat history within the last 30 days, oldest-first within the page. Cursor-paged with before (an opaque nextBefore); default 40, max 100.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "description": "Opaque cursor from a previous nextBefore.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "messages": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "role": {
+                                "type": "string",
+                                "enum": [
+                                  "user",
+                                  "assistant"
+                                ]
+                              },
+                              "content": {
+                                "type": "string"
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "role",
+                              "content",
+                              "createdAt"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "nextBefore": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "messages",
+                        "nextBefore"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/chat/messages": {
+      "post": {
+        "operationId": "postChatMessage",
+        "summary": "Send a support-chat turn and stream the reply. Bearer optional: no Authorization header is signed-out (FAQ only, nothing stored); a present but invalid bearer is 401. Send X-Device-Id (generated once by the app) when signed out.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "messages": {
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "role": {
+                              "type": "string",
+                              "const": "user"
+                            },
+                            "content": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 1000
+                            }
+                          },
+                          "required": [
+                            "role",
+                            "content"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "role": {
+                              "type": "string",
+                              "const": "assistant"
+                            },
+                            "content": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 4000
+                            }
+                          },
+                          "required": [
+                            "role",
+                            "content"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "clientTurnId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "locale": {
+                    "default": "en",
+                    "type": "string",
+                    "enum": [
+                      "en",
+                      "fr",
+                      "pcm"
+                    ]
+                  }
+                },
+                "required": [
+                  "messages",
+                  "clientTurnId",
+                  "locale"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "NDJSON, one event per line: {\"t\":\"status\",\"state\":\"checking_account\"} | {\"t\":\"delta\",\"text\":...} | {\"t\":\"actions\",\"items\":[destination...]} | {\"t\":\"done\",\"persisted\":bool} | {\"t\":\"error\",\"code\":\"chat_upstream\"|\"chat_truncated\"|\"internal\"}. Exactly one terminal event (done or error). Failures before the first byte use the normal JSON error envelope: chat_rate_limited (429, Retry-After and fields.retryAfterSeconds), chat_unavailable (503), validation_failed (400), unauthorized (401).",
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "type": "string",
+                  "description": "One JSON object per line."
+                },
+                "x-event-schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "t": {
+                          "type": "string",
+                          "const": "status"
+                        },
+                        "state": {
+                          "type": "string",
+                          "const": "checking_account"
+                        }
+                      },
+                      "required": [
+                        "t",
+                        "state"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "t": {
+                          "type": "string",
+                          "const": "delta"
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "t",
+                        "text"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "t": {
+                          "type": "string",
+                          "const": "actions"
+                        },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "tournaments",
+                              "matches",
+                              "wallet",
+                              "profile",
+                              "notifications",
+                              "rules",
+                              "safety",
+                              "help"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "t",
+                        "items"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "t": {
+                          "type": "string",
+                          "const": "done"
+                        },
+                        "persisted": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "t",
+                        "persisted"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "t": {
+                          "type": "string",
+                          "const": "error"
+                        },
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "chat_upstream",
+                            "chat_truncated",
+                            "internal"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "t",
+                        "code"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/community/best-play": {
       "get": {
         "operationId": "getCommunityBestPlay",
@@ -3989,6 +4386,240 @@
         }
       }
     },
+    "/api/mobile/v1/guide/badge": {
+      "post": {
+        "operationId": "claimGuideBadge",
+        "summary": "Claim the Battle Ready badge reward. Re-verifies the quest server-side. Naturally idempotent: a retry returns alreadyClaimed true and never a second reward; a retry of an interrupted claim resumes only the missing award. Errors: quest_incomplete (409), claim_in_progress (409), reward_unavailable (503).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "quest": {
+                    "type": "string",
+                    "const": "battle_ready"
+                  }
+                },
+                "required": [
+                  "quest"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "claimed": {
+                          "type": "boolean",
+                          "const": true
+                        },
+                        "alreadyClaimed": {
+                          "type": "boolean"
+                        },
+                        "xp": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "coins": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "claimed",
+                        "alreadyClaimed",
+                        "xp",
+                        "coins"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/guide/quests": {
+      "get": {
+        "operationId": "getGuideQuests",
+        "summary": "The signed-in player's guide quests with per-step progress, claim state and the reward (read from the achievements row).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "quests": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "const": "battle_ready"
+                              },
+                              "steps": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "key": {
+                                      "type": "string",
+                                      "enum": [
+                                        "profile_complete",
+                                        "first_tournament_entered",
+                                        "first_match_completed"
+                                      ]
+                                    },
+                                    "done": {
+                                      "type": "boolean"
+                                    },
+                                    "target": {
+                                      "type": "string",
+                                      "enum": [
+                                        "edit_profile",
+                                        "tournaments",
+                                        "matches"
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "key",
+                                    "done",
+                                    "target"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "doneCount": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "totalCount": {
+                                "type": "number",
+                                "const": 3
+                              },
+                              "allComplete": {
+                                "type": "boolean"
+                              },
+                              "claimed": {
+                                "type": "boolean"
+                              },
+                              "reward": {
+                                "type": "object",
+                                "properties": {
+                                  "xp": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  "coins": {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  }
+                                },
+                                "required": [
+                                  "xp",
+                                  "coins"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "steps",
+                              "doneCount",
+                              "totalCount",
+                              "allComplete",
+                              "claimed",
+                              "reward"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "quests"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/hall-of-fame": {
       "get": {
         "operationId": "getHallOfFame",
@@ -6517,6 +7148,26 @@
                                     "type": "string",
                                     "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
                                   }
+                                },
+                                "equippedBubbleSkin": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
+                                "bubbleSkinUrl": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
                                 }
                               },
                               "required": [
@@ -6531,7 +7182,9 @@
                                 "deletionRequestedAt",
                                 "profileCompletedAt",
                                 "consentWhatsappUpdates",
-                                "gameInterests"
+                                "gameInterests",
+                                "equippedBubbleSkin",
+                                "bubbleSkinUrl"
                               ],
                               "additionalProperties": false
                             },
@@ -14701,6 +15354,34 @@
       },
       "Internal": {
         "description": "Unexpected server error (code `internal`).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Too many requests (code `chat_rate_limited`; `fields.retryAfterSeconds` and the Retry-After header say when to retry).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ApiError"
+            }
+          }
+        },
+        "headers": {
+          "Retry-After": {
+            "description": "Seconds until the caller may retry.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "Unavailable": {
+        "description": "The service is temporarily unavailable (code `chat_unavailable`).",
         "content": {
           "application/json": {
             "schema": {
