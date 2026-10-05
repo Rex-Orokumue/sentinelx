@@ -20,7 +20,7 @@ Contract for mobile: `openapi/mobile-v1.json` (regenerated; mobile re-copies it,
 
 ## Staging status (updated)
 
-All three migrations are APPLIED and verified on staging (`ofxmoxpvwbemfouaowoa`): both assertion files end `ALL_PASSED_ROLLBACK`, the live `player_notifications_type_check` matched the prior migration before widening, and a parallel race check allowed exactly 5 of 15 completed calls at a limit of 5. Production is untouched.
+All three migrations are APPLIED and verified on staging (`ofxmoxpvwbemfouaowoa`): both assertion files end `ALL_PASSED_ROLLBACK`, the live `player_notifications_type_check` matched the prior migration before widening, and a parallel race check allowed exactly 5 of 15 completed calls at a limit of 5. PRODUCTION (itxubrkbropttfdackmi): all three migrations also applied, in order. Pre-checks: purge would have deleted 0 rows (20 chat rows total), live CHECK list matched the prior migration. Post-checks: client_turn_id, reward columns, both functions, 3 prune jobs (event prune now 2 days), widened CHECK present, 0 unsealed existing achievements. Assertion files were NOT run on prod (staging only).
 
 ## NOT done / needs the owner
 
