@@ -79,7 +79,7 @@ too; it is the only behavior change in the guide service.
 | `getChatHistory` | `GET /chat/history?before&limit` (`auth: user`) | — | `{ messages: {id,role,content,createdAt}[], nextBefore }` | Oldest-first window within the last 30 days, default 40, max 100. |
 | `clearChatHistory` | `DELETE /chat/history` (`auth: user`) | — | `{ ok }` | Naturally idempotent. Web "Clear chat" moves onto the same service; the `chat_messages_self_delete` policy is dropped in a later cleanup migration (section 5), not alongside this change. |
 
-Input limits (both routes): each message content ≤ 1,000 chars, history ≤ 20 messages and ≤ 8,000 chars total
+Input limits (both routes): each user message ≤ 1,000 chars and each earlier assistant message ≤ 4,000 (a stored reply can be longer than anything a player types, and history is resent; the client truncates to these), history ≤ 20 messages and ≤ 8,000 chars total
 (web is 40 and uncapped); violations are `validation_failed`. Each upstream call has an abort timeout (20 s)
 and is aborted when the client disconnects (`req.signal`). The route sets `maxDuration` of at least 45 s (worst
 case is two 20 s calls); Stage B confirms the project's plan allows it.

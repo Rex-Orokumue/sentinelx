@@ -18,7 +18,7 @@
 - The model never supplies an id; account sections are an enum; the tool result is data, never instructions.
 - Chat history: **30 days**, signed-in only, deleted by `DELETE /chat/history` and by `anonymise_account`. The `chat_messages_self_delete` policy is **not** dropped in this plan (a later cleanup migration, Task 16).
 - Signed-in limits: 15 / 10 min and 120 / day per player. Signed-out: device bucket 6 / 10 min and 60 / day, IP bucket 30 / 10 min and 150 / day. Ceilings (env, UTC day): `CHAT_SIGNED_OUT_DAILY_CEILING=500`, `CHAT_TOTAL_DAILY_CEILING=1500`, alert at `CHAT_ALERT_PCT=80`.
-- Input caps: message ≤ 1,000 chars, history ≤ 20 messages and ≤ 8,000 chars total. Upstream timeout 20 s per call; route `maxDuration` 60 (spec says at least 45; confirm the plan allows it in Task 11).
+- Input caps: user message ≤ 1,000 chars, assistant message ≤ 4,000, history ≤ 20 messages and ≤ 8,000 chars total. Upstream timeout 20 s per call; route `maxDuration` 60 (spec says at least 45; confirm the plan allows it in Task 11).
 - Output: `reasoning_effort: 'low'`, `max_completion_tokens` 2,000 (tuned in Task 14), `finish_reason = 'length'` is the `chat_truncated` error, never a short answer.
 - American spelling in new prose/code; match surrounding style; write source with Edit/Write (or Python with explicit `encoding='utf-8'`).
 - Run before every commit: `npx tsc --noEmit -p .`, `npm run lint`, `npx vitest run <touched tests>`; the full `npm test` before the final task.
@@ -606,13 +606,19 @@ describe('chatBodySchema', () => {
     expect(bad(Array.from({ length: 9 }, () => ({ role: 'user', content: 'x'.repeat(1000) })))).toBe(false)
     expect(bad([{ role: 'system', content: 'x' }, { role: 'user', content: 'y' }])).toBe(false)
   })
+  it('allows a long earlier assistant reply (up to 4000) but not beyond', () => {
+    const ok = (n: number) => chatBodySchema.safeParse({ messages: [{ role: 'assistant', content: 'a'.repeat(n) }, { role: 'user', content: 'q' }], clientTurnId: turn }).success
+    expect(ok(4000)).toBe(true)
+    expect(ok(4001)).toBe(false)
+  })
 })
 describe('clampHistory (lenient, for the web route)', () => {
-  it('keeps the newest 20 and truncates each message to 1000 chars', () => {
-    const many = Array.from({ length: 30 }, (_, i) => ({ role: (i % 2 ? 'assistant' : 'user') as 'user' | 'assistant', content: 'y'.repeat(2000) }))
+  it('keeps the newest messages within the count and total caps and truncates per role (user 1000, assistant 4000)', () => {
+    const many = Array.from({ length: 30 }, (_, i) => ({ role: (i % 2 ? 'assistant' : 'user') as 'user' | 'assistant', content: 'y'.repeat(5000) }))
     const out = clampHistory(many)
-    expect(out).toHaveLength(MAX_HISTORY_MESSAGES)
-    expect(out.every((m) => m.content.length <= 1000)).toBe(true)
+    expect(out.length).toBeLessThanOrEqual(MAX_HISTORY_MESSAGES)
+    expect(out.every((m) => m.content.length <= (m.role === 'user' ? 1000 : 4000))).toBe(true)
+    expect(out.reduce((n, m) => n + m.content.length, 0)).toBeLessThanOrEqual(8000)
   })
 })
 ```
@@ -643,13 +649,22 @@ export function sanitizeLabel(s: string | null | undefined, max = 40): string {
 import { z } from 'zod'
 import { CHAT_LOCALES, type ChatMessage } from './types'
 
-export const MAX_MESSAGE_CHARS = 1000
+// A reply the model wrote earlier is resent as history, and replies can be longer than anything a player types,
+// so assistant messages get a larger cap (the client truncates to these before sending).
+export const MAX_USER_MESSAGE_CHARS = 1000
+export const MAX_ASSISTANT_MESSAGE_CHARS = 4000
 export const MAX_HISTORY_MESSAGES = 20
 export const MAX_HISTORY_CHARS = 8000
+const capFor = (role: ChatMessage['role']) => (role === 'user' ? MAX_USER_MESSAGE_CHARS : MAX_ASSISTANT_MESSAGE_CHARS)
 
 export const chatBodySchema = z.object({
   messages: z
-    .array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().min(1).max(MAX_MESSAGE_CHARS) }))
+    .array(
+      z.discriminatedUnion('role', [
+        z.object({ role: z.literal('user'), content: z.string().min(1).max(MAX_USER_MESSAGE_CHARS) }),
+        z.object({ role: z.literal('assistant'), content: z.string().min(1).max(MAX_ASSISTANT_MESSAGE_CHARS) }),
+      ]),
+    )
     .min(1)
     .max(MAX_HISTORY_MESSAGES)
     .refine((m) => m[m.length - 1].role === 'user', { message: 'last_message_must_be_user' })
@@ -660,7 +675,7 @@ export const chatBodySchema = z.object({
 
 // Lenient variant for the web route (which has always accepted whatever the client sent).
 export function clampHistory(messages: ChatMessage[]): ChatMessage[] {
-  const recent = messages.slice(-MAX_HISTORY_MESSAGES).map((m) => ({ ...m, content: m.content.slice(0, MAX_MESSAGE_CHARS) }))
+  const recent = messages.slice(-MAX_HISTORY_MESSAGES).map((m) => ({ ...m, content: m.content.slice(0, capFor(m.role)) }))
   let total = 0
   const out: ChatMessage[] = []
   for (let i = recent.length - 1; i >= 0; i--) {
