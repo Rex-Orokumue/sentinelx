@@ -1,9 +1,8 @@
-export interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
-}
+import { MAX_HISTORY_MESSAGES } from './limits'
+import type { ChatMessage } from './types'
 
-export const MAX_HISTORY_MESSAGES = 40
+export type { ChatMessage }
+export { MAX_HISTORY_MESSAGES }
 
 // Pure — unit tested directly. The client-sent history array is untrusted
 // input: this strips anything that isn't a plain {role: 'user'|'assistant',
