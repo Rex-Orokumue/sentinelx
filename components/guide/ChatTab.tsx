@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { getChatHistory } from '@/lib/chat/actions'
+import { clearMyChatHistory, getChatHistory } from '@/lib/chat/actions'
 import type { ChatMessage } from '@/lib/chat/sanitize-history'
 
 const FALLBACK_MESSAGE = 'Having trouble responding right now — try again shortly.'
@@ -66,12 +65,7 @@ export function ChatTab({ isLoggedIn }: { isLoggedIn: boolean }) {
 
   async function handleClear() {
     setMessages([])
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return
-    await supabase.from('chat_messages').delete().eq('player_id', user.id)
+    await clearMyChatHistory()
   }
 
   return (
@@ -114,10 +108,15 @@ export function ChatTab({ isLoggedIn }: { isLoggedIn: boolean }) {
           Send
         </button>
       </div>
-      {isLoggedIn && messages.length > 0 && (
-        <button type="button" onClick={handleClear} className="mt-2 self-start text-xs text-sx-gray hover:underline">
-          Clear chat
-        </button>
+      {isLoggedIn && (
+        <div className="mt-2 flex items-center gap-3 text-xs text-sx-gray">
+          {messages.length > 0 && (
+            <button type="button" onClick={handleClear} className="hover:underline">
+              Clear chat
+            </button>
+          )}
+          <span>Chats are kept for 30 days.</span>
+        </div>
       )}
     </div>
   )
