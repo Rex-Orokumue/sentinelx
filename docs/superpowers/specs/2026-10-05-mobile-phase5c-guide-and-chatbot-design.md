@@ -1,6 +1,7 @@
 # Mobile Phase 5c — Guide quests and support chatbot (design)
 
-Status: **draft for owner review (Checkpoint 0)**. No plan and no code until approved.
+Status: **owner review comments incorporated (2026-10-05, rev 2)**; approval relayed as pasted text, to be
+confirmed before `writing-plans`. No plan and no code yet.
 Mobile master spec §8.20 is the product source (quests and chatbot are one bullet each; line 412 holds the
 `/guide/*` endpoint row, line 357 the `/me/summary` quests mention). Ground truth below was read from
 `origin/main` on 2026-10-05. This spec is the web-side contract and the mobile design.
@@ -63,9 +64,12 @@ changed (avoids coupling a cheap summary to the quest queries; the master spec l
 
 **Claim atomicity (Stage B must resolve with evidence).** Today the achievement row is inserted before XP and
 coins are awarded, so a failure between them leaves a badge with no reward and a retry that returns
-"already claimed". The service must read `awardXP` / `recordCoinTransaction` and either make the whole claim one
-transaction (preferred, a `SECURITY DEFINER` function) or award first against a unique source key. Fixing this
-changes the web action too; it is the only behavior change in the guide service.
+"already claimed". XP and coin awards have **no idempotency by source** today (no unique key, no
+`ON CONFLICT`), so "award first against a unique source key" is not free: it needs a new ledger constraint.
+A single-transaction `SECURITY DEFINER` function is only safe if `awardXP` and `recordCoinTransaction` are thin
+wrappers over SQL; otherwise it re-implements level logic in SQL and the two copies can drift. **Stage B reads
+both functions first and states in its plan which route it took and why.** Fixing this changes the web action
+too; it is the only behavior change in the guide service.
 
 ### 3.3 Chat endpoints (`lib/mobile-api/endpoints/chat.ts`)
 
@@ -73,11 +77,22 @@ changes the web action too; it is the only behavior change in the guide service.
 |---|---|---|---|---|
 | `postChatMessage` | `POST /chat/messages` (`auth: public`, bearer optional) | `{ messages: {role,content}[], clientTurnId: uuid, locale: 'en'\|'fr'\|'pcm' }` | **stream** (3.4) | Raw streaming route. Signed-in: tool and persistence. Signed-out: FAQ only, nothing stored. |
 | `getChatHistory` | `GET /chat/history?before&limit` (`auth: user`) | — | `{ messages: {id,role,content,createdAt}[], nextBefore }` | Oldest-first window within the last 30 days, default 40, max 100. |
-| `clearChatHistory` | `DELETE /chat/history` (`auth: user`) | — | `{ ok }` | Naturally idempotent. Web "Clear chat" moves onto the same service; the `chat_messages_self_delete` policy is dropped so there is one delete path. |
+| `clearChatHistory` | `DELETE /chat/history` (`auth: user`) | — | `{ ok }` | Naturally idempotent. Web "Clear chat" moves onto the same service; the `chat_messages_self_delete` policy is dropped in a later cleanup migration (section 5), not alongside this change. |
 
 Input limits (both routes): each message content ≤ 1,000 chars, history ≤ 20 messages and ≤ 8,000 chars total
-(web is 40 and uncapped); violations are `validation_failed`. Upstream call has `max_tokens` (600), an abort
-timeout (20 s per call) and is aborted when the client disconnects (`req.signal`).
+(web is 40 and uncapped); violations are `validation_failed`. Each upstream call has an abort timeout (20 s)
+and is aborted when the client disconnects (`req.signal`). The route sets `maxDuration` of at least 45 s (worst
+case is two 20 s calls); Stage B confirms the project's plan allows it.
+
+**Output cap on a reasoning model.** `gpt-oss-120b` is assumed to count reasoning tokens toward
+`max_tokens`, so a small cap can leave little or no visible reply (to confirm on staging). The route sets
+`reasoning_effort: 'low'`, a generous cap (initial value 2,000, tuned on staging), and treats
+`finish_reason = 'length'` as an explicit terminal `error` event (`chat_truncated`), never as a short answer.
+
+**Authentication.** Bearer is optional: no `Authorization` header means signed-out. A bearer that is **present
+but invalid or expired returns 401** (not a silent downgrade to anonymous), so the app's refresh flow runs and a
+signed-in player never loses account answers and history without an explanation. `defineStreamEndpoint`
+therefore does not reuse `optionalAuth`'s swallow-errors behavior.
 
 Error codes, all with the standard envelope and sent **before** the stream starts: `chat_rate_limited` (429, with
 a `Retry-After` header and `fields.retryAfterSeconds`), `chat_unavailable` (503: anonymous daily cap reached or
@@ -122,6 +137,12 @@ cannot create a duplicate. A client abort persists nothing.
 - Opponent and friend **display names are dropped**; the snapshot uses the public `username` only. Squad names
   are user-controlled text and are included only as sanitized strings (control and bidi characters stripped, 40
   chars max). Timestamps are ISO dates. Email, phone, WhatsApp number and address are never included (as today).
+- Because accuracy now depends on the tool description, it states which section answers which question
+  (`matches`: next match, opponent, schedule; `wallet`: cash balance and SX coins; `withdrawals`: payout status;
+  `kyc`: payout-account verification; `registrations`: tournament entries and payment; `friendlies`: friendly
+  matches and stakes; `score`: SX Score and tier; `notifications`: unread count). **Eval before ship:** about ten
+  scripted questions (e.g. "when is my next match", "how much is in my wallet", "where is my withdrawal") run
+  against real Groq on staging with the expected sections asserted; a failing eval blocks Stage D sign-off.
 - The tool result is passed as a JSON object and the system prompt states that its contents are data, never
   instructions. Names inside it are a prompt-injection channel; the defense is that the model has no write tool
   and no tool that takes an id, so the worst outcome is a misleading sentence in the player's own chat.
@@ -133,9 +154,15 @@ reading the whole migration chain, not the DM migration alone). A daily `pg_cron
 days. **Existing web rows older than 30 days are deleted on the first run: a visible web behavior change** (see
 open question 5). Signed-out chat is held in app memory only and discarded on sign-in and on app exit.
 
-**Third party.** Groq receives the signed-in player's chat text and the requested sections. I did **not** verify
-Groq's data retention or training terms; the owner must confirm zero-retention/DPA terms and the Privacy page must
-disclose the processor (open question 4). No device identifiers or IPs are sent to Groq.
+**Third party.** Groq receives the signed-in player's chat text and the requested sections. Per the owner's
+review: by default Groq does not retain inference data but may log inputs and outputs for up to 30 days for
+troubleshooting and abuse checks, and its terms bar training on them. **The owner enables Zero Data Retention in
+the Groq console (Data Controls) before the Privacy line goes live.** The Privacy page line names Groq, says
+processing happens outside Nigeria, and says ZDR is on (retained data, if any, sits in US storage; region
+pinning is enterprise-only). Players are mostly minors, so a qualified person must check the cross-border and
+children's-data rules; this spec makes no legal claim. The chat UI tells users that chats are kept 30 days. No
+device identifiers or IPs are sent to Groq. (Terms were relayed by the owner; I have not independently verified
+them.)
 
 ### 3.6 Output is untrusted; destination chips
 
@@ -153,10 +180,15 @@ disclose the processor (open question 4). No device identifiers or IPs are sent 
 - Replace check-then-insert with a Postgres function `chat_rate_limit_hit(subject, limit, window)` that takes
   `pg_advisory_xact_lock(hashtext(subject))`, counts, inserts only if allowed, and returns `{ allowed,
   retry_after_seconds }`. One round trip, race-free. The web route adopts it.
-- Limits: signed-in **15 / 10 min and 120 / day** per player. Signed-out **6 / 10 min per bucket and 40 / day per
-  IP bucket**, plus a **global signed-out ceiling per day** (default 2,000 turns, env-configurable;
-  owner sets from budget, open question 3). Over the global ceiling: `chat_unavailable`, and the app tells the
-  user to sign in.
+- Limits: signed-in **15 / 10 min and 120 / day** per player. Signed-out **6 / 10 min per bucket and 150 / day
+  per IP bucket** (mobile carriers put many unrelated users behind one IP, so a low per-IP cap would lock out
+  innocent players; the global ceiling is the real spend control). Two env-configurable ceilings: a **global
+  signed-out daily ceiling, default 500 turns**, and a **total daily ceiling covering signed-in turns too**
+  (default set in the plan from the owner's budget). At the owner's figures (about $0.15 / $0.60 per million
+  input / output tokens, assumed ~6k input tokens, so roughly $0.0015 per turn) 500 signed-out turns a day is
+  about $22 a month at worst; the real prompt size must be measured on staging. Over the signed-out ceiling:
+  `chat_unavailable` and the app tells the user to sign in; over the total ceiling: `chat_unavailable` for
+  everyone.
 - Signed-out identity on mobile has no cookie. Buckets are `ip:<hmac(ip)>` (the hard bound) and `device:<id>`
   from an `X-Device-Id` header the app generates once (spoofable, so it only adds a bucket, never raises a
   limit). Subject keys are HMAC-hashed with a server pepper so raw IPs of minors are not stored.
@@ -224,10 +256,20 @@ the app locale (en or fr). Unknown values fall back to `en`. The FAQ block stays
 
 ## 5. Stages (each stops at a checkpoint, as in 5a/5b)
 
+- **Stage A0 (ships first, on its own):** a standalone migration that updates `anonymise_account` to delete
+  `chat_messages` and the player's `chat_rate_limit_events` (reading the latest definition across the whole
+  migration chain), **and purges chat rows of accounts already anonymised** (`profiles.deleted_at IS NOT NULL`
+  or the `deleted_` username marker). This is a live erasure bug and does not wait for Stage B.
+- **Stage A1 (prerequisite for the quest):** strip EXIF/GPS from avatars before upload, on mobile
+  (`sanitizeJpeg`, which lives in the mobile repo, not the web repo) and in the web `ProfileForm`
+  (re-encode in the browser before upload). Avatars already uploaded still carry EXIF and need a separate
+  **one-off scrub** (its own task with a dry-run count first).
 - **Stage B (web):** migration (`chat_messages` + `client_turn_id`, `chat_usage_daily`, rate-limit function,
-  prune cron, `anonymise_account` update, drop self-delete policy), guide service + endpoints, chat service +
-  `defineStreamEndpoint` + endpoints, web actions/route refactored, `/me` additive fields, OpenAPI regenerated.
-  Staging first, then production, migration and web code together.
+  prune cron), guide service + endpoints, chat service + `defineStreamEndpoint` + endpoints, web actions/route
+  refactored onto `DELETE /chat/history`, `/me` additive fields, OpenAPI regenerated. Staging first, then
+  production, migration and web code together. The `chat_messages_self_delete` policy is **not** dropped here:
+  it is dropped in a later cleanup migration once the web code using the new path is live, so web "Clear chat"
+  never breaks in between.
 - **Stage C (mobile guide):** quest models/provider/screen/card, claim, visitor tour, coach marks, app-bar entry.
 - **Stage D (mobile chat):** streaming client, notifier, screen, history, clear, chips, errors.
 - Each stage that needs a contract copies `openapi/mobile-v1.json` to `api/openapi.json`.
@@ -259,15 +301,17 @@ Real Groq behavior (tool selection with the enum argument, `gpt-oss-120b` availa
 through Vercel under real network conditions, Android lifecycle behavior mid-stream, TalkBack on the overlay,
 the global cap under real abuse, and the iOS equivalents (Phase 10). These go on the device-pass checklist.
 
-## 8. Open questions for the owner
+## 8. Owner decisions (resolved 2026-10-05)
 
-1. **Section-scoped tool** (3.5): approve the deviation from the web's no-argument tool? Recommended yes.
-2. **Destination chips** (3.6): keep, or cut to ship a smaller chat? Recommended keep; it is isolated.
-3. **Signed-out budget** (3.7): what daily signed-out turn ceiling matches your Groq spend? I defaulted to 2,000.
-4. **Groq terms:** I did not verify retention or training terms. Please confirm zero-retention or a DPA, and
-   approve a line on the Privacy page naming the processor.
-5. **Visible web change:** history older than 30 days is deleted on the first prune, and web "Clear chat" changes
-   implementation. Confirm.
-6. **Dependency:** the quest nudges an avatar upload, and avatar/community/evidence uploads still publish GPS
-   EXIF (known open item from 5b). Apply `sanitizeJpeg` to avatar upload **before** the quest ships, or accept
-   the exposure for now?
+1. Section-scoped tool: **yes**, with a described-sections tool description and a staging eval (3.5).
+2. Destination chips: **keep**.
+3. Signed-out ceiling: **500 / day**, plus a total ceiling for all traffic, both env-configurable (3.7).
+4. Groq: owner enables **Zero Data Retention**; Privacy line names Groq, says processing is outside Nigeria and
+   that ZDR is on; a qualified person reviews cross-border and children's-data rules (3.5).
+5. 30-day purge and Clear chat on the new path: **yes**; the chat UI tells users chats are kept 30 days.
+6. Avatar EXIF: **fix before the quest ships** (Stage A1), mobile and web `ProfileForm`, plus a one-off scrub.
+
+Further changes from the review: Stage A0 ships the `anonymise_account` fix first (section 5); per-IP cap 150 (3.7);
+`reasoning_effort` low, a larger output cap and `finish_reason = length` as an error (3.3); `maxDuration` of at
+least 45 s (3.3); self-delete policy dropped later (section 5); a bad bearer returns 401 (3.3); badge atomicity
+route chosen in Stage B after reading both award functions (3.2).
