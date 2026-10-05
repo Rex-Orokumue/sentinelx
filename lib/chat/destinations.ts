@@ -21,7 +21,7 @@ export class DestinationFilter {
         return out
       }
       out += this.buf.slice(0, open)
-      const close = this.buf.indexOf('}}', open + 2)
+      const close = this.matchingClose(open)
       if (close === -1) {
         if (this.buf.length - open > MAX_TOKEN) {
           this.buf = this.buf.slice(open + 2) // not a token: drop the opener, keep the rest as text
@@ -36,6 +36,20 @@ export class DestinationFilter {
       }
       this.buf = this.buf.slice(close + 2)
     }
+  }
+
+  // Index of the "}}" that closes the "{{" at `open`, counting nested "{{" so a malformed nested span is removed
+  // whole instead of leaving the inner closer behind as visible text. -1 while the span is still unbalanced.
+  private matchingClose(open: number): number {
+    let depth = 1
+    let i = open + 2
+    while (i < this.buf.length - 1) {
+      const two = this.buf.slice(i, i + 2)
+      if (two === '{{') { depth++; i += 2 }
+      else if (two === '}}') { depth--; if (depth === 0) return i; i += 2 }
+      else i++
+    }
+    return -1
   }
 
   flush(): string {

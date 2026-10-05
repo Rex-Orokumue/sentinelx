@@ -49,4 +49,17 @@ describe('DestinationFilter', () => {
   it('never leaks the opener for a nested token', () => {
     expect(run(['{{go:{{go:wallet}}}}']).text).not.toContain('{{')
   })
+  it('removes a nested malformed span whole, leaving no stray braces in the text', () => {
+    for (const nested of ['{{go:{{go:wallet}}}}', 'a {{x{{y}}z}} b']) {
+      const r = run([nested])
+      expect(r.text).not.toMatch(/[{}]/)
+    }
+    expect(run(['a {{go:{{go:wallet}}}} b']).text).toBe('a  b')
+  })
+  it('a nested span split across chunks is also removed whole', () => {
+    const msg = 'a {{go:{{go:wallet}}}} b'
+    for (let i = 1; i < msg.length; i++) {
+      expect(run([msg.slice(0, i), msg.slice(i)]).text, `split at ${i}`).toBe('a  b')
+    }
+  })
 })
