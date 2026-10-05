@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
   }
 
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
-  const systemPrompt = buildSystemPrompt(!!user)
+  const systemPrompt = buildSystemPrompt({ isLoggedIn: !!user, locale: 'en' })
   const baseMessages: ChatMessage[] = history
 
   let firstCompletion
