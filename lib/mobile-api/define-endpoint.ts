@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { authenticate, optionalAuth, type MobileCtx } from './auth'
 import { ApiError, Errors, errorBody } from './errors'
-import { compareVersions } from './version'
+import { gateVersion, parseBody } from './prelude'
 import { runIdempotent } from './idempotency'
 
 export type AuthLevel = 'public' | 'user' | 'staff' | 'admin'
@@ -15,6 +15,8 @@ export interface EndpointMeta {
   body?: z.ZodTypeAny
   response: z.ZodTypeAny
   parameters?: OpenApiParameter[]
+  // Set by defineStreamEndpoint: the 200 body is NDJSON, one event per line, not the { data } envelope.
+  stream?: { events: z.ZodTypeAny; description: string }
 }
 
 export interface OpenApiParameter {
@@ -37,16 +39,6 @@ function json(status: number, payload: unknown, cacheControl = 'no-store'): Resp
     status,
     headers: { 'content-type': 'application/json', 'cache-control': cacheControl, ...HEADERS },
   })
-}
-
-// First issue per path wins; messages are the shared errorCode strings the web already uses.
-function fieldErrors(error: z.ZodError): Record<string, string> {
-  const out: Record<string, string> = {}
-  for (const issue of error.issues) {
-    const key = issue.path.join('.') || '_'
-    if (!(key in out)) out[key] = issue.message
-  }
-  return out
 }
 
 export function defineEndpoint<
@@ -85,11 +77,7 @@ export function defineEndpoint<
 
   async function handler(req: Request, context?: { params: Record<string, string> }): Promise<Response> {
     try {
-      const appVersion = req.headers.get('x-app-version')
-      const min = process.env.MOBILE_MIN_APP_VERSION ?? '0.0.0'
-      if (!def.skipVersionGate && appVersion && compareVersions(appVersion, min) < 0) {
-        throw Errors.upgradeRequired(min)
-      }
+      gateVersion(req, def.skipVersionGate)
 
       let ctx: MobileCtx | null
       if (def.auth === 'public') {
@@ -101,13 +89,7 @@ export function defineEndpoint<
         }
       }
 
-      let body: unknown = undefined
-      if (def.body) {
-        const raw = await req.json().catch(() => undefined)
-        const parsed = def.body.safeParse(raw)
-        if (!parsed.success) throw Errors.validation(fieldErrors(parsed.error))
-        body = parsed.data
-      }
+      const body: unknown = def.body ? await parseBody(req, def.body) : undefined
 
       const runOnce = async (): Promise<{ status: number; body: unknown }> => {
         try {

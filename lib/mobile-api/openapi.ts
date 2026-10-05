@@ -14,13 +14,28 @@ const ERROR_RESPONSES = {
   '500': { $ref: '#/components/responses/Internal' },
 }
 
+// Statuses a streaming endpoint can answer with BEFORE the first byte (after it, failures are terminal events).
+const STREAM_ERROR_RESPONSES = {
+  '429': { $ref: '#/components/responses/RateLimited' },
+  '503': { $ref: '#/components/responses/Unavailable' },
+}
+
 const errorResponse = (description: string) => ({
   description,
   content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiError' } } },
 })
 
+const STREAM_COMPONENT_RESPONSES = {
+  RateLimited: {
+    ...errorResponse('Too many requests (code `chat_rate_limited`; `fields.retryAfterSeconds` and the Retry-After header say when to retry).'),
+    headers: { 'Retry-After': { description: 'Seconds until the caller may retry.', schema: { type: 'integer' } } },
+  },
+  Unavailable: errorResponse('The service is temporarily unavailable (code `chat_unavailable`).'),
+}
+
 export function buildOpenApi(endpoints: Endpoint[]): Record<string, unknown> {
   const paths: Record<string, Record<string, unknown>> = {}
+  const hasStream = endpoints.some((e) => e.meta.stream)
   for (const { meta } of [...endpoints].sort((a, b) => a.meta.path.localeCompare(b.meta.path) || a.meta.method.localeCompare(b.meta.method))) {
     const full = `/api/mobile/v1${meta.path}`
     paths[full] ??= {}
@@ -33,15 +48,26 @@ export function buildOpenApi(endpoints: Endpoint[]): Record<string, unknown> {
         ? { requestBody: { required: true, content: { 'application/json': { schema: schemaOf(meta.body) } } } }
         : {}),
       responses: {
-        '200': {
-          description: 'OK',
-          content: {
-            'application/json': {
-              schema: { type: 'object', required: ['data'], properties: { data: schemaOf(meta.response) } },
+        '200': meta.stream
+          ? {
+              description: meta.stream.description,
+              content: {
+                'application/x-ndjson': {
+                  schema: { type: 'string', description: 'One JSON object per line.' },
+                  'x-event-schema': schemaOf(meta.stream.events),
+                },
+              },
+            }
+          : {
+              description: 'OK',
+              content: {
+                'application/json': {
+                  schema: { type: 'object', required: ['data'], properties: { data: schemaOf(meta.response) } },
+                },
+              },
             },
-          },
-        },
         ...ERROR_RESPONSES,
+        ...(meta.stream ? STREAM_ERROR_RESPONSES : {}),
       },
     }
   }
@@ -76,6 +102,7 @@ export function buildOpenApi(endpoints: Endpoint[]): Record<string, unknown> {
         Forbidden: errorResponse('Authenticated but not allowed (code `forbidden`).'),
         UpgradeRequired: errorResponse('X-App-Version is below the supported minimum (code `app_update_required`).'),
         Internal: errorResponse('Unexpected server error (code `internal`).'),
+        ...(hasStream ? STREAM_COMPONENT_RESPONSES : {}),
       },
     },
   }

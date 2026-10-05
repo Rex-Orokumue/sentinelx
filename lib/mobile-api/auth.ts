@@ -66,3 +66,11 @@ export async function optionalAuth(req: Request): Promise<MobileCtx | null> {
     return null
   }
 }
+
+// For endpoints that serve signed-out and signed-in callers: no Authorization header is signed-out (null), but a
+// header that is present and invalid or expired is 401, so the app's refresh flow runs instead of the request
+// silently downgrading to anonymous (which would also apply the anonymous, tighter limits to a real player).
+export async function strictOptionalAuth(req: Request): Promise<MobileCtx | null> {
+  if (!req.headers.get('authorization')) return null
+  return authenticate(req)
+}
