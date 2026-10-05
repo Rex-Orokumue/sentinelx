@@ -2,8 +2,9 @@ import { z } from 'zod'
 import { defineEndpoint } from '../define-endpoint'
 import type { MobileCtx } from '../auth'
 import { profileEditSchema } from '@/lib/profile/schema'
+import { isOwnAvatarUrl } from '@/lib/profile/avatar-url'
 import { performUpdateProfile, type UpdateProfileErrorCode } from '@/lib/profile/update-profile-service'
-import { ApiError } from '../errors'
+import { ApiError, Errors } from '../errors'
 import { postgresUuidSchema } from '@/lib/validation/postgres-uuid'
 
 export const meResponse = z.object({
@@ -118,6 +119,9 @@ export const updateProfileEndpoint = defineEndpoint({
   body: updateProfileBody,
   response: updateProfileResponse,
   handler: async ({ ctx, body }) => {
+    if (body.avatarUrl !== undefined && !isOwnAvatarUrl(body.avatarUrl, ctx.userId, process.env.NEXT_PUBLIC_SUPABASE_URL ?? '')) {
+      throw Errors.validation({ avatarUrl: 'invalid_avatar_url' })
+    }
     const result = await performUpdateProfile(ctx.userClient, ctx.admin, ctx.userId, body)
     if (!result.ok) throw new ApiError(400, result.errorCode, updateProfileErrorMessage(result.errorCode))
     return { ok: true as const }
