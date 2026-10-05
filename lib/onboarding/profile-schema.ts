@@ -1,10 +1,11 @@
 import { z } from 'zod'
+import { postgresUuidSchema } from '@/lib/validation/postgres-uuid'
 
 export const onboardingProfileSchema = z.object({
   country: z.string().trim().min(1, 'Select your country'),
   whatsapp: z.string().trim().min(1, 'Enter your WhatsApp number'),
   consentWhatsappUpdates: z.enum(['true', 'false']), // hidden input is always a string
-  gameInterests: z.array(z.string().uuid()).min(1, 'Select at least one game'),
+  gameInterests: z.array(postgresUuidSchema).min(1, 'Select at least one game'),
 })
 
 export type OnboardingProfileInput = z.infer<typeof onboardingProfileSchema>
@@ -17,7 +18,7 @@ export const onboardingProfileCoreSchema = z.object({
   country: z.string().trim().min(1, 'Select your country'),
   whatsapp: z.string().trim().min(1, 'Enter your WhatsApp number'),
   consentWhatsappUpdates: z.boolean(),
-  gameInterests: z.array(z.string().uuid()).min(1, 'Select at least one game'),
+  gameInterests: z.array(postgresUuidSchema).min(1, 'Select at least one game'),
 })
 
 export type OnboardingProfileCore = z.infer<typeof onboardingProfileCoreSchema>

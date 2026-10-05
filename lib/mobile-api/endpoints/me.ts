@@ -4,8 +4,9 @@ import type { MobileCtx } from '../auth'
 import { profileEditSchema } from '@/lib/profile/schema'
 import { performUpdateProfile, type UpdateProfileErrorCode } from '@/lib/profile/update-profile-service'
 import { ApiError } from '../errors'
+import { postgresUuidSchema } from '@/lib/validation/postgres-uuid'
 
-const meResponse = z.object({
+export const meResponse = z.object({
   id: z.string(),
   email: z.string().nullable(),
   roles: z.array(z.string()),
@@ -25,7 +26,7 @@ const meResponse = z.object({
       // Server-owned onboarding gate input: null until the player completes the compulsory profile step.
       profileCompletedAt: z.string().nullable(),
       consentWhatsappUpdates: z.boolean(),
-      gameInterests: z.array(z.string().uuid()),
+      gameInterests: z.array(postgresUuidSchema),
     })
     .nullable(),
 })

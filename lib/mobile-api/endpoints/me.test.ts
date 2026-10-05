@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { toMeResponse, updateProfileErrorMessage } from './me'
+import { meResponse, toMeResponse, updateProfileErrorMessage } from './me'
 import { profileEditSchema } from '@/lib/profile/schema'
 
 const ctx = { userId: 'u1', email: 'a@b.c', roles: ['moderator'], isStaff: true, isAdmin: false } as never
@@ -46,6 +46,12 @@ describe('toMeResponse', () => {
 
   it('defaults gameInterests to an empty array when none are passed', () => {
     expect(toMeResponse(ctx, row).profile?.gameInterests).toEqual([])
+  })
+
+  it('serializes a PostgreSQL UUID even when it has no RFC version nibble', () => {
+    const response = toMeResponse(ctx, row, ['00000000-0000-0000-0000-0000000000a1'])
+
+    expect(meResponse.safeParse(response).success).toBe(true)
   })
 })
 

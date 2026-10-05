@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { onboardingProfileSchema, parseOnboardingProfileFormData } from './profile-schema'
+import { onboardingProfileCoreSchema, onboardingProfileSchema, parseOnboardingProfileFormData } from './profile-schema'
 
 describe('onboardingProfileSchema', () => {
   const valid = {
@@ -31,6 +31,15 @@ describe('onboardingProfileSchema', () => {
   it('rejects a non-uuid game interest', () => {
     const result = onboardingProfileSchema.safeParse({ ...valid, gameInterests: ['not-a-uuid'] })
     expect(result.success).toBe(false)
+  })
+
+  it('accepts a UUID-shaped id returned by PostgreSQL even without an RFC version nibble', () => {
+    const gameInterests = ['00000000-0000-0000-0000-0000000000a1']
+
+    expect(onboardingProfileSchema.safeParse({ ...valid, gameInterests }).success).toBe(true)
+    expect(
+      onboardingProfileCoreSchema.safeParse({ ...valid, consentWhatsappUpdates: true, gameInterests }).success,
+    ).toBe(true)
   })
 
   it('accepts consent as the literal string "false" (an explicit no is valid)', () => {
