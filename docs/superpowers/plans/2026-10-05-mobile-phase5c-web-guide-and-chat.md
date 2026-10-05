@@ -48,7 +48,7 @@ Create:
 - `app/api/mobile/v1/guide/quests/route.ts`, `guide/badge/route.ts`, `chat/messages/route.ts`, `chat/history/route.ts`.
 - `scripts/chat-eval.ts` — the ten-question eval.
 
-Modify: `lib/mobile-api/define-endpoint.ts`, `auth.ts`, `openapi.ts`, `endpoints/index.ts`, `endpoints/me.ts`, `endpoints/onboarding.ts` (avatar URL), `lib/chat/{system-prompt,tools,account-snapshot,rate-limit,sanitize-history,actions}.ts`, `app/api/chat/route.ts`, `components/guide/ChatTab.tsx`, `lib/guide/actions.ts`, `lib/notifications/{inbox,copy}.ts`, `messages/{en,fr,pcm}.json` (Privacy), `.env.local.example`, `openapi/mobile-v1.json` (regenerated).
+Modify: `lib/mobile-api/define-endpoint.ts`, `auth.ts`, `openapi.ts`, `endpoints/index.ts`, `endpoints/me.ts`, `endpoints/onboarding.ts` (avatar URL), `lib/chat/{system-prompt,tools,account-snapshot,rate-limit,sanitize-history,actions}.ts`, `app/api/chat/route.ts`, `components/guide/ChatTab.tsx`, `lib/guide/actions.ts`, `lib/notifications/{inbox,channels}.ts`, `lib/admin/staff.ts` (+ test), `messages/{en,fr,pcm}.json` (Privacy), `.env.local.example`, `openapi/mobile-v1.json` (regenerated).
 
 ---
 
@@ -1331,30 +1331,22 @@ export async function admitChatTurn(
 
 ```ts
 import { createAdminClient } from '@/lib/supabase/admin'
-import { notifyInApp } from '@/lib/notifications/inbox'
+import { notifyStaff } from '@/lib/admin/staff'
 
 export interface BudgetAlert { scope: string; ceiling: number; pct: number }
 
-// Best-effort: tells every admin once per UTC day per scope. The SQL function guarantees "once" (alerted_at).
+// Best-effort: tells staff once per UTC day per scope. The SQL function guarantees "once" (alerted_at).
 export async function sendBudgetAlert(a: BudgetAlert): Promise<void> {
   console.warn('[chat-budget] ALERT', a)
-  const admin = createAdminClient()
-  const { data } = await admin.from('user_roles').select('user_id').eq('role', 'admin')
-  await Promise.all(
-    (data ?? []).map((r) =>
-      notifyInApp({
-        playerId: r.user_id as string,
-        type: 'chat_budget_alert',
-        title: 'Support chat budget at ' + a.pct + '%',
-        body: `The ${a.scope} daily chat ceiling (${a.ceiling}) has reached ${a.pct}%.`,
-        link: '/admin',
-      }),
-    ),
-  )
+  await notifyStaff(createAdminClient(), 'chat_budget_alert', {
+    title: `Support chat budget at ${a.pct}%`,
+    body: `The ${a.scope} daily chat ceiling (${a.ceiling}) has reached ${a.pct}%.`,
+    link: '/admin',
+  })
 }
 ```
 
-Register `chat_budget_alert` in the `NotificationType` union in `lib/notifications/inbox.ts` and render it in `lib/notifications/copy.ts` **by mirroring how `withdrawal_pending` (the existing admin-facing type) is registered everywhere it appears** (`git grep -n withdrawal_pending -- lib app components`). Add a test in the existing notification-copy test file that `chat_budget_alert` renders without throwing. If `notifyInApp`'s input shape differs from the call above, follow the real signature (typecheck decides).
+Admin-facing notifications go through `notifyStaff(admin, type, { title, body, link })` in `lib/admin/staff.ts`, whose `type` is a closed `Extract<NotificationType, ...>` union, and each type also has a channel in `lib/notifications/channels.ts` (`withdrawal_pending: 'admin_v1'`). Add `chat_budget_alert` everywhere `withdrawal_pending` appears in those three places: the `NotificationType` union in `lib/notifications/inbox.ts`, the `Extract` unions in `lib/admin/staff.ts` (both signatures), and the channel map (`'admin_v1'`); then let `npx tsc --noEmit -p .` list any remaining exhaustive maps (for example a copy renderer) and add the type there too. Extend `lib/admin/staff.test.ts` with a case that `notifyStaff(admin, 'chat_budget_alert', …)` inserts a row per staff member the way the `withdrawal_pending` case does (read that test first and copy its fake).
 
 Add to `.env.local.example`:
 
@@ -2259,9 +2251,9 @@ const CASES: Array<{ q: string; expect: Section[] | 'none' }> = [
 
 **Files:** Modify `messages/en.json`, `messages/fr.json`, `messages/pcm.json` (the `privacy` namespace, line ~447 of `en.json`) and the Privacy page's section manifest if it lists section counts (read `app/[locale]/(public)/privacy/page.tsx` first; do not guess counts).
 
-- [ ] **Step 1: Verify the facts against Groq's current docs.** Open `https://console.groq.com/docs/your-data` and the Groq trust/privacy pages and confirm, in your own reading: (a) default no retention of inference data; (b) input/output may be logged up to 30 days for troubleshooting and abuse checks; (c) no training on customer data without permission; (d) Zero Data Retention is a console setting (Data Controls); (e) where data is processed/stored. In this session the page fetch failed (network), and the facts above were only seen in search-result summaries, so **this step has not been done**. If you cannot load the page, stop and ask the owner to supply the text.
+- [ ] **Step 1: Re-verify against Groq's current docs before wording the line.** Read `https://console.groq.com/docs/your-data` again at implementation time. At planning time (2026-10-05) the page said: (a) "By default, Groq does not retain customer data for inference requests"; (b) inputs and outputs may be logged "only when troubleshooting errors that degrade platform reliability, or investigating suspected abuse", for "up to 30 days, unless legally required to retain longer"; (d) "All customers may enable Zero Data Retention (ZDR) in Data Controls settings" (organization admins, globally or per feature); (e) "All customer data is retained in Google Cloud Platform (GCP) buckets located in the United States". **Not found on that page:** (c) a "no training on your inputs/outputs" clause (a search result summary claimed one, so read Groq's Terms/DPA on the trust site and confirm it before the line says it; otherwise omit it) and any statement of where inference **processing** happens (the page only says where retained data is stored, so word it as "stored in the United States" unless a Groq page says more). The owner's pricing figures ($0.15 / $0.60 per million tokens for gpt-oss-120b) matched search-result summaries only, not Groq's pricing page (not reachable at planning time), so confirm them on `https://groq.com/pricing` before the budget defaults are treated as final.
 - [ ] **Step 2: Wait for the owner's confirmation that ZDR is enabled** in the Groq console. Do not publish a line claiming ZDR until it is.
-- [ ] **Step 3: Write the line** (adapt wording to what Step 1 verified): name Groq as the processor of support-chat messages and the account details requested by a question; state that processing happens outside Nigeria; state that Zero Data Retention is enabled; state that chats are kept 30 days and can be cleared at any time. Add a new paragraph key to the section that covers third-party processors (read the namespace; add `…P<n+1>`), in `en`, `fr` (translate), and `pcm`.
+- [ ] **Step 3: Write the line** (adapt wording to what Step 1 verified): name Groq as the processor of support-chat messages and the account details requested by a question; state that data handled by Groq is stored in the United States, i.e. outside Nigeria (that is what the page supports; do not claim more about processing location); state that Zero Data Retention is enabled; state that chats are kept 30 days and can be cleared at any time. Add a new paragraph key to the section that covers third-party processors (read the namespace; add `…P<n+1>`), in `en`, `fr` (translate), and `pcm`.
 - [ ] **Step 4: Run** `npx vitest run` for any i18n parity test (`git grep -ln "messages/en.json" -- '*.test.ts'`) and `npx tsc --noEmit -p .`.
 - [ ] **Step 5: Commit** (`docs(privacy): name Groq as the support-chat processor`). Remind the owner that a qualified person should review the cross-border and children's-data wording; this plan makes no legal claim.
 
