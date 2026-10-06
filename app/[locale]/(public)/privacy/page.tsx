@@ -87,6 +87,7 @@ export default async function PrivacyPage() {
               <p>{t('s4P2')}</p>
               <p>{t('s4P3')}</p>
               <p>{t('s4Dm')}</p>
+              <p>{t('s4Chat')}</p>
             </>
           ),
         },

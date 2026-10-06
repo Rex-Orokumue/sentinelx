@@ -22,6 +22,11 @@ Contract for mobile: `openapi/mobile-v1.json` (regenerated; mobile re-copies it,
 
 All three migrations are APPLIED and verified on staging (`ofxmoxpvwbemfouaowoa`): both assertion files end `ALL_PASSED_ROLLBACK`, the live `player_notifications_type_check` matched the prior migration before widening, and a parallel race check allowed exactly 5 of 15 completed calls at a limit of 5. PRODUCTION (itxubrkbropttfdackmi): all three migrations also applied, in order. Pre-checks: purge would have deleted 0 rows (20 chat rows total), live CHECK list matched the prior migration. Post-checks: client_turn_id, reward columns, both functions, 3 prune jobs (event prune now 2 days), widened CHECK present, 0 unsealed existing achievements. Assertion files were NOT run on prod (staging only).
 
+## Later updates
+
+- Groq eval RUN (2026-10-06): 10/10 passed; the FAQ reply was 453 chars with finish=stop, so 2000 max_completion_tokens is not truncating. Tool description unchanged.
+- Owner confirmed ZDR enabled (Inference APIs ZDR) and CHAT_HASH_PEPPER set in Vercel. Privacy page now has an s4Chat paragraph (en/fr/pcm). Groq's published terms still could not be re-read from the authoring session, so the wording only claims what the owner confirmed (ZDR) and says servers may be outside Nigeria; a qualified person should review the cross-border wording. metaUpdated was not changed.
+
 ## NOT done / needs the owner
 
 1. **No migration was applied anywhere.** DB writes (even to staging) were blocked in the authoring session. Apply to staging first, run `supabase/tests/chat_erasure.sql` and `supabase/tests/chat_5c.sql` (each must end with the error `ALL_PASSED_ROLLBACK`), then do the 20-parallel-call race check from plan Task 3 Step 5:

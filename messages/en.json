@@ -485,6 +485,7 @@
     "s4P2": "We do not sell your personal data. We do not share it with advertisers.",
     "s4P3": "We may disclose data to Nigerian law enforcement or regulatory bodies if legally required to do so.",
     "s4Dm": "When you report a private conversation, our moderators can read that conversation in order to review your report and act on it. We do not read private messages otherwise.",
+    "s4Chat": "Support chat: when you use the in-app support chat, your messages and the account details your question needs (for example your wallet balance or match schedule) are sent to Groq, our AI processor, so it can write a reply. Groq's servers may be outside Nigeria. We have enabled Groq's Zero Data Retention setting, so Groq does not keep the contents of these messages. We never send your phone number, email address or IP address to Groq. If you are signed in, we keep your chat history for 30 days so you can see it again, and you can clear it at any time.",
     "s5Heading": "5. Your Public Profile",
     "s5P1": "Your username, display name, country, profile photo, SX Score, match history, and achievements are visible to all visitors of the platform. This is necessary for the competitive, community nature of the platform. You can update your display name and photo at any time in Settings.",
     "s6Heading": "6. Your Rights Under the NDPA 2023",
