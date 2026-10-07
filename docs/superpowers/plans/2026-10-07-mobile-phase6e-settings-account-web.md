@@ -32,6 +32,7 @@
 - Delete-now with the username typed in different case, with surrounding spaces, or with the wrong name: only the case-insensitive trimmed exact match proceeds.
 - Unlink with only one identity must answer `last_identity` without calling the provider, and unlink must revoke other sessions only after the identity is actually gone.
 - `GET /me/account` must never return the unmasked phone number or the pending email of another user.
+- `GET /me` gains `phoneVerifiedAt`; shipped app versions must keep parsing the response (the field is additive and nullable).
 
 ---
 
@@ -2494,6 +2495,62 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 
 ---
 
+### Task 7b: `/me` exposes `phoneVerifiedAt`
+
+The mobile onboarding gate (`resolveOnboardingGate`) cannot decide the phone step without it: today it returns `OnboardingGate.phone` for **every** signed-in user once `enforcePhoneVerification` is true, and nothing in `/me` says who is already verified. The field is additive and nullable, so shipped app versions ignore it.
+
+**Files:**
+- Modify: `lib/mobile-api/endpoints/me.ts` (zod `meResponse`, `ProfileRow`, `toMeResponse`, the `select` in `meEndpoint`)
+- Modify: `lib/mobile-api/endpoints/me.test.ts`, `lib/mobile-api/endpoints/me-bubble.test.ts`
+- Regenerate: `openapi/mobile-v1.json`
+
+**Interfaces:**
+- Produces: `profile.phoneVerifiedAt: string | null` on `GET /me` (ISO timestamp of `profiles.phone_verified_at`).
+
+- [ ] **Step 1: Write the failing tests** (append inside the `describe('toMeResponse', ...)` block of `me.test.ts`, and update the full-object expectation in the first test to include `phoneVerifiedAt: null` after `consentWhatsappUpdates: true`):
+
+```ts
+  it('reports phoneVerifiedAt as stored, and null when the phone was never verified', () => {
+    expect(toMeResponse(ctx, row, []).profile?.phoneVerifiedAt).toBeNull()
+    expect(toMeResponse(ctx, { ...row, phone_verified_at: '2026-10-01T00:00:00.000Z' }, []).profile?.phoneVerifiedAt).toBe('2026-10-01T00:00:00.000Z')
+  })
+```
+
+In `me-bubble.test.ts`, add `'phoneVerifiedAt'` to the key list on line 30 so the "keeps existing keys" assertion covers it.
+
+- [ ] **Step 2: Run and confirm failure**
+
+Run: `npx vitest run lib/mobile-api/endpoints/me.test.ts lib/mobile-api/endpoints/me-bubble.test.ts`
+Expected: FAIL (key missing from the response).
+
+- [ ] **Step 3: Implement** in `lib/mobile-api/endpoints/me.ts`:
+
+In the zod profile object add, after `profileCompletedAt`:
+
+```ts
+      // Server-owned: when the WhatsApp number was verified. The app's onboarding gate needs it once
+      // enforce_phone_verification is on; null means never verified.
+      phoneVerifiedAt: z.string().nullable(),
+```
+
+In `ProfileRow` add `phone_verified_at?: string | null` (optional, like `equipped_bubble_skin`, so other callers' fixtures keep compiling). In `toMeResponse`'s `profile` object add `phoneVerifiedAt: row.phone_verified_at ?? null,` after `profileCompletedAt`. In `meEndpoint`'s `.select(...)` string add `phone_verified_at` after `profile_completed_at`.
+
+- [ ] **Step 4: Run and confirm pass, then regenerate the contract**
+
+Run: `npx vitest run lib/mobile-api/endpoints/me.test.ts lib/mobile-api/endpoints/me-bubble.test.ts && npm run openapi && npx vitest run lib/mobile-api`
+Expected: PASS; `git diff openapi/mobile-v1.json` shows only the new `phoneVerifiedAt` property.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add lib/mobile-api/endpoints/me.ts lib/mobile-api/endpoints/me.test.ts lib/mobile-api/endpoints/me-bubble.test.ts openapi/mobile-v1.json
+git commit -m "feat(mobile-api): expose phoneVerifiedAt on GET /me for the onboarding gate
+
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
+```
+
+---
+
 ### Task 8: Copy for the new screens (en, fr, pcm)
 
 **Files:**
@@ -2695,5 +2752,6 @@ Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 - **§3.4 error codes:** `deletion_blocked`, `username_mismatch`, `confirm_required`, `phone_*`, email codes, `not_linked`, `last_identity`, `linking_unavailable`, `wrong_password`, `reauth_rate_limited`. `locale_invalid` is covered by the zod enum (validation 400) rather than a handler code, which is a deliberate simplification of the spec's list. `password_required` is covered by `changeEmailSchema`/zod `min(1)` (validation 400) on both password endpoints.
 - **§3.5 limits:** OTP daily cap and re-auth limiter are Tasks 1, 5, 7.
 - **§7 owner actions:** Task 9.
+- **Added after reading the mobile gate (not in the spec):** Task 7b (`phoneVerifiedAt` on `/me`). Without it `/onboarding/phone` would gate every user, verified or not, once the flag flips. Fold into the spec when it is next edited.
 - **Spec §5 stage 2 mentions "decided in the plan" for the cap's storage:** decided here as the new `account_rate_limit_events` table.
 - **Known deviations from the spec text to fix in the spec after execution:** (1) the OTP channel is the Meta WhatsApp Cloud API (`META_WHATSAPP_TOKEN`, `META_WHATSAPP_PHONE_NUMBER_ID`), not Termii; (2) `passwordIdentity` is documented as a hint.
