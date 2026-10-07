@@ -17,6 +17,12 @@ describe('errors', () => {
       error: { code: 'forbidden', message: 'You do not have access to this.' },
     })
   })
+  it('carries structured details into the body when given', () => {
+    const e = new ApiError(409, 'deletion_blocked', 'blocked', undefined, { blockers: [{ code: 'wallet_balance', amount: 5 }] })
+    expect(errorBody(e)).toEqual({
+      error: { code: 'deletion_blocked', message: 'blocked', details: { blockers: [{ code: 'wallet_balance', amount: 5 }] } },
+    })
+  })
   it('upgradeRequired is a 426 that names the minimum version', () => {
     const e = Errors.upgradeRequired('1.2.0')
     expect([e.status, e.code]).toEqual([426, 'app_update_required'])

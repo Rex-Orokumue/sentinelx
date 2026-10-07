@@ -71,6 +71,17 @@ import {
 } from './notifications'
 import { getMessageThreadsEndpoint, getMessageThreadEndpoint, getThreadMessagesEndpoint } from './messages-reads'
 import { startMessageThreadEndpoint, sendMessageEndpoint, editMessageEndpoint, unsendMessageEndpoint, forwardMessageEndpoint, markThreadReadEndpoint, markAllDeliveredEndpoint, blockPlayerEndpoint, unblockPlayerEndpoint, reportThreadEndpoint, acceptMessageRequestEndpoint, declineMessageRequestEndpoint } from './messages-writes'
+import {
+  getMyAccountEndpoint,
+  requestAccountDeletionEndpoint,
+  cancelAccountDeletionEndpoint,
+  deleteAccountNowEndpoint,
+  requestPhoneCodeEndpoint,
+  confirmPhoneCodeEndpoint,
+  changeMyEmailEndpoint,
+  unlinkGoogleEndpoint,
+  setMyLocaleEndpoint,
+} from './account'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -174,4 +185,13 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   postChatMessageEndpoint,
   getChatHistoryEndpoint,
   deleteChatHistoryEndpoint,
+  getMyAccountEndpoint,
+  requestAccountDeletionEndpoint,
+  cancelAccountDeletionEndpoint,
+  deleteAccountNowEndpoint,
+  requestPhoneCodeEndpoint,
+  confirmPhoneCodeEndpoint,
+  changeMyEmailEndpoint,
+  unlinkGoogleEndpoint,
+  setMyLocaleEndpoint,
 ]
