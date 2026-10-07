@@ -19,10 +19,15 @@ describe('toMeResponse', () => {
       profile: {
         username: 'ada', displayName: 'Ada', avatarUrl: null, whatsappNumber: '+2348012345678', country: 'Nigeria',
         locale: 'en', membershipTier: 'guardian', kycVerified: false, deletionRequestedAt: null,
-        profileCompletedAt: '2026-10-03T16:00:00.000Z', consentWhatsappUpdates: true, gameInterests: [GAME],
+        profileCompletedAt: '2026-10-03T16:00:00.000Z', phoneVerifiedAt: null, consentWhatsappUpdates: true, gameInterests: [GAME],
         equippedBubbleSkin: null, bubbleSkinUrl: null,
       },
     })
+  })
+
+  it('reports phoneVerifiedAt as stored, and null when the phone was never verified', () => {
+    expect(toMeResponse(ctx, row, []).profile?.phoneVerifiedAt).toBeNull()
+    expect(toMeResponse(ctx, { ...row, phone_verified_at: '2026-10-01T00:00:00.000Z' }, []).profile?.phoneVerifiedAt).toBe('2026-10-01T00:00:00.000Z')
   })
 
   it('an INCOMPLETE profile reports profileCompletedAt null so the app shows onboarding', () => {

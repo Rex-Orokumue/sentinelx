@@ -27,7 +27,7 @@ describe('toMeResponse bubble skin (additive)', () => {
   })
   it('every pre-existing profile key is still present', () => {
     const p = toMeResponse(ctx, row, []).profile as Record<string, unknown>
-    for (const k of ['username', 'displayName', 'avatarUrl', 'whatsappNumber', 'country', 'locale', 'membershipTier', 'kycVerified', 'deletionRequestedAt', 'profileCompletedAt', 'consentWhatsappUpdates', 'gameInterests']) {
+    for (const k of ['username', 'displayName', 'avatarUrl', 'whatsappNumber', 'country', 'locale', 'membershipTier', 'kycVerified', 'deletionRequestedAt', 'profileCompletedAt', 'phoneVerifiedAt', 'consentWhatsappUpdates', 'gameInterests']) {
       expect(k in p, k).toBe(true)
     }
   })

@@ -7139,6 +7139,16 @@
                                     }
                                   ]
                                 },
+                                "phoneVerifiedAt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                },
                                 "consentWhatsappUpdates": {
                                   "type": "boolean"
                                 },
@@ -7181,6 +7191,7 @@
                                 "kycVerified",
                                 "deletionRequestedAt",
                                 "profileCompletedAt",
+                                "phoneVerifiedAt",
                                 "consentWhatsappUpdates",
                                 "gameInterests",
                                 "equippedBubbleSkin",
