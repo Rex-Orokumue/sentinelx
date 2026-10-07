@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_rate_limit_events: {
+        Row: {
+          created_at: string
+          id: string
+          subject_key: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          subject_key: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          subject_key?: string
+        }
+        Relationships: []
+      }
       achievements: {
         Row: {
           category: string
