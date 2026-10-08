@@ -91,6 +91,11 @@ export function buildOpenApi(endpoints: Endpoint[]): Record<string, unknown> {
                 code: { type: 'string' },
                 message: { type: 'string' },
                 fields: { type: 'object', additionalProperties: { type: 'string' } },
+                details: {
+                  type: 'object',
+                  additionalProperties: true,
+                  description: 'Structured, code-specific data (for example deletion blockers).',
+                },
               },
             },
           },

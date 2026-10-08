@@ -13,7 +13,9 @@ import {
 } from './schema'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isIdentifierBanned } from './signup-blocks'
-import { verifyPassword, hasPasswordIdentity } from './reauth'
+import { verifyPassword } from './reauth'
+import { supabaseSessionPort } from './account-auth-port'
+import { performChangeEmail } from './email-change-service'
 import { DEVICE_TOKEN_COOKIE } from '@/lib/notifications/device-cookie'
 import { performSignup } from './signup-service'
 
@@ -168,57 +170,29 @@ export async function changeEmail(
     return { errorCode: field === 'password' ? 'password_required' : 'invalid_email' }
   }
 
-  const email = parsed.data.email.toLowerCase()
   const supabase = createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user?.email) return { errorCode: 'not_logged_in' }
 
-  if (email === user.email.toLowerCase()) return { errorCode: 'same_email' }
-
-  // Try the password BEFORE concluding there isn't one. Setting a password
-  // through the reset flow does not create an 'email' row in auth.identities,
-  // so a Google user who has already done that still looks identity-less —
-  // 4 live accounts are in exactly that state. Checking identities first would
-  // send them off to set a password they have, with no way forward.
-  //
-  // Only once the password fails does the identity tell us which failure it
-  // was: a wrong password, or no password to get right in the first place.
-  // The way out for the latter is the existing password-reset flow, whose link
-  // lands in the CURRENT inbox — so setting a password proves ownership of the
-  // old address, the guarantee we gave up by not mailing it.
-  if (!(await verifyPassword(user.email, parsed.data.password))) {
-    return { errorCode: hasPasswordIdentity(user) ? 'wrong_password' : 'google_only' }
-  }
-
-  // Ban evasion, same blocklist signup enforces: without this, an account could
-  // simply walk onto an address that was banned for cheating.
-  if (await isIdentifierBanned(createAdminClient(), email)) {
-    return { errorCode: 'email_banned' }
-  }
-
-  const { error } = await supabase.auth.updateUser({ email })
-  if (error) {
-    const code = (error as { code?: string }).code
-    // They asked seconds ago and a link is already in flight — reporting a
-    // failure for something that just succeeded only causes a support message.
-    if (code === 'over_email_send_rate_limit') return { sentTo: email }
-    if (code === 'email_exists' || /already been registered/i.test(error.message)) {
-      return { errorCode: 'email_in_use' }
-    }
-    console.error('[changeEmail] updateUser failed', {
-      code,
-      status: (error as { status?: number }).status,
-      message: error.message,
-    })
-    return { errorCode: 'failed' }
-  }
+  // The ordered checks (same address, password before identity, ban blocklist, provider) live in
+  // performChangeEmail, shared with POST /me/email; see its comments for why the order matters.
+  const result = await performChangeEmail({
+    port: supabaseSessionPort(supabase),
+    user,
+    input: parsed.data,
+    deps: {
+      verifyPassword,
+      isBanned: (value) => isIdentifierBanned(createAdminClient(), value),
+    },
+  })
+  if (!result.ok) return { errorCode: result.errorCode }
 
   // Repaints the settings page so the pending-address row appears without a
   // manual reload.
   revalidatePath('/dashboard/settings')
-  return { sentTo: email }
+  return { sentTo: result.sentTo }
 }
 
 export async function resetPassword(_prev: ActionState, formData: FormData): Promise<ActionState> {

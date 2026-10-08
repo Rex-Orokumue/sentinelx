@@ -27,6 +27,9 @@ export const meResponse = z.object({
       deletionRequestedAt: z.string().nullable(),
       // Server-owned onboarding gate input: null until the player completes the compulsory profile step.
       profileCompletedAt: z.string().nullable(),
+      // Server-owned: when the WhatsApp number was verified. The app's onboarding gate needs it once
+      // enforce_phone_verification is on; null means never verified.
+      phoneVerifiedAt: z.string().nullable(),
       consentWhatsappUpdates: z.boolean(),
       gameInterests: z.array(postgresUuidSchema),
       // Mascot bubble skin: the equipped slug and its image as a relative path (same convention as frameUrl).
@@ -47,6 +50,7 @@ interface ProfileRow {
   kyc_verified: boolean
   deletion_requested_at: string | null
   profile_completed_at: string | null
+  phone_verified_at?: string | null
   consent_whatsapp_updates: boolean
   equipped_bubble_skin?: string | null
 }
@@ -73,6 +77,7 @@ export function toMeResponse(
       kycVerified: row.kyc_verified,
       deletionRequestedAt: row.deletion_requested_at,
       profileCompletedAt: row.profile_completed_at,
+      phoneVerifiedAt: row.phone_verified_at ?? null,
       consentWhatsappUpdates: row.consent_whatsapp_updates,
       gameInterests: gameInterestIds,
       equippedBubbleSkin: row.equipped_bubble_skin ?? null,
@@ -95,7 +100,7 @@ export const meEndpoint = defineEndpoint({
       ctx.admin
         .from('profiles')
         .select(
-          'username, display_name, avatar_url, whatsapp_number, country, locale, membership_tier, kyc_verified, deletion_requested_at, profile_completed_at, consent_whatsapp_updates, equipped_bubble_skin',
+          'username, display_name, avatar_url, whatsapp_number, country, locale, membership_tier, kyc_verified, deletion_requested_at, profile_completed_at, phone_verified_at, consent_whatsapp_updates, equipped_bubble_skin',
         )
         .eq('id', ctx.userId)
         .maybeSingle(),

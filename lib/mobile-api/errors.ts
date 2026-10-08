@@ -4,6 +4,7 @@ export class ApiError extends Error {
     public readonly code: string,
     message: string,
     public readonly fields?: Record<string, string>,
+    public readonly details?: Record<string, unknown>,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -31,7 +32,14 @@ export const Errors = {
 }
 
 export function errorBody(e: ApiError): {
-  error: { code: string; message: string; fields?: Record<string, string> }
+  error: { code: string; message: string; fields?: Record<string, string>; details?: Record<string, unknown> }
 } {
-  return { error: { code: e.code, message: e.message, ...(e.fields ? { fields: e.fields } : {}) } }
+  return {
+    error: {
+      code: e.code,
+      message: e.message,
+      ...(e.fields ? { fields: e.fields } : {}),
+      ...(e.details ? { details: e.details } : {}),
+    },
+  }
 }

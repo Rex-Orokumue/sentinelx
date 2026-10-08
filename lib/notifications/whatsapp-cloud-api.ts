@@ -5,6 +5,12 @@ export interface SendResult {
   skipped?: boolean
 }
 
+// True when sendWhatsAppOtp will actually send. Callers that must not report a code as sent when
+// nothing will arrive (the mobile API) check this before writing anything.
+export function isWhatsAppOtpConfigured(): boolean {
+  return Boolean(process.env.META_WHATSAPP_TOKEN && process.env.META_WHATSAPP_PHONE_NUMBER_ID)
+}
+
 // Sends a WhatsApp OTP via Meta's own Cloud API — free per-message within
 // Meta's monthly allowance, unlike Termii (lib/notifications/termii.ts),
 // which charges per message. No-ops when the Meta app isn't configured yet,
