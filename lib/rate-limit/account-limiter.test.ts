@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { hitLimit } from './account-limiter'
+import { hitLimit, refundLimitHit } from './account-limiter'
 
 interface Row { id: string; subject_key: string; created_at: string }
 
@@ -48,6 +48,18 @@ const T0 = new Date('2026-10-07T10:00:00.000Z')
 const at = (sec: number) => new Date(T0.getTime() + sec * 1000)
 
 describe('hitLimit', () => {
+  it('refunds only the hit made by the failed request', async () => {
+    const rows: Row[] = []
+    const admin = fakeAdmin(rows)
+    const first = await hitLimit(admin, { key: 'k', limit: 3, windowMs: 60_000, now: at(0) })
+    const failed = await hitLimit(admin, { key: 'k', limit: 3, windowMs: 60_000, now: at(1) })
+    expect(first.hitId).toBe('r1')
+    expect(failed.hitId).toBe('r2')
+
+    await refundLimitHit(admin, failed.hitId)
+    expect(rows.map(({ id }) => id)).toEqual(['r1'])
+  })
+
   it('allows hits up to the limit', async () => {
     const rows: Row[] = []
     const admin = fakeAdmin(rows)
