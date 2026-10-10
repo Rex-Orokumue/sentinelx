@@ -50,16 +50,18 @@ export async function performCancelDeletion(
   admin: Admin,
   user: { id: string; email: string | null },
 ): Promise<{ ok: true } | { ok: false }> {
-  const { error } = await admin
+  const { data, error } = await admin
     .from('profiles')
     .update({ deletion_requested_at: null })
     .eq('id', user.id)
     .is('deleted_at', null)
+    .not('deletion_requested_at', 'is', null)
+    .select('id')
   if (error) {
     console.error('cancelAccountDeletion failed', error)
     return { ok: false }
   }
-  if (user.email) {
+  if (user.email && data?.length) {
     await sendEmail({
       to: user.email,
       subject: 'Your SentinelX account deletion was cancelled',
