@@ -14,7 +14,7 @@ import { performRequestPhoneCode, performConfirmPhoneCode } from '@/lib/phone/se
 import { performChangeEmail } from '@/lib/auth/email-change-service'
 import { performUnlinkGoogle } from '@/lib/auth/unlink-google-service'
 import { performSetLocale } from '@/lib/profile/locale-service'
-import { hitLimit } from '@/lib/rate-limit/account-limiter'
+import { hitLimit, reauthKey, REAUTH_LIMIT } from '@/lib/rate-limit/account-limiter'
 import { maskPhone, toAccountResponse, runWithCtx, handlers } from './account'
 
 const ctx = (over: Record<string, unknown> = {}) =>
@@ -123,6 +123,14 @@ describe('deletion endpoints', () => {
     vi.mocked(performDeleteNow).mockResolvedValue({ ok: false, reason: 'username_mismatch' })
     const res = await handlers.deleteNow(ctx(), { username: 'x' })
     expect(res).toMatchObject({ status: 400, code: 'username_mismatch' })
+    expect(hitLimit).toHaveBeenCalledWith(expect.anything(), { key: reauthKey('u1'), ...REAUTH_LIMIT })
+  })
+
+  it('execute returns the re-auth limit before checking the username or deleting', async () => {
+    vi.mocked(hitLimit).mockResolvedValue({ allowed: false, retryAfterSeconds: 120 })
+    const res = await handlers.deleteNow(ctx(), { username: 'x' })
+    expect(res).toMatchObject({ status: 429, code: 'reauth_rate_limited', fields: { retryAfterSeconds: '120' } })
+    expect(performDeleteNow).not.toHaveBeenCalled()
   })
 })
 
