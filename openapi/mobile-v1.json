@@ -8489,6 +8489,234 @@
         }
       }
     },
+    "/api/mobile/v1/me/referrals": {
+      "get": {
+        "operationId": "getMyReferrals",
+        "summary": "The signed-in player's referral link, conversions, coin awards, milestone progress and invited players.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "username": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "shareUrl": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "totalReferrals": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "convertedCount": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "totalCoinsEarned": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "nextMilestone": {
+                          "anyOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "count": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                },
+                                "bonusCoins": {
+                                  "anyOf": [
+                                    {
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "count",
+                                "bonusCoins"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "invited": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "avatarUrl": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "tier": {
+                                "type": "string"
+                              },
+                              "frameUrl": {
+                                "anyOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "pending",
+                                  "converted",
+                                  "invalid"
+                                ]
+                              },
+                              "date": {
+                                "type": "string"
+                              },
+                              "coinsAwarded": {
+                                "anyOf": [
+                                  {
+                                    "type": "integer",
+                                    "minimum": -9007199254740991,
+                                    "maximum": 9007199254740991
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "avatarUrl",
+                              "tier",
+                              "frameUrl",
+                              "status",
+                              "date",
+                              "coinsAwarded"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "milestoneHistory": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "coins": {
+                                "type": "integer",
+                                "minimum": -9007199254740991,
+                                "maximum": 9007199254740991
+                              },
+                              "date": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "description",
+                              "coins",
+                              "date"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "username",
+                        "shareUrl",
+                        "totalReferrals",
+                        "convertedCount",
+                        "totalCoinsEarned",
+                        "nextMilestone",
+                        "invited",
+                        "milestoneHistory"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/me/summary": {
       "get": {
         "operationId": "getMeSummary",
