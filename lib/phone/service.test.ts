@@ -2,11 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/notifications/whatsapp-cloud-api', () => ({ sendWhatsAppOtp: vi.fn(), isWhatsAppOtpConfigured: vi.fn() }))
 vi.mock('@/lib/achievements/unlock', () => ({ checkAndUnlockAchievements: vi.fn(async () => {}) }))
-vi.mock('@/lib/rate-limit/account-limiter', async (orig) => ({ ...(await orig<object>()), hitLimit: vi.fn() }))
+vi.mock('@/lib/rate-limit/account-limiter', async (orig) => ({ ...(await orig<object>()), hitLimit: vi.fn(), refundLimitHit: vi.fn() }))
 
 import { sendWhatsAppOtp, isWhatsAppOtpConfigured } from '@/lib/notifications/whatsapp-cloud-api'
 import { checkAndUnlockAchievements } from '@/lib/achievements/unlock'
-import { hitLimit } from '@/lib/rate-limit/account-limiter'
+import { hitLimit, refundLimitHit } from '@/lib/rate-limit/account-limiter'
 import { hashCode } from './hash'
 import { performRequestPhoneCode, performConfirmPhoneCode } from './service'
 
@@ -44,7 +44,8 @@ beforeEach(() => {
   vi.mocked(sendWhatsAppOtp).mockReset()
   vi.mocked(sendWhatsAppOtp).mockResolvedValue({ ok: true })
   vi.mocked(hitLimit).mockReset()
-  vi.mocked(hitLimit).mockResolvedValue({ allowed: true, retryAfterSeconds: 0 })
+  vi.mocked(hitLimit).mockResolvedValue({ allowed: true, retryAfterSeconds: 0, hitId: 'otp-hit-1' })
+  vi.mocked(refundLimitHit).mockClear()
   vi.mocked(checkAndUnlockAchievements).mockClear()
 })
 
@@ -84,6 +85,7 @@ describe('performRequestPhoneCode', () => {
     expect(sent.to).toBe(row.phone)
     expect(row.code_hash).toBe(hashCode(sent.code))
     expect(sent.code).toMatch(/^[0-9]{6}$/)
+    expect(refundLimitHit).not.toHaveBeenCalled()
   })
 
   it('web mode treats an unconfigured sender as success (current behaviour, pinned)', async () => {
@@ -92,6 +94,7 @@ describe('performRequestPhoneCode', () => {
     const s = fresh()
     const r = await performRequestPhoneCode({ admin: fakeAdmin(s), userId: 'u1', rawPhone: '08012345678', strictDelivery: false, now: NOW })
     expect(r.ok).toBe(true)
+    expect(refundLimitHit).not.toHaveBeenCalled()
   })
 
   it('strict mode refuses an unconfigured sender and writes nothing', async () => {
@@ -108,6 +111,7 @@ describe('performRequestPhoneCode', () => {
     vi.mocked(sendWhatsAppOtp).mockResolvedValue({ ok: false, error: 'bad' })
     const r = await performRequestPhoneCode({ admin: fakeAdmin(fresh()), userId: 'u1', rawPhone: '08012345678', strictDelivery: false, now: NOW })
     expect(r).toEqual({ ok: false, reason: 'send_failed' })
+    expect(refundLimitHit).toHaveBeenCalledWith(expect.anything(), 'otp-hit-1')
   })
 })
 

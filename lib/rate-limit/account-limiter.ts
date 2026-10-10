@@ -12,6 +12,12 @@ export const reauthKey = (userId: string) => `reauth:${userId}`
 export interface LimitResult {
   allowed: boolean
   retryAfterSeconds: number
+  hitId?: string
+}
+
+export async function refundLimitHit(admin: Admin, hitId?: string): Promise<void> {
+  if (!hitId) return
+  await admin.from('account_rate_limit_events').delete().eq('id', hitId)
 }
 
 // Insert first, then count the window, so two concurrent requests cannot both read
@@ -46,10 +52,10 @@ export async function hitLimit(
     .order('created_at', { ascending: true })
   if (readError || !rows) {
     console.error('[account-limiter] read failed', { message: readError?.message })
-    return { allowed: true, retryAfterSeconds: 0 }
+    return { allowed: true, retryAfterSeconds: 0, hitId: inserted.id }
   }
 
-  if (rows.length <= args.limit) return { allowed: true, retryAfterSeconds: 0 }
+  if (rows.length <= args.limit) return { allowed: true, retryAfterSeconds: 0, hitId: inserted.id }
 
   await admin.from('account_rate_limit_events').delete().eq('id', inserted.id)
   const oldest = new Date(rows[0].created_at).getTime()

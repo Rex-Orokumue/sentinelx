@@ -6,7 +6,7 @@ import { phoneCodeSchema } from './schema'
 import { hashCode, codeMatches } from './hash'
 import { sendWhatsAppOtp, isWhatsAppOtpConfigured } from '@/lib/notifications/whatsapp-cloud-api'
 import { checkAndUnlockAchievements } from '@/lib/achievements/unlock'
-import { hitLimit, otpKey, OTP_DAILY_LIMIT } from '@/lib/rate-limit/account-limiter'
+import { hitLimit, otpKey, OTP_DAILY_LIMIT, refundLimitHit } from '@/lib/rate-limit/account-limiter'
 
 type Admin = SupabaseClient<Database>
 
@@ -72,7 +72,10 @@ export async function performRequestPhoneCode(args: {
   if (error) return { ok: false, reason: 'save_failed' }
 
   const sent = await sendWhatsAppOtp({ to: phone, code })
-  if (!sent.ok && !sent.skipped) return { ok: false, reason: 'send_failed' }
+  if (!sent.ok && !sent.skipped) {
+    await refundLimitHit(admin, limit.hitId)
+    return { ok: false, reason: 'send_failed' }
+  }
 
   return { ok: true, expiresAt: expiresAt.toISOString(), resendAt: new Date(now.getTime() + RESEND_COOLDOWN_MS).toISOString() }
 }
