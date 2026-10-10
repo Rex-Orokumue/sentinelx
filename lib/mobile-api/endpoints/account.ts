@@ -137,6 +137,8 @@ export const handlers = {
   },
 
   async deleteNow(ctx: MobileCtx, body: { username: string }) {
+    const gated = await reauthGate(ctx.admin, ctx.userId)
+    if (gated) return gated
     const result = await performDeleteNow(ctx.admin, ctx.userId, body.username)
     if (result.ok) return okTrue
     return result.reason === 'blocked'
