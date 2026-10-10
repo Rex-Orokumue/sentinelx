@@ -9,15 +9,17 @@ import { performRequestDeletion, performCancelDeletion, performDeleteNow } from 
 
 const clean = { walletBalance: 0, pendingWithdrawals: 0, openEscrowOrders: 0, activeListings: 0, activeTournaments: 0, unfinishedMatches: 0, unfinishedFriendlies: 0 }
 
-function adminWith(opts: { updateError?: boolean; username?: string | null; onUpdate?: (patch: unknown) => void; onIs?: (col: string, v: unknown) => void } = {}) {
+function adminWith(opts: { updateError?: boolean; updatedRows?: { id: string }[]; username?: string | null; onUpdate?: (patch: unknown) => void; onIs?: (col: string, v: unknown) => void; onNot?: (col: string, op: string, v: unknown) => void } = {}) {
   return {
     from: () => ({
       update: (patch: unknown) => {
         opts.onUpdate?.(patch)
-        const result = { error: opts.updateError ? { message: 'x' } : null }
+        const result = { data: opts.updatedRows ?? [{ id: 'u1' }], error: opts.updateError ? { message: 'x' } : null }
         const chain = {
           eq: () => chain,
-          is: (col: string, v: unknown) => { opts.onIs?.(col, v); return Promise.resolve(result) },
+          is: (col: string, v: unknown) => { opts.onIs?.(col, v); return chain },
+          not: (col: string, op: string, v: unknown) => { opts.onNot?.(col, op, v); return chain },
+          select: () => Promise.resolve(result),
           then: (res: (v: unknown) => void) => res(result),
         }
         return chain
@@ -71,11 +73,19 @@ describe('performCancelDeletion', () => {
   it('clears the request only on a not-yet-deleted profile', async () => {
     const onUpdate = vi.fn()
     const onIs = vi.fn()
-    const r = await performCancelDeletion(adminWith({ onUpdate, onIs }), { id: 'u1', email: 'a@example.com' })
+    const onNot = vi.fn()
+    const r = await performCancelDeletion(adminWith({ onUpdate, onIs, onNot }), { id: 'u1', email: 'a@example.com' })
     expect(r).toEqual({ ok: true })
     expect(onUpdate).toHaveBeenCalledWith({ deletion_requested_at: null })
     expect(onIs).toHaveBeenCalledWith('deleted_at', null)
+    expect(onNot).toHaveBeenCalledWith('deletion_requested_at', 'is', null)
     expect(sendEmail).toHaveBeenCalledOnce()
+  })
+
+  it('returns success without emailing when no deletion was pending', async () => {
+    const r = await performCancelDeletion(adminWith({ updatedRows: [] }), { id: 'u1', email: 'a@example.com' })
+    expect(r).toEqual({ ok: true })
+    expect(sendEmail).not.toHaveBeenCalled()
   })
 
   it('reports failure without emailing', async () => {
