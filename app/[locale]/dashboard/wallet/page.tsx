@@ -11,10 +11,8 @@ import { WalletSecurityBadges } from '@/components/wallet/WalletSecurityBadges'
 import { RewardsProgressWidget } from '@/components/wallet/RewardsProgressWidget'
 import { ReferralEarningsCard } from '@/components/wallet/ReferralEarningsCard'
 import { WithdrawalStatusPanel } from '@/components/wallet/WithdrawalStatusPanel'
-import { mapTransactionRows, type RawWalletTxnRow } from '@/lib/wallet/transactions'
+import { loadWalletOverview } from '@/lib/wallet/overview'
 import { SITE_URL } from '@/lib/seo/site'
-import { monthOverMonthChange } from '@/lib/wallet/earnings-trend'
-import { summarizeEarningsByCategory } from '@/lib/wallet/breakdown'
 import { getCoinBalance } from '@/lib/coins/service'
 import { CoinDisclaimerTooltip } from '@/components/coins/CoinDisclaimerTooltip'
 
@@ -31,14 +29,10 @@ export default async function WalletOverviewPage() {
   if (!user) redirect('/login?next=/dashboard/wallet')
 
   const admin = createAdminClient()
-  const [walletRes, allTxnRes, pendingWithdrawalsRes, profileRes, coinBalance, kycRes, referralsRes, referralCoinTxRes] = await Promise.all([
-    admin.from('wallets').select('balance').eq('player_id', user.id).maybeSingle(),
-    admin
-      .from('wallet_transactions')
-      .select('id, type, category, amount, reference_id, note, created_at')
-      .eq('player_id', user.id)
-      .order('created_at', { ascending: false }),
-    admin.from('withdrawal_requests').select('id, amount, status').eq('player_id', user.id).eq('status', 'pending'),
+  // Balance, pending withdrawals, earnings, trend and recent rows come from the shared reader that
+  // GET /api/mobile/v1/wallet also uses. A failed read is an error, not a misleading zero balance.
+  const [overviewRes, profileRes, coinBalance, kycRes, referralsRes, referralCoinTxRes] = await Promise.all([
+    loadWalletOverview(admin, user.id),
     admin.from('profiles').select('xp, kyc_verified, username').eq('id', user.id).maybeSingle(),
     getCoinBalance(admin, user.id),
     admin
@@ -49,25 +43,14 @@ export default async function WalletOverviewPage() {
     admin.from('referrals').select('id', { count: 'exact', head: true }).eq('referrer_id', user.id).eq('status', 'converted'),
     admin.from('sx_coin_transactions').select('amount').eq('player_id', user.id).in('source', ['referral_reward', 'referral_milestone']),
   ])
+  if (!overviewRes.ok) throw new Error('Could not load the wallet')
+  const overview = overviewRes.value
 
-  const allTxnRows = (allTxnRes.data ?? []) as RawWalletTxnRow[]
-  const pendingWithdrawalTotal = (pendingWithdrawalsRes.data ?? []).reduce((sum, r) => sum + r.amount, 0)
-
-  // Every withdrawal-status lookup this page needs is for the player's own
-  // rows — fetch withdrawal_requests statuses by id for the recent-5 slice only.
-  const recentRaw = allTxnRows.slice(0, 5)
-  const withdrawalRequestIds = recentRaw.flatMap((r) => (r.type === 'withdrawal_request' && r.reference_id ? [r.reference_id] : []))
-  const { data: wrRows } =
-    withdrawalRequestIds.length > 0
-      ? await admin.from('withdrawal_requests').select('id, status').in('id', withdrawalRequestIds)
-      : { data: [] as { id: string; status: string }[] }
-  const withdrawalStatusById = new Map((wrRows ?? []).map((r) => [r.id, r.status]))
-  const recentTransactions = mapTransactionRows(recentRaw, withdrawalStatusById)
-
-  const breakdown = summarizeEarningsByCategory(allTxnRows)
   const referralCoinsEarned = ((referralCoinTxRes.data ?? []) as { amount: number }[]).reduce((sum, t) => sum + t.amount, 0)
-  const tournamentPrizeTrendPct = monthOverMonthChange(allTxnRows, 'tournament_prize', new Date())
-  const balance = walletRes.data?.balance ?? 0
+  const balance = overview.balance
+  const pendingWithdrawalTotal = overview.pendingWithdrawal
+  const recentTransactions = overview.recentTransactions
+  const tournamentPrizeTrendPct = overview.earnings.tournamentPrizeTrendPct
   const mascotUrl = findOptionalPublicImage('mascot', 'mascot-wallet')
 
   const { data: coinTxRows } = await admin
@@ -83,10 +66,10 @@ export default async function WalletOverviewPage() {
       <BalanceHeroCard balance={balance} pendingWithdrawal={pendingWithdrawalTotal} mascotUrl={mascotUrl} />
       <QuickActionsRow />
       <EarningsOverview
-        tournamentPrize={breakdown.tournament_prize ?? 0}
+        tournamentPrize={overview.earnings.tournamentPrize}
         tournamentPrizeTrendPct={tournamentPrizeTrendPct}
-        referral={breakdown.referral ?? 0}
-        bonus={breakdown.bonus ?? 0}
+        referral={overview.earnings.referral}
+        bonus={overview.earnings.bonus}
       />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
