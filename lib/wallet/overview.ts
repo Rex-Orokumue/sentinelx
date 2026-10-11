@@ -11,6 +11,8 @@ export type { PayoutAccountMasked }
 
 export interface WalletOverview {
   balance: number
+  /** SX Coins (separate from the naira balance); shown beside it, never converted to naira. */
+  coinBalance: number
   pendingWithdrawal: number
   earnings: { tournamentPrize: number; referral: number; bonus: number; tournamentPrizeTrendPct: number | null }
   recentTransactions: WalletTxnRow[]
@@ -27,8 +29,9 @@ const RECENT_COUNT = 5
 // scoped to `playerId`; a failed read is reported, never shown as an empty wallet. Only the masked
 // account number leaves this function.
 export async function loadWalletOverview(admin: Admin, playerId: string, now: Date = new Date()): Promise<WalletOverviewResult> {
-  const [walletRes, ledgerRes, withdrawalsRes, profileRes, kycRes] = await Promise.all([
+  const [walletRes, coinsRes, ledgerRes, withdrawalsRes, profileRes, kycRes] = await Promise.all([
     admin.from('wallets').select('balance').eq('player_id', playerId).maybeSingle(),
+    admin.from('sx_coins').select('balance').eq('player_id', playerId).maybeSingle(),
     admin
       .from('wallet_transactions')
       .select('id, type, category, amount, reference_id, note, created_at')
@@ -47,9 +50,10 @@ export async function loadWalletOverview(admin: Admin, playerId: string, now: Da
       .maybeSingle(),
   ])
 
-  if (walletRes.error || ledgerRes.error || withdrawalsRes.error || profileRes.error || kycRes.error) {
+  if (walletRes.error || coinsRes.error || ledgerRes.error || withdrawalsRes.error || profileRes.error || kycRes.error) {
     console.error('[wallet] overview read failed', {
       wallet: walletRes.error?.message,
+      coins: coinsRes.error?.message,
       ledger: ledgerRes.error?.message,
       withdrawals: withdrawalsRes.error?.message,
       profile: profileRes.error?.message,
@@ -69,6 +73,7 @@ export async function loadWalletOverview(admin: Admin, playerId: string, now: Da
     ok: true,
     value: {
       balance: walletRes.data?.balance ?? 0,
+      coinBalance: coinsRes.data?.balance ?? 0,
       pendingWithdrawal: pending.reduce((sum, w) => sum + w.amount, 0),
       earnings: {
         tournamentPrize: breakdown.tournament_prize ?? 0,

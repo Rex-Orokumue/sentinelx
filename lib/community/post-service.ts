@@ -4,7 +4,7 @@ import type { createAdminClient } from '@/lib/supabase/admin'
 import { isBoostLive, BOOST_DURATION_MS } from './boost'
 import { postContentSchema, clampImageUrls } from './schema'
 import { incrementChallenge } from './challenges'
-import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
+import { spendCoins, recordCoinTransaction } from '@/lib/coins/service'
 
 type Client = SupabaseClient<Database>
 type Admin = ReturnType<typeof createAdminClient>
@@ -92,10 +92,10 @@ export async function performBoostPost(admin: Admin, userId: string, postId: str
     .gt('boosted_until', now.toISOString())
   if (activeBoostCount && activeBoostCount > 0) return { ok: false, errorCode: 'active_boost_exists' }
 
-  const balance = await getCoinBalance(admin, userId)
-  if (balance < BOOST_COST_COINS) return { ok: false, errorCode: 'insufficient_coins' }
-
-  await recordCoinTransaction(admin, userId, -BOOST_COST_COINS, 'post_boost', postId, 'Boosted a community post')
+  // One atomic, strict spend: refused (nothing written) when the balance is short, and a database failure is
+  // reported as a failure rather than as "not enough coins".
+  const spend = await spendCoins(admin, userId, BOOST_COST_COINS, 'post_boost', postId, 'Boosted a community post')
+  if (!spend.ok) return { ok: false, errorCode: spend.reason === 'insufficient' ? 'insufficient_coins' : 'boost_failed' }
   const boostedUntil = new Date(now.getTime() + BOOST_DURATION_MS).toISOString()
   const { error } = await admin.from('community_posts').update({ boosted_until: boostedUntil }).eq('id', postId)
   if (error) {

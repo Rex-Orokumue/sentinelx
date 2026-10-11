@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { initializeTransaction, buildFriendlyStakeReference } from '@/lib/paystack/server'
-import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
+import { payCoinStake } from './coin-stake'
 import { SITE_URL } from '@/lib/seo/site'
 import { assertNotPendingDeletion } from '@/lib/settings/restriction'
 
@@ -42,9 +42,10 @@ export async function payStake(_prev: PayStakeState, formData: FormData): Promis
   // the Paystack path below.
   if (fm.stake_currency === 'coins') {
     const admin = createAdminClient()
-    const balance = await getCoinBalance(admin, user.id)
-    if (balance < fm.stake_amount) return { error: 'Not enough SX Coins for this stake.' }
-    await recordCoinTransaction(admin, user.id, -fm.stake_amount, 'friendly_stake', id, `Friendly stake — match ${id}`)
+    const paid = await payCoinStake(admin, { playerId: user.id, matchId: id, stake: fm.stake_amount })
+    if (!paid.ok) {
+      return { error: paid.reason === 'insufficient' ? 'Not enough SX Coins for this stake.' : 'Could not take the stake. Please try again.' }
+    }
 
     const otherPaid = isChallenger ? fm.opponent_paid : fm.challenger_paid
     const nextStatus = otherPaid ? 'active' : 'awaiting_payment'

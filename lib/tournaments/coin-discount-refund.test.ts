@@ -3,9 +3,13 @@ import { refundAbandonedCoinDiscounts } from './coin-discount-refund'
 
 function fakeAdmin(rows: { id: string; player_id: string; coins_used: number }[]) {
   const updates: Record<string, unknown>[] = []
-  const coinInserts: Record<string, unknown>[] = []
+  const coinCalls: Record<string, unknown>[] = []
   return {
     client: {
+      rpc: async (name: string, args: Record<string, unknown>) => {
+        coinCalls.push({ name, ...args })
+        return { data: 500, error: null }
+      },
       from(table: string) {
         if (table === 'tournament_registrations') {
           return {
@@ -24,34 +28,20 @@ function fakeAdmin(rows: { id: string; player_id: string; coins_used: number }[]
             }),
           }
         }
-        if (table === 'sx_coins') {
-          return {
-            select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { balance: 0, total_earned: 0, total_spent: 500 } }) }) }),
-            upsert: async () => ({ data: null, error: null }),
-          }
-        }
-        if (table === 'sx_coin_transactions') {
-          return {
-            insert: async (v: Record<string, unknown>) => {
-              coinInserts.push(v)
-              return { data: null, error: null }
-            },
-          }
-        }
         throw new Error(`unexpected table ${table}`)
       },
     },
     updates,
-    coinInserts,
+    coinCalls,
   }
 }
 
 describe('refundAbandonedCoinDiscounts', () => {
   it('refunds coins and zeroes the discount fields for stale pending registrations', async () => {
-    const { client, updates, coinInserts } = fakeAdmin([{ id: 'reg1', player_id: 'p1', coins_used: 500 }])
+    const { client, updates, coinCalls } = fakeAdmin([{ id: 'reg1', player_id: 'p1', coins_used: 500 }])
     const result = await refundAbandonedCoinDiscounts(client as never, new Date('2026-08-16T12:00:00Z'))
     expect(result.refunded).toBe(1)
-    expect(coinInserts[0]).toMatchObject({ player_id: 'p1', amount: 500, source: 'entry_discount_refund', reference_id: 'reg1' })
+    expect(coinCalls[0]).toMatchObject({ name: 'coin_apply', p_player: 'p1', p_delta: 500, p_source: 'entry_discount_refund', p_reference: 'reg1', p_clamp: true })
     expect(updates[0]).toMatchObject({ id: 'reg1', coins_used: 0, coin_discount_naira: 0 })
   })
 

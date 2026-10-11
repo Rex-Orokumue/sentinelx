@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
 import type { createAdminClient } from '@/lib/supabase/admin'
 import { checkCanRegister } from './guard'
-import { getCoinBalance, recordCoinTransaction } from '@/lib/coins/service'
+import { spendCoins } from '@/lib/coins/service'
 import { NAIRA_PER_COIN } from '@/lib/coins/value'
 import { settleReferralForPaidEntry } from '@/lib/referrals/credit'
 import { finalizeSquadJoin } from './squad-membership'
@@ -147,10 +147,11 @@ export async function performRegisterForTournament(
 
   let coinDiscountNaira = 0
   if (input.coinsUsed > 0 && tournament.registration_fee >= 500) {
-    const balance = await getCoinBalance(admin, userId)
-    if (balance < input.coinsUsed) return { ok: false, errorCode: 'insufficient_coins' }
+    // One atomic, strict spend: refused (nothing written) when the balance is short; a database failure is
+    // reported as a failed registration, never as "not enough coins".
+    const spend = await spendCoins(admin, userId, input.coinsUsed, 'entry_discount', tournamentId, `Tournament entry discount — ${tournament.slug}`)
+    if (!spend.ok) return { ok: false, errorCode: spend.reason === 'insufficient' ? 'insufficient_coins' : 'registration_failed' }
     coinDiscountNaira = Math.round(input.coinsUsed * NAIRA_PER_COIN)
-    await recordCoinTransaction(admin, userId, -input.coinsUsed, 'entry_discount', tournamentId, `Tournament entry discount — ${tournament.slug}`)
   }
   const netFee = tournament.registration_fee - coinDiscountNaira
 
