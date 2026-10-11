@@ -6,11 +6,12 @@ import { createAdminClient } from '@/lib/supabase/admin'
 const onStaging = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').includes('ofxmoxpvwbemfouaowoa')
 
 describe.skipIf(!onStaging)('wallet_apply atomicity (staging only)', () => {
-  const admin = createAdminClient()
+  let admin: ReturnType<typeof createAdminClient>
   let playerId = ''
   const stamp = Date.now()
 
   beforeAll(async () => {
+    admin = createAdminClient()
     const { data, error } = await admin.auth.admin.createUser({
       email: `zzqa+wallet${stamp}@example.com`,
       email_confirm: true,
@@ -25,7 +26,7 @@ describe.skipIf(!onStaging)('wallet_apply atomicity (staging only)', () => {
   })
 
   afterAll(async () => {
-    if (playerId) await admin.auth.admin.deleteUser(playerId)
+    if (admin && playerId) await admin.auth.admin.deleteUser(playerId)
   })
 
   it('20 parallel credits and debits never lose an update', async () => {

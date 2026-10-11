@@ -28,8 +28,13 @@ export async function getWalletBalance(
   return data?.balance ?? 0
 }
 
-// Upserts the wallet row (created lazily on first credit) and appends the
-// ledger row. Credits only ever increase the balance — no floor to check.
+export const categoryFor = (type: WalletTxnType): string => DEFAULT_CATEGORY_BY_TYPE[type]
+
+// Every balance change goes through the wallet_apply Postgres function, which updates the
+// balance with `balance = balance + delta` and appends the ledger row in ONE transaction, so
+// concurrent writers can never overwrite each other. It never throws: callers such as the
+// prize-distribution loop must not be aborted half-way by one failed credit; they (and
+// confirmWalletDeposit) read the result instead.
 export async function creditWallet(
   admin: SupabaseClient<Database>,
   playerId: string,
@@ -37,39 +42,30 @@ export async function creditWallet(
   type: WalletTxnType,
   referenceId: string | null,
   note?: string,
-): Promise<void> {
-  const { data: existing } = await admin
-    .from('wallets')
-    .select('balance')
-    .eq('player_id', playerId)
-    .maybeSingle()
-
-  if (existing) {
-    await admin
-      .from('wallets')
-      .update({ balance: existing.balance + amount, updated_at: new Date().toISOString() })
-      .eq('player_id', playerId)
-  } else {
-    await admin.from('wallets').insert({ player_id: playerId, balance: amount })
+): Promise<{ ok: true; balance: number } | { ok: false }> {
+  try {
+    const { data, error } = await admin.rpc('wallet_apply', {
+      p_player: playerId,
+      p_delta: amount,
+      p_type: type,
+      p_reference: referenceId,
+      p_note: note ?? null,
+      p_category: categoryFor(type),
+    })
+    if (error || data == null) {
+      console.error('[wallet] credit failed', { type, referenceId, message: error?.message })
+      return { ok: false }
+    }
+    return { ok: true, balance: data }
+  } catch (err) {
+    console.error('[wallet] credit threw', { type, referenceId, message: err instanceof Error ? err.message : String(err) })
+    return { ok: false }
   }
-
-  await admin.from('wallet_transactions').insert({
-    player_id: playerId,
-    amount,
-    type,
-    reference_id: referenceId,
-    note: note ?? null,
-    category: DEFAULT_CATEGORY_BY_TYPE[type],
-  })
 }
 
-// Conditional UPDATE ... WHERE balance >= amount (via .gte()) is the atomic
-// safety net: PostgREST translates it to WHERE player_id = $1 AND
-// balance >= $2 on the actual UPDATE statement, so even if the caller's own
-// pre-check (lib/wallet/actions.ts) read a stale balance, only one
-// concurrent debit can succeed once the first has already lowered it below
-// the second's amount. Zero rows updated -> insufficient balance, returned
-// as a typed error — never a thrown Postgres constraint violation.
+// A null balance from wallet_apply means the debit would have taken the balance below zero and
+// nothing was written; an rpc error is reported separately so it is never mistaken for
+// "insufficient balance".
 export async function debitWallet(
   admin: SupabaseClient<Database>,
   playerId: string,
@@ -78,33 +74,23 @@ export async function debitWallet(
   referenceId: string | null,
   note?: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { data: wallet } = await admin
-    .from('wallets')
-    .select('balance')
-    .eq('player_id', playerId)
-    .maybeSingle()
-  const currentBalance = wallet?.balance ?? 0
-  if (currentBalance < amount) {
-    return { ok: false, error: 'Insufficient wallet balance.' }
+  try {
+    const { data, error } = await admin.rpc('wallet_apply', {
+      p_player: playerId,
+      p_delta: -amount,
+      p_type: type,
+      p_reference: referenceId,
+      p_note: note ?? null,
+      p_category: categoryFor(type),
+    })
+    if (error) {
+      console.error('[wallet] debit failed', { type, referenceId, message: error.message })
+      return { ok: false, error: 'Wallet is unavailable right now.' }
+    }
+    if (data == null) return { ok: false, error: 'Insufficient wallet balance.' }
+    return { ok: true }
+  } catch (err) {
+    console.error('[wallet] debit threw', { type, referenceId, message: err instanceof Error ? err.message : String(err) })
+    return { ok: false, error: 'Wallet is unavailable right now.' }
   }
-
-  const { data: updated } = await admin
-    .from('wallets')
-    .update({ balance: currentBalance - amount, updated_at: new Date().toISOString() })
-    .eq('player_id', playerId)
-    .gte('balance', amount)
-    .select('balance')
-  if (!updated || updated.length === 0) {
-    return { ok: false, error: 'Insufficient wallet balance.' }
-  }
-
-  await admin.from('wallet_transactions').insert({
-    player_id: playerId,
-    amount: -amount,
-    type,
-    reference_id: referenceId,
-    note: note ?? null,
-    category: DEFAULT_CATEGORY_BY_TYPE[type],
-  })
-  return { ok: true }
 }
