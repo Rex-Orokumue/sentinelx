@@ -83,6 +83,18 @@ import {
   setMyLocaleEndpoint,
 } from './account'
 import { getMyReferralsEndpoint } from './referrals'
+import {
+  getMyWalletEndpoint,
+  listMyWalletTransactionsEndpoint,
+  listWalletBanksEndpoint,
+  resolvePayoutAccountEndpoint,
+  setPayoutAccountEndpoint,
+  removePayoutAccountEndpoint,
+  startWalletDepositEndpoint,
+  getWalletDepositEndpoint,
+  requestWithdrawalEndpoint,
+  listMyWithdrawalsEndpoint,
+} from './wallet'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -196,4 +208,14 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   unlinkGoogleEndpoint,
   setMyLocaleEndpoint,
   getMyReferralsEndpoint,
+  getMyWalletEndpoint,
+  listMyWalletTransactionsEndpoint,
+  listWalletBanksEndpoint,
+  resolvePayoutAccountEndpoint,
+  setPayoutAccountEndpoint,
+  removePayoutAccountEndpoint,
+  startWalletDepositEndpoint,
+  getWalletDepositEndpoint,
+  requestWithdrawalEndpoint,
+  listMyWithdrawalsEndpoint,
 ]

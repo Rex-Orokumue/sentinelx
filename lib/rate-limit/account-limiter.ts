@@ -6,8 +6,13 @@ type Admin = SupabaseClient<Database>
 export const OTP_DAILY_LIMIT = { limit: 10, windowMs: 86_400_000 } as const
 export const REAUTH_LIMIT = { limit: 5, windowMs: 900_000 } as const
 
+export const DEPOSIT_START_LIMIT = { limit: 10, windowMs: 3_600_000 } as const
+export const RESOLVE_LIMIT = { limit: 10, windowMs: 900_000 } as const
+
 export const otpKey = (userId: string) => `otp:${userId}`
 export const reauthKey = (userId: string) => `reauth:${userId}`
+export const depositKey = (userId: string) => `deposit:${userId}`
+export const resolveKey = (userId: string) => `resolve:${userId}`
 
 export interface LimitResult {
   allowed: boolean
