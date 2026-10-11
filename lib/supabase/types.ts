@@ -4130,6 +4130,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      coin_apply: {
+        Args: {
+          p_player: string
+          p_delta: number
+          p_source: string
+          p_reference: string | null
+          p_description: string | null
+          p_clamp: boolean
+        }
+        Returns: number | null
+      }
+      store_purchase: {
+        Args: {
+          p_player: string
+          p_item: string
+        }
+        Returns: Json
+      }
+      store_equip: {
+        Args: {
+          p_player: string
+          p_item: string
+          p_equipped: boolean
+        }
+        Returns: Json
+      }
       wallet_apply: {
         Args: {
           p_player: string
