@@ -28,6 +28,8 @@ export const Errors = {
   rewardUnavailable: () => new ApiError(503, 'reward_unavailable', 'This reward is unavailable right now.'),
   chatRateLimited: (retryAfterSeconds: number) =>
     new ApiError(429, 'chat_rate_limited', 'Too many messages. Try again shortly.', { retryAfterSeconds: String(retryAfterSeconds) }),
+  rateLimited: (retryAfterSeconds: number) =>
+    new ApiError(429, 'rate_limited', 'Too many attempts. Try again shortly.', { retryAfterSeconds: String(retryAfterSeconds) }),
   chatUnavailable: () => new ApiError(503, 'chat_unavailable', 'Support chat is unavailable right now.'),
 }
 

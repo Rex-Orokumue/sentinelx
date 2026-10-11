@@ -70,13 +70,20 @@ export async function confirmWalletDeposit(reference: string): Promise<WalletDep
     .select('id')
 
   if (claimed && claimed.length > 0) {
-    await creditWallet(db, existing.player_id, existing.amount, 'deposit', existing.id, 'Wallet top-up via Paystack')
+    const credit = await creditWallet(db, existing.player_id, existing.amount, 'deposit', existing.id, 'Wallet top-up via Paystack')
+    if (!credit.ok) {
+      // Never leave a deposit marked paid with no credit: put it back so the webhook retry or the
+      // next poll can credit it (the pending -> paid claim is what guards against double credit).
+      await db.from('wallet_deposits').update({ status: 'pending' }).eq('id', existing.id).eq('status', 'paid')
+      console.error('[confirmWalletDeposit] credit failed, claim released', { reference })
+      return 'not_successful'
+    }
     await notifyInApp({
       playerId: existing.player_id,
       type: 'wallet_credited',
       title: 'Wallet credited',
       body: `${formatNaira(existing.amount)} was added to your wallet.`,
-      link: '/dashboard',
+      link: '/dashboard/wallet',
     })
   }
 

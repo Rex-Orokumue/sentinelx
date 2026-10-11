@@ -1,3 +1,9 @@
+export interface PayoutAccountMasked {
+  bankName: string
+  accountName: string
+  accountNumberMasked: string
+}
+
 export function maskAccountNumber(accountNumber: string): string {
   return `•••${accountNumber.slice(-4)}`
 }

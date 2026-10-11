@@ -4130,6 +4130,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      wallet_apply: {
+        Args: {
+          p_player: string
+          p_delta: number
+          p_type: string
+          p_reference: string | null
+          p_note: string | null
+          p_category: string
+        }
+        Returns: number | null
+      }
+      wallet_request_withdrawal: {
+        Args: {
+          p_player: string
+          p_amount: number
+          p_bank_name: string
+          p_account_number: string
+          p_account_name: string
+          p_category: string
+        }
+        Returns: Json
+      }
       anonymise_account: { Args: { p_id: string }; Returns: undefined }
       complete_profile_onboarding: {
         Args: {

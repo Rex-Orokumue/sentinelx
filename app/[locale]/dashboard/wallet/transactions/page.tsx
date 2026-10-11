@@ -5,11 +5,12 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { TransactionRow } from '@/components/wallet/TransactionRow'
 import { mapTransactionRows, type RawWalletTxnRow } from '@/lib/wallet/transactions'
+import { applyFilter, parseFilter, type WalletFilter } from '@/lib/wallet/transactions-page'
 
 export const metadata: Metadata = { title: 'Transactions · Wallet · SentinelX Esports', robots: { index: false, follow: false } }
 
 const PAGE_SIZE = 20
-type Filter = 'all' | 'winnings' | 'withdrawals' | 'deposits'
+type Filter = WalletFilter
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'winnings', label: 'Winnings' },
@@ -28,19 +29,18 @@ export default async function WalletTransactionsPage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login?next=/dashboard/wallet/transactions')
 
-  const validFilters: readonly string[] = ['winnings', 'withdrawals', 'deposits']
-  const filter: Filter = validFilters.includes(searchParams.filter ?? '') ? (searchParams.filter as Filter) : 'all'
+  const filter: Filter = parseFilter(searchParams.filter)
   const page = Math.max(1, Number.parseInt(searchParams.page ?? '1', 10) || 1)
   const offset = (page - 1) * PAGE_SIZE
 
   const admin = createAdminClient()
-  let query = admin
-    .from('wallet_transactions')
-    .select('id, type, category, amount, reference_id, note, created_at', { count: 'exact' })
-    .eq('player_id', user.id)
-  if (filter === 'winnings') query = query.eq('category', 'tournament_prize')
-  else if (filter === 'withdrawals') query = query.eq('category', 'withdrawal')
-  else if (filter === 'deposits') query = query.eq('type', 'deposit')
+  const query = applyFilter(
+    admin
+      .from('wallet_transactions')
+      .select('id, type, category, amount, reference_id, note, created_at', { count: 'exact' })
+      .eq('player_id', user.id),
+    filter,
+  )
 
   const { data, count } = await query.order('created_at', { ascending: false }).range(offset, offset + PAGE_SIZE - 1)
   const rows = (data ?? []) as RawWalletTxnRow[]

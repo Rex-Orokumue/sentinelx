@@ -3,12 +3,18 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { walletWithdrawalSchema } from './schema'
-import { getWalletBalance, debitWallet } from './service'
-import { notifyStaff } from '@/lib/admin/staff'
-import { withdrawalNotification } from '@/lib/admin/notification-copy'
-import { assertNotPendingDeletion } from '@/lib/settings/restriction'
+import { submitWithdrawal } from './withdrawal-service'
+import { RESTRICTION_MESSAGE } from '@/lib/settings/restriction'
 
 export type WalletWithdrawalState = { error?: string; success?: boolean } | undefined
+
+const WITHDRAWAL_ERRORS = {
+  pending_deletion: RESTRICTION_MESSAGE,
+  kyc_required: 'Verify your identity before requesting a withdrawal.',
+  insufficient_balance: 'That amount is more than your available balance.',
+  withdrawal_pending: 'You already have a pending withdrawal request.',
+  failed: 'Could not submit your request. Please try again.',
+} as const
 
 export async function requestWalletWithdrawal(
   _prev: WalletWithdrawalState,
@@ -22,68 +28,9 @@ export async function requestWalletWithdrawal(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to request a withdrawal.' }
-  // An account pending deletion must not take on new obligations, or the
-  // guards that passed at request time no longer hold at execution.
-  const restricted = await assertNotPendingDeletion(createAdminClient(), user.id)
-  if (restricted) return { error: restricted }
 
-  const { data: kyc } = await supabase
-    .from('player_kyc')
-    .select('kyc_status, payout_bank_name, payout_account_number, payout_account_name')
-    .eq('player_id', user.id)
-    .maybeSingle()
-  if (
-    kyc?.kyc_status !== 'verified' ||
-    !kyc.payout_bank_name ||
-    !kyc.payout_account_number ||
-    !kyc.payout_account_name
-  ) {
-    return { error: 'Verify your identity before requesting a withdrawal.' }
-  }
-
-  const admin = createAdminClient()
-  const balance = await getWalletBalance(admin, user.id)
-  if (parsed.data.amount > balance) {
-    return { error: 'That amount is more than your available balance.' }
-  }
-
-  const { data: inserted, error } = await admin
-    .from('withdrawal_requests')
-    .insert({
-      player_id: user.id,
-      amount: parsed.data.amount,
-      bank_name: kyc.payout_bank_name,
-      account_number: kyc.payout_account_number,
-      account_name: kyc.payout_account_name,
-      status: 'pending',
-    })
-    .select('id')
-    .single()
-
-  if (error || !inserted) {
-    if ((error as { code?: string })?.code === '23505') {
-      return { error: 'You already have a pending withdrawal request.' }
-    }
-    return { error: 'Could not submit your request. Please try again.' }
-  }
-
-  const debit = await debitWallet(admin, user.id, parsed.data.amount, 'withdrawal_request', inserted.id)
-  if (!debit.ok) {
-    // Race: balance dropped between the pre-check above and now (e.g. two
-    // tabs submitting at once). Undo the insert so the player never sees a
-    // pending request that was never actually debited.
-    await admin.from('withdrawal_requests').delete().eq('id', inserted.id)
-    return { error: 'That amount is more than your available balance.' }
-  }
-
-  const { data: requester } = await admin.from('profiles').select('display_name, username').eq('id', user.id).maybeSingle()
-  const notification = withdrawalNotification({
-    type: 'withdrawal_pending',
-    username: requester?.display_name ?? requester?.username ?? 'A player',
-    amount: parsed.data.amount,
-    createdAt: new Date().toISOString(),
-  })
-  void notifyStaff(admin, 'withdrawal_pending', { title: notification.title, body: notification.body, link: notification.link })
+  const result = await submitWithdrawal(createAdminClient(), { playerId: user.id, amount: parsed.data.amount })
+  if (!result.ok) return { error: WITHDRAWAL_ERRORS[result.reason] }
 
   revalidatePath('/dashboard')
   return { success: true }

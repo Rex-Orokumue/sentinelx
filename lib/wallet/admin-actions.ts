@@ -48,7 +48,7 @@ export async function resolveWalletWithdrawal(
 
   if (action === 'paid') {
     void notifyBoth(wr.player_id, { type: 'prize_credited', amount: formatNaira(wr.amount) }, 'prize_credited', {
-      link: '/dashboard#wallet',
+      link: '/dashboard/wallet',
     })
   } else {
     void notifyInApp({
@@ -56,7 +56,7 @@ export async function resolveWalletWithdrawal(
       type: 'withdrawal_rejected',
       title: 'Withdrawal rejected',
       body: note ? `Your withdrawal request was rejected: ${note}` : 'Your withdrawal request was rejected.',
-      link: '/dashboard#wallet',
+      link: '/dashboard/wallet',
     })
   }
 
@@ -94,7 +94,7 @@ export async function adminCreditWallet(
     type: 'wallet_credited',
     title: 'Wallet credited',
     body: `${formatNaira(amount)} was added to your wallet: ${note}`,
-    link: '/dashboard#wallet',
+    link: '/dashboard/wallet',
   })
 
   revalidatePath('/admin/wallet')

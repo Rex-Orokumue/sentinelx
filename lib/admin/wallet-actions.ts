@@ -34,7 +34,7 @@ export async function manualCreditWallet(
     type: 'wallet_credited',
     title: 'Wallet credited',
     body: `${formatNaira(amount)} was added to your wallet: ${trimmedReason}`,
-    link: '/dashboard#wallet',
+    link: '/dashboard/wallet',
   })
 
   revalidatePath('/admin/wallet')

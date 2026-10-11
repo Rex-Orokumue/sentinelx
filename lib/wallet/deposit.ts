@@ -2,13 +2,18 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { initializeTransaction, buildWalletDepositReference } from '@/lib/paystack/server'
-import { computePaystackFee } from '@/lib/paystack/fees'
 import { walletDepositSchema } from './schema'
-import { SITE_URL } from '@/lib/seo/site'
-import { assertNotPendingDeletion } from '@/lib/settings/restriction'
+import { startDeposit } from './deposit-service'
+import { RESTRICTION_MESSAGE } from '@/lib/settings/restriction'
 
 export type WalletDepositState = { error?: string } | undefined
+
+const DEPOSIT_ERRORS = {
+  pending_deletion: RESTRICTION_MESSAGE,
+  insert_failed: 'Could not start your top-up. Please try again.',
+  paystack_failed: 'Payment could not be started. Please try again.',
+  email_required: 'Payment could not be started. Please try again.',
+} as const
 
 export async function initiateWalletDeposit(
   _prev: WalletDepositState,
@@ -22,41 +27,13 @@ export async function initiateWalletDeposit(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to fund your wallet.' }
-  // An account pending deletion must not take on new obligations, or the
-  // guards that passed at request time no longer hold at execution.
-  const restricted = await assertNotPendingDeletion(createAdminClient(), user.id)
-  if (restricted) return { error: restricted }
 
-  const amount = parsed.data.amount
-  const fee = computePaystackFee(amount)
-  const reference = buildWalletDepositReference(user.id)
-
-  const admin = createAdminClient()
-  const { error: insertErr } = await admin.from('wallet_deposits').insert({
-    player_id: user.id,
-    amount,
-    fee,
-    paystack_reference: reference,
-    status: 'pending',
+  const result = await startDeposit(createAdminClient(), {
+    playerId: user.id,
+    email: user.email ?? null,
+    amount: parsed.data.amount,
   })
-  if (insertErr) return { error: 'Could not start your top-up. Please try again.' }
+  if (!result.ok) return { error: DEPOSIT_ERRORS[result.reason] }
 
-  let authorizationUrl: string
-  try {
-    authorizationUrl = await initializeTransaction({
-      email: user.email!,
-      amountKobo: (amount + fee) * 100,
-      reference,
-      callbackUrl: `${SITE_URL}/api/paystack/callback`,
-      metadata: { player_id: user.id, amount, fee },
-    })
-  } catch (err) {
-    console.error('[initiateWalletDeposit] Paystack initialize failed', {
-      reference,
-      message: err instanceof Error ? err.message : String(err),
-    })
-    return { error: 'Payment could not be started. Please try again.' }
-  }
-
-  redirect(authorizationUrl)
+  redirect(result.authorizationUrl)
 }

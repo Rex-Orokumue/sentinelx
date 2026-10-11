@@ -6,8 +6,17 @@ type Admin = SupabaseClient<Database>
 export const OTP_DAILY_LIMIT = { limit: 10, windowMs: 86_400_000 } as const
 export const REAUTH_LIMIT = { limit: 5, windowMs: 900_000 } as const
 
+export const DEPOSIT_START_LIMIT = { limit: 10, windowMs: 3_600_000 } as const
+// Each poll of a pending deposit can call Paystack's verify API. The app backs off to ~10 checks per attempt,
+// so 60 per 10 minutes leaves room for several attempts plus manual re-checks.
+export const DEPOSIT_POLL_LIMIT = { limit: 60, windowMs: 600_000 } as const
+export const RESOLVE_LIMIT = { limit: 10, windowMs: 900_000 } as const
+
 export const otpKey = (userId: string) => `otp:${userId}`
 export const reauthKey = (userId: string) => `reauth:${userId}`
+export const depositKey = (userId: string) => `deposit:${userId}`
+export const depositPollKey = (userId: string) => `depositpoll:${userId}`
+export const resolveKey = (userId: string) => `resolve:${userId}`
 
 export interface LimitResult {
   allowed: boolean
