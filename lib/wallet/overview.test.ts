@@ -33,6 +33,10 @@ function fixtures() {
       { id: OWNER, kyc_verified: true },
       { id: STRANGER, kyc_verified: false },
     ],
+    sx_coins: [
+      { player_id: OWNER, balance: 1250 },
+      { player_id: STRANGER, balance: 99999 },
+    ],
     player_kyc: [
       { player_id: OWNER, payout_bank_name: 'GTBank', payout_account_number: '0123456789', payout_account_name: 'ADA OBI' },
       { player_id: STRANGER, payout_bank_name: 'Other', payout_account_number: '9999999999', payout_account_name: 'NOT YOU' },
@@ -48,6 +52,7 @@ describe('loadWalletOverview', () => {
     if (!result.ok) throw new Error('expected overview')
     const v = result.value
     expect(v.balance).toBe(5000)
+    expect(v.coinBalance).toBe(1250) // the caller's coins, never the stranger's 99,999
     expect(v.pendingWithdrawal).toBe(1000)
     expect(v.activeWithdrawal).toEqual({ id: 'wr1', amount: 1000, requestedAt: '2026-10-14T09:00:00.000Z' })
     // Positive amounts only, by category (the stranger's 777,777 must not appear)
@@ -73,12 +78,12 @@ describe('loadWalletOverview', () => {
   })
 
   it('returns zeros and nulls for a player with no wallet, ledger or payout account', async () => {
-    const { client } = fakeSupabase({ wallets: [], wallet_transactions: [], withdrawal_requests: [], profiles: [{ id: OWNER, kyc_verified: false }], player_kyc: [] })
+    const { client } = fakeSupabase({ wallets: [], wallet_transactions: [], withdrawal_requests: [], profiles: [{ id: OWNER, kyc_verified: false }], sx_coins: [], player_kyc: [] })
     const result = await loadWalletOverview(client as never, OWNER, NOW)
     expect(result).toMatchObject({
       ok: true,
       value: {
-        balance: 0, pendingWithdrawal: 0, activeWithdrawal: null, payoutAccount: null, kycVerified: false,
+        balance: 0, coinBalance: 0, pendingWithdrawal: 0, activeWithdrawal: null, payoutAccount: null, kycVerified: false,
         recentTransactions: [], earnings: { tournamentPrize: 0, referral: 0, bonus: 0, tournamentPrizeTrendPct: null },
       },
     })

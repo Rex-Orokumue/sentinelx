@@ -95,6 +95,7 @@ import {
   requestWithdrawalEndpoint,
   listMyWithdrawalsEndpoint,
 } from './wallet'
+import { getStoreEndpoint, purchaseStoreItemEndpoint, equipStoreItemEndpoint, unequipStoreItemEndpoint } from './store'
 
 // Single source of truth for the OpenAPI document. Append each new endpoint here.
 export const ALL_ENDPOINTS: Endpoint[] = [
@@ -218,4 +219,8 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   getWalletDepositEndpoint,
   requestWithdrawalEndpoint,
   listMyWithdrawalsEndpoint,
+  getStoreEndpoint,
+  purchaseStoreItemEndpoint,
+  equipStoreItemEndpoint,
+  unequipStoreItemEndpoint,
 ]

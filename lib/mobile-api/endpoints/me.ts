@@ -6,7 +6,7 @@ import { isOwnAvatarUrl } from '@/lib/profile/avatar-url'
 import { performUpdateProfile, type UpdateProfileErrorCode } from '@/lib/profile/update-profile-service'
 import { ApiError, Errors } from '../errors'
 import { postgresUuidSchema } from '@/lib/validation/postgres-uuid'
-import { bubbleSkinUrlFor } from '@/lib/store/cosmetics'
+import { bubbleSkinUrlFor, equippedCosmeticsBySlug } from '@/lib/store/cosmetics'
 
 export const meResponse = z.object({
   id: z.string(),
@@ -35,6 +35,9 @@ export const meResponse = z.object({
       // Mascot bubble skin: the equipped slug and its image as a relative path (same convention as frameUrl).
       equippedBubbleSkin: z.string().nullable(),
       bubbleSkinUrl: z.string().nullable(),
+      // Equipped store cosmetics rendered on the player's own identity card (slugs; the app maps them to styles).
+      usernameColour: z.string().nullable(),
+      profileTheme: z.string().nullable(),
     })
     .nullable(),
 })
@@ -59,6 +62,7 @@ export function toMeResponse(
   ctx: Pick<MobileCtx, 'userId' | 'email' | 'roles' | 'isStaff' | 'isAdmin'>,
   row: ProfileRow | null,
   gameInterestIds: string[] = [],
+  cosmetics: { usernameColour: string | null; profileTheme: string | null } = { usernameColour: null, profileTheme: null },
 ) {
   return {
     id: ctx.userId,
@@ -82,6 +86,8 @@ export function toMeResponse(
       gameInterests: gameInterestIds,
       equippedBubbleSkin: row.equipped_bubble_skin ?? null,
       bubbleSkinUrl: bubbleSkinUrlFor(row.equipped_bubble_skin) ?? null,
+      usernameColour: cosmetics.usernameColour,
+      profileTheme: cosmetics.profileTheme,
     },
   }
 }
@@ -96,7 +102,7 @@ export const meEndpoint = defineEndpoint({
   handler: async ({ ctx }) => {
     // Own row only, id from the verified token. Service role because whatsapp_number and
     // deletion_requested_at are private columns (plan 2026-09-18-mobile-phase0a-security-hardening.md).
-    const [{ data }, { data: interests }] = await Promise.all([
+    const [{ data }, { data: interests }, { data: equippedRows }] = await Promise.all([
       ctx.admin
         .from('profiles')
         .select(
@@ -105,8 +111,14 @@ export const meEndpoint = defineEndpoint({
         .eq('id', ctx.userId)
         .maybeSingle(),
       ctx.admin.from('game_interest').select('game_id').eq('user_id', ctx.userId),
+      // Only the caller's equipped items; username colour and theme are not denormalised onto profiles.
+      ctx.admin.from('player_store_items').select('item_id, equipped, store_items(slug, category)').eq('player_id', ctx.userId).eq('equipped', true),
     ])
-    return toMeResponse(ctx, data, (interests ?? []).map((r) => r.game_id))
+    const equipped = equippedCosmeticsBySlug(equippedRows ?? [])
+    return toMeResponse(ctx, data, (interests ?? []).map((r) => r.game_id), {
+      usernameColour: equipped.usernameColour,
+      profileTheme: equipped.profileTheme,
+    })
   },
 })
 

@@ -61,6 +61,7 @@ export const getMyWalletEndpoint = defineEndpoint({
   auth: 'user',
   response: z.object({
     balance: z.number().int(),
+    coinBalance: z.number().int(),
     pendingWithdrawal: z.number().int(),
     earnings: z.object({
       tournamentPrize: z.number().int(),

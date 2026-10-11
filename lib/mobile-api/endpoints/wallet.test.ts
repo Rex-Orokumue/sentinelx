@@ -81,7 +81,7 @@ describe('every operation requires sign-in', () => {
 
 describe('GET /wallet', () => {
   it("returns the signed-in player's overview, scoped to ctx.userId", async () => {
-    const value = { balance: 5000, pendingWithdrawal: 0, earnings: { tournamentPrize: 0, referral: 0, bonus: 0, tournamentPrizeTrendPct: null }, recentTransactions: [], payoutAccount: masked, kycVerified: true, activeWithdrawal: null }
+    const value = { balance: 5000, coinBalance: 1250, pendingWithdrawal: 0, earnings: { tournamentPrize: 0, referral: 0, bonus: 0, tournamentPrizeTrendPct: null }, recentTransactions: [], payoutAccount: masked, kycVerified: true, activeWithdrawal: null }
     m.loadWalletOverview.mockResolvedValue({ ok: true, value })
     const res = await getMyWalletEndpoint.handler(req('GET', '/wallet'))
     expect(res.status).toBe(200)
