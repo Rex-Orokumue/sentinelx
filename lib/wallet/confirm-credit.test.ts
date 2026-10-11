@@ -52,6 +52,8 @@ describe('confirmWalletDeposit credit handling', () => {
     expect(await confirmWalletDeposit('ref1')).toBe('confirmed')
     expect(creditWallet).toHaveBeenCalledTimes(1)
     expect(notifyInApp).toHaveBeenCalledTimes(1)
+    // links to the wallet page so the mobile app (which maps /dashboard/wallet) opens the wallet, not the bell
+    expect(notifyInApp).toHaveBeenCalledWith(expect.objectContaining({ type: 'wallet_credited', link: '/dashboard/wallet' }))
     expect(updates.some((u) => u.patch.status === 'pending')).toBe(false)
   })
 

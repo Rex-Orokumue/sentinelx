@@ -35,7 +35,9 @@ import {
   setPayoutAccountEndpoint, removePayoutAccountEndpoint, startWalletDepositEndpoint, getWalletDepositEndpoint,
   requestWithdrawalEndpoint, listMyWithdrawalsEndpoint,
 } from './wallet'
-import { DEPOSIT_START_LIMIT, RESOLVE_LIMIT, depositKey, resolveKey } from '@/lib/rate-limit/account-limiter'
+import {
+  DEPOSIT_START_LIMIT, RESOLVE_LIMIT, DEPOSIT_POLL_LIMIT, depositKey, resolveKey, depositPollKey,
+} from '@/lib/rate-limit/account-limiter'
 import { Errors } from '../errors'
 
 const BASE = 'https://x.test/api/mobile/v1'
@@ -267,6 +269,20 @@ describe('GET /wallet/deposits/{reference}', () => {
     expect(unknown).toEqual(foreign)
     expect(m.confirmWalletDeposit).not.toHaveBeenCalled()
   })
+  it('limits polling per player, after the ownership check and before Paystack is called', async () => {
+    m.hitLimit.mockResolvedValue({ allowed: false, retryAfterSeconds: 30 })
+    const res = await call('r1', [{ id: 'd1', player_id: 'owner-1', paystack_reference: 'r1' }])
+    expect(res.status).toBe(429)
+    expect((await json(res)).error.code).toBe('rate_limited')
+    expect(m.hitLimit).toHaveBeenCalledWith(expect.anything(), { key: depositPollKey('owner-1'), ...DEPOSIT_POLL_LIMIT })
+    expect(m.confirmWalletDeposit).not.toHaveBeenCalled()
+  })
+
+  it('does not spend a poll on a reference that is not the caller own', async () => {
+    await call('nope', [])
+    expect(m.hitLimit).not.toHaveBeenCalled()
+  })
+
   it('does not return a balance for a not_successful deposit', async () => {
     m.confirmWalletDeposit.mockResolvedValue('not_successful')
     const res = await call('r1', [{ id: 'd1', player_id: 'owner-1', paystack_reference: 'r1' }])

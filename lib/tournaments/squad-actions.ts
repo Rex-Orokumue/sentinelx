@@ -191,7 +191,7 @@ export async function refundUnplacedPlayer(_prev: SquadMoveState, formData: Form
     type: 'wallet_credited',
     title: 'Registration refunded',
     body: `There was no squad place left for you in ${t.title}.${parts.length > 0 ? ` ${parts.join(' and ')}.` : ''}`,
-    link: '/dashboard#wallet',
+    link: '/dashboard/wallet',
   })
 
   revalidatePath(`/admin/tournaments/${tournamentId}/squads`)

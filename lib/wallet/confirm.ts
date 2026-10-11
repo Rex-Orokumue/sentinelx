@@ -83,7 +83,7 @@ export async function confirmWalletDeposit(reference: string): Promise<WalletDep
       type: 'wallet_credited',
       title: 'Wallet credited',
       body: `${formatNaira(existing.amount)} was added to your wallet.`,
-      link: '/dashboard',
+      link: '/dashboard/wallet',
     })
   }
 

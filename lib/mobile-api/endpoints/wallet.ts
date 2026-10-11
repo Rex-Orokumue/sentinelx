@@ -14,8 +14,10 @@ import { listBanks } from '@/lib/paystack/server'
 import {
   hitLimit,
   DEPOSIT_START_LIMIT,
+  DEPOSIT_POLL_LIMIT,
   RESOLVE_LIMIT,
   depositKey,
+  depositPollKey,
   resolveKey,
 } from '@/lib/rate-limit/account-limiter'
 
@@ -234,6 +236,9 @@ export const getWalletDepositEndpoint = defineEndpoint({
       .eq('player_id', ctx.userId)
       .maybeSingle()
     if (!data) return { status: 'not_found' as const, balance: null }
+    // Each poll can call Paystack's verify API, so polling is limited per player (after ownership, before Paystack).
+    const gate = await hitLimit(ctx.admin, { key: depositPollKey(ctx.userId), ...DEPOSIT_POLL_LIMIT })
+    if (!gate.allowed) throw Errors.rateLimited(gate.retryAfterSeconds)
     const status = await confirmWalletDeposit(params.reference)
     const credited = status === 'confirmed' || status === 'already_paid'
     return { status, balance: credited ? await getWalletBalance(ctx.admin, ctx.userId) : null }
