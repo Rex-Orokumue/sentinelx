@@ -1,6 +1,6 @@
 # Mobile Phase 6a — Wallet, deposits, withdrawals, payout account
 
-Status: design for review, 2026-10-11. Master spec §8.12 defines the screens; this spec defines the API they need. The owner approved the authorization boundary on 2026-10-11 (see "Approved boundary"). Nothing in this spec has been implemented. Written before any plan or code, per the three-tier access model (master spec §3).
+Status: design approved 2026-10-11 (owner approved D1 and D2; D3 still open, it only gates the staging payment pass). Master spec §8.12 defines the screens; this spec defines the API they need. The owner approved the authorization boundary on 2026-10-11 (see "Approved boundary"). Nothing in this spec has been implemented. Written before any plan or code, per the three-tier access model (master spec §3).
 
 ## Goal
 
@@ -70,7 +70,7 @@ Each endpoint is one route file plus one `ALL_ENDPOINTS` entry and a regenerated
 
 ## Rulings
 
-- **R1 — money mutations become atomic before mobile can reach them.** Recommended (needs owner approval, D1): one Postgres function per mutation, executed by the service role — `wallet_apply(player, delta, type, reference, note, category)` doing `UPDATE wallets SET balance = balance + delta WHERE player_id = $1 AND balance + delta >= 0 RETURNING` and the ledger insert in the **same transaction**; and `wallet_request_withdrawal(player, amount, bank snapshot)` doing the pending-row insert and the debit in one transaction. `creditWallet`/`debitWallet` become thin callers, so web, prizes, referrals and deposits all gain the fix. Cost if wrong: a migration (applied to staging first, then production by the owner) and a deviation from "business logic lives in TypeScript" (the stated four-RPC convention). Alternative if declined: ship the endpoints on the current read-modify-write code and document the race as an accepted risk; money loss under concurrency then remains possible.
+- **R1 — money mutations become atomic before mobile can reach them.** **Approved by the owner 2026-10-11 (D1)**: one Postgres function per mutation, executed by the service role — `wallet_apply(player, delta, type, reference, note, category)` doing `UPDATE wallets SET balance = balance + delta WHERE player_id = $1 AND balance + delta >= 0 RETURNING` and the ledger insert in the **same transaction**; and `wallet_request_withdrawal(player, amount, bank snapshot)` doing the pending-row insert and the debit in one transaction. `creditWallet`/`debitWallet` become thin callers, so web, prizes, referrals and deposits all gain the fix. Cost if wrong: a migration (applied to staging first, then production by the owner) and a deviation from "business logic lives in TypeScript" (the stated four-RPC convention). Alternative if declined: ship the endpoints on the current read-modify-write code and document the race as an accepted risk; money loss under concurrency then remains possible.
 - **R2 — one overview read, like web and like 6d.** Cost if wrong: the screen reloads the recent list with the summary; acceptable at 5 rows.
 - **R3 — keyset paging for history, not offset.** Cost if wrong: none vs. web parity; a different cursor shape than the web page's `?page=`.
 - **R4 — deposit completion is confirmed by polling the owner-scoped deposit endpoint**, not by trusting the WebView navigation. The WebView only signals "the user finished or closed". Cost if wrong: a few seconds of "confirming…" while the webhook lands.
@@ -95,8 +95,8 @@ Tests (vitest, fakes for Paystack and Supabase): owner scoping on every query an
 
 Not verifiable without hardware or accounts: real Paystack checkout inside the WebView on a device, live bank resolves (daily-capped in test mode), and the manual-payout admin queue end to end. Those need a Paystack test-mode pass on **staging** plus a device pass. No production data is written or changed by this phase's development or tests.
 
-## Open decisions for the owner
+## Decisions
 
-- **D1 — Approve R1 (atomic wallet functions + migration)?** Recommended: yes, before any mobile money endpoint is exposed.
-- **D2 — Deposit rate limit** of 10 starts/hour/user and resolve limit of 10/15 min: acceptable?
-- **D3 — Does staging have working Paystack test keys and a webhook URL pointing at the staging web deployment?** Without them the deposit confirm path can only be covered by unit tests.
+- **D1 — Approved (2026-10-11).** Atomic wallet functions and migration (R1).
+- **D2 — Approved (2026-10-11).** Deposit starts: 10 per hour per user. Account resolves: 10 per 15 minutes per user.
+- **D3 — Open.** Does staging have working Paystack test keys and a webhook URL pointing at the staging web deployment? It does not block the code; it blocks the end-to-end deposit pass.
