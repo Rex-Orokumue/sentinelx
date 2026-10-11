@@ -99,4 +99,4 @@ Not verifiable without hardware or accounts: real Paystack checkout inside the W
 
 - **D1 — Approved (2026-10-11).** Atomic wallet functions and migration (R1).
 - **D2 — Approved (2026-10-11).** Deposit starts: 10 per hour per user. Account resolves: 10 per 15 minutes per user.
-- **D3 — Open.** Does staging have working Paystack test keys and a webhook URL pointing at the staging web deployment? It does not block the code; it blocks the end-to-end deposit pass.
+- **D3 — Resolved (2026-10-11).** The staging env (`.env.development.local`, staging Supabase `ofxmoxpvwbemfouaowoa`) holds a valid Paystack **test** key (verified against Paystack's bank list). The mobile deposit does not depend on the webhook: the checkout WebView is intercepted at `/api/paystack/callback`, then the app polls `GET /wallet/deposits/{reference}`, which verifies with Paystack and credits idempotently. The webhook is only a backstop. The device pass therefore runs against a staging web server (local dev server on the LAN, as in earlier phases), not a deployed staging site; there is none. Vercel previews hit production unless the branch carries the staging overrides.
