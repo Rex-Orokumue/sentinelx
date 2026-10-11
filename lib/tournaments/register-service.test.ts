@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/paystack/server', () => ({ initializeTransaction: vi.fn(), buildReference: vi.fn() }))
-vi.mock('@/lib/coins/service', () => ({ getCoinBalance: vi.fn(), recordCoinTransaction: vi.fn() }))
+vi.mock('@/lib/coins/service', () => ({ getCoinBalance: vi.fn(), recordCoinTransaction: vi.fn(), spendCoins: vi.fn() }))
 vi.mock('@/lib/referrals/credit', () => ({ settleReferralForPaidEntry: vi.fn() }))
 vi.mock('./squad-membership', () => ({ finalizeSquadJoin: vi.fn() }))
 vi.mock('@/lib/settings/restriction', () => ({ assertNotPendingDeletion: vi.fn().mockResolvedValue(null) }))
@@ -121,26 +121,34 @@ describe('performRegisterForTournament', () => {
     expect(result).toEqual({ ok: true, status: 'confirmed', tournamentSlug: 'test-cup' })
   })
 
-  it('rejects a coin discount when the balance is insufficient', async () => {
-    const { getCoinBalance } = await import('@/lib/coins/service')
-    vi.mocked(getCoinBalance).mockResolvedValue(100)
-    const result = await performRegisterForTournament(fakeSupabase({}), fakeAdmin(), 'u1', 't1', { ...baseInput, coinsUsed: 1000 })
+  it('rejects a coin discount when the strict spend is refused, before any registration is written', async () => {
+    const { spendCoins } = await import('@/lib/coins/service')
+    vi.mocked(spendCoins).mockResolvedValue({ ok: false, reason: 'insufficient' })
+    const admin = fakeAdmin()
+    const result = await performRegisterForTournament(fakeSupabase({}), admin, 'u1', 't1', { ...baseInput, coinsUsed: 1000 })
     expect(result).toEqual({ ok: false, errorCode: 'insufficient_coins' })
   })
 
+  it('reports registration_failed, not insufficient_coins, when the coin service is unavailable', async () => {
+    const { spendCoins } = await import('@/lib/coins/service')
+    vi.mocked(spendCoins).mockResolvedValue({ ok: false, reason: 'unavailable' })
+    const result = await performRegisterForTournament(fakeSupabase({}), fakeAdmin(), 'u1', 't1', { ...baseInput, coinsUsed: 1000 })
+    expect(result).toEqual({ ok: false, errorCode: 'registration_failed' })
+  })
+
   it('confirms immediately when a full coin discount brings the fee to zero', async () => {
-    const { getCoinBalance, recordCoinTransaction } = await import('@/lib/coins/service')
-    vi.mocked(getCoinBalance).mockResolvedValue(2000)
-    vi.mocked(recordCoinTransaction).mockResolvedValue(1000)
+    const { spendCoins } = await import('@/lib/coins/service')
+    vi.mocked(spendCoins).mockResolvedValue({ ok: true, balance: 1000 })
     const result = await performRegisterForTournament(fakeSupabase({}), fakeAdmin(), 'u1', 't1', { ...baseInput, coinsUsed: 1000 })
     expect(result).toEqual({ ok: true, status: 'confirmed', tournamentSlug: 'test-cup' })
-    expect(recordCoinTransaction).toHaveBeenCalledWith(expect.anything(), 'u1', -1000, 'entry_discount', 't1', expect.any(String))
+    expect(spendCoins).toHaveBeenCalledWith(expect.anything(), 'u1', 1000, 'entry_discount', 't1', expect.any(String))
   })
 
   it('ignores an out-of-range coinsUsed on a sub-500 tournament rather than erroring', async () => {
-    const { recordCoinTransaction } = await import('@/lib/coins/service')
+    const { spendCoins } = await import('@/lib/coins/service')
+    vi.mocked(spendCoins).mockClear()
     const result = await performRegisterForTournament(fakeSupabase({ tournament: { ...defaultTournament, registration_fee: 300 } }), fakeAdmin(), 'u1', 't1', { ...baseInput, coinsUsed: 500 })
-    expect(recordCoinTransaction).not.toHaveBeenCalled()
+    expect(spendCoins).not.toHaveBeenCalled()
     expect(result).toMatchObject({ ok: true, status: 'pending' })
   })
 
