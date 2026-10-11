@@ -1,17 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/types'
-import { maskAccountNumber } from '@/lib/kyc/logic'
+import { maskAccountNumber, type PayoutAccountMasked } from '@/lib/kyc/logic'
 import { mapTransactionRows, type RawWalletTxnRow, type WalletTxnRow } from './transactions'
 import { summarizeEarningsByCategory } from './breakdown'
 import { monthOverMonthChange } from './earnings-trend'
 
 type Admin = SupabaseClient<Database>
 
-export interface PayoutAccountMasked {
-  bankName: string
-  accountName: string
-  accountNumberMasked: string
-}
+export type { PayoutAccountMasked }
 
 export interface WalletOverview {
   balance: number

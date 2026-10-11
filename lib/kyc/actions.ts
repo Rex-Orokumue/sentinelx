@@ -4,9 +4,19 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/admin/auth'
 import { kycSchema } from './schema'
-import { resolveAccount, listBanks } from '@/lib/paystack/server'
+import { resolvePayout, savePayoutAccount, clearPayoutAccount } from './payout-service'
+import { RESTRICTION_MESSAGE } from '@/lib/settings/restriction'
 
 const GENERIC_ERROR = 'Could not submit your verification. Please try again.'
+
+const PAYOUT_ERRORS = {
+  pending_deletion: RESTRICTION_MESSAGE,
+  already_verified: 'You are already verified.',
+  account_unresolvable: 'Could not verify this account number. Check the details and try again.',
+  unknown_bank: 'Unrecognized bank. Please select your bank again.',
+  payout_unavailable: GENERIC_ERROR,
+  validation: GENERIC_ERROR,
+} as const
 
 export async function resolveAccountName(
   bankCode: string,
@@ -20,13 +30,9 @@ export async function resolveAccountName(
   if (!bankCode || !/^\d{10}$/.test(accountNumber)) {
     return { error: 'Enter a valid account number.' }
   }
-  try {
-    const { accountName } = await resolveAccount(accountNumber, bankCode)
-    return { accountName }
-  } catch (err) {
-    console.error('[kyc] resolveAccountName failed', err)
-    return { error: 'Could not verify this account number. Check the details and try again.' }
-  }
+  const result = await resolvePayout({ bankCode, accountNumber })
+  if (result.ok) return { accountName: result.accountName }
+  return { error: 'Could not verify this account number. Check the details and try again.' }
 }
 
 export type KycState = { error?: string; success?: boolean } | undefined
@@ -52,53 +58,13 @@ export async function submitKyc(_prev: KycState, formData: FormData): Promise<Ky
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in to add your payout details.' }
 
-  // A brand-new player has no player_kyc row yet — maybeSingle() returns null,
-  // which is the same as 'unverified' for gating purposes.
-  const { data: kyc } = await supabase
-    .from('player_kyc')
-    .select('kyc_status')
-    .eq('player_id', user.id)
-    .maybeSingle()
-  if (kyc?.kyc_status === 'verified') return { error: 'You are already verified.' }
-
-  // account_name is never trusted from the client — resolved server-side here,
-  // same as the amount-from-server rule used elsewhere in this codebase.
-  let accountName: string
-  try {
-    ;({ accountName } = await resolveAccount(parsed.data.accountNumber, parsed.data.bankCode))
-  } catch (err) {
-    console.error('[kyc] submitKyc: resolveAccount failed', err)
-    return { error: 'Could not verify this account number. Check the details and try again.' }
-  }
-
-  let bankName: string
-  try {
-    const banks = await listBanks()
-    const match = banks.find((b) => b.code === parsed.data.bankCode)
-    if (!match) return { error: 'Unrecognized bank. Please select your bank again.' }
-    bankName = match.name
-  } catch (err) {
-    console.error('[kyc] submitKyc: listBanks failed', err)
-    return { error: GENERIC_ERROR }
-  }
-
-  const admin = createAdminClient()
-  // No player_kyc row exists yet on a first attempt (player_id is the PK, not
-  // auto-created) — upsert so both the first attempt and a retry go through
-  // the same call.
-  await admin.from('player_kyc').upsert(
-    {
-      player_id: user.id,
-      kyc_status: 'verified',
-      kyc_failure_reason: null,
-      payout_bank_code: parsed.data.bankCode,
-      payout_bank_name: bankName,
-      payout_account_number: parsed.data.accountNumber,
-      payout_account_name: accountName,
-    },
-    { onConflict: 'player_id' },
-  )
-  await admin.from('profiles').update({ kyc_verified: true }).eq('id', user.id)
+  // account_name is never trusted from the client: the service resolves it server-side.
+  const result = await savePayoutAccount(createAdminClient(), {
+    playerId: user.id,
+    bankCode: parsed.data.bankCode,
+    accountNumber: parsed.data.accountNumber,
+  })
+  if (!result.ok) return { error: PAYOUT_ERRORS[result.reason] }
 
   revalidatePath('/dashboard')
   return { success: true }
@@ -132,10 +98,8 @@ export async function removePayoutAccount(): Promise<{ error?: string; success?:
   } = await supabase.auth.getUser()
   if (!user) return { error: 'Please log in.' }
 
-  const admin = createAdminClient()
-  const { error } = await admin.from('player_kyc').delete().eq('player_id', user.id)
-  if (error) return { error: 'Could not remove your payout account. Please try again.' }
-  await admin.from('profiles').update({ kyc_verified: false }).eq('id', user.id)
+  const cleared = await clearPayoutAccount(createAdminClient(), user.id)
+  if (!cleared.ok) return { error: 'Could not remove your payout account. Please try again.' }
 
   revalidatePath('/dashboard/wallet/payment-methods')
   return { success: true }
