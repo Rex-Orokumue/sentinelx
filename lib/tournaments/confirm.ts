@@ -5,7 +5,28 @@ import { regKey } from '@/lib/notifications/keys'
 import { settleReferralForPaidEntry } from '@/lib/referrals/credit'
 import { finalizeSquadJoin } from './squad-membership'
 
-export type ConfirmResult = 'confirmed' | 'already_paid' | 'not_found' | 'not_successful'
+export type ConfirmResult = 'confirmed' | 'already_paid' | 'overpayment_credited' | 'not_found' | 'not_successful'
+
+type Admin = ReturnType<typeof createAdminClient>
+
+export async function confirmInvitationAttempt(db: Admin, reference: string): Promise<ConfirmResult> {
+  let verify: { status: string; amountKobo: number }
+  try {
+    verify = await verifyTransaction(reference)
+  } catch (error) {
+    console.error('[confirmInvitationAttempt] Paystack verify failed', { reference, message: error instanceof Error ? error.message : String(error) })
+    return 'not_successful'
+  }
+  if (verify.status !== 'success') return 'not_successful'
+  const { data, error } = await db.rpc('settle_invitation_paystack', {
+    p_reference: reference, p_amount_kobo: verify.amountKobo,
+  })
+  if (error) {
+    console.error('[confirmInvitationAttempt] settlement failed', { reference, message: error.message })
+    return 'not_successful'
+  }
+  return (data as { status: ConfirmResult }).status
+}
 
 // Pure decision: given the current row status and Paystack's verify result,
 // decide the outcome. No IO — unit tested directly. expectedKobo comes from
@@ -31,6 +52,27 @@ export function decideConfirmation(args: {
 // Idempotent source of truth, called by BOTH the callback and the webhook.
 export async function confirmRegistration(reference: string): Promise<ConfirmResult> {
   const db = createAdminClient()
+
+  const { data: invitationAttempt } = await db.from('tournament_payment_attempts')
+    .select('registration_id').eq('paystack_reference', reference).maybeSingle()
+  if (invitationAttempt) {
+    const result = await confirmInvitationAttempt(db, reference)
+    if (result === 'confirmed') {
+      const { data: reg } = await db.from('tournament_registrations')
+        .select('id, player_id, fee_waived, tournament:tournaments(title, registration_fee)')
+        .eq('id', invitationAttempt.registration_id).maybeSingle()
+      if (reg) {
+        const raw = reg.tournament as { title: string; registration_fee: number } | { title: string; registration_fee: number }[] | null
+        const tournament = Array.isArray(raw) ? raw[0] : raw
+        await settleReferralForPaidEntry(db, reg.player_id, {
+          registrationFee: tournament?.registration_fee ?? 0, feeWaived: reg.fee_waived ?? false,
+        })
+        await notify({ type: 'registration_confirmed', playerId: reg.player_id,
+          dedupeKey: regKey(reg.id), tournament: tournament?.title ?? 'the tournament' })
+      }
+    }
+    return result
+  }
 
   const { data: existing } = await db
     .from('tournament_registrations')

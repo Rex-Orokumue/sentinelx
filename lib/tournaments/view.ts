@@ -27,6 +27,7 @@ export function resolveRegistrationView(args: {
   if (args.registrationStatus === 'waitlisted') return 'waitlisted'
   if (args.status === 'completed') return 'ended'
   if (args.status === 'registration_closed' || args.status === 'active') return 'closed'
+  if (args.invitationOnly && args.existingStatus === 'pending' && args.loggedIn) return 'complete_payment'
   if (args.invitationOnly) return 'invitation_only'
   if (!args.loggedIn) return 'guest'
   if (args.existingStatus === 'pending') return 'complete_payment'

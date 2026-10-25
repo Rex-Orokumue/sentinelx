@@ -6402,6 +6402,62 @@
         }
       }
     },
+    "/api/mobile/v1/invitations/{id}/pay-wallet": {
+      "post": {
+        "operationId": "postInvitationPayWallet",
+        "summary": "Pay an accepted season invitation entry fee from the player wallet.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "const": "confirmed"
+                        }
+                      },
+                      "required": [
+                        "status"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "426": {
+            "$ref": "#/components/responses/UpgradeRequired"
+          },
+          "500": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
     "/api/mobile/v1/lobbies/{id}/result": {
       "post": {
         "operationId": "postLobbyResult",
@@ -11884,6 +11940,7 @@
                           "enum": [
                             "confirmed",
                             "already_paid",
+                            "overpayment_credited",
                             "not_found",
                             "not_successful"
                           ]

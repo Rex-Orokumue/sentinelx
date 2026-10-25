@@ -20,21 +20,26 @@ export default async function TournamentInvitationsPage({ params }: { params: { 
     )
   }
 
-  const { data: invitations } = await admin
+  const [{ data: invitations }, { data: registrations }] = await Promise.all([admin
     .from('tournament_invitations')
-    .select('id, rank_at_invite, status, invited_at, expires_at, player:profiles(username, display_name)')
+    .select('id, player_id, rank_at_invite, status, invited_at, expires_at, player:profiles(username, display_name)')
     .eq('tournament_id', params.id)
-    .order('rank_at_invite')
+    .order('rank_at_invite'),
+    admin.from('tournament_registrations').select('player_id, payment_status')
+      .eq('tournament_id', params.id),
+  ])
 
   const rows = (invitations ?? []).map((row) => {
     const p = Array.isArray(row.player) ? row.player[0] : row.player
     return {
       id: row.id,
+      playerId: row.player_id,
       playerName: p?.display_name ?? p?.username ?? 'Unknown',
       rank: row.rank_at_invite,
       status: row.status,
       invitedAt: row.invited_at,
       expiresAt: row.expires_at,
+      paymentStatus: registrations?.find((registration) => registration.player_id === row.player_id)?.payment_status ?? null,
     }
   })
 

@@ -2,12 +2,25 @@ import { describe, it, expect, vi } from 'vitest'
 
 const { authenticate, optionalAuth } = vi.hoisted(() => ({ authenticate: vi.fn(), optionalAuth: vi.fn() }))
 vi.mock('../auth', () => ({ authenticate, optionalAuth }))
-const { performAcceptInvitation, performDeclineInvitation } = vi.hoisted(() => ({ performAcceptInvitation: vi.fn(), performDeclineInvitation: vi.fn() }))
-vi.mock('@/lib/seasons/invitation-response-service', () => ({ performAcceptInvitation, performDeclineInvitation }))
+const { performAcceptInvitation, performDeclineInvitation, performPayInvitationFromWallet } = vi.hoisted(() => ({ performAcceptInvitation: vi.fn(), performDeclineInvitation: vi.fn(), performPayInvitationFromWallet: vi.fn() }))
+vi.mock('@/lib/seasons/invitation-response-service', () => ({ performAcceptInvitation, performDeclineInvitation, performPayInvitationFromWallet }))
 const { runIdempotent } = vi.hoisted(() => ({ runIdempotent: vi.fn() }))
 vi.mock('../idempotency', () => ({ runIdempotent }))
 
-import { acceptInvitationEndpoint, declineInvitationEndpoint } from './invitations'
+import { acceptInvitationEndpoint, declineInvitationEndpoint, payInvitationFromWalletEndpoint } from './invitations'
+
+it('confirms an invitation entry from wallet through an idempotent mobile POST', async () => {
+  authenticate.mockResolvedValue({ userId: 'u1', email: 'ada@test.example', admin: {}, userClient: {} })
+  runIdempotent.mockImplementation(async (_admin, _args, run) => run())
+  performPayInvitationFromWallet.mockResolvedValue({ ok: true, status: 'confirmed', tournamentSlug: 'masters' })
+  const req = new Request('https://x.test/api/mobile/v1/invitations/inv1/pay-wallet', {
+    method: 'POST', headers: { 'content-type': 'application/json', 'idempotency-key': 'wallet-1' },
+  })
+  const res = await payInvitationFromWalletEndpoint.handler(req, { params: { id: 'inv1' } })
+  expect(res.status).toBe(200)
+  expect((await res.json()).data).toEqual({ status: 'confirmed' })
+  expect(performPayInvitationFromWallet).toHaveBeenCalledWith(expect.anything(), 'u1', 'inv1')
+})
 
 describe('acceptInvitationEndpoint', () => {
   it('returns confirmed on a free-tournament accept', async () => {

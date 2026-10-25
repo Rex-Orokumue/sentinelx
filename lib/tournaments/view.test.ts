@@ -63,4 +63,7 @@ describe('resolveRegistrationView', () => {
   it('registered takes precedence over invitation_only for an already-paid invitee', () => {
     expect(resolveRegistrationView({ ...base, existingStatus: 'paid', invitationOnly: true })).toBe('registered')
   })
+  it('lets an accepted invitee with pending payment recover from the tournament page', () => {
+    expect(resolveRegistrationView({ ...base, existingStatus: 'pending', invitationOnly: true })).toBe('complete_payment')
+  })
 })

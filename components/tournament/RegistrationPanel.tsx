@@ -12,6 +12,7 @@ import { RegistrationGate } from './RegistrationGate'
 import { SquadEntryFlow } from './SquadEntryFlow'
 import { squadInviteShareUrl } from '@/lib/tournaments/squad-share'
 import type { RegistrationField } from '@/lib/tournaments/registration-fields'
+import { NextMatchInvitationCard } from '@/components/dashboard/NextMatchInvitationCard'
 
 const box = 'rounded-2xl border border-slate-800 bg-slate-900 p-5'
 
@@ -30,6 +31,8 @@ export function RegistrationPanel({
   tournamentTitle,
   loggedIn,
   coinBalance,
+  walletBalance,
+  invitation,
   hasUsername,
   registrationFields,
 }: {
@@ -47,10 +50,16 @@ export function RegistrationPanel({
   tournamentTitle: string
   loggedIn: boolean
   coinBalance: number
+  walletBalance: number
+  invitation: { id: string; rank: number; deadline: string; tournamentTitle: string; fee: number; status: string; slug: string } | null
   hasUsername: boolean
   registrationFields: RegistrationField[]
 }) {
   const bracketHref = `/tournaments/${slug}/bracket`
+
+  if (invitation && (view === 'invitation_only' || view === 'complete_payment')) {
+    return <NextMatchInvitationCard invitation={invitation} walletBalance={walletBalance} />
+  }
 
   if (view === 'guest') {
     return (

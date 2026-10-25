@@ -92,9 +92,11 @@ export default async function TournamentDetailPage({
   let registrationStatus: string | null = null
   let prefill = { displayName: '', whatsapp: '' }
   let coinBalance = 0
+  let walletBalance = 0
+  let invitation: { id: string; rank: number; deadline: string; tournamentTitle: string; fee: number; status: string; slug: string } | null = null
   let hasUsername = true
   if (user) {
-    const [{ data: reg }, { data: profile }, balance] = await Promise.all([
+    const [{ data: reg }, { data: profile }, balance, { data: wallet }, { data: invite }] = await Promise.all([
       supabase
         .from('tournament_registrations')
         .select('payment_status, status')
@@ -107,11 +109,19 @@ export default async function TournamentDetailPage({
         .eq('id', user.id)
         .maybeSingle(),
       getCoinBalance(admin, user.id),
+      supabase.from('wallets').select('balance').eq('player_id', user.id).maybeSingle(),
+      supabase.from('tournament_invitations').select('id, status, rank_at_invite, expires_at')
+        .eq('tournament_id', t.id).eq('player_id', user.id).maybeSingle(),
     ])
     existingStatus = reg?.payment_status ?? null
     registrationStatus = reg?.status ?? null
     prefill = { displayName: profile?.display_name ?? '', whatsapp: profile?.whatsapp_number ?? '' }
     coinBalance = balance
+    walletBalance = wallet?.balance ?? 0
+    if (invite && (invite.status === 'accepted' && reg?.payment_status !== 'paid' || invite.status === 'pending' && new Date(invite.expires_at) > new Date())) {
+      invitation = { id: invite.id, rank: invite.rank_at_invite, deadline: invite.expires_at, tournamentTitle: t.title,
+        fee: t.registration_fee, status: invite.status, slug: t.slug }
+    }
     hasUsername = !!profile?.username
   }
 
@@ -292,6 +302,8 @@ export default async function TournamentDetailPage({
           tournamentTitle={t.title}
           loggedIn={!!user}
           coinBalance={coinBalance}
+          walletBalance={walletBalance}
+          invitation={invitation}
           hasUsername={hasUsername}
           registrationFields={registrationFields}
         />

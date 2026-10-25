@@ -60,9 +60,9 @@ async function leaderboardFor(admin: Admin, tournament: InvitableTournament): Pr
   return rows.filter((r) => !gone.has(r.playerId)).map((r) => ({ playerId: r.playerId, points: r.points, sxScore: r.sxScore }))
 }
 
-async function invitationRows(admin: Admin, tournamentId: string): Promise<{ playerId: string; status: string }[]> {
-  const { data } = await admin.from('tournament_invitations').select('player_id, status').eq('tournament_id', tournamentId)
-  return (data ?? []).map((r) => ({ playerId: r.player_id, status: r.status }))
+async function invitationRows(admin: Admin, tournamentId: string): Promise<{ playerId: string; status: string; expiresAt: string; rank: number }[]> {
+  const { data } = await admin.from('tournament_invitations').select('player_id, status, expires_at, rank_at_invite').eq('tournament_id', tournamentId)
+  return (data ?? []).map((r) => ({ playerId: r.player_id, status: r.status, expiresAt: r.expires_at, rank: r.rank_at_invite }))
 }
 
 function baseInvitationType(tournament: InvitableTournament): 'masters_invitation' | 'champions_cup_invitation' {
@@ -283,6 +283,44 @@ export async function reinviteExpiredInvitations(_prev: InvitationActionState, f
     return { success: true, invited: invited + reinvited }
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Could not re-invite players.' }
+  }
+}
+
+// A targeted recovery control. A live invitation keeps its original deadline;
+// an overdue one needs a free slot before receiving a new response window.
+export async function resendInvitation(_prev: InvitationActionState, formData: FormData): Promise<InvitationActionState> {
+  await requireStaff()
+  const tournamentId = String(formData.get('tournamentId') ?? '')
+  const playerId = String(formData.get('playerId') ?? '')
+  if (!tournamentId || !playerId) return { error: 'Missing tournament or player.' }
+  const admin = createAdminClient()
+  const tournament = await tournamentForInvitations(admin, tournamentId)
+  if (!isInvitable(tournament)) return { error: 'Tournament not found.' }
+  const rows = await invitationRows(admin, tournamentId)
+  const invitation = rows.find((row) => row.playerId === playerId)
+  if (!invitation) return { error: 'Invitation not found.' }
+  if (invitation.status === 'accepted') return { error: 'This invitation was accepted. The player can complete payment from their dashboard.' }
+  if (invitation.status === 'declined') return { error: 'A declined invitation cannot be resent.' }
+  try {
+    if (invitation.status === 'pending' && new Date(invitation.expiresAt) > new Date()) {
+      await notifyInvitee(tournament, playerId, invitation.rank, invitation.expiresAt,
+        baseInvitationType(tournament), mastersReinviteKey(tournamentId, playerId, new Date().toISOString()))
+    } else {
+      if (invitation.status === 'pending') {
+        const { error } = await admin.from('tournament_invitations')
+          .update({ status: 'expired', responded_at: new Date().toISOString() })
+          .eq('tournament_id', tournamentId).eq('player_id', playerId).eq('status', 'pending')
+        if (error) throw new Error(error.message)
+      }
+      const holding = (await invitationRows(admin, tournamentId)).filter((row) => row.status === 'pending' || row.status === 'accepted').length
+      if (holding >= INVITE_SLOTS) return { error: 'All invitation slots are currently held.' }
+      const count = await reviveExpiredRows(admin, tournament, [playerId], new Map([[playerId, invitation.rank]]))
+      if (count === 0) return { error: 'This invitation changed before it could be resent.' }
+    }
+    revalidatePath(`/admin/tournaments/${tournamentId}/invitations`)
+    return { success: true }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not resend invitation.' }
   }
 }
 

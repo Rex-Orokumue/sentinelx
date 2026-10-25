@@ -22,6 +22,7 @@ import { getMySquadIds, isMySide, myMatchesFilter } from '@/lib/matches/sides'
 import { mapRecentMatches } from '@/lib/dashboard/recent-matches'
 import { mapOwnedItems } from '@/lib/dashboard/owned-items'
 import { getSeasonLeaderboard, getMonthlyLeaderboard } from '@/lib/seasons/data'
+import { selectActionableInvitation } from '@/lib/seasons/dashboard-invitation'
 import { equippedCosmeticsBySlug, AVATAR_BORDER_FRAMES, PROFILE_THEME_CLASSES, USERNAME_COLOUR_CLASSES } from '@/lib/store/cosmetics'
 import type { MembershipTier } from '@/lib/membership/tiers'
 
@@ -149,15 +150,17 @@ export default async function DashboardPage() {
   const walletBalance = walletRes.data?.balance ?? 0
   const displayName = profile?.display_name ?? profile?.username ?? user.email ?? 'Player'
 
-  const { data: pendingInvitations } = await supabase
+  const [{ data: invitationRows }, { data: invitationRegistrations }] = await Promise.all([
+    supabase
     .from('tournament_invitations')
-    .select('id, rank_at_invite, expires_at, tournament:tournaments(title, registration_fee)')
+    .select('id, tournament_id, status, rank_at_invite, expires_at, tournament:tournaments(title, slug, registration_fee)')
     .eq('player_id', user.id)
-    .eq('status', 'pending')
-    .gt('expires_at', new Date().toISOString())
+    .in('status', ['pending', 'accepted'])
     .order('expires_at', { ascending: true })
-    .limit(1)
-  const pendingInvitationRow = pendingInvitations?.[0] ?? null
+    .limit(20),
+    supabase.from('tournament_registrations').select('tournament_id, payment_status').eq('player_id', user.id),
+  ])
+  const pendingInvitationRow = selectActionableInvitation(invitationRows ?? [], invitationRegistrations ?? [], new Date())
   const pendingInvitationTournament = pendingInvitationRow
     ? Array.isArray(pendingInvitationRow.tournament)
       ? pendingInvitationRow.tournament[0]
@@ -293,9 +296,12 @@ export default async function DashboardPage() {
                 deadline: pendingInvitationRow.expires_at,
                 tournamentTitle: pendingInvitationTournament.title,
                 fee: pendingInvitationTournament.registration_fee,
+                status: pendingInvitationRow.status,
+                slug: pendingInvitationTournament.slug,
               }
             : null
         }
+        walletBalance={walletBalance}
       />
       <StatsRow
         wins={profile?.wins ?? 0}

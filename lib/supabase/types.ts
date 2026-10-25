@@ -3546,6 +3546,36 @@ export type Database = {
           },
         ]
       }
+      tournament_payment_attempts: {
+        Row: {
+          id: string
+          registration_id: string
+          paystack_reference: string
+          credited_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          registration_id: string
+          paystack_reference: string
+          credited_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          registration_id?: string
+          paystack_reference?: string
+          credited_at?: string | null
+          created_at?: string
+        }
+        Relationships: [{
+          foreignKeyName: "tournament_payment_attempts_registration_id_fkey"
+          columns: ["registration_id"]
+          isOneToOne: false
+          referencedRelation: "tournament_registrations"
+          referencedColumns: ["id"]
+        }]
+      }
       tournament_registrations: {
         Row: {
           coin_discount_naira: number
@@ -3557,6 +3587,8 @@ export type Database = {
           id: string
           joining_squad_id: string | null
           payment_status: string
+          payment_source: string | null
+          paid_attempt_id: string | null
           paystack_reference: string | null
           player_id: string
           reg_display_name: string | null
@@ -3577,6 +3609,8 @@ export type Database = {
           id?: string
           joining_squad_id?: string | null
           payment_status?: string
+          payment_source?: string | null
+          paid_attempt_id?: string | null
           paystack_reference?: string | null
           player_id: string
           reg_display_name?: string | null
@@ -3597,6 +3631,8 @@ export type Database = {
           id?: string
           joining_squad_id?: string | null
           payment_status?: string
+          payment_source?: string | null
+          paid_attempt_id?: string | null
           paystack_reference?: string | null
           player_id?: string
           reg_display_name?: string | null
@@ -4166,6 +4202,22 @@ export type Database = {
           p_category: string
         }
         Returns: number | null
+      }
+      accept_invitation_registration: {
+        Args: { p_player: string; p_invitation: string }
+        Returns: Json
+      }
+      pay_invitation_from_wallet: {
+        Args: { p_player: string; p_invitation: string }
+        Returns: Json
+      }
+      start_invitation_payment_attempt: {
+        Args: { p_player: string; p_invitation: string; p_reference: string }
+        Returns: Json
+      }
+      settle_invitation_paystack: {
+        Args: { p_reference: string; p_amount_kobo: number }
+        Returns: Json
       }
       wallet_request_withdrawal: {
         Args: {

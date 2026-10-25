@@ -5,16 +5,19 @@ import {
   triggerCascadeNow,
   reinviteExpiredInvitations,
   manuallyAddInvitee,
+  resendInvitation,
   type InvitationActionState,
 } from '@/lib/seasons/invitation-actions'
 
 interface InvitationRow {
   id: string
+  playerId: string
   playerName: string
   rank: number
   status: string
   invitedAt: string
   expiresAt: string
+  paymentStatus: string | null
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -42,6 +45,7 @@ export function InvitationsPanel({ tournamentId, invitations }: { tournamentId: 
   const [cascadeState, cascadeAction] = useFormState<InvitationActionState, FormData>(triggerCascadeNow, undefined)
   const [reinviteState, reinviteAction] = useFormState<InvitationActionState, FormData>(reinviteExpiredInvitations, undefined)
   const [addState, addAction] = useFormState<InvitationActionState, FormData>(manuallyAddInvitee, undefined)
+  const [resendState, resendAction] = useFormState<InvitationActionState, FormData>(resendInvitation, undefined)
 
   return (
     <div className="space-y-6">
@@ -69,6 +73,8 @@ export function InvitationsPanel({ tournamentId, invitations }: { tournamentId: 
       {reinviteState?.success && (
         <p className="text-sm text-emerald-400">{reinviteState.invited ?? 0} player(s) invited or re-invited by rank.</p>
       )}
+      {resendState?.error && <p className="text-sm text-red-400">{resendState.error}</p>}
+      {resendState?.success && <p className="text-sm text-emerald-400">Invitation sent to the selected player.</p>}
 
       <div className="overflow-x-auto rounded-2xl border border-slate-800">
         <table className="w-full text-sm">
@@ -79,6 +85,8 @@ export function InvitationsPanel({ tournamentId, invitations }: { tournamentId: 
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Invited</th>
               <th className="px-4 py-3">Expires</th>
+              <th className="px-4 py-3">Payment</th>
+              <th className="px-4 py-3">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -91,6 +99,17 @@ export function InvitationsPanel({ tournamentId, invitations }: { tournamentId: 
                 </td>
                 <td className="px-4 py-3 text-slate-500">{new Date(row.invitedAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3 text-slate-500">{new Date(row.expiresAt).toLocaleDateString()}</td>
+                <td className="px-4 py-3 text-slate-400">{row.paymentStatus ?? (row.status === 'accepted' ? 'unpaid' : '—')}</td>
+                <td className="px-4 py-3">
+                  {(row.status === 'pending' || row.status === 'expired') && (
+                    <form action={resendAction}>
+                      <input type="hidden" name="tournamentId" value={tournamentId} />
+                      <input type="hidden" name="playerId" value={row.playerId} />
+                      <ActionButton label={row.status === 'expired' || new Date(row.expiresAt) <= new Date() ? 'Revive & resend' : 'Resend'} pendingLabel="Sending…" />
+                    </form>
+                  )}
+                  {row.status === 'accepted' && row.paymentStatus !== 'paid' && <span className="text-xs text-amber-300">Player can pay on dashboard</span>}
+                </td>
               </tr>
             ))}
           </tbody>
