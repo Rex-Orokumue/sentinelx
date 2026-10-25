@@ -16,6 +16,7 @@ import {
   reinviteExpiredInvitations,
   sendInvitations,
   triggerCascadeNow,
+  resendInvitation,
 } from './invitation-actions'
 
 type Row = Record<string, unknown>
@@ -176,6 +177,30 @@ describe('manuallyAddInvitee', () => {
     expect(new Date(t.tournament_invitations[0].expires_at as string).getTime()).toBeGreaterThan(Date.now())
     const key = vi.mocked(notify).mock.calls[0][0].dedupeKey
     expect(key).toMatch(/^season_reinvite:masters:a:/)
+  })
+})
+
+describe('resendInvitation', () => {
+  it('resends a valid pending invitation without changing its deadline', async () => {
+    const future = new Date(Date.now() + 86_400_000).toISOString()
+    const t = world({ players: [player('a')], points: { a: 5 }, invitations: [{ ...inv('a', 'pending'), expires_at: future }] })
+    expect(await resendInvitation(undefined, form({ tournamentId: MASTERS, playerId: 'a' }))).toEqual({ success: true })
+    expect(t.tournament_invitations[0].expires_at).toBe(future)
+    expect(notifiedIds()).toEqual(['a'])
+    expect(notifyInApp).toHaveBeenCalledTimes(1)
+  })
+
+  it('revives one overdue invitation when a slot is open', async () => {
+    const t = world({ players: [player('a')], points: { a: 5 }, invitations: [inv('a', 'pending')] })
+    expect(await resendInvitation(undefined, form({ tournamentId: MASTERS, playerId: 'a' }))).toEqual({ success: true })
+    expect(t.tournament_invitations[0].status).toBe('pending')
+    expect(new Date(t.tournament_invitations[0].expires_at as string).getTime()).toBeGreaterThan(Date.now())
+  })
+
+  it('does not resend an accepted invitation', async () => {
+    world({ players: [player('a')], points: { a: 5 }, invitations: [inv('a', 'accepted')] })
+    expect((await resendInvitation(undefined, form({ tournamentId: MASTERS, playerId: 'a' })))?.error).toMatch(/accepted/)
+    expect(notify).not.toHaveBeenCalled()
   })
 })
 

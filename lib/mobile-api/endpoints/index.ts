@@ -14,7 +14,7 @@ import { seasonsListEndpoint, seasonDetailEndpoint } from './seasons'
 import { hallOfFameEndpoint } from './hall-of-fame'
 import { registrationStateEndpoint, registerEndpoint, waitlistEndpoint } from './tournaments'
 import { registrationFieldsEndpoint } from './registration-fields'
-import { acceptInvitationEndpoint, declineInvitationEndpoint } from './invitations'
+import { acceptInvitationEndpoint, declineInvitationEndpoint, payInvitationFromWalletEndpoint } from './invitations'
 import { paymentStatusEndpoint } from './payments'
 import { bracketEndpoint } from './bracket'
 import { standingsEndpoint } from './standings'
@@ -123,6 +123,7 @@ export const ALL_ENDPOINTS: Endpoint[] = [
   waitlistEndpoint,
   acceptInvitationEndpoint,
   declineInvitationEndpoint,
+  payInvitationFromWalletEndpoint,
   paymentStatusEndpoint,
   bracketEndpoint,
   standingsEndpoint,

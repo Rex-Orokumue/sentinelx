@@ -29,12 +29,14 @@ export interface NextMatchData {
 export function NextMatchCard({
   match,
   invitation,
+  walletBalance,
 }: {
   match: NextMatchData | null
-  invitation: { id: string; rank: number; deadline: string; tournamentTitle: string; fee: number } | null
+  invitation: { id: string; rank: number; deadline: string; tournamentTitle: string; fee: number; status: string; slug: string } | null
+  walletBalance: number
 }) {
   // State C — a pending invitation replaces this card entirely, same slot.
-  if (invitation) return <NextMatchInvitationCard invitation={invitation} />
+  if (invitation) return <NextMatchInvitationCard invitation={invitation} walletBalance={walletBalance} />
 
   // State B — nothing scheduled.
   if (!match) {

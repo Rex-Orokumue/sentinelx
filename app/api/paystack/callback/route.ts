@@ -22,8 +22,17 @@ export async function GET(req: NextRequest) {
       .select('tournaments(slug)')
       .eq('paystack_reference', reference)
       .maybeSingle()
-    const slug = (data?.tournaments as { slug: string } | null)?.slug
-    const success = result === 'confirmed' || result === 'already_paid'
+    let slug = (data?.tournaments as { slug: string } | null)?.slug
+    if (!slug) {
+      const { data: attempt } = await db.from('tournament_payment_attempts')
+        .select('registration_id').eq('paystack_reference', reference).maybeSingle()
+      if (attempt) {
+        const { data: registration } = await db.from('tournament_registrations')
+          .select('tournaments(slug)').eq('id', attempt.registration_id).maybeSingle()
+        slug = (registration?.tournaments as { slug: string } | null)?.slug
+      }
+    }
+    const success = result === 'confirmed' || result === 'already_paid' || result === 'overpayment_credited'
     const dest = slug ? `/tournaments/${slug}?${success ? 'paid=1' : 'payment=failed'}` : '/tournaments'
     return NextResponse.redirect(new URL(dest, origin))
   }

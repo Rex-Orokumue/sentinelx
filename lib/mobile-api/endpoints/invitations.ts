@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { defineEndpoint } from '../define-endpoint'
 import { ApiError } from '../errors'
-import { performAcceptInvitation, performDeclineInvitation, type AcceptInvitationErrorCode, type DeclineInvitationErrorCode } from '@/lib/seasons/invitation-response-service'
+import { performAcceptInvitation, performDeclineInvitation, performPayInvitationFromWallet, type AcceptInvitationErrorCode, type DeclineInvitationErrorCode, type WalletInvitationResult } from '@/lib/seasons/invitation-response-service'
 
 const acceptResponse = z.discriminatedUnion('status', [
   z.object({ status: z.literal('confirmed') }),
@@ -9,12 +9,13 @@ const acceptResponse = z.discriminatedUnion('status', [
 ])
 
 const ACCEPT_ERROR_STATUS: Record<AcceptInvitationErrorCode, number> = {
-  invitation_not_found: 404, invitation_no_longer_available: 409, invitation_expired: 410, payment_init_failed: 502,
+  invitation_not_found: 404, invitation_no_longer_available: 409, invitation_expired: 410, registration_closed: 409, payment_init_failed: 502,
 }
 const ACCEPT_ERROR_MESSAGE: Record<AcceptInvitationErrorCode, string> = {
   invitation_not_found: 'Invitation not found.',
   invitation_no_longer_available: 'This invitation is no longer available.',
   invitation_expired: 'This invitation has expired.',
+  registration_closed: 'Registration is closed for this tournament.',
   payment_init_failed: 'Payment could not be started. Your spot is reserved — try again from your dashboard.',
 }
 
@@ -31,6 +32,31 @@ export const acceptInvitationEndpoint = defineEndpoint({
     if (!result.ok) throw new ApiError(ACCEPT_ERROR_STATUS[result.errorCode], result.errorCode, ACCEPT_ERROR_MESSAGE[result.errorCode])
     if (result.status === 'confirmed') return { status: 'confirmed' as const }
     return { status: 'pending' as const, authorizationUrl: result.authorizationUrl, reference: result.reference }
+  },
+})
+
+type WalletErrorCode = Extract<WalletInvitationResult, { ok: false }>['errorCode']
+const WALLET_ERROR_STATUS: Record<WalletErrorCode, number> = {
+  ...ACCEPT_ERROR_STATUS,
+  insufficient_wallet_balance: 409,
+}
+const WALLET_ERROR_MESSAGE: Record<WalletErrorCode, string> = {
+  ...ACCEPT_ERROR_MESSAGE,
+  insufficient_wallet_balance: 'Your wallet balance is below the entry fee.',
+}
+
+export const payInvitationFromWalletEndpoint = defineEndpoint({
+  operationId: 'postInvitationPayWallet',
+  method: 'POST',
+  path: '/invitations/{id}/pay-wallet',
+  summary: 'Pay an accepted season invitation entry fee from the player wallet.',
+  auth: 'user',
+  idempotent: true,
+  response: z.object({ status: z.literal('confirmed') }),
+  handler: async ({ ctx, params }) => {
+    const result = await performPayInvitationFromWallet(ctx.admin, ctx.userId, params.id)
+    if (!result.ok) throw new ApiError(WALLET_ERROR_STATUS[result.errorCode], result.errorCode, WALLET_ERROR_MESSAGE[result.errorCode])
+    return { status: 'confirmed' as const }
   },
 })
 

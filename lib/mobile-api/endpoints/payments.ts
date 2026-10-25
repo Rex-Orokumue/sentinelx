@@ -3,7 +3,7 @@ import { defineEndpoint } from '../define-endpoint'
 import { confirmRegistration } from '@/lib/tournaments/confirm'
 
 const paymentStatusResponse = z.object({
-  status: z.enum(['confirmed', 'already_paid', 'not_found', 'not_successful']),
+  status: z.enum(['confirmed', 'already_paid', 'overpayment_credited', 'not_found', 'not_successful']),
 })
 
 export const paymentStatusEndpoint = defineEndpoint({
