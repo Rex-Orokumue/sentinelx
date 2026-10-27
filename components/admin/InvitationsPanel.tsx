@@ -8,16 +8,21 @@ import {
   resendInvitation,
   type InvitationActionState,
 } from '@/lib/seasons/invitation-actions'
+import { canRecordManualPayment } from '@/lib/seasons/manual-payment-policy'
+import { ManualPaymentForm } from './ManualPaymentForm'
 
 interface InvitationRow {
   id: string
   playerId: string
+  username: string
   playerName: string
   rank: number
   status: string
   invitedAt: string
   expiresAt: string
   paymentStatus: string | null
+  paymentSource: string | null
+  registrationStatus: string | null
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -40,7 +45,13 @@ function ActionButton({ label, pendingLabel }: { label: string; pendingLabel: st
   )
 }
 
-export function InvitationsPanel({ tournamentId, invitations }: { tournamentId: string; invitations: InvitationRow[] }) {
+export function InvitationsPanel({ tournamentId, tournamentStatus, registrationFee, isAdmin, invitations }: {
+  tournamentId: string
+  tournamentStatus: string
+  registrationFee: number
+  isAdmin: boolean
+  invitations: InvitationRow[]
+}) {
   const [sendState, sendAction] = useFormState<InvitationActionState, FormData>(sendInvitations, undefined)
   const [cascadeState, cascadeAction] = useFormState<InvitationActionState, FormData>(triggerCascadeNow, undefined)
   const [reinviteState, reinviteAction] = useFormState<InvitationActionState, FormData>(reinviteExpiredInvitations, undefined)
@@ -86,6 +97,7 @@ export function InvitationsPanel({ tournamentId, invitations }: { tournamentId: 
               <th className="px-4 py-3">Invited</th>
               <th className="px-4 py-3">Expires</th>
               <th className="px-4 py-3">Payment</th>
+              <th className="px-4 py-3">Registration</th>
               <th className="px-4 py-3">Action</th>
             </tr>
           </thead>
@@ -99,7 +111,11 @@ export function InvitationsPanel({ tournamentId, invitations }: { tournamentId: 
                 </td>
                 <td className="px-4 py-3 text-slate-500">{new Date(row.invitedAt).toLocaleDateString()}</td>
                 <td className="px-4 py-3 text-slate-500">{new Date(row.expiresAt).toLocaleDateString()}</td>
-                <td className="px-4 py-3 text-slate-400">{row.paymentStatus ?? (row.status === 'accepted' ? 'unpaid' : '—')}</td>
+                <td className="px-4 py-3 text-slate-400">
+                  {row.paymentStatus ?? (row.status === 'accepted' ? 'unpaid' : '—')}
+                  {row.paymentSource === 'manual' && ' · outside payment'}
+                </td>
+                <td className="px-4 py-3 text-slate-400">{row.registrationStatus ?? 'None'}</td>
                 <td className="px-4 py-3">
                   {(row.status === 'pending' || row.status === 'expired') && (
                     <form action={resendAction}>
@@ -109,6 +125,11 @@ export function InvitationsPanel({ tournamentId, invitations }: { tournamentId: 
                     </form>
                   )}
                   {row.status === 'accepted' && row.paymentStatus !== 'paid' && <span className="text-xs text-amber-300">Player can pay on dashboard</span>}
+                  {canRecordManualPayment({ isAdmin, tournamentStatus, invitationStatus: row.status,
+                    paymentStatus: row.paymentStatus, registrationStatus: row.registrationStatus, fee: registrationFee }) && (
+                    <ManualPaymentForm tournamentId={tournamentId} playerId={row.playerId}
+                      username={row.username} fee={registrationFee} />
+                  )}
                 </td>
               </tr>
             ))}

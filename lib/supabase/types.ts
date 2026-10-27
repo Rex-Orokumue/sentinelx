@@ -3546,6 +3546,50 @@ export type Database = {
           },
         ]
       }
+      manual_tournament_payments: {
+        Row: {
+          id: string
+          registration_id: string
+          tournament_id: string
+          player_id: string
+          actor_id: string
+          amount: number
+          channel: string
+          reference: string
+          note: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          registration_id: string
+          tournament_id: string
+          player_id: string
+          actor_id: string
+          amount: number
+          channel: string
+          reference: string
+          note?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          registration_id?: string
+          tournament_id?: string
+          player_id?: string
+          actor_id?: string
+          amount?: number
+          channel?: string
+          reference?: string
+          note?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          { foreignKeyName: "manual_tournament_payments_registration_id_fkey"; columns: ["registration_id"]; isOneToOne: true; referencedRelation: "tournament_registrations"; referencedColumns: ["id"] },
+          { foreignKeyName: "manual_tournament_payments_tournament_id_fkey"; columns: ["tournament_id"]; isOneToOne: false; referencedRelation: "tournaments"; referencedColumns: ["id"] },
+          { foreignKeyName: "manual_tournament_payments_player_id_fkey"; columns: ["player_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "manual_tournament_payments_actor_id_fkey"; columns: ["actor_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+        ]
+      }
       tournament_payment_attempts: {
         Row: {
           id: string
@@ -4217,6 +4261,18 @@ export type Database = {
       }
       settle_invitation_paystack: {
         Args: { p_reference: string; p_amount_kobo: number }
+        Returns: Json
+      }
+      record_manual_invitation_payment: {
+        Args: {
+          p_tournament: string
+          p_player: string
+          p_actor: string
+          p_amount: number
+          p_channel: string
+          p_reference: string
+          p_note: string | null
+        }
         Returns: Json
       }
       wallet_request_withdrawal: {

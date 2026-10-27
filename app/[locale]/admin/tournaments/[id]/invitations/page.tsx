@@ -4,11 +4,11 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { InvitationsPanel } from '@/components/admin/InvitationsPanel'
 
 export default async function TournamentInvitationsPage({ params }: { params: { id: string } }) {
-  await requireStaff()
+  const ctx = await requireStaff()
   const admin = createAdminClient()
   const { data: tournament } = await admin
     .from('tournaments')
-    .select('id, title, tournament_type')
+    .select('id, title, tournament_type, status, registration_fee')
     .eq('id', params.id)
     .maybeSingle()
 
@@ -25,21 +25,26 @@ export default async function TournamentInvitationsPage({ params }: { params: { 
     .select('id, player_id, rank_at_invite, status, invited_at, expires_at, player:profiles(username, display_name)')
     .eq('tournament_id', params.id)
     .order('rank_at_invite'),
-    admin.from('tournament_registrations').select('player_id, payment_status')
+    admin.from('tournament_registrations').select('player_id, payment_status, payment_source, status')
       .eq('tournament_id', params.id),
   ])
 
+  const registrationByPlayer = new Map((registrations ?? []).map((registration) => [registration.player_id, registration]))
   const rows = (invitations ?? []).map((row) => {
     const p = Array.isArray(row.player) ? row.player[0] : row.player
+    const registration = registrationByPlayer.get(row.player_id)
     return {
       id: row.id,
       playerId: row.player_id,
+      username: p?.username ?? 'Unknown',
       playerName: p?.display_name ?? p?.username ?? 'Unknown',
       rank: row.rank_at_invite,
       status: row.status,
       invitedAt: row.invited_at,
       expiresAt: row.expires_at,
-      paymentStatus: registrations?.find((registration) => registration.player_id === row.player_id)?.payment_status ?? null,
+      paymentStatus: registration?.payment_status ?? null,
+      paymentSource: registration?.payment_source ?? null,
+      registrationStatus: registration?.status ?? null,
     }
   })
 
@@ -49,7 +54,8 @@ export default async function TournamentInvitationsPage({ params }: { params: { 
         ← Tournaments
       </Link>
       <h1 className="mb-6 mt-2 text-2xl font-bold text-white">{tournament.title} — Invitations</h1>
-      <InvitationsPanel tournamentId={tournament.id} invitations={rows} />
+      <InvitationsPanel tournamentId={tournament.id} tournamentStatus={tournament.status}
+        registrationFee={tournament.registration_fee} isAdmin={ctx.isAdmin} invitations={rows} />
     </div>
   )
 }
