@@ -4,6 +4,7 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    output: 'standalone',
   transpilePackages: ['@base-ui/react', 'tailwind-merge'],
   // Every admin (and dashboard) page is dynamically rendered because it reads
   // the session cookie — but Next 14.2's Client Router Cache still holds a
