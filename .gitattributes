@@ -6,3 +6,6 @@
 #
 # Scoped to snapshots on purpose: it does not renormalize the rest of the repo.
 *.snap text eol=lf
+
+# Shell scripts must keep LF endings or bash on Linux rejects them.
+*.sh text eol=lf
