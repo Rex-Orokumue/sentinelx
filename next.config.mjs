@@ -4,7 +4,11 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    output: 'standalone',
+  // Self-contained server for cPanel (Passenger) hosting.
+  output: 'standalone',
+  // No server-side image optimiser: Next 14's has critical advisories and the
+  // self-hosted build ships without sharp.
+  images: { unoptimized: true },
   transpilePackages: ['@base-ui/react', 'tailwind-merge'],
   // Every admin (and dashboard) page is dynamically rendered because it reads
   // the session cookie — but Next 14.2's Client Router Cache still holds a
