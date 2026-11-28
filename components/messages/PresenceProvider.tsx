@@ -1,6 +1,7 @@
 'use client'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { keepSubscribed } from '@/lib/realtime/keep-subscribed'
 
 const PRESENCE_TOPIC = 'dm-online'
 
@@ -37,50 +38,28 @@ export function PresenceProvider({ viewerId, children }: { viewerId: string; chi
 
   useEffect(() => {
     const supabase = createClient()
-    let cancelled = false
-    let retryTimer: ReturnType<typeof setTimeout> | null = null
-    let currentChannel: ReturnType<typeof supabase.channel> | null = null
-
-    function subscribe() {
-      const channel = supabase.channel(PRESENCE_TOPIC, {
-        config: { private: true, presence: { key: viewerId } },
-      })
-      currentChannel = channel
-
-      channel.on('presence', { event: 'sync' }, () => {
-        setOnline(new Set(Object.keys(channel.presenceState())))
-      })
-
-      channel.subscribe(async (status) => {
-        if (cancelled) return
-        if (status === 'SUBSCRIBED') {
-          await channel.track({ online_at: new Date().toISOString() })
-          return
-        }
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          supabase.removeChannel(channel)
-          retryTimer = setTimeout(subscribe, 2000)
-        }
-      })
-    }
-    subscribe()
+    const connection = keepSubscribed({
+      client: supabase,
+      create: () => {
+        const channel = supabase.channel(PRESENCE_TOPIC, {
+          config: { private: true, presence: { key: viewerId } },
+        })
+        channel.on('presence', { event: 'sync' }, () => {
+          setOnline(new Set(Object.keys(channel.presenceState())))
+        })
+        return channel
+      },
+      onSubscribed: (channel) => void channel.track({ online_at: new Date().toISOString() }),
+    })
 
     function onVisible() {
-      if (document.visibilityState !== 'visible') return
-      if (retryTimer) {
-        clearTimeout(retryTimer)
-        retryTimer = null
-      }
-      if (currentChannel) supabase.removeChannel(currentChannel)
-      subscribe()
+      if (document.visibilityState === 'visible') connection.restart()
     }
     document.addEventListener('visibilitychange', onVisible)
 
     return () => {
-      cancelled = true
       document.removeEventListener('visibilitychange', onVisible)
-      if (retryTimer) clearTimeout(retryTimer)
-      if (currentChannel) supabase.removeChannel(currentChannel)
+      connection.stop()
     }
   }, [viewerId])
 

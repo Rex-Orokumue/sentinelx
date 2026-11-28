@@ -188,7 +188,7 @@
       "submit": "Create account",
       "submitting": "Creating account…",
       "checkEmailTitle": "Check your email",
-      "checkEmailBody": "We sent a confirmation link to {email}. Click it to activate your account, then log in and pick your handle.",
+      "checkEmailBody": "We sent a confirmation link to <address>{email}</address>. Click it to activate your account, then log in and pick your handle.",
       "nothingYet": "Nothing after a few minutes? Check your spam folder, then:",
       "resend": "Resend it",
       "resending": "Sending…",
@@ -196,7 +196,7 @@
       "startOver": "start over",
       "googleTipAfter": " and use the Google button.",
       "orSignUpWithEmail": "OR SIGN UP WITH EMAIL",
-      "signingUpAs": "Signing up as {username}."
+      "signingUpAs": "Signing up as <name>{username}</name>."
     },
     "forgot": {
       "title": "Reset your password",

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { DashboardShell } from '@/components/dashboard/DashboardShell'
+import { SettingsLoadError } from '@/components/settings/SettingsLoadError'
 import { ProfileForm } from '@/components/settings/ProfileForm'
 import { NotificationPrefsForm } from '@/components/settings/NotificationPrefsForm'
 import { PushPrefsForm } from '@/components/settings/PushPrefsForm'
@@ -36,7 +37,13 @@ export default async function DashboardSettingsPage({
     email: (identity.identity_data?.email as string | undefined) ?? null,
   }))
 
-  const [{ data: row }, { data: kyc }, { count: fcmTokenCount }, { data: games }, { data: gameInterestRows }] = await Promise.all([
+  const [
+    { data: row, error: rowError },
+    { data: kyc },
+    { count: fcmTokenCount },
+    { data: games, error: gamesError },
+    { data: gameInterestRows, error: interestError },
+  ] = await Promise.all([
     createAdminClient()
       .from('profiles')
       .select(
@@ -55,7 +62,15 @@ export default async function DashboardSettingsPage({
     supabase.from('game_interest').select('game_id').eq('user_id', user.id),
   ])
 
-  const prefs = (row?.notification_prefs ?? {}) as {
+  // A blank form would look like a wiped account, and saving it would overwrite
+  // real data, so show the failure instead of the settings.
+  const loadError = rowError ?? gamesError ?? interestError
+  if (loadError || !row) {
+    console.error('[settings] could not load', { userId: user.id, message: loadError?.message ?? 'no profile row' })
+    return <SettingsLoadError />
+  }
+
+  const prefs = (row.notification_prefs ?? {}) as {
     whatsapp?: Record<string, boolean>
     push?: Record<string, boolean>
     achievement_sharing?: Record<string, boolean>

@@ -188,7 +188,7 @@
       "submit": "Create account",
       "submitting": "We dey create di account…",
       "checkEmailTitle": "Check your email",
-      "checkEmailBody": "We don send confirmation link go {email}. Click am to activate your account, then log in and pick your handle.",
+      "checkEmailBody": "We don send confirmation link go <address>{email}</address>. Click am to activate your account, then log in and pick your handle.",
       "nothingYet": "Nothing enter after some minutes? Check your spam folder, then:",
       "resend": "Send am again",
       "resending": "E dey send…",
@@ -196,7 +196,7 @@
       "startOver": "start over",
       "googleTipAfter": " and use di Google button.",
       "orSignUpWithEmail": "OR SIGN UP WITH EMAIL",
-      "signingUpAs": "You dey sign up as {username}."
+      "signingUpAs": "You dey sign up as <name>{username}</name>."
     },
     "forgot": {
       "title": "Reset your password",

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { keepSubscribed } from '@/lib/realtime/keep-subscribed'
 import { markThreadRead } from '@/lib/messages/actions'
 import { resolveParticipantContent } from '@/lib/messages/predicates'
 import { mergeLocalMessages, type DisplayMessage } from '@/lib/messages/optimistic'
@@ -80,12 +81,9 @@ export function Conversation({
   // state, same recovery a reload gives, done automatically.
   useEffect(() => {
     const supabase = createClient()
-    let cancelled = false
-    let retryTimer: ReturnType<typeof setTimeout> | null = null
-    let currentChannel: ReturnType<typeof supabase.channel> | null = null
 
-    function subscribe() {
-      currentChannel = supabase
+    function create() {
+      return supabase
         .channel(`dm:thread:${detail.threadId}`)
         .on(
           'postgres_changes',
@@ -191,34 +189,20 @@ export function Conversation({
             void markThreadRead(detail.threadId)
           },
         )
-        .subscribe((status) => {
-          if (cancelled) return
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            if (currentChannel) supabase.removeChannel(currentChannel)
-            retryTimer = setTimeout(subscribe, 2000)
-          }
-        })
     }
-    subscribe()
+    const connection = keepSubscribed({ client: supabase, create })
 
     function onVisible() {
       if (document.visibilityState !== 'visible') return
-      if (retryTimer) {
-        clearTimeout(retryTimer)
-        retryTimer = null
-      }
-      if (currentChannel) supabase.removeChannel(currentChannel)
-      subscribe()
+      connection.restart()
       router.refresh()
       void markThreadRead(detail.threadId)
     }
     document.addEventListener('visibilitychange', onVisible)
 
     return () => {
-      cancelled = true
       document.removeEventListener('visibilitychange', onVisible)
-      if (retryTimer) clearTimeout(retryTimer)
-      if (currentChannel) supabase.removeChannel(currentChannel)
+      connection.stop()
     }
   }, [detail.threadId, viewerId, router])
 
