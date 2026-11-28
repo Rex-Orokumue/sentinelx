@@ -13,6 +13,7 @@ import { HowItWorks } from '@/components/home/HowItWorks'
 import { HomeFinalCta } from '@/components/home/HomeFinalCta'
 import { buildHomeSummary } from '@/lib/home/summary'
 import { buildMetadata } from '@/lib/seo/metadata'
+import { DEFAULT_OG_IMAGE } from '@/lib/seo/site'
 import type { Locale } from '@/i18n/locales'
 import { getTranslations } from 'next-intl/server'
 import { homepageDescription } from '@/lib/seo/homepage-description'
@@ -37,6 +38,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
     description: homepageDescription(liveTournament?.title ?? null),
     path: '/',
     locale,
+    // Without this the page has no share image: its own openGraph replaces the layout's.
+    image: DEFAULT_OG_IMAGE,
   })
 }
 

@@ -188,7 +188,7 @@
       "submit": "Créer un compte",
       "submitting": "Création du compte…",
       "checkEmailTitle": "Consultez vos e-mails",
-      "checkEmailBody": "Nous avons envoyé un lien de confirmation à {email}. Cliquez dessus pour activer votre compte, puis connectez-vous et choisissez votre pseudo.",
+      "checkEmailBody": "Nous avons envoyé un lien de confirmation à <address>{email}</address>. Cliquez dessus pour activer votre compte, puis connectez-vous et choisissez votre pseudo.",
       "nothingYet": "Toujours rien après quelques minutes ? Vérifiez vos spams, puis :",
       "resend": "Renvoyer",
       "resending": "Envoi…",
@@ -196,7 +196,7 @@
       "startOver": "recommencez",
       "googleTipAfter": " et utilisez le bouton Google.",
       "orSignUpWithEmail": "OU S'INSCRIRE PAR E-MAIL",
-      "signingUpAs": "Inscription en tant que {username}."
+      "signingUpAs": "Inscription en tant que <name>{username}</name>."
     },
     "forgot": {
       "title": "Réinitialisez votre mot de passe",

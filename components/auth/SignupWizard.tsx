@@ -66,7 +66,8 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
         <h1 className="mb-2 text-xl font-bold">{t('signup.checkEmailTitle')}</h1>
         <p className="text-sm text-slate-400">
           {t.rich('signup.checkEmailBody', {
-            email: () => <span className="font-semibold text-white">{email}</span>,
+            email,
+            address: (chunks) => <span className="font-semibold text-white">{chunks}</span>,
           })}
         </p>
         <div className="mt-5 rounded-lg border border-slate-800 bg-slate-900/60 p-3 text-sm text-slate-300">
@@ -160,7 +161,8 @@ export function SignupWizard({ refCode }: { refCode: string | null }) {
         <h1 className="mb-1 text-xl font-bold">{t('signup.step2Title')}</h1>
         <p className="mb-6 text-sm text-slate-400">
           {t.rich('signup.signingUpAs', {
-            username: () => <span className="font-semibold text-white">{username}</span>,
+            username,
+            name: (chunks) => <span className="font-semibold text-white">{chunks}</span>,
           })}
         </p>
         <div className="space-y-4">
